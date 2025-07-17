@@ -1,0 +1,54 @@
+.backtotop {
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+}
+.max-width {
+  max-width: 1320px;
+}
+/*This is for the docs sidebar**/
+.left-sidebar {
+  height: 100vh;
+  background: white;
+  width: 260px;
+  font-size: 0.875rem;
+  .nav-small-cap {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 30px 0 10px 0;
+  }
+  .nav-link {
+    transition: 0.1s ease-in;
+    &:hover {
+      padding-left: 20px;
+    }
+  }
+}
+
+.card {
+  border: 0px;
+}
+.togglebtn {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1;
+}
+.closeSidebar {
+  position: absolute;
+  right: 22px;
+  top: 22px;
+}
+
+@media (max-width: 767px) {
+  .left-sidebar {
+    position: fixed;
+    height: 100%;
+    box-shadow: $box-shadow;
+    left: -260px;
+    z-index: 2;
+    &.show-sidebar {
+      left: 0px;
+    }
+  }
+}

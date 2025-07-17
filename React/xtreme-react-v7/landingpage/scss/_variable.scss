@@ -1,0 +1,98 @@
+/*******************************/
+// Variables
+/*******************************/
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@200;300;400;600;700&display=swap");
+$font-family-sans-serif: "Nunito", sans-serif;
+/*******************************/
+// Bootstrap overrides
+/*******************************/
+
+/**
+ * Table Of Content
+ *
+ *  1. Color system
+ *  2. Options
+ *  3. Body
+ *  4. Typography
+ *  5. Breadcrumbs
+ *  6. Cards
+ *  7. Dropdowns
+ *  8. Buttons
+ *  9. Typography
+ *  10. Progress bars
+ *  11. Tables
+ *  12. Forms
+ *  14. Component
+ */
+
+/*******************/
+// Theme Colors
+/********************/
+$primary: #2962ff;
+$info: #3699ff;
+$danger: #f64e60;
+$success: #0bb7af;
+$warning: #ee9d01;
+$dark: #001e3c;
+$light: #f6faff;
+$secondary: #001e3c;
+
+$theme-colors: (
+  "primary": $primary,
+  "secondary": $secondary,
+  "success": $success,
+  "info": $info,
+  "warning": $warning,
+  "danger": $danger,
+  "light": $light,
+  "dark": $dark,
+  "light-primary": #c7eaff,
+  "light-success": #e8fdeb,
+  "light-info": #cfecfe,
+  "light-warning": #fff8ec,
+  "light-danger": #f9e7eb,
+  "light-secondary": #f3f2f2,
+);
+// scss-docs-start gray-color-variables
+$white: #fff !default;
+$gray-100: #f8f9fa !default;
+$gray-200: #f2f7f8 !default;
+$gray-300: #dee2e6 !default;
+$gray-400: #ced4da !default;
+$gray-500: #adb5bd !default;
+$gray-600: #495057 !default;
+$gray-700: #343a40 !default;
+$gray-800: #1e2a35 !default;
+$gray-900: #141c24 !default;
+$black: #000 !default;
+
+/*******************/
+// Theme Text Contrast
+/********************/
+$min-contrast-ratio: 1.6 !default;
+$enable-shadows: true !default;
+$grid-gutter-width: 2rem !default;
+// heading fonts setting
+
+$h1-font-size: 30px !default;
+$h2-font-size: 24px !default;
+$h3-font-size: 21px !default;
+$h4-font-size: 18px !default;
+$h5-font-size: 16px !default;
+$h6-font-size: 14px !default;
+
+$font-weight-light: 300 !default;
+$font-weight-normal: 400 !default;
+$font-weight-bold: 500 !default;
+$font-weight-base: $font-weight-light !default;
+
+$btn-box-shadow: 0;
+$box-shadow: 0 0.5rem 1rem rgba($black, 0.05);
+$card-box-shadow: $box-shadow !default;
+// Body
+//
+// Settings for the  element.
+$main-body-bg: #fff !default;
+$body-bg: #fff;
+$body-color: #2b2c2c !default;
+$grid-gutter-width: 20px !default;
