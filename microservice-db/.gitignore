@@ -1,0 +1,42 @@
+# Entorno virtual
+venv/
+.env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos de entorno
+.env
+.env.*
+
+# Archivos de base de datos
+*.sqlite3
+*.db
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp
+*.swp
+
+# IDEs y editores
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Coverage
+htmlcov/
+.coverage
+coverage.xml
+
+# Archivos comprimidos
+*.zip
+*.tar.gz
+*.rar 
