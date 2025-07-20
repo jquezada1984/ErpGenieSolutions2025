@@ -1,14 +1,30 @@
-import React, { createContext, useEffect, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { gql, useMutation } from '@apollo/client';
+import { useMutation, useLazyQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
+import { setSession, isValidToken } from './Jwt';
+
 // utils
 import axios from './axios';
-import { isValidToken, setSession } from './Jwt';
 
 // GraphQL mutation para login
 const LOGIN_MUTATION = gql`
   mutation Login($email: String!, $password: String!) {
     login(email: $email, password: $password) {
+      accessToken
+      user {
+        id
+        email
+        firstName
+        lastName
+      }
+    }
+  }
+`;
+
+const ME_QUERY = gql`
+  query Me {
+    me {
       accessToken
       user {
         id
@@ -90,6 +106,7 @@ const AuthContext = createContext({
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [loginMutation] = useMutation(LOGIN_MUTATION);
+  const [getMe] = useLazyQuery(ME_QUERY);
 
   useEffect(() => {
     const initialize = async () => {
@@ -101,8 +118,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('✅ Token válido encontrado, configurando sesión...');
           setSession(accessToken);
 
-          const response = await axios.get('/api/account/my-account');
-          const { user } = response.data;
+          // Usar GraphQL en lugar de REST
+          const { data } = await getMe();
+          const { user } = data.me;
 
           dispatch({
             type: 'INITIALIZE',
@@ -134,7 +152,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initialize();
-  }, []);
+  }, [getMe]);
 
   const signInWithEmailAndPassword = async (email: string, password: string) => {
     try {
