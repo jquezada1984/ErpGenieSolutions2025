@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { useJwt } from 'react-jwt';
 import axios from './axios';
 
 const isValidToken = (accessToken: string) => {
@@ -7,10 +6,22 @@ const isValidToken = (accessToken: string) => {
     return false;
   }
 
-  const decoded = useJwt(accessToken);
-  const currentTime = Date.now() / 1000;
+  try {
+    // Decodificar el token JWT manualmente
+    const base64Url = accessToken.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
 
-  return decoded.decodedToken && (decoded.decodedToken as any).exp > currentTime;
+    const decoded = JSON.parse(jsonPayload);
+    const currentTime = Date.now() / 1000;
+
+    return decoded && decoded.exp > currentTime;
+  } catch (error) {
+    console.error('Error decodificando token:', error);
+    return false;
+  }
 };
 
 const setSession = (accessToken: string) => {

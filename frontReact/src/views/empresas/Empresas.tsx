@@ -1,26 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  CardBody,
-  CardTitle,
-  Button,
-  Table,
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Form,
-  FormGroup,
-  Label,
-  Input,
-  Alert,
-  Badge,
-} from 'reactstrap';
+import { Card, CardBody, CardTitle, Button, Alert, Container, Row, Col, Badge } from 'reactstrap';
+import { useNavigate } from 'react-router-dom';
 import { useLazyQuery, useMutation } from '@apollo/client';
 import { gql } from '@apollo/client';
+import ReactTable from 'react-table';
+import 'react-table/react-table.css';
 
 // GraphQL queries y mutations
 const GET_EMPRESAS = gql`
@@ -98,20 +82,13 @@ interface FormData {
 }
 
 const Empresas: React.FC = () => {
+  const navigate = useNavigate();
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
-  const [modal, setModal] = useState(false);
-  const [editingEmpresa, setEditingEmpresa] = useState<Empresa | null>(null);
-  const [formData, setFormData] = useState<FormData>({
-    nombre: '',
-    ruc: '',
-    direccion: '',
-    telefono: '',
-    email: '',
-  });
-  const [alert, setAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // GraphQL hooks
-  const [getEmpresas, { loading }] = useLazyQuery(GET_EMPRESAS);
+  const [getEmpresas, { loading: queryLoading }] = useLazyQuery(GET_EMPRESAS);
   const [createEmpresa] = useMutation(CREATE_EMPRESA);
   const [updateEmpresa] = useMutation(UPDATE_EMPRESA);
   const [deleteEmpresa] = useMutation(DELETE_EMPRESA);
@@ -128,63 +105,18 @@ const Empresas: React.FC = () => {
       }
     } catch (error) {
       console.error('Error cargando empresas:', error);
-      setAlert({ type: 'danger', message: 'Error al cargar las empresas' });
+      setError('Error al cargar las empresas');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const toggleModal = () => {
-    setModal(!modal);
-    if (!modal) {
-      setEditingEmpresa(null);
-      setFormData({
-        nombre: '',
-        ruc: '',
-        direccion: '',
-        telefono: '',
-        email: '',
-      });
-    }
+  const handleNuevaEmpresa = () => {
+    navigate('/empresas/nueva');
   };
 
   const handleEdit = (empresa: Empresa) => {
-    setEditingEmpresa(empresa);
-    setFormData({
-      nombre: empresa.nombre,
-      ruc: empresa.ruc,
-      direccion: empresa.direccion || '',
-      telefono: empresa.telefono || '',
-      email: empresa.email || '',
-    });
-    setModal(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      if (editingEmpresa) {
-        // Actualizar empresa
-        await updateEmpresa({
-          variables: {
-            id_empresa: editingEmpresa.id_empresa,
-            ...formData,
-          },
-        });
-        setAlert({ type: 'success', message: 'Empresa actualizada exitosamente' });
-      } else {
-        // Crear nueva empresa
-        await createEmpresa({
-          variables: formData,
-        });
-        setAlert({ type: 'success', message: 'Empresa creada exitosamente' });
-      }
-      
-      toggleModal();
-      loadEmpresas();
-    } catch (error) {
-      console.error('Error:', error);
-      setAlert({ type: 'danger', message: 'Error al procesar la empresa' });
-    }
+    navigate(`/empresas/editar/${empresa.id_empresa}`);
   };
 
   const handleDelete = async (id: number) => {
@@ -193,22 +125,103 @@ const Empresas: React.FC = () => {
         await deleteEmpresa({
           variables: { id_empresa: id },
         });
-        setAlert({ type: 'success', message: 'Empresa eliminada exitosamente' });
+        setError('Empresa eliminada exitosamente');
         loadEmpresas();
       } catch (error) {
         console.error('Error eliminando empresa:', error);
-        setAlert({ type: 'danger', message: 'Error al eliminar la empresa' });
+        setError('Error al eliminar la empresa');
       }
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  // Preparar datos para ReactTable
+  const tableData = empresas.map((empresa) => ({
+    id: empresa.id_empresa,
+    nombre: empresa.nombre,
+    ruc: empresa.ruc,
+    direccion: empresa.direccion || '-',
+    telefono: empresa.telefono || '-',
+    email: empresa.email || '-',
+    estado: (
+      <Badge 
+        color={empresa.estado ? 'success' : 'danger'}
+        className={`status-badge ${empresa.estado ? 'active' : 'inactive'}`}
+      >
+        {empresa.estado ? 'Activo' : 'Inactivo'}
+      </Badge>
+    ),
+    actions: (
+      <div className="grid-action-buttons text-center">
+        <Button
+          onClick={() => handleEdit(empresa)}
+          color="info"
+          size="sm"
+          className="me-2"
+          title="Editar"
+        >
+          <i className="bi bi-pencil-fill"></i>
+        </Button>
+        <Button
+          onClick={() => handleDelete(empresa.id_empresa)}
+          color="danger"
+          size="sm"
+          title="Eliminar"
+        >
+          <i className="bi bi-trash"></i>
+        </Button>
+      </div>
+    ),
+  }));
+
+  const columns = [
+    {
+      Header: 'ID',
+      accessor: 'id',
+      width: 60,
+    },
+    {
+      Header: 'Nombre',
+      accessor: 'nombre',
+      filterable: true,
+    },
+    {
+      Header: 'RUC',
+      accessor: 'ruc',
+      filterable: true,
+    },
+    {
+      Header: 'Dirección',
+      accessor: 'direccion',
+      filterable: true,
+    },
+    {
+      Header: 'Teléfono',
+      accessor: 'telefono',
+      filterable: true,
+    },
+    {
+      Header: 'Email',
+      accessor: 'email',
+      filterable: true,
+    },
+    {
+      Header: 'Estado',
+      accessor: 'estado',
+      Cell: ({ value }: { value: boolean }) => (
+        <Badge color={value ? 'success' : 'danger'}>
+          {value ? 'Activo' : 'Inactivo'}
+        </Badge>
+      ),
+      filterable: true,
+    },
+    {
+      Header: 'Acciones',
+      accessor: 'actions',
+      sortable: false,
+      filterable: false,
+      width: 120,
+    },
+  ];
 
   return (
     <Container fluid>
@@ -216,177 +229,44 @@ const Empresas: React.FC = () => {
         <Col>
           <Card>
             <CardBody>
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <CardTitle tag="h4" className="mb-0">
-                  Mantenimiento de Empresas
+              <div className="grid-header">
+                <CardTitle tag="h4" className="grid-title">
+                  Empresas
                 </CardTitle>
-                <Button color="primary" onClick={toggleModal}>
-                  <i className="fas fa-plus me-2"></i>
-                  Nueva Empresa
-                </Button>
+                <div className="grid-actions">
+                  <Button color="primary" className="grid-primary-button" onClick={handleNuevaEmpresa}>
+                    <i className="bi bi-plus-circle me-2"></i>
+                    Nueva Empresa
+                  </Button>
+                </div>
               </div>
 
-              {alert && (
-                <Alert color={alert.type} toggle={() => setAlert(null)}>
-                  {alert.message}
+              {error && (
+                <Alert color="danger" toggle={() => setError(null)}>
+                  {error}
                 </Alert>
               )}
 
-              <div className="table-responsive">
-                <Table className="table-striped">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Nombre</th>
-                      <th>RUC</th>
-                      <th>Dirección</th>
-                      <th>Teléfono</th>
-                      <th>Email</th>
-                      <th>Estado</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan={8} className="text-center">
-                          Cargando...
-                        </td>
-                      </tr>
-                    ) : empresas.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="text-center">
-                          No hay empresas registradas
-                        </td>
-                      </tr>
-                    ) : (
-                      empresas.map((empresa) => (
-                        <tr key={empresa.id_empresa}>
-                          <td>{empresa.id_empresa}</td>
-                          <td>{empresa.nombre}</td>
-                          <td>{empresa.ruc}</td>
-                          <td>{empresa.direccion || '-'}</td>
-                          <td>{empresa.telefono || '-'}</td>
-                          <td>{empresa.email || '-'}</td>
-                          <td>
-                            <Badge color={empresa.estado ? 'success' : 'danger'}>
-                              {empresa.estado ? 'Activo' : 'Inactivo'}
-                            </Badge>
-                          </td>
-                          <td>
-                            <Button
-                              color="info"
-                              size="sm"
-                              className="me-2"
-                              onClick={() => handleEdit(empresa)}
-                            >
-                              <i className="fas fa-edit"></i>
-                            </Button>
-                            <Button
-                              color="danger"
-                              size="sm"
-                              onClick={() => handleDelete(empresa.id_empresa)}
-                            >
-                              <i className="fas fa-trash"></i>
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </Table>
+              <div className="grid-container">
+                <ReactTable
+                  data={tableData}
+                  columns={columns}
+                  defaultPageSize={10}
+                  className="-striped -highlight"
+                  loading={loading}
+                  showPagination={true}
+                  showPageSizeOptions={true}
+                  pageSizeOptions={[5, 10, 20, 50]}
+                  showPageJump={true}
+                  collapseOnSortingChange={true}
+                  collapseOnPageChange={true}
+                  collapseOnDataChange={true}
+                />
               </div>
             </CardBody>
           </Card>
         </Col>
       </Row>
-
-      {/* Modal para crear/editar empresa */}
-      <Modal isOpen={modal} toggle={toggleModal} size="lg">
-        <ModalHeader toggle={toggleModal}>
-          {editingEmpresa ? 'Editar Empresa' : 'Nueva Empresa'}
-        </ModalHeader>
-        <Form onSubmit={handleSubmit}>
-          <ModalBody>
-            <Row>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="nombre">Nombre *</Label>
-                  <Input
-                    id="nombre"
-                    name="nombre"
-                    type="text"
-                    value={formData.nombre}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </FormGroup>
-              </Col>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="ruc">RUC *</Label>
-                  <Input
-                    id="ruc"
-                    name="ruc"
-                    type="text"
-                    value={formData.ruc}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </FormGroup>
-              </Col>
-            </Row>
-            <Row>
-              <Col md={12}>
-                <FormGroup>
-                  <Label for="direccion">Dirección</Label>
-                  <Input
-                    id="direccion"
-                    name="direccion"
-                    type="text"
-                    value={formData.direccion}
-                    onChange={handleInputChange}
-                  />
-                </FormGroup>
-              </Col>
-            </Row>
-            <Row>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="telefono">Teléfono</Label>
-                  <Input
-                    id="telefono"
-                    name="telefono"
-                    type="text"
-                    value={formData.telefono}
-                    onChange={handleInputChange}
-                  />
-                </FormGroup>
-              </Col>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                  />
-                </FormGroup>
-              </Col>
-            </Row>
-          </ModalBody>
-          <ModalFooter>
-            <Button color="secondary" onClick={toggleModal}>
-              Cancelar
-            </Button>
-            <Button color="primary" type="submit">
-              {editingEmpresa ? 'Actualizar' : 'Crear'}
-            </Button>
-          </ModalFooter>
-        </Form>
-      </Modal>
     </Container>
   );
 };

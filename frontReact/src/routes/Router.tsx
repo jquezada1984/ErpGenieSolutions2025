@@ -25,6 +25,8 @@ const Comercio = Loadable(lazy(() => import('../views/dashboards/Comercio')));
 
 // Mantenimiento pages
 const Empresas = Loadable(lazy(() => import('../views/empresas/Empresas')));
+const NuevaEmpresa = Loadable(lazy(() => import('../views/empresas/NuevaEmpresa')));
+const EditarEmpresa = Loadable(lazy(() => import('../views/empresas/EditarEmpresa')));
 
 interface RouteType {
   path: string;
@@ -41,6 +43,8 @@ const ThemeRoutes: RouteType[] = [
       { path: '/', element: <Navigate to="/dashboard" /> },
       { path: 'dashboard', element: <Comercio /> },
       { path: 'empresas', element: <Empresas /> },
+      { path: 'empresas/nueva', element: <NuevaEmpresa /> },
+      { path: 'empresas/editar/:id', element: <EditarEmpresa /> },
       { path: 'starter', element: <Starter /> },
       { path: 'about', element: <About /> },
       { path: 'alerts', element: <Alerts /> },

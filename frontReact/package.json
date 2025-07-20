@@ -49,7 +49,7 @@
     "react-select": "^5.10.2",
     "react-simple-tree-menu": "^1.1.18",
     "react-stepzilla": "^7.0.0",
-    "react-table": "^7.8.0",
+    "react-table": "^6.11.5",
     "react-table-v6": "^6.8.6",
     "react-tagsinput": "^3.20.3",
     "react-validation": "^3.0.7",

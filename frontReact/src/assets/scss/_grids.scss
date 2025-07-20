@@ -1,0 +1,198 @@
+// Estilos generales para Grids (Action Table format)
+// Este archivo contiene los estilos base para todas las tablas de datos del sistema
+
+.ReactTable {
+  .rt-table {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+
+  .rt-thead {
+    background-color: #f8f9fa;
+    
+    .rt-th {
+      padding: 12px 8px;
+      font-weight: 600;
+      border-bottom: 2px solid #dee2e6;
+      text-align: left;
+      
+      &:focus {
+        outline: none;
+      }
+    }
+  }
+
+  .rt-tbody {
+    .rt-tr {
+      border-bottom: 1px solid #dee2e6;
+      
+      &:hover {
+        background-color: #f8f9fa;
+      }
+      
+      .rt-td {
+        padding: 12px 8px;
+        border-right: 1px solid #dee2e6;
+        
+        &:last-child {
+          border-right: none;
+        }
+      }
+    }
+  }
+
+  .rt-pagination {
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    
+    .rt-page-size-select {
+      margin-right: 10px;
+    }
+    
+    .rt-page-info {
+      margin: 0 10px;
+    }
+    
+    .rt-page-button {
+      margin: 0 2px;
+      padding: 5px 10px;
+      border: 1px solid #ddd;
+      background-color: white;
+      border-radius: 3px;
+      cursor: pointer;
+      
+      &:hover {
+        background-color: #e9ecef;
+      }
+      
+      &.current {
+        background-color: #007bff;
+        color: white;
+        border-color: #007bff;
+      }
+      
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// Estilos para botones de acción en grids
+.grid-action-buttons {
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.2rem;
+    
+    i {
+      font-size: 0.875rem;
+    }
+    
+    // Estilos específicos para Bootstrap Icons
+    .bi {
+      font-size: 0.875rem;
+      line-height: 1;
+    }
+  }
+}
+
+// Estilos para botones principales de grids (Nuevo, etc.)
+.grid-primary-button {
+  background-color: #007bff;
+  border-color: #007bff;
+  
+  &:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+  }
+  
+  &:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+  
+  .bi {
+    font-size: 1rem;
+    line-height: 1;
+  }
+}
+
+// Estilos para badges de estado
+.status-badge {
+  &.active {
+    background-color: #28a745;
+    color: white;
+  }
+  
+  &.inactive {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  &.pending {
+    background-color: #ffc107;
+    color: #212529;
+  }
+}
+
+// Estilos para filtros de grid
+.grid-filters {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border: 1px solid #dee2e6;
+}
+
+// Estilos para encabezados de grid
+.grid-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  
+  .grid-title {
+    margin: 0;
+    font-weight: 600;
+    color: #495057;
+  }
+  
+  .grid-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+}
+
+// Estilos para contenedor de grid
+.grid-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+// Estilos para loading states
+.grid-loading {
+  text-align: center;
+  padding: 40px;
+  
+  .spinner-border {
+    width: 3rem;
+    height: 3rem;
+  }
+}
+
+// Estilos para empty states
+.grid-empty {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+  
+  .bi {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+} 
