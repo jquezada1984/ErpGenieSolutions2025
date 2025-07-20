@@ -1,6 +1,19 @@
 {
   "dependencies": {
     "@apollo/client": "^3.13.8",
-    "graphql": "^16.11.0"
+    "@nestjs/axios": "^4.0.1",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/passport": "^11.0.5",
+    "graphql": "^16.11.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^24.0.15",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "typescript": "^5.8.3"
   }
 }

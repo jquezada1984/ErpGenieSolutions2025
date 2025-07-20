@@ -5,10 +5,17 @@ import Themeroutes from './routes/Router';
 import ThemeSelector from './layouts/theme/ThemeSelector';
 import Loader from './layouts/loader/Loader';
 
+interface RootState {
+  customizer: {
+    isRTL: boolean;
+    isDark: boolean;
+  };
+}
+
 function App() {
   const routing = useRoutes(Themeroutes);
-  const direction = useSelector((state) => state.customizer.isRTL);
-  const isMode = useSelector((state) => state.customizer.isDark);
+  const direction = useSelector((state: RootState) => state.customizer.isRTL);
+  const isMode = useSelector((state: RootState) => state.customizer.isDark);
   return (
     <Suspense fallback={<Loader />}>
       <div

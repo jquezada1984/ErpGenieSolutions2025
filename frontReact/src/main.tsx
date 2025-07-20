@@ -6,23 +6,23 @@ import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import { store } from './store/Store';
 import App from './App';
-import { AuthProvider } from './components/firebase/FirebaseContext';
 import './assets/scss/style.scss';
 import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client';
+import { AuthProvider } from './components/jwt/JwtContext';
 
 const client = new ApolloClient({
-  uri: 'http://localhost:3000/graphql', // Cambia el puerto si tu backend usa otro
+  uri: 'http://localhost:3001/graphql', // Backend NestJS en puerto 3001
   cache: new InMemoryCache(),
 });
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <ApolloProvider client={client}>
     <Provider store={store}>
-      <BrowserRouter>
-        <AuthProvider>
+      <AuthProvider>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <App />
-        </AuthProvider>
-      </BrowserRouter>
+        </BrowserRouter>
+      </AuthProvider>
     </Provider>
   </ApolloProvider>
 )

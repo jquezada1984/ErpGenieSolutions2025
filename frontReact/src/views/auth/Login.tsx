@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Alert,
@@ -11,61 +12,61 @@ import {
   CardBody,
   Input,
 } from 'reactstrap';
-import { Formik, Field, Form, ErrorMessage } from 'formik';
+import { Formik, Field, Form, ErrorMessage, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
-import { Link } from 'react-router-dom';
 import AuthLogo from '../../layouts/logo/AuthLogo';
-import LeftBg from '../../assets/images/bg/login-bgleft.svg';
-import RightBg from '../../assets/images/bg/login-bg-right.svg';
-import useAuth from '../../components/authGurad/useAuth';
+import { AuthContext } from '../../components/jwt/JwtContext';
 import useMounted from '../../components/authGurad/useMounted';
+
+interface LoginValues {
+  email: string;
+  password: string;
+  submit?: string | null;
+}
 
 const Login = () => {
   const mounted = useMounted();
-  const { signInWithEmailAndPassword } = useAuth();
+  const navigate = useNavigate();
+  const { signInWithEmailAndPassword } = useContext(AuthContext);
 
-  const initialValues = {
+  const initialValues: LoginValues = {
     email: '',
     password: '',
     submit: null,
   };
 
   const validationSchema = Yup.object().shape({
-    email: Yup.string().email('Email is invalid').required('Email is required'),
+    email: Yup.string().email('Correo inválido').required('El correo es obligatorio'),
     password: Yup.string()
-      .min(6, 'Password must be at least 6 characters')
-      .required('Password is required'),
+      .min(6, 'La contraseña debe tener al menos 6 caracteres')
+      .required('La contraseña es obligatoria'),
   });
 
   return (
     <div className="loginBox">
-      <img src={LeftBg} className="position-absolute left bottom-0" alt="Fondo izquierdo" />
-      <img src={RightBg} className="position-absolute end-0 top" alt="Fondo derecho" />
+      <img src="/src/assets/images/bg/login-bgleft.svg" className="position-absolute left bottom-0" alt="Fondo izquierdo" />
+      <img src="/src/assets/images/bg/login-bg-right.svg" className="position-absolute end-0 top" alt="Fondo derecho" />
       <Container fluid className="h-100">
         <Row className="justify-content-center align-items-center h-100">
           <Col lg="12" className="loginContainer">
             <AuthLogo />
             <Card>
               <CardBody className="p-4 m-1">
-                <h5 className="mb-0">Firebase Login</h5>
-                <small className="pb-4 d-block ">
-                  Do not have an account?{' '}
-                  <Link to="/auth/register" className="text-decoration-none">
-                    Sign Up
-                  </Link>
-                </small>
+                <h5 className="mb-0">Iniciar sesión</h5>
                 <Formik
                   initialValues={initialValues}
                   validationSchema={validationSchema}
-                  onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
+                  onSubmit={async (values, { setErrors, setStatus, setSubmitting }: FormikHelpers<LoginValues>) => {
                     try {
                       await signInWithEmailAndPassword(values.email, values.password);
 
                       if (mounted.current) {
                         setStatus({ success: true });
                         setSubmitting(true);
+                        // Redirigir al dashboard después del login exitoso
+                        navigate('/dashboard');
                       }
-                    } catch (err) {
+                    } catch (err: any) {
                       if (mounted.current) {
                         setStatus({ success: false });
                         setErrors({ submit: err.message });
@@ -77,12 +78,12 @@ const Login = () => {
                   {({ errors, touched, handleSubmit, handleChange, isSubmitting, values }) => (
                     <Form onSubmit={handleSubmit}>
                       <FormGroup>
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email">Correo electrónico</Label>
                         <Field
                           name="email"
                           type="text"
                           value={values.email}
-                          placeholder="demo@demo.com"
+                          placeholder="usuario@correo.com"
                           onChange={handleChange}
                           className={`form-control${
                             errors.email && touched.email ? ' is-invalid' : ''
@@ -91,11 +92,11 @@ const Login = () => {
                         <ErrorMessage name="email" component="div" className="invalid-feedback" />
                       </FormGroup>
                       <FormGroup>
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password">Contraseña</Label>
                         <Field
                           name="password"
                           type="password"
-                          placeholder="demo123"
+                          placeholder="Tu contraseña"
                           value={values.password}
                           onChange={handleChange}
                           className={`form-control${
@@ -111,7 +112,7 @@ const Login = () => {
                       <FormGroup className="form-check d-flex" inline>
                         <Label check>
                           <Input type="checkbox" />
-                          Remember me
+                          Recordarme
                         </Label>
                       </FormGroup>
                       {errors.submit ? <Alert color="danger">{errors.submit}</Alert> : ''}
@@ -123,7 +124,7 @@ const Login = () => {
                           className="me-2"
                           disabled={isSubmitting}
                         >
-                          Login
+                          Ingresar
                         </Button>
                       </FormGroup>
                     </Form>
@@ -131,7 +132,6 @@ const Login = () => {
                 </Formik>
               </CardBody>
             </Card>
-            <Alert color="success">Email: demo@demo.com , PWD: demo123</Alert>
           </Col>
         </Row>
       </Container>

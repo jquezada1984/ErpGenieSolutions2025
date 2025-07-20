@@ -2,10 +2,13 @@ from flask import Flask, jsonify
 from config.config import Config
 from models.entidad import db
 from api.empresa_routes import empresa_bp
+from flask_jwt_extended import JWTManager
 # Importar los blueprints de las demás entidades cuando estén listos
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.config['JWT_SECRET_KEY'] = 'supersecret'  # Debe coincidir con la de NestJS
+jwt = JWTManager(app)
 
 db.init_app(app)
 

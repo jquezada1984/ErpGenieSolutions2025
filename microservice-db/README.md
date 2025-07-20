@@ -2,10 +2,10 @@
 
 Este microservicio está desarrollado en Python usando Flask. Su objetivo es exponer endpoints para guardar y actualizar datos en la base de datos PostgreSQL utilizada por el ERP.
 
-## Características
-- API REST para operaciones CRUD
-- Conexión a PostgreSQL
-- Estructura lista para escalar
+## Requisitos previos
+
+- Python 3.8 o superior
+- PostgreSQL en ejecución
 
 ## Instalación
 
@@ -17,7 +17,7 @@ Este microservicio está desarrollado en Python usando Flask. Su objetivo es exp
    ```bash
    pip install -r requirements.txt
    ```
-3. Crea un archivo `.env` con la configuración de la base de datos.
+3. Crea un archivo `.env` con la configuración de la base de datos (puedes basarte en el archivo de configuración de ejemplo si existe).
 
 ## Ejecución
 
@@ -25,7 +25,10 @@ Este microservicio está desarrollado en Python usando Flask. Su objetivo es exp
 python app.py
 ```
 
-## Endpoints
+El microservicio quedará disponible en el puerto configurado (por defecto 5000).
+
+## Endpoints principales
+
 - `/health` — Verifica que el microservicio está activo
 - `/api/entidad` — Ejemplo de endpoint CRUD
 

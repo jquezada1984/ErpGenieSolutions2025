@@ -1,21 +1,37 @@
+import React from 'react';
 import * as Icon from "react-feather";
 
 const SidebarData = [
   { caption: "Home" },
   {
     title: "Dashboard",
-    href: "/starter",
+    href: "/dashboard",
     icon: <Icon.Home />,
     id: 1,
     suffix: "New",
     suffixColor: "bg-success",
     collapisble: false,
   },
+  { caption: "Mantenimiento" },
+  {
+    title: "Administración",
+    href: "/admin",
+    id: 2,
+    icon: <Icon.Settings />,
+    collapisble: true,
+    children: [
+      {
+        title: "Empresas",
+        href: "/empresas",
+        icon: <Icon.Briefcase />,
+      },
+    ],
+  },
   { caption: "UI" },
   {
     title: "UI Elements",
     href: "/ui",
-    id: 2,
+    id: 3,
     suffix: "8",
     suffixColor: "bg-info",
     icon: <Icon.Cpu />,
@@ -72,7 +88,7 @@ const SidebarData = [
   {
     title: "DD Menu",
     href: "/",
-    id: 3,
+    id: 4,
     collapisble: true,
     icon: <Icon.Disc />,
     children: [
