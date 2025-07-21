@@ -6,7 +6,8 @@
     "@nestjs/passport": "^11.0.5",
     "graphql": "^16.11.0",
     "passport": "^0.7.0",
-    "passport-jwt": "^4.0.1"
+    "passport-jwt": "^4.0.1",
+    "react-icons": "^5.5.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -14,6 +15,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/react-icons": "^2.2.7",
     "typescript": "^5.8.3"
   }
 }

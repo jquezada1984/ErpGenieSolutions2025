@@ -8,6 +8,9 @@ import Logo from '../../logo/Logo';
 import { ToggleMobileSidebar } from '../../../store/customizer/CustomizerSlice';
 import NavItemContainer from './NavItemContainer';
 import NavSubMenu from './NavSubMenu';
+import getSidebarData from '../sidebardata/SidebarData';
+import store from '../../../store/Store';
+type RootState = ReturnType<typeof store.getState>;
 
 const Sidebar = () => {
   const location = useLocation();
@@ -18,9 +21,11 @@ const Sidebar = () => {
   //   setCollapsed(collapsed === index ? null : index);
   // };
 
-  const activeBg = useSelector((state) => state.customizer.sidebarBg);
-  const isFixed = useSelector((state) => state.customizer.isSidebarFixed);
+  const activeBg = useSelector((state: RootState) => state.customizer.sidebarBg);
+  const isFixed = useSelector((state: RootState) => state.customizer.isSidebarFixed);
   const dispatch = useDispatch();
+  const selectedMenu = useSelector((state: RootState) => state.mainMenu.selected);
+  const SidebarData = getSidebarData(selectedMenu);
 
   return (
     <div className={`sidebarBox shadow bg-${activeBg} ${isFixed ? 'fixedSidebar' : ''}`}>

@@ -23,6 +23,28 @@ import useAuth from '../../components/authGurad/useAuth';
 import { ToggleMiniSidebar, ToggleMobileSidebar } from '../../store/customizer/CustomizerSlice';
 import ProfileDD from './ProfileDD';
 import store from '../../store/Store';
+import { setMainMenu } from '../../store/MainMenuSlice';
+// Iconos
+import { Home, Users, Box, Briefcase, ShoppingCart, DollarSign, BookOpen, Search, User, FileText, Calendar, Tag, Tool, Globe } from 'react-feather';
+import { FaBuilding, FaProjectDiagram, FaMoneyCheckAlt, FaUserCog, FaFileInvoice, FaUserFriends, FaRegFolderOpen, FaRegCalendarAlt, FaTicketAlt, FaTools, FaGlobe, FaUniversity } from 'react-icons/fa';
+import './HeaderMenu.css';
+
+const mainMenuOptions: { key: string; label: string; icon: React.ReactNode }[] = [
+  { key: 'inicio', label: 'Inicio', icon: <Home size={18} /> },
+  { key: 'terceros', label: 'Terceros', icon: <FaBuilding size={18} /> },
+  { key: 'servicios', label: 'Servicios', icon: <Box size={18} /> },
+  { key: 'proyectos', label: 'Proyectos', icon: <FaProjectDiagram size={18} /> },
+  { key: 'comercial', label: 'Comercial', icon: <ShoppingCart size={18} /> },
+  { key: 'financiera', label: 'Financiera', icon: <DollarSign size={18} /> },
+  { key: 'bancos', label: 'Bancos | Cajas', icon: <FaUniversity size={18} /> },
+  { key: 'contabilidad', label: 'Contabilidad', icon: <BookOpen size={18} /> },
+  { key: 'rrhh', label: 'RRHH', icon: <User size={18} /> },
+  { key: 'documentos', label: 'Documentos', icon: <FileText size={18} /> },
+  { key: 'agenda', label: 'Agenda', icon: <Calendar size={18} /> },
+  { key: 'tickets', label: 'Tickets', icon: <FaTicketAlt size={18} /> },
+  { key: 'utilidades', label: 'Utilidades', icon: <Tool size={18} /> },
+];
+
 type RootState = ReturnType<typeof store.getState>;
 
 const Header = () => {
@@ -31,6 +53,7 @@ const Header = () => {
   const dispatch = useDispatch();
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const selectedMenu = useSelector((state: RootState) => state.mainMenu.selected);
 
   const handleLogout = async () => {
     try {
@@ -78,11 +101,19 @@ const Header = () => {
       {/******************************/}
 
       <Nav className="me-auto d-none d-lg-flex" navbar>
-        <NavItem>
-          <Link to="/dashboard" className="nav-link">
-            Dashboard
-          </Link>
-        </NavItem>
+        {mainMenuOptions.map((item) => (
+          <NavItem key={item.key}>
+            <Button
+              color="link"
+              className={`nav-link d-flex flex-column align-items-center justify-content-center${selectedMenu === item.key ? ' main-menu-active' : ''}`}
+              onClick={() => dispatch(setMainMenu(item.key))}
+              style={{ minWidth: 70, padding: 0 }}
+            >
+              {item.icon}
+              <span className="mt-1 text-center" style={{ fontSize: 12, lineHeight: 1.1 }}>{item.label}</span>
+            </Button>
+          </NavItem>
+        ))}
       </Nav>
       {/******************************/}
       {/**********Notification DD**********/}
