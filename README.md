@@ -57,8 +57,14 @@ Cada subproyecto contiene su propio archivo `README.md` con instrucciones detall
 
 ¿Dudas o problemas? Revisa los README de cada carpeta o contacta al equipo de desarrollo. 
 
+---
 
+
+### 4. Ejecutar lo de pruebas
+
+```bash
 
 cd React/xtreme-react-v7/package/main
 npm install
 npm run dev
+```

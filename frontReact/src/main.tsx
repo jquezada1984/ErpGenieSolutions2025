@@ -7,37 +7,34 @@ import { BrowserRouter } from 'react-router-dom';
 import { store } from './store/Store';
 import App from './App';
 import './assets/scss/style.scss';
-import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
 import { AuthProvider } from './components/jwt/JwtContext';
 
-export const client = new ApolloClient({
-  uri: 'http://localhost:3001/graphql', // Backend NestJS en puerto 3001
-  cache: new InMemoryCache(),
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  defaultOptions: {
-    watchQuery: {
-      errorPolicy: 'all',
-    },
-    query: {
-      errorPolicy: 'all',
-    },
-  },
+// Configura el link HTTP
+const httpLink = createHttpLink({
+  uri: 'http://localhost:3001/graphql',
 });
 
-// Función para actualizar el token en el cliente Apollo
-export const updateApolloToken = (token: string) => {
-  client.setLink(
-    new (require('@apollo/client').createHttpLink)({
-      uri: 'http://localhost:3001/graphql',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    })
-  );
-};
+// Configura el link de autenticación
+const authLink = setContext((_, { headers }) => {
+  const token = localStorage.getItem('accessToken');
+  return {
+    headers: {
+      ...headers,
+      Authorization: token ? `Bearer ${token}` : '',
+    },
+  };
+});
+
+export const client = new ApolloClient({
+  link: authLink.concat(httpLink),
+  cache: new InMemoryCache(),
+  defaultOptions: {
+    watchQuery: { errorPolicy: 'all' },
+    query: { errorPolicy: 'all' },
+  },
+});
 
 // Registrar el service worker para PWA
 if ('serviceWorker' in navigator) {

@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { useMutation, useLazyQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import { setSession, isValidToken } from './Jwt';
-import { updateApolloToken } from '../../main';
 
 // utils
 import axios from './axios';
@@ -121,6 +120,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
           // Usar GraphQL en lugar de REST
           const { data } = await getMe();
+          if (!data || !data.me) {
+            console.error('⚠️ La respuesta de getMe es nula:', data);
+            throw new Error('No se pudo obtener el usuario autenticado (me=null)');
+          }
           const { user } = data.me;
 
           dispatch({
@@ -142,6 +145,16 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.error('❌ Error al inicializar auth:', err);
+        if (err && typeof err === 'object') {
+          if ('networkError' in err) {
+            // @ts-ignore
+            console.error('🌐 Detalle networkError:', err.networkError);
+          }
+          if ('graphQLErrors' in err) {
+            // @ts-ignore
+            console.error('🟣 Detalle graphQLErrors:', err.graphQLErrors);
+          }
+        }
         dispatch({
           type: 'INITIALIZE',
           payload: {
@@ -222,9 +235,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateToken = (newToken: string) => {
     console.log('🔄 Actualizando token en contexto...');
     setSession(newToken);
-    // Actualizar también el token en Apollo Client
-    updateApolloToken(newToken);
-    console.log('✅ Token actualizado en contexto y Apollo Client');
+    // Ya no es necesario actualizar Apollo Client manualmente
+    console.log('✅ Token actualizado en contexto');
   };
 
   return (
