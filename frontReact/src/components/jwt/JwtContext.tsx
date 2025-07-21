@@ -201,8 +201,11 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
       console.log('✅ Estado de autenticación actualizado');
-    } catch (error) {
-      console.error('❌ Error en login:', error);
+    } catch (error: any) {
+      // Solo mostrar en consola si el error no es de contraseña incorrecta
+      if (!(error && error.message && error.message.includes('Contraseña incorrecta'))) {
+        console.error('❌ Error en login:', error);
+      }
       throw error;
     }
   };

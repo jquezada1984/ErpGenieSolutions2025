@@ -25,7 +25,7 @@ const EnhancedLoader = ({ message = 'Cargando...', showProgress = true }) => {
     <div className="enhanced-fallback-spinner">
       <div className="loading-container">
         <div className="loading-content">
-          <Spinner color="primary" size="lg" />
+          <Spinner color="primary" size="sm" />
           <h6 className="mt-3 mb-2">{message}</h6>
           {showProgress && (
             <div className="progress-container">

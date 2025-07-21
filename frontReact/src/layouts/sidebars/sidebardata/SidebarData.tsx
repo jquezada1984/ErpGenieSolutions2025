@@ -10,8 +10,8 @@ const sidebarMenus = {
       icon: <FaBuilding size={16} />,
       id: 'empresa',
       children: [
-        { title: "Lista", href: "/empresa/lista", icon: <Icon.List size={14} /> },
-        { title: "Crear", href: "/empresa/crear", icon: <Icon.Plus size={14} /> },
+        { title: "Lista", href: "/empresas", icon: <Icon.List size={14} /> },
+        { title: "Crear", href: "/empresas/nueva", icon: <Icon.Plus size={14} /> },
       ],
     },
     {

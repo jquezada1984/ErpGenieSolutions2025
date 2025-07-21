@@ -115,7 +115,7 @@ const Login = () => {
                           Recordarme
                         </Label>
                       </FormGroup>
-                      {errors.submit ? <Alert color="danger">{errors.submit}</Alert> : ''}
+                      {errors.submit ? <Alert color="danger" fade={false}>{errors.submit}</Alert> : ''}
 
                       <FormGroup>
                         <Button
