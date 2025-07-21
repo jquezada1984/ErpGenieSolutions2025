@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import Loadable from '../layouts/loader/Loadable';
 import AuthGuard from '../components/authGurad/AuthGuard';
 import Login from '../views/auth/Login';
+import Error404 from '../views/auth/Error404';
 
 /****Layouts*****/
 const FullLayout = Loadable(lazy(() => import('../layouts/FullLayout')));
@@ -67,7 +68,7 @@ const ThemeRoutes: RouteType[] = [
   },
   {
     path: '*',
-    element: <Navigate to="/auth/login" />,
+    element: <Error404 />,
   },
 ];
 
