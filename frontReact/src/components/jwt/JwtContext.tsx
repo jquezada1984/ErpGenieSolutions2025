@@ -6,6 +6,7 @@ import { setSession, isValidToken } from './Jwt';
 
 // utils
 import axios from './axios';
+import EnhancedLoader from '../EnhancedLoader';
 
 // GraphQL mutation para login
 const LOGIN_MUTATION = gql`
@@ -250,7 +251,11 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         updateToken,
       }}
     >
-      {children}
+      {!state.isInitialized ? (
+        <EnhancedLoader message="Validando sesión..." showProgress={false} />
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 }

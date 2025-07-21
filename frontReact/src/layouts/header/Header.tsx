@@ -22,10 +22,12 @@ import user1 from '../../assets/images/users/user1.jpg';
 import useAuth from '../../components/authGurad/useAuth';
 import { ToggleMiniSidebar, ToggleMobileSidebar } from '../../store/customizer/CustomizerSlice';
 import ProfileDD from './ProfileDD';
+import store from '../../store/Store';
+type RootState = ReturnType<typeof store.getState>;
 
 const Header = () => {
-  const isDarkMode = useSelector((state) => state.customizer.isDark);
-  const topbarColor = useSelector((state) => state.customizer.topbarBg);
+  const isDarkMode = useSelector((state: RootState) => state.customizer.isDark);
+  const topbarColor = useSelector((state: RootState) => state.customizer.topbarBg);
   const dispatch = useDispatch();
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -77,26 +79,10 @@ const Header = () => {
 
       <Nav className="me-auto d-none d-lg-flex" navbar>
         <NavItem>
-          <Link to="/starter" className="nav-link">
-            Starter
+          <Link to="/dashboard" className="nav-link">
+            Dashboard
           </Link>
         </NavItem>
-        <NavItem>
-          <Link to="/about" className="nav-link">
-            About
-          </Link>
-        </NavItem>
-        <UncontrolledDropdown inNavbar nav>
-          <DropdownToggle caret nav>
-            Create
-          </DropdownToggle>
-          <DropdownMenu end>
-            <DropdownItem>Option 1</DropdownItem>
-            <DropdownItem>Option 2</DropdownItem>
-            <DropdownItem divider />
-            <DropdownItem>Reset</DropdownItem>
-          </DropdownMenu>
-        </UncontrolledDropdown>
       </Nav>
       {/******************************/}
       {/**********Notification DD**********/}
