@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, CardTitle, Button, Alert, Container, Row, Col, Badge } from 'reactstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useLazyQuery, useMutation } from '@apollo/client';
 import { gql } from '@apollo/client';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
+import { eliminarEmpresa } from '../../_apis_/empresa';
+import { client } from '../../main';
 
 // GraphQL queries y mutations
 const GET_EMPRESAS = gql`
@@ -63,13 +65,19 @@ const DELETE_EMPRESA = gql`
   }
 `;
 
+const REFRESH_TOKEN = gql`
+  query RefreshToken {
+    refreshToken
+  }
+`;
+
 interface Empresa {
   id_empresa: number;
   nombre: string;
   ruc: string;
-  direccion?: string;
-  telefono?: string;
-  email?: string;
+  direccion: string;
+  telefono: string;
+  email: string;
   estado: boolean;
 }
 
@@ -83,12 +91,17 @@ interface FormData {
 
 const Empresas: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // GraphQL hooks
-  const [getEmpresas, { loading: queryLoading }] = useLazyQuery(GET_EMPRESAS);
+  const [getEmpresas, { loading: queryLoading }] = useLazyQuery(GET_EMPRESAS, {
+    fetchPolicy: 'cache-and-network', // Siempre consultar red y caché
+    errorPolicy: 'all',
+  });
   const [createEmpresa] = useMutation(CREATE_EMPRESA);
   const [updateEmpresa] = useMutation(UPDATE_EMPRESA);
   const [deleteEmpresa] = useMutation(DELETE_EMPRESA);
@@ -97,15 +110,43 @@ const Empresas: React.FC = () => {
     loadEmpresas();
   }, []);
 
+  // Recargar datos cuando regrese a la página de empresas
+  useEffect(() => {
+    if (location.pathname === '/empresas') {
+      console.log('🔄 Regresando a la página de empresas, recargando datos...');
+      loadEmpresas();
+    }
+  }, [location.pathname]);
+
   const loadEmpresas = async () => {
     try {
+      console.log('🔄 Cargando empresas...');
+      setLoading(true);
+      setError(null);
+      
+      // Obtener el token actual
+      const token = localStorage.getItem('accessToken');
+      console.log('🔑 Token disponible:', token ? 'SÍ' : 'NO');
+      
+      // Hacer la consulta sin contexto primero para ver si funciona
       const { data } = await getEmpresas();
-      if (data) {
+      console.log('📊 Datos recibidos:', data);
+      
+      if (data && data.empresas) {
         setEmpresas(data.empresas);
+        console.log(`✅ ${data.empresas.length} empresas cargadas`);
+        console.log('📋 Empresas:', data.empresas);
+      } else {
+        console.log('⚠️ No se recibieron datos de empresas');
+        setEmpresas([]);
       }
-    } catch (error) {
-      console.error('Error cargando empresas:', error);
-      setError('Error al cargar las empresas');
+    } catch (error: any) {
+      console.error('❌ Error cargando empresas:', error);
+      console.error('❌ Error completo:', JSON.stringify(error, null, 2));
+      setEmpresas([]);
+      
+      // Mostrar el error completo para debug
+      setError('Error al cargar las empresas: ' + (error.message || 'Error desconocido'));
     } finally {
       setLoading(false);
     }
@@ -122,14 +163,14 @@ const Empresas: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (window.confirm('¿Está seguro de que desea eliminar esta empresa?')) {
       try {
-        await deleteEmpresa({
-          variables: { id_empresa: id },
-        });
-        setError('Empresa eliminada exitosamente');
+        await eliminarEmpresa(id);
+        setSuccess('Empresa eliminada exitosamente');
+        setError(null);
         loadEmpresas();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error eliminando empresa:', error);
-        setError('Error al eliminar la empresa');
+        setError('Error al eliminar la empresa: ' + (error.message || 'Error desconocido'));
+        setSuccess(null);
       }
     }
   };
@@ -242,8 +283,14 @@ const Empresas: React.FC = () => {
               </div>
 
               {error && (
-                <Alert color="danger" toggle={() => setError(null)}>
+                <Alert color="danger" timeout={0} toggle={() => setError(null)}>
                   {error}
+                </Alert>
+              )}
+
+              {success && (
+                <Alert color="success" timeout={0} toggle={() => setSuccess(null)}>
+                  {success}
                 </Alert>
               )}
 

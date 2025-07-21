@@ -6,8 +6,11 @@ from utils.db import db
 empresa_bp = Blueprint('empresa_bp', __name__)
 empresa_schema = EmpresaSchema()
 
-@empresa_bp.route('/empresa', methods=['POST'])
+@empresa_bp.route('/empresa', methods=['POST', 'OPTIONS'])
+@empresa_bp.route('/empresa/', methods=['POST', 'OPTIONS'])
 def crear_empresa():
+    if request.method == 'OPTIONS':
+        return '', 204
     data = request.get_json()
     # Validar y deserializar
     errors = empresa_schema.validate(data)
@@ -18,8 +21,11 @@ def crear_empresa():
     db.session.commit()
     return jsonify(empresa_schema.dump(empresa)), 201
 
-@empresa_bp.route('/empresa/<int:id_empresa>', methods=['PUT'])
+@empresa_bp.route('/empresa/<int:id_empresa>', methods=['PUT', 'OPTIONS'])
+@empresa_bp.route('/empresa/<int:id_empresa>/', methods=['PUT', 'OPTIONS'])
 def actualizar_empresa(id_empresa):
+    if request.method == 'OPTIONS':
+        return '', 204
     data = request.get_json()
     empresa = Empresa.query.get_or_404(id_empresa)
     errors = empresa_schema.validate(data, partial=True)

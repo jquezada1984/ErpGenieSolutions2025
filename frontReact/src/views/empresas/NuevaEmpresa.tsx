@@ -1,30 +1,15 @@
 import React, { useState } from 'react';
 import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@apollo/client';
-import { gql } from '@apollo/client';
-
-const CREATE_EMPRESA = gql`
-  mutation CreateEmpresa($input: CreateEmpresaInput!) {
-    createEmpresa(createEmpresaInput: $input) {
-      id_empresa
-      nombre
-      ruc
-      direccion
-      telefono
-      email
-      estado
-    }
-  }
-`;
+import { crearEmpresa } from '../../_apis_/empresa';
 
 interface Empresa {
   id_empresa: number;
   nombre: string;
   ruc: string;
-  direccion?: string;
-  telefono?: string;
-  email?: string;
+  direccion: string;
+  telefono: string;
+  email: string;
   estado: boolean;
 }
 
@@ -42,20 +27,6 @@ const NuevaEmpresa: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const [createEmpresa] = useMutation(CREATE_EMPRESA, {
-    onCompleted: (data) => {
-      setLoading(false);
-      setSuccess(true);
-      setTimeout(() => {
-        navigate('/empresas');
-      }, 2000);
-    },
-    onError: (error) => {
-      setLoading(false);
-      setError(error.message);
-    }
-  });
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -68,22 +39,23 @@ const NuevaEmpresa: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
-      await createEmpresa({
-        variables: {
-          input: {
-            nombre: formData.nombre,
-            ruc: formData.ruc,
-            direccion: formData.direccion || null,
-            telefono: formData.telefono || null,
-            email: formData.email || null,
-            estado: formData.estado
-          }
-        }
+      await crearEmpresa({
+        nombre: formData.nombre,
+        ruc: formData.ruc,
+        direccion: formData.direccion,
+        telefono: formData.telefono,
+        email: formData.email,
+        estado: formData.estado
       });
-    } catch (err) {
-      // Error handled in onError callback
+      setLoading(false);
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/empresas');
+      }, 2000);
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.message || 'Error al crear la empresa');
     }
   };
 
@@ -109,14 +81,14 @@ const NuevaEmpresa: React.FC = () => {
               </div>
 
               {error && (
-                <Alert color="danger" className="mb-3">
+                <Alert color="danger" timeout={0} className="mb-3">
                   <i className="bi bi-exclamation-triangle me-2"></i>
                   {error}
                 </Alert>
               )}
 
               {success && (
-                <Alert color="success" className="mb-3">
+                <Alert color="success" timeout={0} className="mb-3">
                   <i className="bi bi-check-circle me-2"></i>
                   Empresa creada exitosamente. Redirigiendo...
                 </Alert>
@@ -163,7 +135,7 @@ const NuevaEmpresa: React.FC = () => {
                   <Col md={12}>
                     <FormGroup>
                       <Label for="direccion" className="fw-bold">
-                        Dirección
+                        Dirección *
                       </Label>
                       <Input
                         id="direccion"
@@ -171,6 +143,7 @@ const NuevaEmpresa: React.FC = () => {
                         type="text"
                         value={formData.direccion}
                         onChange={handleInputChange}
+                        required
                         placeholder="Ingrese la dirección"
                       />
                     </FormGroup>
@@ -181,7 +154,7 @@ const NuevaEmpresa: React.FC = () => {
                   <Col md={6}>
                     <FormGroup>
                       <Label for="telefono" className="fw-bold">
-                        Teléfono
+                        Teléfono *
                       </Label>
                       <Input
                         id="telefono"
@@ -189,6 +162,7 @@ const NuevaEmpresa: React.FC = () => {
                         type="tel"
                         value={formData.telefono}
                         onChange={handleInputChange}
+                        required
                         placeholder="Ingrese el teléfono"
                       />
                     </FormGroup>
@@ -196,7 +170,7 @@ const NuevaEmpresa: React.FC = () => {
                   <Col md={6}>
                     <FormGroup>
                       <Label for="email" className="fw-bold">
-                        Email
+                        Email *
                       </Label>
                       <Input
                         id="email"
@@ -204,6 +178,7 @@ const NuevaEmpresa: React.FC = () => {
                         type="email"
                         value={formData.email}
                         onChange={handleInputChange}
+                        required
                         placeholder="Ingrese el email"
                       />
                     </FormGroup>

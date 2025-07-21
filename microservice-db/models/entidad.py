@@ -1,7 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
+from utils.db import db
 
-db = SQLAlchemy()
- 
 class Entidad(db.Model):
     __tablename__ = 'entidad'
     id = db.Column(db.Integer, primary_key=True)

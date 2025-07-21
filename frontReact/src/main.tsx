@@ -10,10 +10,45 @@ import './assets/scss/style.scss';
 import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client';
 import { AuthProvider } from './components/jwt/JwtContext';
 
-const client = new ApolloClient({
+export const client = new ApolloClient({
   uri: 'http://localhost:3001/graphql', // Backend NestJS en puerto 3001
   cache: new InMemoryCache(),
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  defaultOptions: {
+    watchQuery: {
+      errorPolicy: 'all',
+    },
+    query: {
+      errorPolicy: 'all',
+    },
+  },
 });
+
+// Función para actualizar el token en el cliente Apollo
+export const updateApolloToken = (token: string) => {
+  client.setLink(
+    new (require('@apollo/client').createHttpLink)({
+      uri: 'http://localhost:3001/graphql',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+  );
+};
+
+// Registrar el service worker para PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js').then(registration => {
+      console.log('Service Worker registrado con éxito:', registration);
+    }).catch(error => {
+      console.log('Error al registrar el Service Worker:', error);
+    });
+  });
+}
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <ApolloProvider client={client}>

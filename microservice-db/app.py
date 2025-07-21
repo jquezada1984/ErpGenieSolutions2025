@@ -1,4 +1,5 @@
 from flask import Flask, jsonify
+from flask_cors import CORS
 from config.config import Config
 from models.entidad import db
 from api.empresa_routes import empresa_bp
@@ -8,6 +9,10 @@ from flask_jwt_extended import JWTManager
 app = Flask(__name__)
 app.config.from_object(Config)
 app.config['JWT_SECRET_KEY'] = 'supersecret'  # Debe coincidir con la de NestJS
+
+# Configurar CORS para permitir peticiones desde el frontend
+CORS(app, origins=["http://localhost:5173", "http://localhost:3000"])
+
 jwt = JWTManager(app)
 
 db.init_app(app)

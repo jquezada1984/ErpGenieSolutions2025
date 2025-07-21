@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { useMutation, useLazyQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import { setSession, isValidToken } from './Jwt';
+import { updateApolloToken } from '../../main';
 
 // utils
 import axios from './axios';
@@ -165,6 +166,13 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('🎉 Login exitoso, token recibido:', accessToken ? 'SÍ' : 'NO');
       console.log('👤 Usuario:', user);
 
+      // Validar el token antes de guardar y autenticar
+      if (!isValidToken(accessToken)) {
+        console.error('❌ Token inválido o expirado. No se puede autenticar.');
+        setSession('');
+        throw new Error('Token inválido o expirado. Por favor, intente nuevamente.');
+      }
+
       setSession(accessToken);
       console.log('💾 Token guardado en localStorage');
       
@@ -210,6 +218,15 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'LOGOUT' });
   };
 
+  // Función para actualizar el token en el contexto
+  const updateToken = (newToken: string) => {
+    console.log('🔄 Actualizando token en contexto...');
+    setSession(newToken);
+    // Actualizar también el token en Apollo Client
+    updateApolloToken(newToken);
+    console.log('✅ Token actualizado en contexto y Apollo Client');
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -218,6 +235,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithEmailAndPassword,
         logout,
         createUserWithEmailAndPassword,
+        updateToken,
       }}
     >
       {children}

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client';
+import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
+import { actualizarEmpresa } from '../../_apis_/empresa';
+import { client } from '../../main';
 
-const GET_EMPRESA = gql`
-  query GetEmpresa($id: Int!) {
-    empresa(id: $id) {
+const GET_EMPRESAS = gql`
+  query GetEmpresas {
+    empresas {
       id_empresa
       nombre
       ruc
@@ -18,9 +20,9 @@ const GET_EMPRESA = gql`
   }
 `;
 
-const UPDATE_EMPRESA = gql`
-  mutation UpdateEmpresa($id: Int!, $input: UpdateEmpresaInput!) {
-    updateEmpresa(id: $id, updateEmpresaInput: $input) {
+const GET_EMPRESA = gql`
+  query GetEmpresa($id_empresa: Int!) {
+    empresa(id_empresa: $id_empresa) {
       id_empresa
       nombre
       ruc
@@ -36,9 +38,9 @@ interface Empresa {
   id_empresa: number;
   nombre: string;
   ruc: string;
-  direccion?: string;
-  telefono?: string;
-  email?: string;
+  direccion: string;
+  telefono: string;
+  email: string;
   estado: boolean;
 }
 
@@ -58,7 +60,7 @@ const EditarEmpresa: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   const { data, loading: loadingEmpresa, error: errorEmpresa } = useQuery(GET_EMPRESA, {
-    variables: { id: parseInt(id!) },
+    variables: { id_empresa: parseInt(id!) },
     onCompleted: (data) => {
       if (data.empresa) {
         setFormData({
@@ -70,20 +72,6 @@ const EditarEmpresa: React.FC = () => {
           estado: data.empresa.estado
         });
       }
-    }
-  });
-
-  const [updateEmpresa] = useMutation(UPDATE_EMPRESA, {
-    onCompleted: (data) => {
-      setLoading(false);
-      setSuccess(true);
-      setTimeout(() => {
-        navigate('/empresas');
-      }, 2000);
-    },
-    onError: (error) => {
-      setLoading(false);
-      setError(error.message);
     }
   });
 
@@ -99,23 +87,43 @@ const EditarEmpresa: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
-      await updateEmpresa({
-        variables: {
-          id: parseInt(id!),
-          input: {
-            nombre: formData.nombre,
-            ruc: formData.ruc,
-            direccion: formData.direccion || null,
-            telefono: formData.telefono || null,
-            email: formData.email || null,
-            estado: formData.estado
-          }
-        }
+      // Actualizar empresa via REST
+      await actualizarEmpresa(parseInt(id!), {
+        nombre: formData.nombre,
+        ruc: formData.ruc,
+        direccion: formData.direccion,
+        telefono: formData.telefono,
+        email: formData.email,
+        estado: formData.estado
       });
-    } catch (err) {
-      // Error handled in onError callback
+      
+      // Invalidar el caché de empresas y forzar recarga
+      try {
+        // Evictar el query de empresas del caché
+        client.cache.evict({ fieldName: 'empresas' });
+        // Ejecutar garbage collection para limpiar el caché
+        client.cache.gc();
+        console.log('✅ Caché de empresas invalidado');
+        
+        // También podemos hacer una consulta directa para asegurar que se actualice
+        await client.query({
+          query: GET_EMPRESAS,
+          fetchPolicy: 'network-only', // Forzar consulta desde red, no caché
+        });
+        console.log('✅ Datos del listado actualizados desde red');
+      } catch (cacheError) {
+        console.error('❌ Error al actualizar caché:', cacheError);
+      }
+      
+      setLoading(false);
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/empresas');
+      }, 2000);
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.message || 'Error al actualizar la empresa');
     }
   };
 
@@ -183,14 +191,14 @@ const EditarEmpresa: React.FC = () => {
               </div>
 
               {error && (
-                <Alert color="danger" className="mb-3">
+                <Alert color="danger" timeout={0} className="mb-3">
                   <i className="bi bi-exclamation-triangle me-2"></i>
                   {error}
                 </Alert>
               )}
 
               {success && (
-                <Alert color="success" className="mb-3">
+                <Alert color="success" timeout={0} className="mb-3">
                   <i className="bi bi-check-circle me-2"></i>
                   Empresa actualizada exitosamente. Redirigiendo...
                 </Alert>
@@ -234,10 +242,10 @@ const EditarEmpresa: React.FC = () => {
                 </Row>
 
                 <Row>
-                  <Col md={12}>
+                  <Col md={6}>
                     <FormGroup>
                       <Label for="direccion" className="fw-bold">
-                        Dirección
+                        Dirección *
                       </Label>
                       <Input
                         id="direccion"
@@ -245,17 +253,15 @@ const EditarEmpresa: React.FC = () => {
                         type="text"
                         value={formData.direccion}
                         onChange={handleInputChange}
-                        placeholder="Ingrese la dirección"
+                        required
+                        placeholder="Ingrese la dirección de la empresa"
                       />
                     </FormGroup>
                   </Col>
-                </Row>
-
-                <Row>
                   <Col md={6}>
                     <FormGroup>
                       <Label for="telefono" className="fw-bold">
-                        Teléfono
+                        Teléfono *
                       </Label>
                       <Input
                         id="telefono"
@@ -263,14 +269,17 @@ const EditarEmpresa: React.FC = () => {
                         type="tel"
                         value={formData.telefono}
                         onChange={handleInputChange}
-                        placeholder="Ingrese el teléfono"
+                        required
+                        placeholder="Ingrese el teléfono de la empresa"
                       />
                     </FormGroup>
                   </Col>
+                </Row>
+                <Row>
                   <Col md={6}>
                     <FormGroup>
                       <Label for="email" className="fw-bold">
-                        Email
+                        Email *
                       </Label>
                       <Input
                         id="email"
@@ -278,7 +287,8 @@ const EditarEmpresa: React.FC = () => {
                         type="email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        placeholder="Ingrese el email"
+                        required
+                        placeholder="Ingrese el email de la empresa"
                       />
                     </FormGroup>
                   </Col>
