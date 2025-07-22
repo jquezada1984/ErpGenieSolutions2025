@@ -28,6 +28,9 @@ const Comercio = Loadable(lazy(() => import('../views/dashboards/Comercio')));
 const Empresas = Loadable(lazy(() => import('../views/empresas/Empresas')));
 const NuevaEmpresa = Loadable(lazy(() => import('../views/empresas/NuevaEmpresa')));
 const EditarEmpresa = Loadable(lazy(() => import('../views/empresas/EditarEmpresa')));
+const NuevaSucursal = Loadable(lazy(() => import('../views/empresas/NuevaSucursal')));
+const Sucursales = Loadable(lazy(() => import('../views/empresas/Sucursales')));
+const EditarSucursal = Loadable(lazy(() => import('../views/empresas/EditarSucursal')));
 
 interface RouteType {
   path: string;
@@ -46,6 +49,9 @@ const ThemeRoutes: RouteType[] = [
       { path: 'empresas', element: <Empresas /> },
       { path: 'empresas/nueva', element: <NuevaEmpresa /> },
       { path: 'empresas/editar/:id', element: <EditarEmpresa /> },
+      { path: 'sucursales/nueva', element: <NuevaSucursal /> },
+      { path: 'sucursales', element: <Sucursales /> },
+      { path: 'sucursales/editar/:id', element: <EditarSucursal /> },
       { path: 'starter', element: <Starter /> },
       { path: 'about', element: <About /> },
       { path: 'alerts', element: <Alerts /> },

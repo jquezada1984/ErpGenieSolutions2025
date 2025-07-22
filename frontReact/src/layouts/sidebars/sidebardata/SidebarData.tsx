@@ -19,8 +19,8 @@ const sidebarMenus = {
       icon: <FaSitemap size={16} />,
       id: 'sucursal',
       children: [
-        { title: "Lista", href: "/sucursal/lista", icon: <Icon.List size={14} /> },
-        { title: "Crear", href: "/sucursal/crear", icon: <Icon.Plus size={14} /> },
+        { title: "Lista", href: "/sucursales", icon: <Icon.List size={14} /> },
+        { title: "Crear", href: "/sucursales/nueva", icon: <Icon.Plus size={14} /> },
       ],
     },
     {
