@@ -28,6 +28,7 @@ const Comercio = Loadable(lazy(() => import('../views/dashboards/Comercio')));
 const Empresas = Loadable(lazy(() => import('../views/empresas/Empresas')));
 const NuevaEmpresa = Loadable(lazy(() => import('../views/empresas/NuevaEmpresa')));
 const EditarEmpresa = Loadable(lazy(() => import('../views/empresas/EditarEmpresa')));
+
 const NuevaSucursal = Loadable(lazy(() => import('../views/empresas/NuevaSucursal')));
 const Sucursales = Loadable(lazy(() => import('../views/empresas/Sucursales')));
 const EditarSucursal = Loadable(lazy(() => import('../views/empresas/EditarSucursal')));
@@ -36,6 +37,9 @@ const NuevoPerfil = Loadable(lazy(() => import('../views/empresas/NuevoPerfil'))
 const EditarPerfil = Loadable(lazy(() => import('../views/empresas/EditarPerfil')));
 const Menus = Loadable(lazy(() => import('../views/empresas/Menus')));
 const NuevoMenu = Loadable(lazy(() => import('../views/empresas/NuevoMenu')));
+
+// Test component
+const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
 
 interface RouteType {
   path: string;
@@ -54,6 +58,7 @@ const ThemeRoutes: RouteType[] = [
       { path: 'empresas', element: <Empresas /> },
       { path: 'empresas/nueva', element: <NuevaEmpresa /> },
       { path: 'empresas/editar/:id', element: <EditarEmpresa /> },
+
       { path: 'sucursales/nueva', element: <NuevaSucursal /> },
       { path: 'sucursales', element: <Sucursales /> },
       { path: 'sucursales/editar/:id', element: <EditarSucursal /> },
@@ -72,6 +77,7 @@ const ThemeRoutes: RouteType[] = [
       { path: 'perfiles/editar/:id', element: <EditarPerfil /> },
       { path: 'menus', element: <Menus /> },
       { path: 'menus/nueva', element: <NuevoMenu /> },
+      { path: 'test-flags', element: <FlagTest /> },
     ],
   },
   {

@@ -1,0 +1,165 @@
+/* Estilos para el componente CountrySelect */
+.country-select-container {
+  position: relative;
+}
+
+.country-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  z-index: 1050;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.country-select-search {
+  padding: 0.5rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.country-select-search input {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.country-select-options {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.country-select-option {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.country-select-option:hover {
+  background-color: #f8f9fa;
+}
+
+.country-select-option:last-child {
+  border-bottom: none;
+}
+
+.country-select-flag {
+  font-size: 1.2em;
+  margin-right: 0.5rem;
+  display: inline-block;
+  width: 1.5em;
+  text-align: center;
+}
+
+.country-select-code {
+  font-weight: 600;
+  color: #6c757d;
+  font-size: 0.9em;
+  margin-right: 0.5rem;
+  min-width: 2.5em;
+  display: inline-block;
+}
+
+.country-select-name {
+  color: #212529;
+}
+
+.country-select-input {
+  cursor: pointer;
+  background-color: #fff;
+  padding-left: 2.5rem !important;
+  padding-right: 2.5rem !important;
+}
+
+.country-select-input:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.country-select-loading {
+  color: #6c757d;
+  font-size: 0.875em;
+  margin-top: 0.25rem;
+}
+
+.country-select-count {
+  color: #198754;
+  font-size: 0.875em;
+  margin-top: 0.25rem;
+}
+
+/* Estilos para el icono de flecha */
+.country-select-chevron {
+  pointer-events: none;
+  transition: transform 0.2s ease-in-out;
+}
+
+.country-select-chevron.up {
+  transform: rotate(180deg);
+}
+
+/* Estilos para las imágenes de banderas */
+.country-flag-image {
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  object-fit: cover;
+}
+
+.country-flag-emoji {
+  font-size: 1.2em;
+}
+
+/* Mejorar la apariencia de las banderas en el dropdown */
+.country-select-flag .country-flag-image {
+  margin-right: 8px;
+  border: 1px solid #e9ecef;
+}
+
+/* Estilos para el estado disabled */
+.country-select-input:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.country-select-input:disabled + .country-select-chevron {
+  opacity: 0.5;
+}
+
+/* Scrollbar personalizado para el dropdown */
+.country-select-options::-webkit-scrollbar {
+  width: 6px;
+}
+
+.country-select-options::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.country-select-options::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.country-select-options::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Animación de entrada para el dropdown */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.country-select-dropdown {
+  animation: fadeInDown 0.2s ease-out;
+} 

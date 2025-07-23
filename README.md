@@ -162,6 +162,38 @@ stop-all-services.bat
 
 ## 🔧 Configuración de Base de Datos
 
+### **Estructura Completa de Empresa:**
+
+La entidad empresa ahora incluye todos los campos del esquema PostgreSQL:
+
+#### **Campos Básicos:**
+- `nombre`, `ruc`, `direccion`, `telefono`, `email`, `estado`
+- `codigo_postal`, `poblacion`, `movil`, `fax`, `web`
+- `logo`, `logotipo_cuadrado`, `nota`
+- `sujeto_iva`, `fiscal_year_start_month`, `fiscal_year_start_day`
+
+#### **Relaciones:**
+- `id_moneda` → Tabla `moneda`
+- `id_pais` → Tabla `pais`
+- `id_provincia` → Tabla `provincia`
+
+#### **Entidades Relacionadas:**
+- **empresa_identificacion**: Información fiscal y legal
+- **empresa_red_social**: Redes sociales de la empresa
+- **empresa_horario_apertura**: Horarios de apertura
+
+### **Insertar Datos Maestros:**
+```bash
+cd microservice-db
+python insert_master_data.py
+```
+
+### **Probar Empresa Completa:**
+```bash
+cd microservice-db
+python test_empresa_completa.py
+```
+
 ### **Aplicar Migración de Email Único:**
 ```bash
 cd microservice-db
@@ -188,9 +220,31 @@ python test_connection.py
 - `POST /graphql` - Proxy GraphQL
 
 ### **Microservicio Python (Puerto 5000):**
+
+#### **Empresas:**
 - `GET /api/empresa` - Listar empresas
+- `GET /api/empresa/:id` - Obtener empresa
 - `POST /api/empresa` - Crear empresa
 - `PUT /api/empresa/:id` - Actualizar empresa
+- `DELETE /api/empresa/:id` - Eliminar empresa
+
+#### **Entidades Maestras:**
+- `GET /api/pais` - Listar países
+- `GET /api/pais/:id` - Obtener país
+- `POST /api/pais` - Crear país
+- `GET /api/moneda` - Listar monedas
+- `GET /api/moneda/:id` - Obtener moneda
+- `POST /api/moneda` - Crear moneda
+- `GET /api/provincia` - Listar provincias
+- `GET /api/provincia/:id` - Obtener provincia
+- `POST /api/provincia` - Crear provincia
+- `GET /api/tipo-entidad` - Listar tipos de entidad comercial
+- `GET /api/tipo-entidad/:id` - Obtener tipo de entidad
+- `POST /api/tipo-entidad` - Crear tipo de entidad
+- `GET /api/red-social` - Listar redes sociales
+- `GET /api/red-social/:id` - Obtener red social
+- `POST /api/red-social` - Crear red social
+
 - `GET /health` - Health check
 
 ### **NestJS GraphQL (Puerto 3001):**

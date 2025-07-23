@@ -1,0 +1,57 @@
+/* Estilos para el componente CountryFlag */
+
+.country-flag-image {
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  vertical-align: middle;
+  object-fit: cover;
+}
+
+.country-flag-emoji {
+  display: inline-block;
+  vertical-align: middle;
+  text-align: center;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Tamaños */
+.country-flag-small {
+  width: 16px;
+  height: 12px;
+  font-size: 12px;
+}
+
+.country-flag-medium {
+  width: 24px;
+  height: 18px;
+  font-size: 16px;
+}
+
+.country-flag-large {
+  width: 32px;
+  height: 24px;
+  font-size: 20px;
+}
+
+/* Hover effects */
+.country-flag-image:hover,
+.country-flag-emoji:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .country-flag-medium {
+    width: 20px;
+    height: 15px;
+    font-size: 14px;
+  }
+  
+  .country-flag-large {
+    width: 28px;
+    height: 21px;
+    font-size: 18px;
+  }
+} 

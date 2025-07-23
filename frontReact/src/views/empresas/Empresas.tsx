@@ -202,6 +202,7 @@ const Empresas: React.FC = () => {
         >
           <i className="bi bi-pencil-fill"></i>
         </Button>
+
         <Button
           onClick={() => handleDelete(empresa.id_empresa)}
           color="danger"

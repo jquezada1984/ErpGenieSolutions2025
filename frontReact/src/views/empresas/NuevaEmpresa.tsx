@@ -1,62 +1,100 @@
-import React, { useState } from 'react';
-import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
+import React, { useState, useCallback } from 'react';
+import { 
+  Card, 
+  CardBody, 
+  CardTitle, 
+  Button, 
+  Nav, 
+  NavItem, 
+  NavLink, 
+  TabContent, 
+  TabPane, 
+  Alert,
+  Spinner
+} from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
+import classnames from 'classnames';
 import { crearEmpresa } from '../../_apis_/empresa';
 import ErrorAlert from '../../components/ErrorAlert';
+import './ConfiguracionEmpresa.scss';
 
-interface Empresa {
-  id_empresa: string;
-  nombre: string;
-  ruc: string;
-  direccion: string;
-  telefono: string;
-  email: string;
-  estado: boolean;
-}
+// Componentes de las secciones
+import SeccionEmpresa from './secciones/SeccionEmpresa';
+import SeccionRedesSociales from './secciones/SeccionRedesSociales';
+import SeccionHorarioApertura from './secciones/SeccionHorarioApertura';
+import SeccionContable from './secciones/SeccionContable';
 
 const NuevaEmpresa: React.FC = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('1');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     ruc: '',
     direccion: '',
     telefono: '',
     email: '',
-    estado: true
+    estado: true,
+    id_moneda: '',
+    id_pais: '',
+    codigo_postal: '',
+    poblacion: '',
+    movil: '',
+    fax: '',
+    web: '',
+    nota: '',
+    sujeto_iva: true,
+    id_provincia: '',
+    fiscal_year_start_month: 1,
+    fiscal_year_start_day: 1
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+  const toggleTab = (tab: string) => {
+    if (activeTab !== tab) {
+      setActiveTab(tab);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDataChange = useCallback((section: string, data: any) => {
+    if (section === 'empresa') {
+      setFormData(prev => ({ ...prev, ...data }));
+    }
+  }, []);
+
+  const handleEmpresaChange = useCallback((data: any) => {
+    setFormData(prev => ({ ...prev, ...data }));
+  }, []);
+
+  const handleRedesSocialesChange = useCallback((data: any) => {
+    // TODO: Implementar cuando se complete la sección
+  }, []);
+
+  const handleHorarioAperturaChange = useCallback((data: any) => {
+    // TODO: Implementar cuando se complete la sección
+  }, []);
+
+  const handleContableChange = useCallback((data: any) => {
+    // TODO: Implementar cuando se complete la sección
+  }, []);
+
+  const handleSubmit = async () => {
     setLoading(true);
     setError(null);
+    
     try {
-      await crearEmpresa({
-        nombre: formData.nombre,
-        ruc: formData.ruc,
-        direccion: formData.direccion,
-        telefono: formData.telefono,
-        email: formData.email,
-        estado: formData.estado
-      });
-      setLoading(false);
+      await crearEmpresa(formData);
       setSuccess(true);
+      
       setTimeout(() => {
         navigate('/empresas');
       }, 2000);
+      
     } catch (err: any) {
+      setError(err.message || 'Error al crear la empresa');
+    } finally {
       setLoading(false);
-      setError(err);
     }
   };
 
@@ -65,169 +103,123 @@ const NuevaEmpresa: React.FC = () => {
   };
 
   return (
-    <div className="container-fluid">
-      <div className="row">
-        <div className="col-12">
-          <Card>
-            <CardBody>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <CardTitle tag="h4" className="mb-0">
-                  <i className="bi bi-plus-circle me-2"></i>
-                  Nueva Empresa
-                </CardTitle>
-                <Button color="secondary" onClick={handleCancel}>
-                  <i className="bi bi-arrow-left me-2"></i>
-                  Volver
-                </Button>
-              </div>
+    <div className="configuracion-empresa">
+      <Card>
+        <CardBody>
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <CardTitle className="mb-0">
+              <i className="fas fa-plus-circle text-primary me-2"></i>
+              Nueva Empresa/Organización
+            </CardTitle>
+            <div>
+              <Button 
+                color="secondary" 
+                outline 
+                className="me-2"
+                onClick={handleCancel}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                color="primary" 
+                onClick={handleSubmit}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Spinner size="sm" className="me-2" />
+                    Creando...
+                  </>
+                ) : (
+                  'Crear Empresa'
+                )}
+              </Button>
+            </div>
+          </div>
 
-              {error && (
-                <div className="mb-3">
-                  <ErrorAlert 
-                    error={error} 
-                    onDismiss={() => setError(null)}
-                  />
-                </div>
-              )}
+          {error && <ErrorAlert error={error} />}
+          
+          {success && (
+            <Alert color="success" className="mb-3">
+              <i className="fas fa-check-circle me-2"></i>
+              Empresa creada exitosamente. Redirigiendo...
+            </Alert>
+          )}
 
-              {success && (
-                <Alert color="success" className="mb-3">
-                  <i className="bi bi-check-circle me-2"></i>
-                  Empresa creada exitosamente. Redirigiendo...
-                </Alert>
-              )}
+          <div className="instruction-text mb-4">
+            <p className="text-muted">
+              Complete la información de la nueva empresa/organización. Haga clic en el botón "Crear Empresa" 
+              cuando haya terminado.
+            </p>
+          </div>
 
-              <Form onSubmit={handleSubmit}>
-                <Row>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label for="nombre" className="fw-bold">
-                        Nombre de la Empresa *
-                      </Label>
-                      <Input
-                        id="nombre"
-                        name="nombre"
-                        type="text"
-                        value={formData.nombre}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Ingrese el nombre de la empresa"
-                      />
-                    </FormGroup>
-                  </Col>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label for="ruc" className="fw-bold">
-                        RUC *
-                      </Label>
-                      <Input
-                        id="ruc"
-                        name="ruc"
-                        type="text"
-                        value={formData.ruc}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Ingrese el RUC"
-                        maxLength={11}
-                      />
-                    </FormGroup>
-                  </Col>
-                </Row>
+          <Nav tabs className="nav-tabs-custom">
+            <NavItem>
+              <NavLink
+                className={classnames({ active: activeTab === '1' })}
+                onClick={() => toggleTab('1')}
+              >
+                <i className="fas fa-building me-2"></i>
+                Empresa
+              </NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink
+                className={classnames({ active: activeTab === '2' })}
+                onClick={() => toggleTab('2')}
+              >
+                <i className="fas fa-share-alt me-2"></i>
+                Redes sociales
+              </NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink
+                className={classnames({ active: activeTab === '3' })}
+                onClick={() => toggleTab('3')}
+              >
+                <i className="fas fa-clock me-2"></i>
+                Horario de apertura
+              </NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink
+                className={classnames({ active: activeTab === '4' })}
+                onClick={() => toggleTab('4')}
+              >
+                <i className="fas fa-calculator me-2"></i>
+                Contable
+              </NavLink>
+            </NavItem>
+          </Nav>
 
-                <Row>
-                  <Col md={12}>
-                    <FormGroup>
-                      <Label for="direccion" className="fw-bold">
-                        Dirección *
-                      </Label>
-                      <Input
-                        id="direccion"
-                        name="direccion"
-                        type="text"
-                        value={formData.direccion}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Ingrese la dirección"
-                      />
-                    </FormGroup>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label for="telefono" className="fw-bold">
-                        Teléfono *
-                      </Label>
-                      <Input
-                        id="telefono"
-                        name="telefono"
-                        type="tel"
-                        value={formData.telefono}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Ingrese el teléfono"
-                      />
-                    </FormGroup>
-                  </Col>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label for="email" className="fw-bold">
-                        Email *
-                      </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Ingrese el email"
-                      />
-                    </FormGroup>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Col md={12}>
-                    <FormGroup check>
-                      <Label check>
-                        <Input
-                          type="checkbox"
-                          name="estado"
-                          checked={formData.estado}
-                          onChange={handleInputChange}
-                        />
-                        <span className="ms-2">Empresa Activa</span>
-                      </Label>
-                    </FormGroup>
-                  </Col>
-                </Row>
-
-                <div className="d-flex justify-content-end gap-2 mt-4">
-                  <Button color="secondary" onClick={handleCancel} disabled={loading}>
-                    <i className="bi bi-x-circle me-2"></i>
-                    Cancelar
-                  </Button>
-                  <Button color="primary" type="submit" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <i className="bi bi-hourglass-split me-2"></i>
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-check-circle me-2"></i>
-                        Guardar Empresa
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </Form>
-            </CardBody>
-          </Card>
-        </div>
-      </div>
+          <TabContent activeTab={activeTab} className="mt-4">
+            <TabPane tabId="1">
+              <SeccionEmpresa 
+                data={formData} 
+                onChange={handleEmpresaChange}
+              />
+            </TabPane>
+            <TabPane tabId="2">
+              <SeccionRedesSociales 
+                data={[]} 
+                onChange={handleRedesSocialesChange}
+              />
+            </TabPane>
+            <TabPane tabId="3">
+              <SeccionHorarioApertura 
+                data={[]} 
+                onChange={handleHorarioAperturaChange}
+              />
+            </TabPane>
+            <TabPane tabId="4">
+              <SeccionContable 
+                data={undefined} 
+                onChange={handleContableChange}
+              />
+            </TabPane>
+          </TabContent>
+        </CardBody>
+      </Card>
     </div>
   );
 };

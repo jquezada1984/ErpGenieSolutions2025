@@ -1,0 +1,30 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Banderas</title>
+</head>
+<body>
+    <h1>Test de Banderas</h1>
+    <p>Verificando que las imágenes se carguen correctamente:</p>
+    <div>
+        <img src="/flags/pe.png" alt="Perú" style="width: 40px; height: 30px; border: 1px solid #ccc;">
+        <span>Perú</span>
+    </div>
+    <div>
+        <img src="/flags/ar.png" alt="Argentina" style="width: 40px; height: 30px; border: 1px solid #ccc;">
+        <span>Argentina</span>
+    </div>
+    <div>
+        <img src="/flags/br.png" alt="Brasil" style="width: 40px; height: 30px; border: 1px solid #ccc;">
+        <span>Brasil</span>
+    </div>
+    <script>
+        // Verificar carga de imágenes
+        document.querySelectorAll('img').forEach(img => {
+            img.onload = () => console.log('✅ Cargada:', img.src);
+            img.onerror = () => console.log('❌ Error cargando:', img.src);
+        });
+    </script>
+</body>
+</html>

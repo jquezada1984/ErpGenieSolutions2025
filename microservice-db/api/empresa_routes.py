@@ -1,11 +1,13 @@
 from flask import Blueprint, request, jsonify
-from models.empresa import Empresa
-from schemas.empresa_schema import EmpresaSchema
+from models.empresa import Empresa, Pais, Moneda, Provincia, TipoEntidadComercial, SocialNetwork, EmpresaIdentificacion, EmpresaRedSocial, EmpresaHorarioApertura
+from schemas.empresa_schema import EmpresaSchema, EmpresaCreateSchema, EmpresaUpdateSchema, PaisSchema, MonedaSchema, ProvinciaSchema, TipoEntidadComercialSchema, SocialNetworkSchema
 from utils.db import db
 from sqlalchemy.exc import IntegrityError
 
 empresa_bp = Blueprint('empresa_bp', __name__)
 empresa_schema = EmpresaSchema()
+empresa_create_schema = EmpresaCreateSchema()
+empresa_update_schema = EmpresaUpdateSchema()
 
 @empresa_bp.route('/empresa', methods=['GET', 'OPTIONS'])
 @empresa_bp.route('/empresa/', methods=['GET', 'OPTIONS'])
@@ -42,13 +44,37 @@ def crear_empresa():
         print(f"📝 Datos recibidos para crear empresa: {data}")
         
         # Validar y deserializar
-        errors = empresa_schema.validate(data)
+        errors = empresa_create_schema.validate(data)
         if errors:
             print(f"❌ Errores de validación: {errors}")
             return jsonify(errors), 400
         
+        # Crear empresa
         empresa = Empresa(**data)
         db.session.add(empresa)
+        db.session.flush()  # Para obtener el ID de la empresa
+        
+        # Crear identificación si se proporciona
+        if 'identificacion' in data:
+            identificacion_data = data['identificacion']
+            identificacion_data['id_empresa'] = empresa.id_empresa
+            identificacion = EmpresaIdentificacion(**identificacion_data)
+            db.session.add(identificacion)
+        
+        # Crear redes sociales si se proporcionan
+        if 'redes_sociales' in data and isinstance(data['redes_sociales'], list):
+            for red_social_data in data['redes_sociales']:
+                red_social_data['id_empresa'] = empresa.id_empresa
+                red_social = EmpresaRedSocial(**red_social_data)
+                db.session.add(red_social)
+        
+        # Crear horarios de apertura si se proporcionan
+        if 'horarios_apertura' in data and isinstance(data['horarios_apertura'], list):
+            for horario_data in data['horarios_apertura']:
+                horario_data['id_empresa'] = empresa.id_empresa
+                horario = EmpresaHorarioApertura(**horario_data)
+                db.session.add(horario)
+        
         db.session.commit()
         
         result = empresa_schema.dump(empresa)
@@ -84,19 +110,63 @@ def actualizar_empresa(id_empresa):
     if request.method == 'OPTIONS':
         return '', 204
     try:
-        data = request.get_json()
-        print(f"📝 Actualizando empresa {id_empresa} con datos: {data}")
+        empresa = Empresa.query.get(id_empresa)
+        if not empresa:
+            return jsonify({'error': 'Empresa no encontrada'}), 404
         
-        empresa = Empresa.query.get_or_404(id_empresa)
-        errors = empresa_schema.validate(data, partial=True)
+        data = request.get_json()
+        print(f"📝 Datos recibidos para actualizar empresa {id_empresa}: {data}")
+        
+        # Validar y deserializar
+        errors = empresa_update_schema.validate(data, partial=True)
         if errors:
             print(f"❌ Errores de validación: {errors}")
             return jsonify(errors), 400
         
+        # Actualizar campos de empresa
         for key, value in data.items():
-            setattr(empresa, key, value)
+            if hasattr(empresa, key) and key not in ['identificacion', 'redes_sociales', 'horarios_apertura']:
+                setattr(empresa, key, value)
+        
+        # Actualizar identificación si se proporciona
+        if 'identificacion' in data:
+            identificacion = EmpresaIdentificacion.query.filter_by(id_empresa=id_empresa).first()
+            if identificacion:
+                for key, value in data['identificacion'].items():
+                    if hasattr(identificacion, key):
+                        setattr(identificacion, key, value)
+            else:
+                identificacion_data = data['identificacion']
+                identificacion_data['id_empresa'] = id_empresa
+                identificacion = EmpresaIdentificacion(**identificacion_data)
+                db.session.add(identificacion)
+        
+        # Actualizar redes sociales si se proporcionan
+        if 'redes_sociales' in data:
+            # Eliminar redes sociales existentes
+            EmpresaRedSocial.query.filter_by(id_empresa=id_empresa).delete()
+            
+            # Crear nuevas redes sociales
+            if isinstance(data['redes_sociales'], list):
+                for red_social_data in data['redes_sociales']:
+                    red_social_data['id_empresa'] = id_empresa
+                    red_social = EmpresaRedSocial(**red_social_data)
+                    db.session.add(red_social)
+        
+        # Actualizar horarios de apertura si se proporcionan
+        if 'horarios_apertura' in data:
+            # Eliminar horarios existentes
+            EmpresaHorarioApertura.query.filter_by(id_empresa=id_empresa).delete()
+            
+            # Crear nuevos horarios
+            if isinstance(data['horarios_apertura'], list):
+                for horario_data in data['horarios_apertura']:
+                    horario_data['id_empresa'] = id_empresa
+                    horario = EmpresaHorarioApertura(**horario_data)
+                    db.session.add(horario)
         
         db.session.commit()
+        
         result = empresa_schema.dump(empresa)
         print(f"✅ Empresa actualizada exitosamente: {result}")
         return jsonify(result), 200

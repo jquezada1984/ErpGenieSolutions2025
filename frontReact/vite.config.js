@@ -28,7 +28,6 @@ export default defineConfig({
           'router-vendor': ['react-router-dom'],
           'ui-vendor': ['reactstrap', 'bootstrap'],
           'redux-vendor': ['react-redux', '@reduxjs/toolkit'],
-          'firebase-vendor': ['firebase'],
           'charts-vendor': ['apexcharts', 'react-apexcharts'],
           'utils-vendor': ['axios', 'formik', 'yup'],
         },
@@ -51,13 +50,7 @@ export default defineConfig({
     // Optimizaciones adicionales
     chunkSizeWarningLimit: 1000,
     sourcemap: false, // Deshabilitar en producción
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true, // Remover console.log en producción
-        drop_debugger: true
-      }
-    }
+    minify: 'esbuild', // Cambiar de terser a esbuild
   },
   // Optimizaciones de desarrollo
   server: {

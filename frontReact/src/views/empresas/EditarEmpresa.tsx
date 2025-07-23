@@ -1,25 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
+import { 
+  Card, 
+  CardBody, 
+  CardTitle, 
+  Button, 
+  Nav, 
+  NavItem, 
+  NavLink, 
+  TabContent, 
+  TabPane, 
+  Alert,
+  Spinner
+} from 'reactstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import { actualizarEmpresa } from '../../_apis_/empresa';
-import { client } from '../../main';
 import ErrorAlert from '../../components/ErrorAlert';
+import classnames from 'classnames';
+import './ConfiguracionEmpresa.scss';
 
-const GET_EMPRESAS = gql`
-  query GetEmpresas {
-    empresas {
-      id_empresa
-      nombre
-      ruc
-      direccion
-      telefono
-      email
-      estado
-    }
-  }
-`;
+// Componentes de las secciones
+import SeccionEmpresa from './secciones/SeccionEmpresa';
+import SeccionRedesSociales from './secciones/SeccionRedesSociales';
+import SeccionHorarioApertura from './secciones/SeccionHorarioApertura';
+import SeccionContable from './secciones/SeccionContable';
 
 const GET_EMPRESA = gql`
   query GetEmpresa($id_empresa: ID!) {
@@ -31,34 +36,50 @@ const GET_EMPRESA = gql`
       telefono
       email
       estado
+      id_moneda
+      id_pais
+      codigo_postal
+      poblacion
+      movil
+      fax
+      web
+      nota
+      sujeto_iva
+      id_provincia
+      fiscal_year_start_month
+      fiscal_year_start_day
     }
   }
 `;
 
-interface Empresa {
-  id_empresa: string;
-  nombre: string;
-  ruc: string;
-  direccion: string;
-  telefono: string;
-  email: string;
-  estado: boolean;
-}
-
 const EditarEmpresa: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [activeTab, setActiveTab] = useState('1');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     ruc: '',
     direccion: '',
     telefono: '',
     email: '',
-    estado: true
+    estado: true,
+    id_moneda: '',
+    id_pais: '',
+    codigo_postal: '',
+    poblacion: '',
+    movil: '',
+    fax: '',
+    web: '',
+    nota: '',
+    sujeto_iva: true,
+    id_provincia: '',
+    fiscal_year_start_month: 1,
+    fiscal_year_start_day: 1
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const { data, loading: loadingEmpresa, error: errorEmpresa } = useQuery(GET_EMPRESA, {
     variables: { id_empresa: id! },
@@ -70,61 +91,54 @@ const EditarEmpresa: React.FC = () => {
           direccion: data.empresa.direccion || '',
           telefono: data.empresa.telefono || '',
           email: data.empresa.email || '',
-          estado: data.empresa.estado
+          estado: data.empresa.estado,
+          id_moneda: data.empresa.id_moneda || '',
+          id_pais: data.empresa.id_pais || '',
+          codigo_postal: data.empresa.codigo_postal || '',
+          poblacion: data.empresa.poblacion || '',
+          movil: data.empresa.movil || '',
+          fax: data.empresa.fax || '',
+          web: data.empresa.web || '',
+          nota: data.empresa.nota || '',
+          sujeto_iva: data.empresa.sujeto_iva,
+          id_provincia: data.empresa.id_provincia || '',
+          fiscal_year_start_month: data.empresa.fiscal_year_start_month || 1,
+          fiscal_year_start_day: data.empresa.fiscal_year_start_day || 1
         });
       }
     }
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+  const toggleTab = (tab: string) => {
+    if (activeTab !== tab) {
+      setActiveTab(tab);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDataChange = (section: string, data: any) => {
+    if (section === 'empresa') {
+      setFormData(prev => ({ ...prev, ...data }));
+      setHasChanges(true);
+    }
+  };
+
+  const handleSubmit = async () => {
     setLoading(true);
     setError(null);
+    
     try {
-      // Actualizar empresa via REST
-      await actualizarEmpresa(id!, {
-        nombre: formData.nombre,
-        ruc: formData.ruc,
-        direccion: formData.direccion,
-        telefono: formData.telefono,
-        email: formData.email,
-        estado: formData.estado
-      });
-      
-      // Invalidar el caché de empresas y forzar recarga
-      try {
-        // Evictar el query de empresas del caché
-        client.cache.evict({ fieldName: 'empresas' });
-        // Ejecutar garbage collection para limpiar el caché
-        client.cache.gc();
-        console.log('✅ Caché de empresas invalidado');
-        
-        // También podemos hacer una consulta directa para asegurar que se actualice
-        await client.query({
-          query: GET_EMPRESAS,
-          fetchPolicy: 'network-only', // Forzar consulta desde red, no caché
-        });
-        console.log('✅ Datos del listado actualizados desde red');
-      } catch (cacheError) {
-        console.error('❌ Error al actualizar caché:', cacheError);
-      }
-      
-      setLoading(false);
+      await actualizarEmpresa(id!, formData);
       setSuccess(true);
+      setHasChanges(false);
+      
       setTimeout(() => {
-        navigate('/empresas');
-      }, 2000);
+        setSuccess(false);
+      }, 3000);
+      
     } catch (err: any) {
+      setError(err.message || 'Error al actualizar la empresa');
+    } finally {
       setLoading(false);
-      setError(err);
     }
   };
 
@@ -134,206 +148,134 @@ const EditarEmpresa: React.FC = () => {
 
   if (loadingEmpresa) {
     return (
-      <div className="container-fluid">
-        <div className="row">
-          <div className="col-12">
-            <Card>
-              <CardBody className="text-center">
-                <div className="spinner-border text-primary" role="status">
-                  <span className="visually-hidden">Cargando...</span>
-                </div>
-                <p className="mt-2">Cargando datos de la empresa...</p>
-              </CardBody>
-            </Card>
-          </div>
-        </div>
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
+        <Spinner color="primary" />
       </div>
     );
   }
 
   if (errorEmpresa) {
-    return (
-      <div className="container-fluid">
-        <div className="row">
-          <div className="col-12">
-            <Card>
-              <CardBody>
-                <ErrorAlert error={errorEmpresa} />
-                <Button color="secondary" onClick={handleCancel}>
-                  <i className="bi bi-arrow-left me-2"></i>
-                  Volver
-                </Button>
-              </CardBody>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
+    return <ErrorAlert error={errorEmpresa.message} />;
   }
 
   return (
-    <div className="container-fluid">
-      <div className="row">
-        <div className="col-12">
-          <Card>
-            <CardBody>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <CardTitle tag="h4" className="mb-0">
-                  <i className="bi bi-pencil-square me-2"></i>
-                  Editar Empresa
-                </CardTitle>
-                <Button color="secondary" onClick={handleCancel}>
-                  <i className="bi bi-arrow-left me-2"></i>
-                  Volver
-                </Button>
-              </div>
+    <div className="configuracion-empresa">
+      <Card>
+        <CardBody>
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <CardTitle className="mb-0">
+              <i className="fas fa-edit text-primary me-2"></i>
+              Editar Empresa/Organización
+            </CardTitle>
+            <div>
+              <Button 
+                color="secondary" 
+                outline 
+                className="me-2"
+                onClick={handleCancel}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                color="primary" 
+                onClick={handleSubmit}
+                disabled={loading || !hasChanges}
+              >
+                {loading ? (
+                  <>
+                    <Spinner size="sm" className="me-2" />
+                    Guardando...
+                  </>
+                ) : (
+                  'Guardar Cambios'
+                )}
+              </Button>
+            </div>
+          </div>
 
-              {error && (
-                <div className="mb-3">
-                  <ErrorAlert 
-                    error={error} 
-                    onDismiss={() => setError(null)}
-                  />
-                </div>
-              )}
+          {error && <ErrorAlert error={error} />}
+          
+          {success && (
+            <Alert color="success" className="mb-3">
+              <i className="fas fa-check-circle me-2"></i>
+              Empresa actualizada exitosamente
+            </Alert>
+          )}
 
-              {success && (
-                <Alert color="success" timeout={0} className="mb-3">
-                  <i className="bi bi-check-circle me-2"></i>
-                  Empresa actualizada exitosamente. Redirigiendo...
-                </Alert>
-              )}
+          <div className="instruction-text mb-4">
+            <p className="text-muted">
+              Edite la información de la empresa/organización. Haga clic en el botón "Guardar Cambios" 
+              cuando haya terminado.
+            </p>
+          </div>
 
-              <Form onSubmit={handleSubmit}>
-                <Row>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label for="nombre" className="fw-bold">
-                        Nombre de la Empresa *
-                      </Label>
-                      <Input
-                        id="nombre"
-                        name="nombre"
-                        type="text"
-                        value={formData.nombre}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Ingrese el nombre de la empresa"
-                      />
-                    </FormGroup>
-                  </Col>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label for="ruc" className="fw-bold">
-                        RUC *
-                      </Label>
-                      <Input
-                        id="ruc"
-                        name="ruc"
-                        type="text"
-                        value={formData.ruc}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Ingrese el RUC"
-                        maxLength={11}
-                      />
-                    </FormGroup>
-                  </Col>
-                </Row>
+          <Nav tabs className="nav-tabs-custom">
+            <NavItem>
+              <NavLink
+                className={classnames({ active: activeTab === '1' })}
+                onClick={() => toggleTab('1')}
+              >
+                <i className="fas fa-building me-2"></i>
+                Empresa
+              </NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink
+                className={classnames({ active: activeTab === '2' })}
+                onClick={() => toggleTab('2')}
+              >
+                <i className="fas fa-share-alt me-2"></i>
+                Redes sociales
+              </NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink
+                className={classnames({ active: activeTab === '3' })}
+                onClick={() => toggleTab('3')}
+              >
+                <i className="fas fa-clock me-2"></i>
+                Horario de apertura
+              </NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink
+                className={classnames({ active: activeTab === '4' })}
+                onClick={() => toggleTab('4')}
+              >
+                <i className="fas fa-calculator me-2"></i>
+                Contable
+              </NavLink>
+            </NavItem>
+          </Nav>
 
-                <Row>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label for="direccion" className="fw-bold">
-                        Dirección *
-                      </Label>
-                      <Input
-                        id="direccion"
-                        name="direccion"
-                        type="text"
-                        value={formData.direccion}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Ingrese la dirección de la empresa"
-                      />
-                    </FormGroup>
-                  </Col>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label for="telefono" className="fw-bold">
-                        Teléfono *
-                      </Label>
-                      <Input
-                        id="telefono"
-                        name="telefono"
-                        type="tel"
-                        value={formData.telefono}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Ingrese el teléfono de la empresa"
-                      />
-                    </FormGroup>
-                  </Col>
-                </Row>
-                <Row>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label for="email" className="fw-bold">
-                        Email *
-                      </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Ingrese el email de la empresa"
-                      />
-                    </FormGroup>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Col md={12}>
-                    <FormGroup check>
-                      <Label check>
-                        <Input
-                          type="checkbox"
-                          name="estado"
-                          checked={formData.estado}
-                          onChange={handleInputChange}
-                        />
-                        <span className="ms-2">Empresa Activa</span>
-                      </Label>
-                    </FormGroup>
-                  </Col>
-                </Row>
-
-                <div className="d-flex justify-content-end gap-2 mt-4">
-                  <Button color="secondary" onClick={handleCancel} disabled={loading}>
-                    <i className="bi bi-x-circle me-2"></i>
-                    Cancelar
-                  </Button>
-                  <Button color="primary" type="submit" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <i className="bi bi-hourglass-split me-2"></i>
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-check-circle me-2"></i>
-                        Actualizar Empresa
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </Form>
-            </CardBody>
-          </Card>
-        </div>
-      </div>
+          <TabContent activeTab={activeTab} className="mt-4">
+            <TabPane tabId="1">
+              <SeccionEmpresa 
+                data={formData} 
+                onChange={(data: any) => handleDataChange('empresa', data)}
+              />
+            </TabPane>
+            <TabPane tabId="2">
+              <SeccionRedesSociales 
+                data={[]} 
+                onChange={(data: any) => handleDataChange('redes_sociales', data)}
+              />
+            </TabPane>
+            <TabPane tabId="3">
+              <SeccionHorarioApertura 
+                data={[]} 
+                onChange={(data: any) => handleDataChange('horarios_apertura', data)}
+              />
+            </TabPane>
+            <TabPane tabId="4">
+              <SeccionContable 
+                data={undefined} 
+                onChange={(data: any) => handleDataChange('identificacion', data)}
+              />
+            </TabPane>
+          </TabContent>
+        </CardBody>
+      </Card>
     </div>
   );
 };
