@@ -17,6 +17,7 @@ import * as Yup from 'yup';
 import AuthLogo from '../../layouts/logo/AuthLogo';
 import { AuthContext } from '../../components/jwt/JwtContext';
 import useMounted from '../../components/authGurad/useMounted';
+import ErrorAlert from '../../components/ErrorAlert';
 
 interface LoginValues {
   email: string;
@@ -115,7 +116,11 @@ const Login = () => {
                           Recordarme
                         </Label>
                       </FormGroup>
-                      {errors.submit ? <Alert color="danger" fade={false}>{errors.submit}</Alert> : ''}
+                      {errors.submit ? (
+                        <div className="mb-3">
+                          <ErrorAlert error={errors.submit} />
+                        </div>
+                      ) : ''}
 
                       <FormGroup>
                         <Button

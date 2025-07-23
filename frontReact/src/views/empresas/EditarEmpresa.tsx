@@ -5,6 +5,7 @@ import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import { actualizarEmpresa } from '../../_apis_/empresa';
 import { client } from '../../main';
+import ErrorAlert from '../../components/ErrorAlert';
 
 const GET_EMPRESAS = gql`
   query GetEmpresas {
@@ -21,7 +22,7 @@ const GET_EMPRESAS = gql`
 `;
 
 const GET_EMPRESA = gql`
-  query GetEmpresa($id_empresa: Int!) {
+  query GetEmpresa($id_empresa: ID!) {
     empresa(id_empresa: $id_empresa) {
       id_empresa
       nombre
@@ -35,7 +36,7 @@ const GET_EMPRESA = gql`
 `;
 
 interface Empresa {
-  id_empresa: number;
+  id_empresa: string;
   nombre: string;
   ruc: string;
   direccion: string;
@@ -60,7 +61,7 @@ const EditarEmpresa: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   const { data, loading: loadingEmpresa, error: errorEmpresa } = useQuery(GET_EMPRESA, {
-    variables: { id_empresa: parseInt(id!) },
+    variables: { id_empresa: id! },
     onCompleted: (data) => {
       if (data.empresa) {
         setFormData({
@@ -89,7 +90,7 @@ const EditarEmpresa: React.FC = () => {
     setError(null);
     try {
       // Actualizar empresa via REST
-      await actualizarEmpresa(parseInt(id!), {
+      await actualizarEmpresa(id!, {
         nombre: formData.nombre,
         ruc: formData.ruc,
         direccion: formData.direccion,
@@ -123,7 +124,7 @@ const EditarEmpresa: React.FC = () => {
       }, 2000);
     } catch (err: any) {
       setLoading(false);
-      setError(err.message || 'Error al actualizar la empresa');
+      setError(err);
     }
   };
 
@@ -157,10 +158,7 @@ const EditarEmpresa: React.FC = () => {
           <div className="col-12">
             <Card>
               <CardBody>
-                <Alert color="danger">
-                  <i className="bi bi-exclamation-triangle me-2"></i>
-                  Error al cargar la empresa: {errorEmpresa.message}
-                </Alert>
+                <ErrorAlert error={errorEmpresa} />
                 <Button color="secondary" onClick={handleCancel}>
                   <i className="bi bi-arrow-left me-2"></i>
                   Volver
@@ -191,10 +189,12 @@ const EditarEmpresa: React.FC = () => {
               </div>
 
               {error && (
-                <Alert color="danger" timeout={0} className="mb-3">
-                  <i className="bi bi-exclamation-triangle me-2"></i>
-                  {error}
-                </Alert>
+                <div className="mb-3">
+                  <ErrorAlert 
+                    error={error} 
+                    onDismiss={() => setError(null)}
+                  />
+                </div>
               )}
 
               {success && (

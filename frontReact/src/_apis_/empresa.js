@@ -1,52 +1,68 @@
 import axios from 'axios';
-import { gql } from '@apollo/client';
-import { client } from '../main';
 
-// Cambia la URL base según la configuración de tu microservicio Python
-const API_URL = 'http://localhost:5000/api/empresa';
+// URL base del Gateway API
+const API_URL = `${import.meta.env.VITE_GATEWAY_URL}/api/empresas`;
 
-// Función para refrescar el token
-const refreshToken = async () => {
-  try {
-    const { data } = await client.query({
-      query: gql`
-        query RefreshToken {
-          refreshToken
-        }
-      `,
-    });
-    const newToken = data.refreshToken;
-    if (newToken) {
-      localStorage.setItem('accessToken', newToken);
-      // Actualizar el header de autorización en axios
-      axios.defaults.headers.common.Authorization = `Bearer ${newToken}`;
-      console.log('✅ Token actualizado automáticamente');
+// Configurar axios para el microservicio Python
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interceptor para manejar errores
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('❌ Error en API Python:', error.response?.data || error.message);
+    
+    // Extraer el mensaje de error específico de la respuesta
+    if (error.response?.data?.error) {
+      const customError = new Error(error.response.data.error);
+      customError.status = error.response.status;
+      customError.data = error.response.data;
+      throw customError;
     }
-    return newToken;
+    
+    throw error;
+  }
+);
+
+// SOLO MUTACIONES (Gateway API)
+export const crearEmpresa = async (empresa) => {
+  try {
+    console.log('📝 Creando empresa (Gateway):', empresa);
+    const response = await apiClient.post('/', empresa);
+    console.log('✅ Empresa creada exitosamente:', response.data);
+    return response.data;
   } catch (error) {
-    console.error('❌ Error al refrescar token:', error);
-    return null;
+    console.error('❌ Error al crear empresa:', error);
+    throw error;
   }
 };
 
-export const crearEmpresa = async (empresa) => {
-  const response = await axios.post(`${API_URL}/`, empresa);
-  // Refrescar token después de crear
-  await refreshToken();
-  return response.data;
-};
-
 export const actualizarEmpresa = async (id, empresa) => {
-  const response = await axios.put(`${API_URL}/${id}`, empresa);
-  // Refrescar token después de actualizar
-  await refreshToken();
-  return response.data;
+  try {
+    console.log('📝 Actualizando empresa (Gateway):', id, empresa);
+    const response = await apiClient.put(`/${id}`, empresa);
+    console.log('✅ Empresa actualizada exitosamente:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error al actualizar empresa:', error);
+    throw error;
+  }
 };
 
-// "Eliminar" empresa: solo cambia el estado a false
+// "Eliminar" empresa: solo cambia el estado a false (Gateway API)
 export const eliminarEmpresa = async (id) => {
-  const response = await axios.put(`${API_URL}/${id}`, { estado: false });
-  // Refrescar token después de eliminar
-  await refreshToken();
-  return response.data;
+  try {
+    console.log('🗑️ Eliminando empresa (Gateway):', id);
+    const response = await apiClient.put(`/${id}`, { estado: false });
+    console.log('✅ Empresa eliminada exitosamente:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error al eliminar empresa:', error);
+    throw error;
+  }
 }; 

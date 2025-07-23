@@ -62,6 +62,13 @@ export default defineConfig({
   // Optimizaciones de desarrollo
   server: {
     port: 3000,
-    open: true
+    open: true,
+    hmr: {
+      overlay: false // Deshabilitar overlay de errores para evitar problemas con múltiples raíces
+    }
+  },
+  // Configuración para evitar problemas de múltiples raíces
+  define: {
+    __DEV__: true
   }
 })

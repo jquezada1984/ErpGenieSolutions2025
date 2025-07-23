@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
 import { crearEmpresa } from '../../_apis_/empresa';
+import ErrorAlert from '../../components/ErrorAlert';
 
 interface Empresa {
-  id_empresa: number;
+  id_empresa: string;
   nombre: string;
   ruc: string;
   direccion: string;
@@ -55,7 +56,7 @@ const NuevaEmpresa: React.FC = () => {
       }, 2000);
     } catch (err: any) {
       setLoading(false);
-      setError(err.message || 'Error al crear la empresa');
+      setError(err);
     }
   };
 
@@ -81,14 +82,16 @@ const NuevaEmpresa: React.FC = () => {
               </div>
 
               {error && (
-                <Alert color="danger" timeout={0} className="mb-3">
-                  <i className="bi bi-exclamation-triangle me-2"></i>
-                  {error}
-                </Alert>
+                <div className="mb-3">
+                  <ErrorAlert 
+                    error={error} 
+                    onDismiss={() => setError(null)}
+                  />
+                </div>
               )}
 
               {success && (
-                <Alert color="success" timeout={0} className="mb-3">
+                <Alert color="success" className="mb-3">
                   <i className="bi bi-check-circle me-2"></i>
                   Empresa creada exitosamente. Redirigiendo...
                 </Alert>

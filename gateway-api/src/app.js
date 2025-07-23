@@ -1,0 +1,135 @@
+// Cargar variables de entorno
+require('dotenv').config();
+
+const fastify = require('fastify')({
+  logger: {
+    level: 'info',
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'HH:MM:ss Z',
+        ignore: 'pid,hostname'
+      }
+    }
+  },
+  trustProxy: true
+});
+
+// Configuración
+const config = {
+  port: process.env.GATEWAY_PORT || 3000,
+  pythonService: process.env.PYTHON_SERVICE_URL,
+  nestjsService: process.env.NESTJS_SERVICE_URL,
+  cors: {
+    origin: process.env.CORS_ORIGIN?.split(',') || ['*'],
+    credentials: true
+  }
+};
+
+// Debug: Imprimir variables de entorno
+console.log('🔍 DEBUG - Variables de entorno:');
+console.log('process.env.PYTHON_SERVICE_URL:', process.env.PYTHON_SERVICE_URL);
+console.log('process.env.NESTJS_SERVICE_URL:', process.env.NESTJS_SERVICE_URL);
+console.log('process.env.GATEWAY_PORT:', process.env.GATEWAY_PORT);
+console.log('process.env.CORS_ORIGIN:', process.env.CORS_ORIGIN);
+console.log('process.env.NODE_ENV:', process.env.NODE_ENV);
+console.log('---');
+
+// Validar variables de entorno requeridas
+if (!config.pythonService) {
+  console.error('❌ ERROR: PYTHON_SERVICE_URL no está configurado en las variables de entorno');
+  console.error('Valor actual:', process.env.PYTHON_SERVICE_URL);
+  process.exit(1);
+}
+
+if (!config.nestjsService) {
+  console.error('❌ ERROR: NESTJS_SERVICE_URL no está configurado en las variables de entorno');
+  console.error('Valor actual:', process.env.NESTJS_SERVICE_URL);
+  process.exit(1);
+}
+
+// Registrar plugins
+fastify.register(require('@fastify/cors'), config.cors);
+fastify.register(require('@fastify/helmet'));
+
+// Registrar rutas
+fastify.register(require('./routes/empresas'), { prefix: '/api' });
+fastify.register(require('./routes/health'), { prefix: '/api' });
+fastify.register(require('./routes/graphql'), { prefix: '' });
+
+// Serializador personalizado para respuestas consistentes
+fastify.setSerializerCompiler(({ schema, method, url, httpStatus }) => {
+  return function (data) {
+    return JSON.stringify({
+      success: true,
+      data: data,
+      timestamp: new Date().toISOString()
+    });
+  };
+});
+
+// Hook para manejo de errores
+fastify.setErrorHandler((error, request, reply) => {
+  fastify.log.error(error);
+  
+  reply.status(error.statusCode || 500).send({
+    success: false,
+    error: error.message || 'Error interno del servidor',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Hook para logging de requests
+fastify.addHook('onRequest', (request, reply, done) => {
+  fastify.log.info({
+    method: request.method,
+    url: request.url,
+    ip: request.ip,
+    userAgent: request.headers['user-agent']
+  });
+  done();
+});
+
+// Hook para logging de responses
+fastify.addHook('onResponse', (request, reply, done) => {
+  fastify.log.info({
+    method: request.method,
+    url: request.url,
+    statusCode: reply.statusCode,
+    responseTime: reply.getResponseTime()
+  });
+  done();
+});
+
+// Iniciar servidor
+const start = async () => {
+  try {
+    await fastify.listen({ 
+      port: config.port, 
+      host: '0.0.0.0' 
+    });
+    
+    console.log('🚀 API Gateway ejecutándose en: http://localhost:' + config.port);
+    console.log('📊 Configuración:');
+    console.log(`   - Puerto: ${config.port}`);
+    console.log(`   - Python Service: ${config.pythonService}`);
+    console.log(`   - NestJS Service: ${config.nestjsService}`);
+    console.log('==================================================');
+    console.log('📡 Endpoints disponibles:');
+    console.log(`   - GET  /gateway/empresas`);
+    console.log(`   - GET  /gateway/empresas/:id`);
+    console.log(`   - POST /gateway/empresas`);
+    console.log(`   - PUT  /gateway/empresas/:id`);
+    console.log(`   - DELETE /gateway/empresas/:id`);
+    console.log(`   - GET  /gateway/health`);
+    console.log(`   - GET  /gateway/status`);
+    console.log('==================================================');
+    
+  } catch (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+};
+
+start(); 

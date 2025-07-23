@@ -1,5 +1,4 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';
 import { createRoot } from 'react-dom/client';
 //import './_apis_/account';
 import { Provider } from 'react-redux';
@@ -10,10 +9,16 @@ import './assets/scss/style.scss';
 import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { AuthProvider } from './components/jwt/JwtContext';
+import { debugReactRoot, cleanupReactRoots } from './utils/reactRootDebug';
+
+// Validar variable de entorno requerida
+if (!import.meta.env.VITE_GATEWAY_URL) {
+  throw new Error('VITE_GATEWAY_URL no está configurado en las variables de entorno');
+}
 
 // Configura el link HTTP
 const httpLink = createHttpLink({
-  uri: 'http://localhost:3001/graphql',
+  uri: `${import.meta.env.VITE_GATEWAY_URL}/graphql`,
 });
 
 // Configura el link de autenticación
@@ -36,6 +41,9 @@ export const client = new ApolloClient({
   },
 });
 
+// Debug: Verificar si ya existe una raíz de React
+debugReactRoot();
+
 // Registrar el service worker para PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -47,7 +55,18 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+// Limpiar raíces existentes antes de crear una nueva
+cleanupReactRoots();
+
+// Crear la raíz de React
+const rootElement = document.getElementById('root') as HTMLElement;
+if (!rootElement) {
+  throw new Error('Elemento #root no encontrado en el DOM');
+}
+
+const root = createRoot(rootElement);
+
+root.render(
   <ApolloProvider client={client}>
     <Provider store={store}>
       <AuthProvider>
@@ -57,4 +76,4 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
       </AuthProvider>
     </Provider>
   </ApolloProvider>
-)
+);
