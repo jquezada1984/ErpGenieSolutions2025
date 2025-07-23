@@ -1,8 +1,8 @@
 from marshmallow import Schema, fields
 
 class SucursalSchema(Schema):
-    id_sucursal = fields.Int(dump_only=True)
-    id_empresa = fields.Int(required=True)
+    id_sucursal = fields.Str(dump_only=True)
+    id_empresa = fields.Str(required=True)
     nombre = fields.Str(required=True)
     direccion = fields.Str()
     telefono = fields.Str()

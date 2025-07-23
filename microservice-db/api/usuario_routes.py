@@ -20,7 +20,7 @@ def crear_usuario():
     db.session.commit()
     return jsonify(usuario_schema.dump(usuario)), 201
 
-@usuario_bp.route('/usuario/<int:id_usuario>', methods=['PUT'])
+@usuario_bp.route('/usuario/<string:id_usuario>', methods=['PUT'])
 @jwt_required()
 def actualizar_usuario(id_usuario):
     data = request.get_json()

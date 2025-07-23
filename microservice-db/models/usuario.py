@@ -1,11 +1,12 @@
 from utils.db import db
 from sqlalchemy.sql import func
+import uuid
 
 class Usuario(db.Model):
     __tablename__ = 'usuario'
-    id_usuario = db.Column(db.Integer, primary_key=True)
-    id_empresa = db.Column(db.Integer, db.ForeignKey('empresa.id_empresa', ondelete='RESTRICT'), nullable=False)
-    id_perfil = db.Column(db.Integer, db.ForeignKey('perfil.id_perfil', ondelete='RESTRICT'), nullable=False)
+    id_usuario = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id_empresa = db.Column(db.String(36), db.ForeignKey('empresa.id_empresa', ondelete='RESTRICT'), nullable=False)
+    id_perfil = db.Column(db.String(36), db.ForeignKey('perfil.id_perfil', ondelete='RESTRICT'), nullable=False)
     username = db.Column(db.String(50), nullable=False, unique=True)
     password_hash = db.Column(db.String(255), nullable=False)
     nombre_completo = db.Column(db.String(100))

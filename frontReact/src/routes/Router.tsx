@@ -31,6 +31,11 @@ const EditarEmpresa = Loadable(lazy(() => import('../views/empresas/EditarEmpres
 const NuevaSucursal = Loadable(lazy(() => import('../views/empresas/NuevaSucursal')));
 const Sucursales = Loadable(lazy(() => import('../views/empresas/Sucursales')));
 const EditarSucursal = Loadable(lazy(() => import('../views/empresas/EditarSucursal')));
+const Perfiles = Loadable(lazy(() => import('../views/empresas/Perfiles')));
+const NuevoPerfil = Loadable(lazy(() => import('../views/empresas/NuevoPerfil')));
+const EditarPerfil = Loadable(lazy(() => import('../views/empresas/EditarPerfil')));
+const Menus = Loadable(lazy(() => import('../views/empresas/Menus')));
+const NuevoMenu = Loadable(lazy(() => import('../views/empresas/NuevoMenu')));
 
 interface RouteType {
   path: string;
@@ -62,6 +67,11 @@ const ThemeRoutes: RouteType[] = [
       { path: 'tables', element: <Tables /> },
       { path: 'forms', element: <Forms /> },
       { path: 'breadcrumbs', element: <Breadcrumbs /> },
+      { path: 'perfiles', element: <Perfiles /> },
+      { path: 'perfiles/nueva', element: <NuevoPerfil /> },
+      { path: 'perfiles/editar/:id', element: <EditarPerfil /> },
+      { path: 'menus', element: <Menus /> },
+      { path: 'menus/nueva', element: <NuevoMenu /> },
     ],
   },
   {

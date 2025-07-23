@@ -10,8 +10,8 @@ app = Flask(__name__)
 app.config.from_object(Config)
 app.config['JWT_SECRET_KEY'] = 'supersecret'  # Debe coincidir con la de NestJS
 
-# Configurar CORS para permitir peticiones desde el frontend
-CORS(app, origins=["http://localhost:5173", "http://localhost:3000"])
+# Configurar CORS para permitir peticiones desde el frontend y Gateway API
+CORS(app, origins=app.config['CORS_ORIGINS'])
 
 jwt = JWTManager(app)
 

@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields
 
 class EmpresaSchema(Schema):
-    id_empresa = fields.Int(dump_only=True)
+    id_empresa = fields.Str(dump_only=True)
     nombre = fields.Str(required=True)
     ruc = fields.Str(required=True)
     direccion = fields.Str(required=True)

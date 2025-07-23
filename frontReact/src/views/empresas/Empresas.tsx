@@ -38,7 +38,7 @@ const CREATE_EMPRESA = gql`
 `;
 
 const UPDATE_EMPRESA = gql`
-  mutation UpdateEmpresa($id_empresa: Int!, $nombre: String, $ruc: String, $direccion: String, $telefono: String, $email: String, $estado: Boolean) {
+  mutation UpdateEmpresa($id_empresa: ID!, $nombre: String, $ruc: String, $direccion: String, $telefono: String, $email: String, $estado: Boolean) {
     actualizarEmpresa(
       id_empresa: $id_empresa
       nombre: $nombre
@@ -60,7 +60,7 @@ const UPDATE_EMPRESA = gql`
 `;
 
 const DELETE_EMPRESA = gql`
-  mutation DeleteEmpresa($id_empresa: Int!) {
+  mutation DeleteEmpresa($id_empresa: ID!) {
     eliminarEmpresa(id_empresa: $id_empresa)
   }
 `;
@@ -72,7 +72,7 @@ const REFRESH_TOKEN = gql`
 `;
 
 interface Empresa {
-  id_empresa: number;
+  id_empresa: string;
   nombre: string;
   ruc: string;
   direccion: string;
@@ -160,7 +160,7 @@ const Empresas: React.FC = () => {
     navigate(`/empresas/editar/${empresa.id_empresa}`);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('¿Está seguro de que desea eliminar esta empresa?')) {
       try {
         await eliminarEmpresa(id);
@@ -215,11 +215,12 @@ const Empresas: React.FC = () => {
   }));
 
   const columns = [
-    {
-      Header: 'ID',
-      accessor: 'id',
-      width: 60,
-    },
+    // Columna ID oculta - se mantiene en los datos para las acciones pero no se muestra visualmente
+    // {
+    //   Header: 'ID',
+    //   accessor: 'id',
+    //   width: 60,
+    // },
     {
       Header: 'Nombre',
       accessor: 'nombre',
@@ -283,13 +284,13 @@ const Empresas: React.FC = () => {
               </div>
 
               {error && (
-                <Alert color="danger" timeout={0} toggle={() => setError(null)}>
+                <Alert color="danger" toggle={() => setError(null)}>
                   {error}
                 </Alert>
               )}
 
               {success && (
-                <Alert color="success" timeout={0} toggle={() => setSuccess(null)}>
+                <Alert color="success" toggle={() => setSuccess(null)}>
                   {success}
                 </Alert>
               )}

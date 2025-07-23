@@ -24,12 +24,21 @@ const sidebarMenus = {
       ],
     },
     {
-      title: "Grupo",
-      icon: <FaUsers size={16} />,
-      id: 'grupo',
+      title: "Menú",
+      icon: <Icon.Menu size={16} />,
+      id: 'menu',
       children: [
-        { title: "Lista", href: "/grupo/lista", icon: <Icon.List size={14} /> },
-        { title: "Crear", href: "/grupo/crear", icon: <Icon.Plus size={14} /> },
+        { title: "Lista", href: "/menus", icon: <Icon.List size={14} /> },
+        { title: "Crear", href: "/menus/nueva", icon: <Icon.Plus size={14} /> },
+      ],
+    },
+    {
+      title: "Perfil",
+      icon: <FaUsers size={16} />,
+      id: 'perfil',
+      children: [
+        { title: "Lista", href: "/perfiles", icon: <Icon.List size={14} /> },
+        { title: "Crear", href: "/perfiles/nueva", icon: <Icon.Plus size={14} /> },
       ],
     },
     {
@@ -41,12 +50,6 @@ const sidebarMenus = {
         { title: "Listado de usuarios", href: "/usuario/lista", icon: <Icon.List size={14} /> },
         { title: "Vista jerárquica", href: "/usuario/jerarquia", icon: <Icon.Users size={14} /> },
       ],
-    },
-    {
-      title: "Menú",
-      icon: <Icon.Menu size={16} />,
-      id: 'menu',
-      href: "/menu",
     },
   ],
   terceros: [
