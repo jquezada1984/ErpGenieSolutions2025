@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Card, 
   CardBody, 
@@ -60,7 +60,11 @@ const EditarEmpresa: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [dataKey, setDataKey] = useState(0); // Clave para forzar re-renderizado
+  
+  // Estado inicial más completo
   const [formData, setFormData] = useState({
+    // Datos básicos de empresa
     nombre: '',
     ruc: '',
     direccion: '',
@@ -78,51 +82,144 @@ const EditarEmpresa: React.FC = () => {
     sujeto_iva: true,
     id_provincia: '',
     fiscal_year_start_month: 1,
-    fiscal_year_start_day: 1
+    fiscal_year_start_day: 1,
+    
+              // Datos de identificación
+          identificacion: {
+            administradores: '',
+            delegado_datos: '',
+            capital: undefined,
+            id_tipo_entidad: undefined,
+            objeto_empresa: '',
+            cif_intra: '',
+            id_profesional1: '',
+            id_profesional2: '',
+            id_profesional3: '',
+            id_profesional4: '',
+            id_profesional5: '',
+            id_profesional6: '',
+            id_profesional7: '',
+            id_profesional8: '',
+            id_profesional9: '',
+            id_profesional10: ''
+          },
+    
+    // Redes sociales
+    redes_sociales: [],
+    
+    // Horarios de apertura
+    horarios_apertura: []
   });
 
   const { data, loading: loadingEmpresa, error: errorEmpresa } = useQuery(GET_EMPRESA, {
     variables: { id_empresa: id! },
     onCompleted: (data) => {
+      console.log('🎯 EditarEmpresa - Datos GraphQL recibidos:', data);
       if (data.empresa) {
+        const empresa = data.empresa;
+        console.log('🎯 EditarEmpresa - Empresa encontrada:', empresa);
         setFormData({
-          nombre: data.empresa.nombre,
-          ruc: data.empresa.ruc,
-          direccion: data.empresa.direccion || '',
-          telefono: data.empresa.telefono || '',
-          email: data.empresa.email || '',
-          estado: data.empresa.estado,
-          id_moneda: data.empresa.id_moneda || '',
-          id_pais: data.empresa.id_pais || '',
-          codigo_postal: data.empresa.codigo_postal || '',
-          poblacion: data.empresa.poblacion || '',
-          movil: data.empresa.movil || '',
-          fax: data.empresa.fax || '',
-          web: data.empresa.web || '',
-          nota: data.empresa.nota || '',
-          sujeto_iva: data.empresa.sujeto_iva,
-          id_provincia: data.empresa.id_provincia || '',
-          fiscal_year_start_month: data.empresa.fiscal_year_start_month || 1,
-          fiscal_year_start_day: data.empresa.fiscal_year_start_day || 1
+          // Datos básicos
+          nombre: empresa.nombre || '',
+          ruc: empresa.ruc || '',
+          direccion: empresa.direccion || '',
+          telefono: empresa.telefono || '',
+          email: empresa.email || '',
+          estado: empresa.estado ?? true,
+          id_moneda: empresa.id_moneda || '',
+          id_pais: empresa.id_pais || '',
+          codigo_postal: empresa.codigo_postal || '',
+          poblacion: empresa.poblacion || '',
+          movil: empresa.movil || '',
+          fax: empresa.fax || '',
+          web: empresa.web || '',
+          nota: empresa.nota || '',
+          sujeto_iva: empresa.sujeto_iva ?? true,
+          id_provincia: empresa.id_provincia || '',
+          fiscal_year_start_month: empresa.fiscal_year_start_month || 1,
+          fiscal_year_start_day: empresa.fiscal_year_start_day || 1,
+          
+          // Identificación
+          identificacion: {
+            administradores: '',
+            delegado_datos: '',
+            capital: undefined,
+            id_tipo_entidad: undefined,
+            objeto_empresa: '',
+            cif_intra: '',
+            id_profesional1: '',
+            id_profesional2: '',
+            id_profesional3: '',
+            id_profesional4: '',
+            id_profesional5: '',
+            id_profesional6: '',
+            id_profesional7: '',
+            id_profesional8: '',
+            id_profesional9: '',
+            id_profesional10: ''
+          },
+          
+          // Redes sociales
+          redes_sociales: empresa.redes_sociales || [],
+          
+          // Horarios de apertura
+          horarios_apertura: empresa.horarios_apertura || []
         });
+        setDataKey(prev => prev + 1); // Incrementar clave para forzar re-renderizado
       }
     }
   });
 
-  const toggleTab = (tab: string) => {
+  const toggleTab = useCallback((tab: string) => {
     if (activeTab !== tab) {
       setActiveTab(tab);
     }
-  };
+  }, [activeTab]);
 
-  const handleDataChange = (section: string, data: any) => {
-    if (section === 'empresa') {
-      setFormData(prev => ({ ...prev, ...data }));
-      setHasChanges(true);
-    }
-  };
+  const handleDataChange = useCallback((section: string, data: any) => {
+    setFormData(prev => {
+      const newData = { ...prev };
+      
+      switch (section) {
+        case 'empresa':
+          Object.assign(newData, data);
+          break;
+        case 'identificacion':
+          newData.identificacion = { ...newData.identificacion, ...data };
+          break;
+        case 'redes_sociales':
+          newData.redes_sociales = data;
+          break;
+        case 'horarios_apertura':
+          newData.horarios_apertura = data;
+          break;
+        default:
+          Object.assign(newData, data);
+      }
+      
+      return newData;
+    });
+    setHasChanges(true);
+  }, []);
 
-  const handleSubmit = async () => {
+  // Callbacks optimizados para cada sección
+  const handleEmpresaChange = useCallback((data: any) => {
+    handleDataChange('empresa', data);
+  }, [handleDataChange]);
+
+  const handleIdentificacionChange = useCallback((data: any) => {
+    handleDataChange('identificacion', data);
+  }, [handleDataChange]);
+
+  const handleRedesSocialesChange = useCallback((data: any) => {
+    handleDataChange('redes_sociales', data);
+  }, [handleDataChange]);
+
+  const handleHorariosAperturaChange = useCallback((data: any) => {
+    handleDataChange('horarios_apertura', data);
+  }, [handleDataChange]);
+
+  const handleSubmit = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -140,11 +237,14 @@ const EditarEmpresa: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, formData]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     navigate('/empresas');
-  };
+  }, [navigate]);
+
+  // Debug: Log del estado actual
+  console.log('🎯 EditarEmpresa - Estado actual:', { formData, loadingEmpresa, errorEmpresa });
 
   if (loadingEmpresa) {
     return (
@@ -252,25 +352,25 @@ const EditarEmpresa: React.FC = () => {
             <TabPane tabId="1">
               <SeccionEmpresa 
                 data={formData} 
-                onChange={(data: any) => handleDataChange('empresa', data)}
+                onChange={handleEmpresaChange}
               />
             </TabPane>
             <TabPane tabId="2">
               <SeccionRedesSociales 
-                data={[]} 
-                onChange={(data: any) => handleDataChange('redes_sociales', data)}
+                data={formData.redes_sociales} 
+                onChange={handleRedesSocialesChange}
               />
             </TabPane>
             <TabPane tabId="3">
               <SeccionHorarioApertura 
-                data={[]} 
-                onChange={(data: any) => handleDataChange('horarios_apertura', data)}
+                data={formData.horarios_apertura} 
+                onChange={handleHorariosAperturaChange}
               />
             </TabPane>
             <TabPane tabId="4">
               <SeccionContable 
-                data={undefined} 
-                onChange={(data: any) => handleDataChange('identificacion', data)}
+                data={formData.identificacion} 
+                onChange={handleIdentificacionChange}
               />
             </TabPane>
           </TabContent>

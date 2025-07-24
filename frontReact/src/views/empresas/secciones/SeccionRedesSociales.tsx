@@ -44,9 +44,13 @@ const SeccionRedesSociales: React.FC<SeccionRedesSocialesProps> = ({ data, onCha
     { id_red_social: '8', nombre: 'YouTube', icono: '📺' }
   ];
 
+  // Sincronizar el estado interno cuando cambien los datos externos
   useEffect(() => {
-    onChange(redesSociales);
-  }, [redesSociales, onChange]);
+    if (data && Array.isArray(data)) {
+      setRedesSociales(data);
+      onChange(data);
+    }
+  }, [data, onChange]);
 
   const handleInputChange = (id: string, field: string, value: any) => {
     setRedesSociales(prev => 

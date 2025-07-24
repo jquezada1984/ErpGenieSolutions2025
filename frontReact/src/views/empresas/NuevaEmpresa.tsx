@@ -51,11 +51,11 @@ const NuevaEmpresa: React.FC = () => {
     fiscal_year_start_day: 1
   });
 
-  const toggleTab = (tab: string) => {
+  const toggleTab = useCallback((tab: string) => {
     if (activeTab !== tab) {
       setActiveTab(tab);
     }
-  };
+  }, [activeTab]);
 
   const handleDataChange = useCallback((section: string, data: any) => {
     if (section === 'empresa') {
@@ -79,7 +79,7 @@ const NuevaEmpresa: React.FC = () => {
     // TODO: Implementar cuando se complete la sección
   }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -96,11 +96,11 @@ const NuevaEmpresa: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [formData, navigate]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     navigate('/empresas');
-  };
+  }, [navigate]);
 
   return (
     <div className="configuracion-empresa">

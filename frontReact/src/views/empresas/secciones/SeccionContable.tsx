@@ -71,9 +71,31 @@ const SeccionContable: React.FC<SeccionContableProps> = ({ data, onChange }) => 
     { id_tipo_entidad: 8, nombre: 'Comunidad de Bienes' }
   ];
 
+  // Sincronizar el estado interno cuando cambien los datos externos
   useEffect(() => {
-    onChange(formData);
-  }, [formData, onChange]);
+    if (data) {
+      const newFormData = {
+        administradores: data.administradores || '',
+        delegado_datos: data.delegado_datos || '',
+        capital: data.capital || undefined,
+        id_tipo_entidad: data.id_tipo_entidad || undefined,
+        objeto_empresa: data.objeto_empresa || '',
+        cif_intra: data.cif_intra || '',
+        id_profesional1: data.id_profesional1 || '',
+        id_profesional2: data.id_profesional2 || '',
+        id_profesional3: data.id_profesional3 || '',
+        id_profesional4: data.id_profesional4 || '',
+        id_profesional5: data.id_profesional5 || '',
+        id_profesional6: data.id_profesional6 || '',
+        id_profesional7: data.id_profesional7 || '',
+        id_profesional8: data.id_profesional8 || '',
+        id_profesional9: data.id_profesional9 || '',
+        id_profesional10: data.id_profesional10 || ''
+      };
+      setFormData(newFormData);
+      onChange(newFormData);
+    }
+  }, [data, onChange]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;

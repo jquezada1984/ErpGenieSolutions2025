@@ -46,9 +46,13 @@ const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, o
     }
   }, []);
 
+  // Sincronizar el estado interno cuando cambien los datos externos
   useEffect(() => {
-    onChange(horarios);
-  }, [horarios, onChange]);
+    if (data && Array.isArray(data)) {
+      setHorarios(data);
+      onChange(data);
+    }
+  }, [data, onChange]);
 
   const handleInputChange = (dia: number, value: string) => {
     setHorarios(prev => 
