@@ -39,6 +39,7 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
     <Alert 
       color={getAlertColor()} 
       toggle={onDismiss}
+      timeout={onDismiss ? 5000 : undefined}
       className={`d-flex align-items-center ${className}`}
       {...alertProps}
     >

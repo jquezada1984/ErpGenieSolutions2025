@@ -6,9 +6,13 @@ import Sidebar from './sidebars/vertical/Sidebar';
 import HorizontalHeader from './header/HorizontalHeader';
 import HorizontalSidebar from './sidebars/horizontal/HorizontalSidebar';
 import store from '../store/Store';
+import { useSessionCheck } from '../hooks/useSessionCheck';
+
 type RootState = ReturnType<typeof store.getState>;
 
 const FullLayout = () => {
+  // Verificar sesión periódicamente
+  useSessionCheck();
   const customizerToggle = useSelector((state: RootState) => state.customizer.customizerSidebar);
   const toggleMiniSidebar = useSelector((state: RootState) => state.customizer.isMiniSidebar);
   const showMobileSidebar = useSelector((state: RootState) => state.customizer.isMobileSidebar);

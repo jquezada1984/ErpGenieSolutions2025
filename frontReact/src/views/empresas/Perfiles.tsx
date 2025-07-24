@@ -102,13 +102,13 @@ const Perfiles: React.FC = () => {
               </div>
 
               {error && (
-                <Alert color="danger" fade={false} toggle={() => setError(null)}>
+                <Alert color="danger" fade={false} toggle={() => setError(null)} timeout={5000}>
                   {error}
                 </Alert>
               )}
 
               {success && (
-                <Alert color="success" fade={false} toggle={() => setSuccess(null)}>
+                <Alert color="success" fade={false} toggle={() => setSuccess(null)} timeout={5000}>
                   {success}
                 </Alert>
               )}
