@@ -243,8 +243,7 @@ const EditarEmpresa: React.FC = () => {
     navigate('/empresas');
   }, [navigate]);
 
-  // Debug: Log del estado actual
-  console.log('🎯 EditarEmpresa - Estado actual:', { formData, loadingEmpresa, errorEmpresa });
+
 
   if (loadingEmpresa) {
     return (

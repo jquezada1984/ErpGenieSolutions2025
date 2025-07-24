@@ -46,10 +46,26 @@ const CountrySelect: React.FC<CountrySelectProps> = ({
 
   const selectedCountry = countries.find(country => country.id_pais === value);
 
+  // Debug: Log para verificar el valor y países disponibles
+  useEffect(() => {
+    console.log('🌍 CountrySelect - Valor recibido:', value);
+    console.log('🌍 CountrySelect - Países disponibles:', countries.length);
+    console.log('🌍 CountrySelect - País seleccionado:', selectedCountry);
+    
+    if (countries.length > 0 && value) {
+      const found = countries.find(country => country.id_pais === value);
+      if (!found) {
+        console.warn('🌍 CountrySelect - País no encontrado:', value, 'en países:', countries);
+      }
+    }
+  }, [countries, value, selectedCountry]);
+
   const filteredCountries = countries.filter(country =>
     country.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
     country.codigo_iso.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+
 
   // Función para obtener la bandera del país
   const getCountryFlagEmoji = (isoCode: string) => {

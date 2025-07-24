@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Row, 
   Col, 
@@ -38,7 +38,7 @@ interface SeccionContableProps {
 }
 
 const SeccionContable: React.FC<SeccionContableProps> = ({ data, onChange }) => {
-  const [formData, setFormData] = useState<IdentificacionEmpresa>({
+  const [formData, setFormData] = useState<IdentificacionEmpresa>(() => ({
     administradores: data?.administradores || '',
     delegado_datos: data?.delegado_datos || '',
     capital: data?.capital || undefined,
@@ -55,9 +55,10 @@ const SeccionContable: React.FC<SeccionContableProps> = ({ data, onChange }) => 
     id_profesional8: data?.id_profesional8 || '',
     id_profesional9: data?.id_profesional9 || '',
     id_profesional10: data?.id_profesional10 || ''
-  });
+  }));
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Datos maestros (mock por ahora)
   const tiposEntidad = [
@@ -71,9 +72,9 @@ const SeccionContable: React.FC<SeccionContableProps> = ({ data, onChange }) => 
     { id_tipo_entidad: 8, nombre: 'Comunidad de Bienes' }
   ];
 
-  // Sincronizar el estado interno cuando cambien los datos externos
+  // Inicializar datos cuando estén disponibles
   useEffect(() => {
-    if (data) {
+    if (data && !isInitialized) {
       const newFormData = {
         administradores: data.administradores || '',
         delegado_datos: data.delegado_datos || '',
@@ -93,22 +94,27 @@ const SeccionContable: React.FC<SeccionContableProps> = ({ data, onChange }) => 
         id_profesional10: data.id_profesional10 || ''
       };
       setFormData(newFormData);
-      onChange(newFormData);
+      setIsInitialized(true);
     }
-  }, [data, onChange]);
+  }, [data, isInitialized]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const newValue = type === 'number' ? (value === '' ? undefined : Number(value)) : value;
     
-    setFormData(prev => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [name]: newValue
-    }));
+    };
+    
+    setFormData(newFormData);
 
     // Validación en tiempo real
     validateField(name, newValue);
-  };
+    
+    // Notificar cambio al componente padre
+    onChange(newFormData);
+  }, [formData, onChange]);
 
   const validateField = (name: string, value: any) => {
     const newErrors = { ...errors };

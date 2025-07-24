@@ -7,11 +7,11 @@ start "Gateway API" cmd /k "cd gateway-api && npm start"
 
 echo.
 echo 2. Iniciando Python Microservice (puerto 5000)...
-start "Python Microservice" cmd /k "cd microservice-db && python app.py"
+start "Python Microservice" cmd /k "cd InicioPython && python app.py"
 
 echo.
 echo 3. Iniciando NestJS Backend (puerto 3001)...
-start "NestJS Backend" cmd /k "cd back-nest-js && npm run start:dev"
+start "NestJS Backend" cmd /k "cd InicioNestJs && npm run start:dev"
 
 echo.
 echo 4. Iniciando Frontend React (puerto 3000)...

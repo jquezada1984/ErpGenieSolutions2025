@@ -16,8 +16,8 @@ Sistema ERP moderno con arquitectura de microservicios, API Gateway y frontend R
 
 - **Frontend React** (`frontReact/`) - Interfaz de usuario moderna
 - **Gateway API** (`gateway-api/`) - API Gateway centralizado (Fastify)
-- **Microservicio Python** (`microservice-db/`) - Gestión de base de datos (Flask)
-- **Backend NestJS** (`back-nest-js/`) - API GraphQL (NestJS)
+- **Microservicio Python** (`InicioPython/`) - Gestión de base de datos (Flask)
+- **Backend NestJS** (`InicioNestJs/`) - API GraphQL (NestJS)
 
 ---
 
@@ -62,7 +62,7 @@ NODE_ENV=development
 
 #### **Microservicio Python:**
 ```bash
-cd microservice-db
+cd InicioPython
 cp env.example .env
 ```
 
@@ -94,13 +94,13 @@ npm install
 
 #### **Microservicio Python:**
 ```bash
-cd microservice-db
+cd InicioPython
 pip install -r requirements.txt
 ```
 
 #### **Backend NestJS:**
 ```bash
-cd back-nest-js
+cd InicioNestJs
 npm install
 ```
 
@@ -118,7 +118,7 @@ npm install
 
 #### **1. Iniciar Microservicio Python:**
 ```bash
-cd microservice-db
+cd InicioPython
 python app.py
 ```
 **Puerto:** 5000  
@@ -126,7 +126,7 @@ python app.py
 
 #### **2. Iniciar Backend NestJS:**
 ```bash
-cd back-nest-js
+cd InicioNestJs
 npm run start:dev
 ```
 **Puerto:** 3001  
@@ -184,25 +184,25 @@ La entidad empresa ahora incluye todos los campos del esquema PostgreSQL:
 
 ### **Insertar Datos Maestros:**
 ```bash
-cd microservice-db
+cd InicioPython
 python insert_master_data.py
 ```
 
 ### **Probar Empresa Completa:**
 ```bash
-cd microservice-db
+cd InicioPython
 python test_empresa_completa.py
 ```
 
 ### **Aplicar Migración de Email Único:**
 ```bash
-cd microservice-db
+cd InicioPython
 python apply_email_unique.py
 ```
 
 ### **Verificar Conexión:**
 ```bash
-cd microservice-db
+cd InicioPython
 python test_connection.py
 ```
 
@@ -289,11 +289,11 @@ lsof -ti:3002 | xargs kill -9
 ### **Problemas de CORS:**
 Verificar configuración en:
 - `gateway-api/.env` - CORS_ORIGIN
-- `microservice-db/.env` - CORS_ORIGINS
+- `InicioPython/.env` - CORS_ORIGINS
 
 ### **Errores de Base de Datos:**
 ```bash
-cd microservice-db
+cd InicioPython
 python test_connection.py
 ```
 
@@ -311,7 +311,7 @@ npm run dev
 
 - **Arquitectura CORS:** `ARQUITECTURA_CORS.md`
 - **Gateway API:** `gateway-api/README.md`
-- **Microservicio Python:** `microservice-db/README.md`
+- **Microservicio Python:** `InicioPython/README.md`
 - **Frontend React:** `frontReact/README.md`
 
 ---

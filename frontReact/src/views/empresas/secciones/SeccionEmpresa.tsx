@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardBody, Row, Col, FormGroup, Label, Input, FormText } from 'reactstrap';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
@@ -10,7 +10,7 @@ interface SeccionEmpresaProps {
 }
 
 const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     nombre: data?.nombre || '',
     ruc: data?.ruc || '',
     direccion: data?.direccion || '',
@@ -28,7 +28,7 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
     id_provincia: data?.id_provincia || '',
     fiscal_year_start_month: data?.fiscal_year_start_month || 1,
     fiscal_year_start_day: data?.fiscal_year_start_day || 1
-  });
+  }));
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
 
@@ -73,18 +73,23 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
   const paises = paisesData?.paises || [];
   const provincias = provinciasData?.provincias || [];
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
     
-    setFormData(prev => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [name]: newValue
-    }));
+    };
+    
+    setFormData(newFormData);
 
     // Validación en tiempo real
     validateField(name, newValue);
-  };
+    
+    // Notificar cambio al componente padre
+    onChange(newFormData);
+  }, [formData, onChange]);
 
   const validateField = (name: string, value: any) => {
     const newErrors = { ...errors };
@@ -146,12 +151,9 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
     setErrors(newErrors);
   };
 
-  // Sincronizar el estado interno cuando cambien los datos externos
+  // Actualizar datos cuando cambien los datos externos
   useEffect(() => {
-    console.log('🔄 SeccionEmpresa - Datos recibidos:', data);
-    
     if (data) {
-      console.log('✅ SeccionEmpresa - Actualizando formData con datos:', data);
       const newFormData = {
         nombre: data.nombre || '',
         ruc: data.ruc || '',
@@ -172,14 +174,15 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
         fiscal_year_start_day: data.fiscal_year_start_day || 1
       };
       setFormData(newFormData);
-      // Llamar onChange solo cuando se actualiza desde datos externos
-      onChange(newFormData);
     }
-  }, [data, onChange]);
+  }, [data]);
 
   const getProvinciasByPais = (idPais: string) => {
     return provincias.filter((p: any) => p.id_pais === idPais);
   };
+
+  // Debug: Log del estado actual
+  console.log('🏢 SeccionEmpresa - Estado actual:', { formData, paises: paises.length });
 
   // Mostrar errores de carga de datos maestros
   if (errorPaises) {
@@ -276,6 +279,7 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
             
             <Col md={6}>
               <CountrySelect
+                key={`country-select-${formData.id_pais}-${paises.length}`}
                 id="id_pais"
                 name="id_pais"
                 value={formData.id_pais}

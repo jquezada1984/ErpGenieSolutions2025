@@ -27,7 +27,7 @@ CORS_ORIGIN=http://localhost:3000,http://localhost:5173
 ### 3. **NestJS Backend** (Puerto 3001)
 - **Permite**: Solo Gateway API
 - **URLs permitidas**: `http://localhost:3002` (Gateway)
-- **Archivo**: `back-nest-js/.env`
+- **Archivo**: `InicioNestJs/.env`
 ```env
 CORS_ORIGINS=http://localhost:3002
 ```
@@ -35,7 +35,7 @@ CORS_ORIGINS=http://localhost:3002
 ### 4. **Python Microservice** (Puerto 5000)
 - **Permite**: Solo Gateway API
 - **URLs permitidas**: `http://localhost:3002` (Gateway)
-- **Archivo**: `microservice-db/.env`
+- **Archivo**: `InicioPython/.env`
 ```env
 CORS_ORIGINS=http://localhost:3002
 ```
