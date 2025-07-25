@@ -4,14 +4,18 @@ import { Sucursal } from '../entities/sucursal.entity';
 import { Usuario } from '../entities/usuario.entity';
 import { Perfil } from '../entities/perfil.entity';
 import { MenuSeccion, MenuItem } from '../entities/menu.entity';
+import * as dotenv from 'dotenv';
+
+// Cargar variables de entorno
+dotenv.config();
 
 const dataSource = new DataSource({
   type: 'postgres',
-  host: 'db.xfeycgctysoumclptgoh.supabase.co',
-  port: 5432,
-  username: 'postgres',
-  password: 'XeCWl8Dam9CNUS1m',
-  database: 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432'),
+    username: process.env.DB_USERNAME || 'postgres',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_DATABASE || 'postgres',
   entities: [Empresa, Sucursal, Usuario, Perfil, MenuSeccion, MenuItem],
   ssl: {
     rejectUnauthorized: false

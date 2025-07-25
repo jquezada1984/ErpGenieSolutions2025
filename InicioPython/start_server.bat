@@ -4,7 +4,7 @@ echo    MICROSERVICIO PYTHON - ERP
 echo ========================================
 echo.
 echo Configuracion de base de datos:
-echo   Host: db.xfeycgctysoumclptgoh.supabase.co
+echo   Host: [CONFIGURADO EN .ENV]
 echo   Puerto: 5432
 echo   Base de datos: postgres
 echo   Usuario: postgres

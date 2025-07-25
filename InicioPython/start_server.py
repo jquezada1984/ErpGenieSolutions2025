@@ -10,7 +10,7 @@ from app import app
 if __name__ == '__main__':
     print("🚀 Iniciando microservicio Python...")
     print("📊 Configuración de base de datos:")
-    print("   Host: db.xfeycgctysoumclptgoh.supabase.co")
+    print("   Host: [CONFIGURADO EN .ENV]")
     print("   Puerto: 5432")
     print("   Base de datos: postgres")
     print("   Usuario: postgres")

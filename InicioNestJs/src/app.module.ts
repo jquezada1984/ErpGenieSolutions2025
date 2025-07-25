@@ -5,6 +5,18 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { HttpModule } from '@nestjs/axios';
+import * as dotenv from 'dotenv';
+
+// Cargar variables de entorno al inicio
+dotenv.config();
+
+// Debug: Verificar variables de entorno en el módulo
+console.log('🔍 DEBUG - Variables de entorno en AppModule:');
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_PORT:', process.env.DB_PORT);
+console.log('DB_USERNAME:', process.env.DB_USERNAME);
+console.log('DB_DATABASE:', process.env.DB_DATABASE);
+console.log('---');
 // Entidades
 import { Usuario } from './entities/usuario.entity';
 import { Empresa } from './entities/empresa.entity';
@@ -38,11 +50,11 @@ import { ProvinciaService } from './services/provincia.service';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'db.xfeycgctysoumclptgoh.supabase.co',
-      port: 5432,
-      username: 'postgres',
-      password: 'XeCWl8Dam9CNUS1m',
-      database: 'postgres',
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432'),
+      username: process.env.DB_USERNAME || 'postgres',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_DATABASE || 'postgres',
       entities: [
         Usuario, 
         Empresa, 
