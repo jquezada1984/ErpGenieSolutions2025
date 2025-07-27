@@ -29,14 +29,14 @@ const Empresas = Loadable(lazy(() => import('../views/empresas/Empresas')));
 const NuevaEmpresa = Loadable(lazy(() => import('../views/empresas/NuevaEmpresa')));
 const EditarEmpresa = Loadable(lazy(() => import('../views/empresas/EditarEmpresa')));
 
-const NuevaSucursal = Loadable(lazy(() => import('../views/empresas/NuevaSucursal')));
-const Sucursales = Loadable(lazy(() => import('../views/empresas/Sucursales')));
-const EditarSucursal = Loadable(lazy(() => import('../views/empresas/EditarSucursal')));
-const Perfiles = Loadable(lazy(() => import('../views/empresas/Perfiles')));
-const NuevoPerfil = Loadable(lazy(() => import('../views/empresas/NuevoPerfil')));
-const EditarPerfil = Loadable(lazy(() => import('../views/empresas/EditarPerfil')));
-const Menus = Loadable(lazy(() => import('../views/empresas/Menus')));
-const NuevoMenu = Loadable(lazy(() => import('../views/empresas/NuevoMenu')));
+const NuevaSucursal = Loadable(lazy(() => import('../views/sucursales/NuevaSucursal')));
+const Sucursales = Loadable(lazy(() => import('../views/sucursales/Sucursales')));
+const EditarSucursal = Loadable(lazy(() => import('../views/sucursales/EditarSucursal')));
+const Perfiles = Loadable(lazy(() => import('../views/perfiles/Perfiles')));
+const NuevoPerfil = Loadable(lazy(() => import('../views/perfiles/NuevoPerfil')));
+const EditarPerfil = Loadable(lazy(() => import('../views/perfiles/EditarPerfil')));
+const Menus = Loadable(lazy(() => import('../views/menus/Menus')));
+const NuevoMenu = Loadable(lazy(() => import('../views/menus/NuevoMenu')));
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
