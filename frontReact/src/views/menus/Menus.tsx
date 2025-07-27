@@ -104,17 +104,17 @@ const Menus: React.FC = () => {
                 </div>
               </div>
 
-              {error && (
-                <Alert color="danger" fade={false} toggle={() => setError(null)} timeout={5000}>
-                  {error}
-                </Alert>
-              )}
+                      {error && (
+          <Alert color="danger" fade={false} isOpen={!!error} toggle={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
-              {success && (
-                <Alert color="success" fade={false} toggle={() => setSuccess(null)} timeout={5000}>
-                  {success}
-                </Alert>
-              )}
+        {success && (
+          <Alert color="success" fade={false} isOpen={!!success} toggle={() => setSuccess(null)}>
+            {success}
+          </Alert>
+        )}
 
               <div className="grid-container">
                 <ReactTable

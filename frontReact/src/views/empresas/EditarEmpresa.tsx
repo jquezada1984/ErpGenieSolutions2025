@@ -112,63 +112,65 @@ const EditarEmpresa: React.FC = () => {
   });
 
   const { data, loading: loadingEmpresa, error: errorEmpresa } = useQuery(GET_EMPRESA, {
-    variables: { id_empresa: id! },
-    onCompleted: (data) => {
-      console.log('🎯 EditarEmpresa - Datos GraphQL recibidos:', data);
-      if (data.empresa) {
-        const empresa = data.empresa;
-        console.log('🎯 EditarEmpresa - Empresa encontrada:', empresa);
-        setFormData({
-          // Datos básicos
-          nombre: empresa.nombre || '',
-          ruc: empresa.ruc || '',
-          direccion: empresa.direccion || '',
-          telefono: empresa.telefono || '',
-          email: empresa.email || '',
-          estado: empresa.estado ?? true,
-          id_moneda: empresa.id_moneda || '',
-          id_pais: empresa.id_pais || '',
-          codigo_postal: empresa.codigo_postal || '',
-          poblacion: empresa.poblacion || '',
-          movil: empresa.movil || '',
-          fax: empresa.fax || '',
-          web: empresa.web || '',
-          nota: empresa.nota || '',
-          sujeto_iva: empresa.sujeto_iva ?? true,
-          id_provincia: empresa.id_provincia || '',
-          fiscal_year_start_month: empresa.fiscal_year_start_month || 1,
-          fiscal_year_start_day: empresa.fiscal_year_start_day || 1,
-          
-          // Identificación
-          identificacion: {
-            administradores: '',
-            delegado_datos: '',
-            capital: undefined,
-            id_tipo_entidad: undefined,
-            objeto_empresa: '',
-            cif_intra: '',
-            id_profesional1: '',
-            id_profesional2: '',
-            id_profesional3: '',
-            id_profesional4: '',
-            id_profesional5: '',
-            id_profesional6: '',
-            id_profesional7: '',
-            id_profesional8: '',
-            id_profesional9: '',
-            id_profesional10: ''
-          },
-          
-          // Redes sociales
-          redes_sociales: empresa.redes_sociales || [],
-          
-          // Horarios de apertura
-          horarios_apertura: empresa.horarios_apertura || []
-        });
-        setDataKey(prev => prev + 1); // Incrementar clave para forzar re-renderizado
-      }
-    }
+    variables: { id_empresa: id! }
   });
+
+  // Efecto para manejar los datos cuando se cargan
+  useEffect(() => {
+    if (data?.empresa) {
+      console.log('🎯 EditarEmpresa - Datos GraphQL recibidos:', data);
+      const empresa = data.empresa;
+      console.log('🎯 EditarEmpresa - Empresa encontrada:', empresa);
+      setFormData({
+        // Datos básicos
+        nombre: empresa.nombre || '',
+        ruc: empresa.ruc || '',
+        direccion: empresa.direccion || '',
+        telefono: empresa.telefono || '',
+        email: empresa.email || '',
+        estado: empresa.estado ?? true,
+        id_moneda: empresa.id_moneda || '',
+        id_pais: empresa.id_pais || '',
+        codigo_postal: empresa.codigo_postal || '',
+        poblacion: empresa.poblacion || '',
+        movil: empresa.movil || '',
+        fax: empresa.fax || '',
+        web: empresa.web || '',
+        nota: empresa.nota || '',
+        sujeto_iva: empresa.sujeto_iva ?? true,
+        id_provincia: empresa.id_provincia || '',
+        fiscal_year_start_month: empresa.fiscal_year_start_month || 1,
+        fiscal_year_start_day: empresa.fiscal_year_start_day || 1,
+        
+        // Identificación
+        identificacion: {
+          administradores: '',
+          delegado_datos: '',
+          capital: undefined,
+          id_tipo_entidad: undefined,
+          objeto_empresa: '',
+          cif_intra: '',
+          id_profesional1: '',
+          id_profesional2: '',
+          id_profesional3: '',
+          id_profesional4: '',
+          id_profesional5: '',
+          id_profesional6: '',
+          id_profesional7: '',
+          id_profesional8: '',
+          id_profesional9: '',
+          id_profesional10: ''
+        },
+        
+        // Redes sociales
+        redes_sociales: empresa.redes_sociales || [],
+        
+        // Horarios de apertura
+        horarios_apertura: empresa.horarios_apertura || []
+      });
+      setDataKey(prev => prev + 1); // Incrementar clave para forzar re-renderizado
+    }
+  }, [data]);
 
   const toggleTab = useCallback((tab: string) => {
     if (activeTab !== tab) {
@@ -230,7 +232,7 @@ const EditarEmpresa: React.FC = () => {
       
       setTimeout(() => {
         setSuccess(false);
-      }, 3000);
+      }, 5000);
       
     } catch (err: any) {
       setError(err.message || 'Error al actualizar la empresa');
@@ -295,7 +297,7 @@ const EditarEmpresa: React.FC = () => {
           {error && <ErrorAlert error={error} />}
           
           {success && (
-            <Alert color="success" className="mb-3">
+            <Alert color="success" className="mb-3" isOpen={success} toggle={() => setSuccess(false)} fade={false}>
               <i className="fas fa-check-circle me-2"></i>
               Empresa actualizada exitosamente
             </Alert>

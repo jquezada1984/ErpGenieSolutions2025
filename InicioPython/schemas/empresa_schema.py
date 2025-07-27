@@ -86,8 +86,8 @@ class EmpresaSchema(Schema):
     updated_at = fields.DateTime(dump_only=True)
     
     # Nuevos campos
-    id_moneda = fields.Str()
-    id_pais = fields.Str()
+    id_moneda = fields.Str(allow_none=True)
+    id_pais = fields.Str(allow_none=True)
     codigo_postal = fields.Str(validate=validate.Length(max=20))
     poblacion = fields.Str(validate=validate.Length(max=100))
     movil = fields.Str(validate=validate.Length(max=20))
@@ -97,7 +97,7 @@ class EmpresaSchema(Schema):
     logotipo_cuadrado = fields.Raw()
     nota = fields.Str()
     sujeto_iva = fields.Bool(load_default=True)
-    id_provincia = fields.Str()
+    id_provincia = fields.Str(allow_none=True)
     fiscal_year_start_month = fields.Int(load_default=1, validate=validate.Range(min=1, max=12))
     fiscal_year_start_day = fields.Int(load_default=1, validate=validate.Range(min=1, max=31))
     
@@ -109,15 +109,8 @@ class EmpresaSchema(Schema):
     redes_sociales = fields.Nested(EmpresaRedSocialSchema, many=True, dump_only=True)
     horarios_apertura = fields.Nested(EmpresaHorarioAperturaSchema, many=True, dump_only=True)
 
-    @validates('fiscal_year_start_month')
-    def validate_fiscal_year_start_month(self, value):
-        if value < 1 or value > 12:
-            raise ValidationError('El mes debe estar entre 1 y 12')
-
-    @validates('fiscal_year_start_day')
-    def validate_fiscal_year_start_day(self, value):
-        if value < 1 or value > 31:
-            raise ValidationError('El día debe estar entre 1 y 31')
+    # Los métodos de validación personalizados se eliminaron para evitar conflictos
+    # La validación se maneja con validate.Range en la definición de campos
 
 # Esquemas para operaciones específicas
 class EmpresaCreateSchema(EmpresaSchema):
@@ -126,9 +119,32 @@ class EmpresaCreateSchema(EmpresaSchema):
 
 class EmpresaUpdateSchema(EmpresaSchema):
     """Esquema para actualizar empresa (todos los campos opcionales)"""
-    nombre = fields.Str(validate=validate.Length(max=100))
-    ruc = fields.Str(validate=validate.Length(max=13))
-    email = fields.Email(validate=validate.Length(max=128))
+    # Hacer todos los campos opcionales para actualización
+    nombre = fields.Str(validate=validate.Length(max=100), required=False)
+    ruc = fields.Str(validate=validate.Length(max=13), required=False)
+    direccion = fields.Str(validate=validate.Length(max=255), required=False)
+    telefono = fields.Str(validate=validate.Length(max=20), required=False)
+    email = fields.Email(validate=validate.Length(max=128), required=False)
+    estado = fields.Bool(required=False)
+    id_moneda = fields.Str(required=False, allow_none=True)
+    id_pais = fields.Str(required=False, allow_none=True)
+    codigo_postal = fields.Str(validate=validate.Length(max=20), required=False)
+    poblacion = fields.Str(validate=validate.Length(max=100), required=False)
+    movil = fields.Str(validate=validate.Length(max=20), required=False)
+    fax = fields.Str(validate=validate.Length(max=20), required=False)
+    web = fields.Str(validate=validate.Length(max=255), required=False)
+    logo = fields.Raw(required=False)
+    logotipo_cuadrado = fields.Raw(required=False)
+    nota = fields.Str(required=False)
+    sujeto_iva = fields.Bool(required=False)
+    id_provincia = fields.Str(required=False, allow_none=True)
+    fiscal_year_start_month = fields.Int(validate=validate.Range(min=1, max=12), required=False)
+    fiscal_year_start_day = fields.Int(validate=validate.Range(min=1, max=31), required=False)
+    
+    # Agregar campos para las relaciones
+    identificacion = fields.Dict(required=False)
+    redes_sociales = fields.List(fields.Dict(), required=False)
+    horarios_apertura = fields.List(fields.Dict(), required=False)
 
 # Esquemas para las entidades relacionadas
 class PaisCreateSchema(PaisSchema):

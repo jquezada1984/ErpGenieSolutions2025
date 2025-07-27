@@ -68,7 +68,7 @@ const BaseGrid: React.FC<BaseGridProps> = ({
         </div>
 
         {error && (
-          <Alert color="danger" toggle={onErrorDismiss} timeout={5000}>
+          <Alert color="danger" isOpen={!!error} toggle={onErrorDismiss}>
             {error}
           </Alert>
         )}

@@ -1,6 +1,7 @@
 from utils.db import db
 from sqlalchemy.sql import func
 import uuid
+from .usuario import Usuario
 
 class Pais(db.Model):
     __tablename__ = 'pais'
@@ -87,10 +88,10 @@ class EmpresaIdentificacion(db.Model):
     id_profesional8 = db.Column(db.String(100))
     id_profesional9 = db.Column(db.String(100))
     id_profesional10 = db.Column(db.String(100))
-    created_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'))
+    created_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
-    updated_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'))
-    updated_at = db.Column(db.DateTime)
+    updated_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'), nullable=True)
+    updated_at = db.Column(db.DateTime, nullable=True)
     
     # Relaciones
     empresa = db.relationship('Empresa', backref='identificacion')
@@ -104,10 +105,10 @@ class EmpresaRedSocial(db.Model):
     identificador = db.Column(db.String(100))
     url = db.Column(db.String(255))
     es_principal = db.Column(db.Boolean, nullable=False, default=False)
-    created_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'))
+    created_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
-    updated_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'))
-    updated_at = db.Column(db.DateTime)
+    updated_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'), nullable=True)
+    updated_at = db.Column(db.DateTime, nullable=True)
     
     # Relaciones
     empresa = db.relationship('Empresa', backref='redes_sociales')
@@ -119,10 +120,10 @@ class EmpresaHorarioApertura(db.Model):
     id_empresa = db.Column(db.String(36), db.ForeignKey('empresa.id_empresa', ondelete='CASCADE'), nullable=False)
     dia = db.Column(db.Integer, nullable=False)
     valor = db.Column(db.String(50))
-    created_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'))
+    created_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
-    updated_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'))
-    updated_at = db.Column(db.DateTime)
+    updated_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'), nullable=True)
+    updated_at = db.Column(db.DateTime, nullable=True)
     
     # Relaciones
     empresa = db.relationship('Empresa', backref='horarios_apertura')

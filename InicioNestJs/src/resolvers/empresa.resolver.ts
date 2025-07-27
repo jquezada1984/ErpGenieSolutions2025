@@ -32,10 +32,65 @@ export class EmpresaResolver {
 
   @Query(() => Empresa, { nullable: true })
   async empresa(@Args('id_empresa', { type: () => ID }) id_empresa: string): Promise<Empresa | null> {
-    return this.empresaRepository.findOne({ 
-      where: { id_empresa },
-      relations: ['moneda', 'pais', 'provincia', 'identificacion', 'redes_sociales', 'horarios_apertura']
-    });
+    console.log('🔍 Query empresa ejecutada para ID:', id_empresa);
+    try {
+      // Primero hacer una consulta directa para verificar
+      const empresaDirecta = await this.empresaRepository
+        .createQueryBuilder('empresa')
+        .select([
+          'empresa.id_empresa',
+          'empresa.nombre',
+          'empresa.ruc',
+          'empresa.direccion',
+          'empresa.telefono',
+          'empresa.email',
+          'empresa.estado',
+          'empresa.id_moneda',
+          'empresa.id_pais',
+          'empresa.codigo_postal',
+          'empresa.poblacion',
+          'empresa.movil',
+          'empresa.fax',
+          'empresa.web',
+          'empresa.nota',
+          'empresa.sujeto_iva',
+          'empresa.id_provincia',
+          'empresa.fiscal_year_start_month',
+          'empresa.fiscal_year_start_day'
+        ])
+        .where('empresa.id_empresa = :id', { id: id_empresa })
+        .getOne();
+      
+      console.log('🔍 Consulta directa resultado:', empresaDirecta);
+      
+      const empresa = await this.empresaRepository.findOne({ 
+        where: { id_empresa },
+        relations: ['moneda', 'pais', 'provincia', 'identificacion', 'redes_sociales', 'horarios_apertura']
+      });
+      
+      if (empresa) {
+        console.log('✅ Empresa encontrada con relaciones:', {
+          id_empresa: empresa.id_empresa,
+          nombre: empresa.nombre,
+          codigo_postal: empresa.codigo_postal,
+          poblacion: empresa.poblacion,
+          movil: empresa.movil,
+          fax: empresa.fax,
+          web: empresa.web,
+          nota: empresa.nota,
+          sujeto_iva: empresa.sujeto_iva,
+          fiscal_year_start_month: empresa.fiscal_year_start_month,
+          fiscal_year_start_day: empresa.fiscal_year_start_day
+        });
+      } else {
+        console.log('❌ Empresa no encontrada');
+      }
+      
+      return empresa;
+    } catch (error) {
+      console.error('❌ Error en query empresa:', error);
+      throw error;
+    }
   }
 
   // Nuevo: Query para refrescar el token

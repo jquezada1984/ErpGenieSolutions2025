@@ -67,7 +67,9 @@ const pythonService = {
   // Actualizar empresa
   async updateEmpresa(id, empresaData) {
     try {
+      console.log(`🐍 Actualizando empresa ${id} con datos:`, JSON.stringify(empresaData, null, 2));
       const response = await pythonClient.put(`/api/empresa/${id}`, empresaData);
+      console.log(`🐍 Respuesta de actualización:`, JSON.stringify(response.data, null, 2));
       return response.data;
     } catch (error) {
       // Manejar errores específicos de duplicidad

@@ -285,13 +285,13 @@ const Empresas: React.FC = () => {
               </div>
 
               {error && (
-                <Alert color="danger" toggle={() => setError(null)} timeout={5000}>
+                <Alert color="danger" isOpen={!!error} toggle={() => setError(null)}>
                   {error}
                 </Alert>
               )}
 
               {success && (
-                <Alert color="success" toggle={() => setSuccess(null)} timeout={5000}>
+                <Alert color="success" isOpen={!!success} toggle={() => setSuccess(null)}>
                   {success}
                 </Alert>
               )}

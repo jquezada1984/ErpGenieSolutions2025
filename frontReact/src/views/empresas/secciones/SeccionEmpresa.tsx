@@ -324,6 +324,7 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
                   type="text"
                   value={formData.codigo_postal}
                   onChange={handleInputChange}
+                  maxLength={20}
                 />
               </FormGroup>
             </Col>

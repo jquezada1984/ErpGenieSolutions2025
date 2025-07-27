@@ -61,6 +61,11 @@ fastify.register(require('./routes/graphql'), { prefix: '' });
 // Serializador personalizado para respuestas consistentes
 fastify.setSerializerCompiler(({ schema, method, url, httpStatus }) => {
   return function (data) {
+    // Si ya es una respuesta estructurada, devolverla tal como está
+    if (data && typeof data === 'object' && data.hasOwnProperty('success')) {
+      return JSON.stringify(data);
+    }
+    // Si no, envolverla en el formato estándar
     return JSON.stringify({
       success: true,
       data: data,

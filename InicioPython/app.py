@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from config.config import Config
 from models.empresa import db
+from models.usuario import Usuario
 from api.empresa_routes import empresa_bp
 from api.entidad_routes import entidad_bp
 from flask_jwt_extended import JWTManager

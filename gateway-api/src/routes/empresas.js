@@ -190,10 +190,18 @@ async function routes(fastify, options) {
     try {
       const { id } = request.params;
       const empresaData = request.body;
+      
+      console.log('🚀 Gateway - Datos recibidos del frontend:', JSON.stringify(empresaData, null, 2));
+      console.log('🚀 Gateway - Campos recibidos:', Object.keys(empresaData));
+      
       fastify.log.info(`PUT /empresas/${id} - Actualizando empresa en Python`);
+      fastify.log.info(`Datos a actualizar:`, JSON.stringify(empresaData, null, 2));
       
       const response = await pythonService.updateEmpresa(id, empresaData);
-      return response;
+      fastify.log.info(`Respuesta de Python:`, JSON.stringify(response, null, 2));
+      
+      // Devolver respuesta directa sin procesamiento adicional
+      return reply.send(response);
       
     } catch (error) {
       fastify.log.error(`Error actualizando empresa ${request.params.id}:`, error);

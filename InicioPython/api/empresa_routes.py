@@ -121,12 +121,40 @@ def actualizar_empresa(id_empresa):
         errors = empresa_update_schema.validate(data, partial=True)
         if errors:
             print(f"❌ Errores de validación: {errors}")
-            return jsonify(errors), 400
+            # Filtrar solo los campos válidos para la empresa principal
+            valid_empresa_fields = {}
+            for key, value in data.items():
+                if key in ['nombre', 'ruc', 'direccion', 'telefono', 'email', 'estado', 
+                          'id_moneda', 'id_pais', 'codigo_postal', 'poblacion', 'movil', 
+                          'fax', 'web', 'nota', 'sujeto_iva', 'id_provincia', 
+                          'fiscal_year_start_month', 'fiscal_year_start_day']:
+                    # Convertir cadenas vacías a None para campos UUID
+                    if key in ['id_moneda', 'id_pais', 'id_provincia'] and value == '':
+                        valid_empresa_fields[key] = None
+                    else:
+                        valid_empresa_fields[key] = value
+            
+            # Si no hay campos válidos, devolver error
+            if not valid_empresa_fields:
+                return jsonify(errors), 400
+            
+            # Usar solo los campos válidos
+            data = valid_empresa_fields
+            print(f"✅ Campos válidos filtrados: {valid_empresa_fields}")
         
         # Actualizar campos de empresa
+        print(f"🔧 Actualizando campos de empresa:")
         for key, value in data.items():
             if hasattr(empresa, key) and key not in ['identificacion', 'redes_sociales', 'horarios_apertura']:
+                # Convertir cadenas vacías a None para campos UUID
+                if key in ['id_moneda', 'id_pais', 'id_provincia'] and value == '':
+                    value = None
+                    print(f"  - {key}: {value} (convertido de cadena vacía a None)")
+                else:
+                    print(f"  - {key}: {value}")
                 setattr(empresa, key, value)
+            else:
+                print(f"  - {key}: (ignorado - no es campo directo de empresa)")
         
         # Actualizar identificación si se proporciona
         if 'identificacion' in data:
@@ -166,6 +194,17 @@ def actualizar_empresa(id_empresa):
                     db.session.add(horario)
         
         db.session.commit()
+        
+        # Verificar qué se guardó realmente
+        empresa_refreshed = Empresa.query.get(id_empresa)
+        print(f"🔍 Verificación post-commit:")
+        print(f"  - codigo_postal: {empresa_refreshed.codigo_postal}")
+        print(f"  - poblacion: {empresa_refreshed.poblacion}")
+        print(f"  - movil: {empresa_refreshed.movil}")
+        print(f"  - fax: {empresa_refreshed.fax}")
+        print(f"  - web: {empresa_refreshed.web}")
+        print(f"  - nota: {empresa_refreshed.nota}")
+        print(f"  - sujeto_iva: {empresa_refreshed.sujeto_iva}")
         
         result = empresa_schema.dump(empresa)
         print(f"✅ Empresa actualizada exitosamente: {result}")

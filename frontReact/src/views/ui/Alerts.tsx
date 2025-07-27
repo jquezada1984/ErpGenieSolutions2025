@@ -151,7 +151,7 @@ const Alerts = () => {
         </CardTitle>
         <CardBody className="">
           <div>
-            <Alert color="info" isOpen={visible} toggle={onDismiss.bind(null)} timeout={5000}>
+            <Alert color="info" isOpen={visible} toggle={onDismiss.bind(null)}>
               I am an alert and I can be dismissed!
             </Alert>
           </div>
