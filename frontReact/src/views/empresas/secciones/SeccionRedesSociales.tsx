@@ -10,6 +10,7 @@ import {
   CardBody,
   Button
 } from 'reactstrap';
+import './SeccionRedesSociales.scss';
 
 interface RedSocial {
   id: string;
@@ -30,7 +31,9 @@ interface SeccionRedesSocialesProps {
 }
 
 const SeccionRedesSociales: React.FC<SeccionRedesSocialesProps> = ({ data, onChange }) => {
-  const [redesSociales, setRedesSociales] = useState<RedSocial[]>(data);
+  const [redesSociales, setRedesSociales] = useState<RedSocial[]>(data || []);
+  
+  console.log('🔗 SeccionRedesSociales - Datos iniciales recibidos:', data);
 
   // Datos maestros de redes sociales (mock por ahora)
   const redesDisponibles = [
@@ -48,9 +51,14 @@ const SeccionRedesSociales: React.FC<SeccionRedesSocialesProps> = ({ data, onCha
   useEffect(() => {
     if (data && Array.isArray(data)) {
       setRedesSociales(data);
-      onChange(data);
     }
-  }, [data, onChange]);
+  }, [data]);
+
+  // Notificar cambios al componente padre cuando cambie el estado interno
+  useEffect(() => {
+    console.log('🔗 SeccionRedesSociales - Enviando datos al padre:', redesSociales);
+    onChange(redesSociales);
+  }, [redesSociales, onChange]);
 
   const handleInputChange = (id: string, field: string, value: any) => {
     setRedesSociales(prev => 
@@ -157,9 +165,9 @@ const SeccionRedesSociales: React.FC<SeccionRedesSocialesProps> = ({ data, onCha
                     <td>
                       <div className="d-flex align-items-center">
                         <span className="me-2" style={{ fontSize: '1.2em' }}>
-                          {red.red_social.icono || '📱'}
+                          {red.red_social?.icono || '📱'}
                         </span>
-                        <span>{red.red_social.nombre || 'Seleccionar red'}</span>
+                        <span>{red.red_social?.nombre || 'Seleccionar red'}</span>
                       </div>
                     </td>
                     <td>
@@ -229,11 +237,11 @@ const SeccionRedesSociales: React.FC<SeccionRedesSocialesProps> = ({ data, onCha
                       <Button
                         color="danger"
                         size="sm"
-                        outline
                         onClick={() => removeRedSocial(red.id)}
                         title="Eliminar red social"
+                        className="btn-icon"
                       >
-                        <i className="fas fa-trash"></i>
+                        <i className="fas fa-times"></i>
                       </Button>
                     </td>
                   </tr>

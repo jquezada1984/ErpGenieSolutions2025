@@ -125,8 +125,8 @@ class EmpresaHorarioApertura(db.Model):
     updated_by = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'), nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
     
-    # Relaciones
-    empresa = db.relationship('Empresa', backref='horarios_apertura')
+    # Relaciones - simplificar para evitar problemas
+    empresa = db.relationship('Empresa', backref=db.backref('horarios_apertura', lazy='dynamic', cascade='all, delete-orphan'))
     
     # Constraint único
     __table_args__ = (db.UniqueConstraint('id_empresa', 'dia', name='uq_empresa_dia'),) 

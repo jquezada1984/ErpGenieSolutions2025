@@ -173,9 +173,19 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
         fiscal_year_start_month: data.fiscal_year_start_month || 1,
         fiscal_year_start_day: data.fiscal_year_start_day || 1
       };
-      setFormData(newFormData);
+      
+      // Comparar si los datos realmente han cambiado para evitar bucles infinitos
+      const hasDataChanged = JSON.stringify(newFormData) !== JSON.stringify(formData);
+      
+      if (hasDataChanged) {
+        console.log('🏢 SeccionEmpresa - Actualizando datos:', newFormData);
+        setFormData(newFormData);
+      }
     }
-  }, [data]);
+  }, [data?.id_empresa, data?.nombre, data?.ruc, data?.direccion, data?.telefono, data?.email, 
+       data?.id_moneda, data?.id_pais, data?.codigo_postal, data?.poblacion, data?.movil, 
+       data?.fax, data?.web, data?.nota, data?.sujeto_iva, data?.id_provincia, 
+       data?.fiscal_year_start_month, data?.fiscal_year_start_day]);
 
   const getProvinciasByPais = (idPais: string) => {
     return provincias.filter((p: any) => p.id_pais === idPais);

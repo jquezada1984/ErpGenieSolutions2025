@@ -48,6 +48,41 @@ const GET_EMPRESA = gql`
       id_provincia
       fiscal_year_start_month
       fiscal_year_start_day
+      identificacion {
+        administradores
+        delegado_datos
+        capital
+        id_tipo_entidad
+        objeto_empresa
+        cif_intra
+        id_profesional1
+        id_profesional2
+        id_profesional3
+        id_profesional4
+        id_profesional5
+        id_profesional6
+        id_profesional7
+        id_profesional8
+        id_profesional9
+        id_profesional10
+      }
+      redes_sociales {
+        id
+        id_red_social
+        identificador
+        url
+        es_principal
+        red_social {
+          id_red_social
+          nombre
+          icono
+        }
+      }
+      horarios_apertura {
+        id_horario
+        dia
+        valor
+      }
     }
   }
 `;
@@ -111,7 +146,7 @@ const EditarEmpresa: React.FC = () => {
     horarios_apertura: []
   });
 
-  const { data, loading: loadingEmpresa, error: errorEmpresa } = useQuery(GET_EMPRESA, {
+  const { data, loading: loadingEmpresa, error: errorEmpresa, refetch } = useQuery(GET_EMPRESA, {
     variables: { id_empresa: id! }
   });
 
@@ -121,6 +156,50 @@ const EditarEmpresa: React.FC = () => {
       console.log('🎯 EditarEmpresa - Datos GraphQL recibidos:', data);
       const empresa = data.empresa;
       console.log('🎯 EditarEmpresa - Empresa encontrada:', empresa);
+      
+      // Logging específico para redes sociales
+      if (empresa.redes_sociales) {
+        console.log('🔗 Redes sociales recibidas:', empresa.redes_sociales);
+        console.log('🔗 Número de redes sociales:', empresa.redes_sociales.length);
+        empresa.redes_sociales.forEach((red: any, index: number) => {
+          console.log(`🔗 Red ${index + 1}:`, red);
+        });
+      } else {
+        console.log('🔗 No se recibieron redes sociales');
+      }
+      
+      // Logging para horarios de apertura
+      if (empresa.horarios_apertura) {
+        console.log('🕐 Horarios de apertura recibidos:', empresa.horarios_apertura);
+      } else {
+        console.log('🕐 No se recibieron horarios de apertura');
+      }
+      
+      // Logging específico para identificación
+      if (empresa.identificacion) {
+        console.log('📊 Identificación recibida:', empresa.identificacion);
+        console.log('📊 Campos de identificación:', {
+          administradores: empresa.identificacion.administradores,
+          delegado_datos: empresa.identificacion.delegado_datos,
+          capital: empresa.identificacion.capital,
+          id_tipo_entidad: empresa.identificacion.id_tipo_entidad,
+          objeto_empresa: empresa.identificacion.objeto_empresa,
+          cif_intra: empresa.identificacion.cif_intra,
+          id_profesional1: empresa.identificacion.id_profesional1,
+          id_profesional2: empresa.identificacion.id_profesional2,
+          id_profesional3: empresa.identificacion.id_profesional3,
+          id_profesional4: empresa.identificacion.id_profesional4,
+          id_profesional5: empresa.identificacion.id_profesional5,
+          id_profesional6: empresa.identificacion.id_profesional6,
+          id_profesional7: empresa.identificacion.id_profesional7,
+          id_profesional8: empresa.identificacion.id_profesional8,
+          id_profesional9: empresa.identificacion.id_profesional9,
+          id_profesional10: empresa.identificacion.id_profesional10
+        });
+      } else {
+        console.log('📊 No se recibió identificación');
+      }
+      
       setFormData({
         // Datos básicos
         nombre: empresa.nombre || '',
@@ -143,7 +222,7 @@ const EditarEmpresa: React.FC = () => {
         fiscal_year_start_day: empresa.fiscal_year_start_day || 1,
         
         // Identificación
-        identificacion: {
+        identificacion: empresa.identificacion || {
           administradores: '',
           delegado_datos: '',
           capital: undefined,
@@ -210,14 +289,17 @@ const EditarEmpresa: React.FC = () => {
   }, [handleDataChange]);
 
   const handleIdentificacionChange = useCallback((data: any) => {
+    console.log('📊 EditarEmpresa - Recibiendo datos de identificación:', data);
     handleDataChange('identificacion', data);
   }, [handleDataChange]);
 
   const handleRedesSocialesChange = useCallback((data: any) => {
+    console.log('🔗 EditarEmpresa - Recibiendo datos de redes sociales:', data);
     handleDataChange('redes_sociales', data);
   }, [handleDataChange]);
 
   const handleHorariosAperturaChange = useCallback((data: any) => {
+    console.log('🕐 EditarEmpresa - Recibiendo datos de horarios de apertura:', data);
     handleDataChange('horarios_apertura', data);
   }, [handleDataChange]);
 
@@ -225,10 +307,18 @@ const EditarEmpresa: React.FC = () => {
     setLoading(true);
     setError(null);
     
+    console.log('💾 EditarEmpresa - Enviando datos al backend:', formData);
+    console.log('💾 EditarEmpresa - Datos de identificación:', formData.identificacion);
+    
     try {
       await actualizarEmpresa(id!, formData);
       setSuccess(true);
       setHasChanges(false);
+      
+      // Refetch los datos después de guardar exitosamente
+      console.log('🔄 Refetching datos después del guardado...');
+      await refetch();
+      console.log('✅ Datos refetchados exitosamente');
       
       setTimeout(() => {
         setSuccess(false);
@@ -239,7 +329,7 @@ const EditarEmpresa: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, formData]);
+  }, [id, formData, refetch]);
 
   const handleCancel = useCallback(() => {
     navigate('/empresas');

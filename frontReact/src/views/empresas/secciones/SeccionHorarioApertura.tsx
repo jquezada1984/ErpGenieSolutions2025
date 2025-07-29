@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Row, 
   Col, 
@@ -22,51 +22,91 @@ interface SeccionHorarioAperturaProps {
 }
 
 const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, onChange }) => {
-  const [horarios, setHorarios] = useState<HorarioApertura[]>(data);
+  const [horarios, setHorarios] = useState<HorarioApertura[]>([]);
 
   const diasSemana = [
-    { dia: 1, nombre: 'Lunes' },
-    { dia: 2, nombre: 'Martes' },
-    { dia: 3, nombre: 'Miércoles' },
-    { dia: 4, nombre: 'Jueves' },
-    { dia: 5, nombre: 'Viernes' },
-    { dia: 6, nombre: 'Sábado' },
-    { dia: 7, nombre: 'Domingo' }
+    { dia: 1, nombre: 'Lunes', nombreCorto: 'lunes' },
+    { dia: 2, nombre: 'Martes', nombreCorto: 'martes' },
+    { dia: 3, nombre: 'Miércoles', nombreCorto: 'miercoles' },
+    { dia: 4, nombre: 'Jueves', nombreCorto: 'jueves' },
+    { dia: 5, nombre: 'Viernes', nombreCorto: 'viernes' },
+    { dia: 6, nombre: 'Sábado', nombreCorto: 'sabado' },
+    { dia: 7, nombre: 'Domingo', nombreCorto: 'domingo' }
   ];
 
+  // Inicializar horarios cuando se reciban datos
+  const isInitializedRef = useRef(false);
+  
   useEffect(() => {
-    // Inicializar horarios si no existen
-    if (horarios.length === 0) {
+    console.log('🕐 SeccionHorarioApertura - Datos recibidos:', data);
+    
+    if (data && Array.isArray(data) && data.length > 0) {
+      console.log('🕐 SeccionHorarioApertura - Usando datos existentes:', data);
+      setHorarios(data);
+      isInitializedRef.current = true;
+    } else if (!isInitializedRef.current) {
+      console.log('🕐 SeccionHorarioApertura - Inicializando horarios vacíos');
       const horariosIniciales = diasSemana.map(dia => ({
-        id_horario: `temp_${dia.dia}`,
+        id_horario: `temp_${Date.now()}_${dia.dia}`,
         dia: dia.dia,
         valor: ''
       }));
+      console.log('🕐 SeccionHorarioApertura - Horarios iniciales creados:', horariosIniciales);
       setHorarios(horariosIniciales);
+      isInitializedRef.current = true;
     }
-  }, []);
+  }, [data]); // Removido onChange de las dependencias
 
-  // Sincronizar el estado interno cuando cambien los datos externos
+  // Notificar cambios al componente padre cuando cambie el estado interno
+  // Usar useRef para evitar bucles infinitos
+  const prevHorariosRef = useRef<string>('');
+  const onChangeRef = useRef(onChange);
+  
+  // Actualizar la referencia cuando onChange cambie
   useEffect(() => {
-    if (data && Array.isArray(data)) {
-      setHorarios(data);
-      onChange(data);
+    onChangeRef.current = onChange;
+  }, [onChange]);
+  
+  useEffect(() => {
+    // Solo notificar si los horarios realmente han cambiado y ya se ha inicializado
+    if (isInitializedRef.current) {
+      const currentHorariosString = JSON.stringify(horarios);
+      if (prevHorariosRef.current !== currentHorariosString) {
+        console.log('🕐 SeccionHorarioApertura - Notificando cambios al padre:', horarios);
+        onChangeRef.current(horarios);
+        prevHorariosRef.current = currentHorariosString;
+      }
     }
-  }, [data, onChange]);
+  }, [horarios]); // Removido onChange de las dependencias
 
-  const handleInputChange = (dia: number, value: string) => {
-    setHorarios(prev => 
-      prev.map(horario => 
-        horario.dia === dia 
-          ? { ...horario, valor }
-          : horario
-      )
+  const handleInputChange = useCallback((dia: number, value: string) => {
+    console.log('🕐 SeccionHorarioApertura - Cambiando día', dia, 'a valor:', value);
+    
+    const updatedHorarios = horarios.map(horario => 
+      horario.dia === dia 
+        ? { ...horario, valor: value }
+        : horario
     );
-  };
+    
+    console.log('🕐 SeccionHorarioApertura - Horarios actualizados:', updatedHorarios);
+    setHorarios(updatedHorarios);
+  }, [horarios]);
 
-  const getHorarioByDia = (dia: number) => {
-    return horarios.find(h => h.dia === dia) || { id_horario: `temp_${dia}`, dia, valor: '' };
-  };
+  const getHorarioByDia = useCallback((dia: number) => {
+    const horario = horarios.find(h => h.dia === dia);
+    if (horario) {
+      return horario;
+    }
+    
+    // Si no existe, crear uno temporal
+    const horarioTemporal = { 
+      id_horario: `temp_${Date.now()}_${dia}`, 
+      dia, 
+      valor: '' 
+    };
+    console.log('🕐 SeccionHorarioApertura - Creando horario temporal para día', dia, ':', horarioTemporal);
+    return horarioTemporal;
+  }, [horarios]);
 
   return (
     <div className="seccion-horario-apertura">
@@ -110,10 +150,13 @@ const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, o
                     <td>
                       <FormGroup className="mb-0">
                         <Input
+                          id={`horario-${dia.nombreCorto}`}
+                          name={`horario-${dia.nombreCorto}`}
                           type="text"
                           placeholder="Ej: 8:00-18:00 o Cerrado"
                           value={horario.valor || ''}
                           onChange={(e) => handleInputChange(dia.dia, e.target.value)}
+                          className="form-control"
                         />
                       </FormGroup>
                     </td>
