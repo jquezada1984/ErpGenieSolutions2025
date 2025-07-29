@@ -23,6 +23,8 @@ interface SeccionHorarioAperturaProps {
 
 const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, onChange }) => {
   const [horarios, setHorarios] = useState<HorarioApertura[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   const diasSemana = [
     { dia: 1, nombre: 'Lunes', nombreCorto: 'lunes' },
@@ -35,16 +37,16 @@ const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, o
   ];
 
   // Inicializar horarios cuando se reciban datos
-  const isInitializedRef = useRef(false);
-  
   useEffect(() => {
     console.log('🕐 SeccionHorarioApertura - Datos recibidos:', data);
     
     if (data && Array.isArray(data) && data.length > 0) {
       console.log('🕐 SeccionHorarioApertura - Usando datos existentes:', data);
+      setIsLoadingData(true);
       setHorarios(data);
-      isInitializedRef.current = true;
-    } else if (!isInitializedRef.current) {
+      setIsInitialized(true);
+      setIsLoadingData(false);
+    } else if (!isInitialized) {
       console.log('🕐 SeccionHorarioApertura - Inicializando horarios vacíos');
       const horariosIniciales = diasSemana.map(dia => ({
         id_horario: `temp_${Date.now()}_${dia.dia}`,
@@ -53,14 +55,14 @@ const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, o
       }));
       console.log('🕐 SeccionHorarioApertura - Horarios iniciales creados:', horariosIniciales);
       setHorarios(horariosIniciales);
-      isInitializedRef.current = true;
+      setIsInitialized(true);
     }
-  }, [data]); // Removido onChange de las dependencias
+  }, [data, isInitialized]);
 
-  // Notificar cambios al componente padre cuando cambie el estado interno
-  // Usar useRef para evitar bucles infinitos
+  // Notificar cambios al componente padre SOLO cuando el usuario modifique los datos
   const prevHorariosRef = useRef<string>('');
   const onChangeRef = useRef(onChange);
+  const userModifiedRef = useRef(false);
   
   // Actualizar la referencia cuando onChange cambie
   useEffect(() => {
@@ -68,8 +70,12 @@ const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, o
   }, [onChange]);
   
   useEffect(() => {
-    // Solo notificar si los horarios realmente han cambiado y ya se ha inicializado
-    if (isInitializedRef.current) {
+    // Solo notificar si:
+    // 1. Ya se ha inicializado
+    // 2. No está cargando datos
+    // 3. Los horarios realmente han cambiado
+    // 4. El usuario ha modificado los datos (no es la carga inicial)
+    if (isInitialized && !isLoadingData && userModifiedRef.current) {
       const currentHorariosString = JSON.stringify(horarios);
       if (prevHorariosRef.current !== currentHorariosString) {
         console.log('🕐 SeccionHorarioApertura - Notificando cambios al padre:', horarios);
@@ -77,10 +83,13 @@ const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, o
         prevHorariosRef.current = currentHorariosString;
       }
     }
-  }, [horarios]); // Removido onChange de las dependencias
+  }, [horarios, isInitialized, isLoadingData]);
 
   const handleInputChange = useCallback((dia: number, value: string) => {
     console.log('🕐 SeccionHorarioApertura - Cambiando día', dia, 'a valor:', value);
+    
+    // Marcar que el usuario ha modificado los datos
+    userModifiedRef.current = true;
     
     const updatedHorarios = horarios.map(horario => 
       horario.dia === dia 
