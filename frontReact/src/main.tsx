@@ -11,14 +11,12 @@ import { setContext } from '@apollo/client/link/context';
 import { AuthProvider } from './components/jwt/JwtContext';
 import { debugReactRoot, cleanupReactRoots } from './utils/reactRootDebug';
 
-// Validar variable de entorno requerida
-if (!import.meta.env.VITE_GATEWAY_URL) {
-  throw new Error('VITE_GATEWAY_URL no está configurado en las variables de entorno');
-}
+// Configuración para conectar directamente a InicioNestJS
+const NESTJS_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3000';
 
-// Configura el link HTTP
+// Configura el link HTTP para InicioNestJS
 const httpLink = createHttpLink({
-  uri: `${import.meta.env.VITE_GATEWAY_URL}/graphql`,
+  uri: `${NESTJS_URL}/graphql`,
 });
 
 // Configura el link de autenticación

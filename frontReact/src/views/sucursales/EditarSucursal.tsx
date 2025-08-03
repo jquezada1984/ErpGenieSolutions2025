@@ -1,12 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
+import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col, Spinner, Badge } from 'reactstrap';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useMutation, gql } from '@apollo/client';
 
-// Datos simulados para ejemplo
-const sucursalesMock = [
-  { id: 1, nombre: 'Sucursal Lima', direccion: 'Av. Principal 123', telefono: '999999999', email: 'lima@sucursal.com', estado: true },
-  { id: 2, nombre: 'Sucursal Arequipa', direccion: 'Calle Secundaria 456', telefono: '988888888', email: 'arequipa@sucursal.com', estado: false },
-];
+// Consulta GraphQL para obtener sucursal
+const GET_SUCURSAL = gql`
+  query GetSucursal($id_sucursal: ID!) {
+    sucursal(id_sucursal: $id_sucursal) {
+      id_sucursal
+      nombre
+      direccion
+      telefono
+      estado
+      codigo_establecimiento
+      empresa {
+        id_empresa
+        nombre
+        ruc
+        estado
+      }
+    }
+  }
+`;
+
+// Mutación GraphQL para actualizar sucursal - sin refetchQueries
+const ACTUALIZAR_SUCURSAL = gql`
+  mutation ActualizarSucursal(
+    $id_sucursal: ID!
+    $nombre: String
+    $direccion: String
+    $telefono: String
+    $estado: Boolean
+    $codigo_establecimiento: String
+  ) {
+    actualizarSucursal(
+      id_sucursal: $id_sucursal
+      nombre: $nombre
+      direccion: $direccion
+      telefono: $telefono
+      estado: $estado
+      codigo_establecimiento: $codigo_establecimiento
+    ) {
+      id_sucursal
+      nombre
+      direccion
+      telefono
+      estado
+      codigo_establecimiento
+    }
+  }
+`;
 
 const EditarSucursal: React.FC = () => {
   const navigate = useNavigate();
@@ -15,28 +58,34 @@ const EditarSucursal: React.FC = () => {
     nombre: '',
     direccion: '',
     telefono: '',
-    email: '',
-    estado: true
+    estado: true,
+    codigo_establecimiento: '001'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Consulta GraphQL para obtener la sucursal
+  const { loading: loadingSucursal, error: queryError, data } = useQuery(GET_SUCURSAL, {
+    variables: { id_sucursal: id },
+    skip: !id
+  });
+
+  // Mutación GraphQL para actualizar - sin refetchQueries
+  const [actualizarSucursal] = useMutation(ACTUALIZAR_SUCURSAL);
+
   useEffect(() => {
-    // Precargar datos simulados
-    const sucursal = sucursalesMock.find(s => s.id === Number(id));
-    if (sucursal) {
+    if (data?.sucursal) {
+      const sucursal = data.sucursal;
       setFormData({
         nombre: sucursal.nombre,
-        direccion: sucursal.direccion,
-        telefono: sucursal.telefono,
-        email: sucursal.email,
-        estado: sucursal.estado
+        direccion: sucursal.direccion || '',
+        telefono: sucursal.telefono || '',
+        estado: sucursal.estado,
+        codigo_establecimiento: sucursal.codigo_establecimiento
       });
-    } else {
-      setError('Sucursal no encontrada');
     }
-  }, [id]);
+  }, [data]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -50,24 +99,92 @@ const EditarSucursal: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    try {
-      // Aquí iría la llamada a la API para actualizar la sucursal
-      setTimeout(() => {
-        setLoading(false);
-        setSuccess(true);
-        setTimeout(() => {
-          navigate('/sucursales');
-        }, 2000);
-      }, 1000);
-    } catch (err: any) {
+
+    // Validar campos requeridos
+    if (!formData.nombre.trim()) {
+      setError('El nombre de la sucursal es requerido');
       setLoading(false);
+      return;
+    }
+
+    // Validar código de establecimiento
+    if (!/^\d{3}$/.test(formData.codigo_establecimiento)) {
+      setError('El código de establecimiento debe ser exactamente 3 dígitos');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await actualizarSucursal({
+        variables: {
+          id_sucursal: id,
+          nombre: formData.nombre.trim(),
+          direccion: formData.direccion.trim() || null,
+          telefono: formData.telefono.trim() || null,
+          estado: formData.estado,
+          codigo_establecimiento: formData.codigo_establecimiento
+        }
+      });
+
+      console.log('✅ Sucursal actualizada exitosamente:', result.data);
+      setSuccess(true);
+      
+      // Redirigir después de un breve delay para mostrar el mensaje de éxito
+      setTimeout(() => {
+        navigate('/sucursales');
+      }, 2000);
+    } catch (err: any) {
+      console.error('Error actualizando sucursal:', err);
       setError(err.message || 'Error al actualizar la sucursal');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleCancel = () => {
     navigate('/sucursales');
   };
+
+  // Mostrar loading mientras carga la sucursal
+  if (loadingSucursal) {
+    return (
+      <div className="container-fluid">
+        <div className="row">
+          <div className="col-12">
+            <Card>
+              <CardBody className="text-center">
+                <Spinner color="primary" />
+                <p className="mt-2">Cargando sucursal...</p>
+              </CardBody>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar error si no se encuentra la sucursal
+  if (queryError || !data?.sucursal) {
+    return (
+      <div className="container-fluid">
+        <div className="row">
+          <div className="col-12">
+            <Card>
+              <CardBody>
+                <Alert color="danger" fade={false}>
+                  <h4>Error al cargar la sucursal</h4>
+                  <p>{queryError?.message || 'Sucursal no encontrada'}</p>
+                  <Button color="primary" onClick={handleCancel}>
+                    Volver a Sucursales
+                  </Button>
+                </Alert>
+              </CardBody>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid">
@@ -85,6 +202,24 @@ const EditarSucursal: React.FC = () => {
                   Volver
                 </Button>
               </div>
+
+              {data.sucursal.empresa && (
+                <Alert color="info" fade={false} className="mb-3">
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-building me-2"></i>
+                    <div>
+                      <strong>Empresa:</strong> {data.sucursal.empresa.nombre}
+                      <br />
+                      <small className="text-muted">
+                        RUC: {data.sucursal.empresa.ruc} | 
+                        Estado: <Badge color={data.sucursal.empresa.estado ? 'success' : 'danger'}>
+                          {data.sucursal.empresa.estado ? 'Activa' : 'Inactiva'}
+                        </Badge>
+                      </small>
+                    </div>
+                  </div>
+                </Alert>
+              )}
 
               {error && (
                 <Alert color="danger" fade={false} className="mb-3">
@@ -120,18 +255,23 @@ const EditarSucursal: React.FC = () => {
                   </Col>
                   <Col md={6}>
                     <FormGroup>
-                      <Label for="email" className="fw-bold">
-                        Email *
+                      <Label for="codigo_establecimiento" className="fw-bold">
+                        Código de Establecimiento *
                       </Label>
                       <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
+                        id="codigo_establecimiento"
+                        name="codigo_establecimiento"
+                        type="text"
+                        value={formData.codigo_establecimiento}
                         onChange={handleInputChange}
                         required
-                        placeholder="Ingrese el email"
+                        maxLength={3}
+                        pattern="[0-9]{3}"
+                        placeholder="001"
                       />
+                      <small className="text-muted">
+                        Debe ser exactamente 3 dígitos (ej: 001, 002, 003)
+                      </small>
                     </FormGroup>
                   </Col>
                 </Row>
@@ -140,7 +280,7 @@ const EditarSucursal: React.FC = () => {
                   <Col md={12}>
                     <FormGroup>
                       <Label for="direccion" className="fw-bold">
-                        Dirección *
+                        Dirección
                       </Label>
                       <Input
                         id="direccion"
@@ -148,7 +288,6 @@ const EditarSucursal: React.FC = () => {
                         type="text"
                         value={formData.direccion}
                         onChange={handleInputChange}
-                        required
                         placeholder="Ingrese la dirección"
                       />
                     </FormGroup>
@@ -159,7 +298,7 @@ const EditarSucursal: React.FC = () => {
                   <Col md={6}>
                     <FormGroup>
                       <Label for="telefono" className="fw-bold">
-                        Teléfono *
+                        Teléfono
                       </Label>
                       <Input
                         id="telefono"
@@ -167,7 +306,6 @@ const EditarSucursal: React.FC = () => {
                         type="tel"
                         value={formData.telefono}
                         onChange={handleInputChange}
-                        required
                         placeholder="Ingrese el teléfono"
                       />
                     </FormGroup>

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { Empresa } from './empresa.entity';
 
@@ -18,7 +18,7 @@ export class Sucursal {
   nombre: string;
 
   @Field({ nullable: true })
-  @Column({ length: 200, nullable: true })
+  @Column({ length: 255, nullable: true })
   direccion?: string;
 
   @Field({ nullable: true })
@@ -28,6 +28,26 @@ export class Sucursal {
   @Field()
   @Column({ default: true })
   estado: boolean;
+
+  @Field()
+  @Column({ 
+    type: 'char', 
+    length: 3, 
+    default: '001',
+    transformer: {
+      to: (value: string) => value,
+      from: (value: string) => value?.trim()
+    }
+  })
+  codigo_establecimiento: string;
+
+  @Field()
+  @CreateDateColumn()
+  created_at: Date;
+
+  @Field()
+  @UpdateDateColumn()
+  updated_at: Date;
 
   @Field(() => Empresa, { nullable: true })
   @ManyToOne(() => Empresa, empresa => empresa.sucursales)
