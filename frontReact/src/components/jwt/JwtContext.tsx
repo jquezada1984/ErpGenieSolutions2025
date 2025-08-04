@@ -150,22 +150,17 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmailAndPassword = async (email: string, password: string) => {
     try {
-      console.log('🔐 JwtContext: Iniciando login...');
       const result = await loginMutation({
         variables: { email, password },
       });
       
-      console.log('📊 JwtContext: Resultado de la mutación:', result);
-      
       // Verificar si hay errores de GraphQL en la respuesta
       if (result.errors && result.errors.length > 0) {
-        console.log('❌ JwtContext: Errores de GraphQL encontrados:', result.errors);
         const graphQLError = result.errors[0];
         throw new Error(graphQLError.message || 'Error de GraphQL');
       }
       
       const { data } = result;
-      console.log('📊 JwtContext: Data recibida:', data);
       
       if (!data || !data.login) {
         throw new Error('Respuesta inválida del servidor');
@@ -184,7 +179,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setSession(accessToken);
-      console.log('✅ JwtContext: Login exitoso, token guardado');
       
       dispatch({
         type: 'LOGIN',
@@ -193,11 +187,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
     } catch (error: any) {
-      console.log('❌ JwtContext: Error capturado:', error);
-      console.log('❌ JwtContext: Error type:', error.constructor.name);
-      console.log('❌ JwtContext: Error graphQLErrors:', error.graphQLErrors);
-      console.log('❌ JwtContext: Error networkError:', error.networkError);
-      
       // Extraer mensaje de error específico
       let errorMessage = 'Error al iniciar sesión';
       
@@ -209,8 +198,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
-      console.log('📝 JwtContext: Error message final:', errorMessage);
       
       // Asegurar que el error se propague correctamente
       const authError = new Error(errorMessage);

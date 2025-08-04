@@ -113,31 +113,24 @@ const Empresas: React.FC = () => {
   // Recargar datos cuando regrese a la página de empresas
   useEffect(() => {
     if (location.pathname === '/empresas') {
-      console.log('🔄 Regresando a la página de empresas, recargando datos...');
       loadEmpresas();
     }
   }, [location.pathname]);
 
   const loadEmpresas = async () => {
     try {
-      console.log('🔄 Cargando empresas...');
       setLoading(true);
       setError(null);
       
       // Obtener el token actual
       const token = localStorage.getItem('accessToken');
-      console.log('🔑 Token disponible:', token ? 'SÍ' : 'NO');
       
       // Hacer la consulta sin contexto primero para ver si funciona
       const { data } = await getEmpresas();
-      console.log('📊 Datos recibidos:', data);
       
       if (data && data.empresas) {
         setEmpresas(data.empresas);
-        console.log(`✅ ${data.empresas.length} empresas cargadas`);
-        console.log('📋 Empresas:', data.empresas);
       } else {
-        console.log('⚠️ No se recibieron datos de empresas');
         setEmpresas([]);
       }
     } catch (error: any) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Row, 
   Col, 
@@ -33,8 +33,6 @@ interface SeccionRedesSocialesProps {
 const SeccionRedesSociales: React.FC<SeccionRedesSocialesProps> = ({ data, onChange }) => {
   const [redesSociales, setRedesSociales] = useState<RedSocial[]>(data || []);
   
-  console.log('🔗 SeccionRedesSociales - Datos iniciales recibidos:', data);
-
   // Datos maestros de redes sociales (mock por ahora)
   const redesDisponibles = [
     { id_red_social: '1', nombre: 'Facebook', icono: '📘' },
@@ -46,17 +44,21 @@ const SeccionRedesSociales: React.FC<SeccionRedesSocialesProps> = ({ data, onCha
     { id_red_social: '7', nombre: 'Twitter', icono: '🐦' },
     { id_red_social: '8', nombre: 'YouTube', icono: '📺' }
   ];
-
+  
   // Sincronizar el estado interno cuando cambien los datos externos
   useEffect(() => {
-    if (data && Array.isArray(data)) {
-      setRedesSociales(data);
+    if (data) {
+      setRedesSociales(data || []);
     }
   }, [data]);
 
+  const handleRedesSocialesChange = useCallback((newRedesSociales: any[]) => {
+    setRedesSociales(newRedesSociales);
+    onChange(newRedesSociales);
+  }, [onChange]);
+
   // Notificar cambios al componente padre cuando cambie el estado interno
   useEffect(() => {
-    console.log('🔗 SeccionRedesSociales - Enviando datos al padre:', redesSociales);
     onChange(redesSociales);
   }, [redesSociales, onChange]);
 

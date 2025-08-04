@@ -63,7 +63,7 @@ const Sucursales: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
 
   // GraphQL hooks
-  const [getSucursales, { loading: queryLoading }] = useLazyQuery(GET_SUCURSALES, {
+  const [getSucursales, { loading: queryLoading, data, refetch }] = useLazyQuery(GET_SUCURSALES, {
     fetchPolicy: 'cache-and-network', // Siempre consultar red y caché
     errorPolicy: 'all',
   });
@@ -73,32 +73,27 @@ const Sucursales: React.FC = () => {
   const [cambiarEstadoSucursal] = useMutation(CAMBIAR_ESTADO_SUCURSAL);
 
   useEffect(() => {
-    loadSucursales();
-  }, []);
-
-  // Recargar datos cuando regrese a la página de sucursales
-  useEffect(() => {
     if (location.pathname === '/sucursales') {
-      console.log('🔄 Regresando a la página de sucursales, recargando datos...');
-      loadSucursales();
+      refetch();
     }
-  }, [location.pathname]);
+  }, [location.pathname, refetch]);
+
+  useEffect(() => {
+    if (data) {
+      setSucursales(data.sucursales || []);
+    }
+  }, [data]);
 
   const loadSucursales = async () => {
     try {
-      console.log('🔄 Cargando sucursales...');
       setLoading(true);
       setError(null);
       
       const { data } = await getSucursales();
-      console.log('📊 Datos recibidos:', data);
       
       if (data && data.sucursales) {
         setSucursales(data.sucursales);
-        console.log(`✅ ${data.sucursales.length} sucursales cargadas`);
-        console.log('📋 Sucursales:', data.sucursales);
       } else {
-        console.log('⚠️ No se recibieron datos de sucursales');
         setSucursales([]);
       }
     } catch (error: any) {

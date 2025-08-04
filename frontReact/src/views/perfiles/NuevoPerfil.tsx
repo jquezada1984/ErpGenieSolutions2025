@@ -64,14 +64,12 @@ const NuevoPerfil: React.FC = () => {
     }
 
     try {
-      console.log('📝 Creando perfil usando InicioPython...');
       const result = await crearPerfil({
         id_empresa: formData.id_empresa,
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion.trim() || null
       });
 
-      console.log('✅ Perfil creado exitosamente con InicioPython:', result);
       setSuccess(true);
       
       // Redirigir después de un breve delay para mostrar el mensaje de éxito
@@ -79,7 +77,6 @@ const NuevoPerfil: React.FC = () => {
         navigate('/perfiles');
       }, 2000);
     } catch (err: any) {
-      console.error('Error creando perfil con InicioPython:', err);
       setError(err.message || 'Error al crear el perfil');
     } finally {
       setLoading(false);

@@ -74,7 +74,6 @@ const SeccionContable: React.FC<SeccionContableProps> = ({ data, onChange }) => 
 
   // Inicializar datos cuando estén disponibles
   useEffect(() => {
-    console.log('📊 SeccionContable - Datos recibidos:', data);
     if (data) {
       const newFormData = {
         administradores: data.administradores || '',
@@ -94,11 +93,10 @@ const SeccionContable: React.FC<SeccionContableProps> = ({ data, onChange }) => 
         id_profesional9: data.id_profesional9 || '',
         id_profesional10: data.id_profesional10 || ''
       };
-      console.log('📊 SeccionContable - FormData inicializado:', newFormData);
       setFormData(newFormData);
-      setIsInitialized(true);
+      onChange(newFormData);
     }
-  }, [data]);
+  }, [data, onChange]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -115,7 +113,6 @@ const SeccionContable: React.FC<SeccionContableProps> = ({ data, onChange }) => 
     validateField(name, newValue);
     
     // Notificar cambio al componente padre
-    console.log('📊 SeccionContable - Notificando cambios al padre:', newFormData);
     onChange(newFormData);
   }, [formData, onChange]);
 

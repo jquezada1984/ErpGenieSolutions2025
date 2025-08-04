@@ -111,7 +111,6 @@ const NuevaSucursal: React.FC = () => {
         }
       });
 
-      console.log('✅ Sucursal creada exitosamente:', result.data);
       setSuccess(true);
       
       // Redirigir después de un breve delay para mostrar el mensaje de éxito
@@ -119,7 +118,6 @@ const NuevaSucursal: React.FC = () => {
         navigate('/sucursales');
       }, 2000);
     } catch (err: any) {
-      console.error('Error creando sucursal:', err);
       setError(err.message || 'Error al crear la sucursal');
     } finally {
       setLoading(false);

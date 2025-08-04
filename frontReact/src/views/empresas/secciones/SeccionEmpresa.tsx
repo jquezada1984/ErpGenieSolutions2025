@@ -178,7 +178,6 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
       const hasDataChanged = JSON.stringify(newFormData) !== JSON.stringify(formData);
       
       if (hasDataChanged) {
-        console.log('🏢 SeccionEmpresa - Actualizando datos:', newFormData);
         setFormData(newFormData);
       }
     }
@@ -190,20 +189,6 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
   const getProvinciasByPais = (idPais: string) => {
     return provincias.filter((p: any) => p.id_pais === idPais);
   };
-
-  // Debug: Log del estado actual
-  console.log('🏢 SeccionEmpresa - Estado actual:', { formData, paises: paises.length });
-
-  // Mostrar errores de carga de datos maestros
-  if (errorPaises) {
-    console.error('Error cargando países:', errorPaises);
-  }
-  if (errorMonedas) {
-    console.error('Error cargando monedas:', errorMonedas);
-  }
-  if (errorProvincias) {
-    console.error('Error cargando provincias:', errorProvincias);
-  }
 
   return (
     <div className="seccion-empresa">

@@ -38,26 +38,23 @@ const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, o
 
   // Inicializar horarios cuando se reciban datos
   useEffect(() => {
-    console.log('🕐 SeccionHorarioApertura - Datos recibidos:', data);
-    
-    if (data && Array.isArray(data) && data.length > 0) {
-      console.log('🕐 SeccionHorarioApertura - Usando datos existentes:', data);
-      setIsLoadingData(true);
+    if (data && data.length > 0) {
       setHorarios(data);
-      setIsInitialized(true);
-      setIsLoadingData(false);
-    } else if (!isInitialized) {
-      console.log('🕐 SeccionHorarioApertura - Inicializando horarios vacíos');
+    } else {
+      // Crear horarios iniciales vacíos para cada día
       const horariosIniciales = diasSemana.map(dia => ({
         id_horario: `temp_${Date.now()}_${dia.dia}`,
+        id_horario_apertura: undefined,
         dia: dia.dia,
-        valor: ''
+        abierto: false,
+        hora_apertura: '',
+        hora_cierre: '',
+        hora_apertura_almuerzo: '',
+        hora_cierre_almuerzo: ''
       }));
-      console.log('🕐 SeccionHorarioApertura - Horarios iniciales creados:', horariosIniciales);
       setHorarios(horariosIniciales);
-      setIsInitialized(true);
     }
-  }, [data, isInitialized]);
+  }, [data]);
 
   // Notificar cambios al componente padre SOLO cuando el usuario modifique los datos
   const prevHorariosRef = useRef<string>('');
@@ -78,7 +75,6 @@ const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, o
     if (isInitialized && !isLoadingData && userModifiedRef.current) {
       const currentHorariosString = JSON.stringify(horarios);
       if (prevHorariosRef.current !== currentHorariosString) {
-        console.log('🕐 SeccionHorarioApertura - Notificando cambios al padre:', horarios);
         onChangeRef.current(horarios);
         prevHorariosRef.current = currentHorariosString;
       }
@@ -86,7 +82,6 @@ const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, o
   }, [horarios, isInitialized, isLoadingData]);
 
   const handleInputChange = useCallback((dia: number, value: string) => {
-    console.log('🕐 SeccionHorarioApertura - Cambiando día', dia, 'a valor:', value);
     
     // Marcar que el usuario ha modificado los datos
     userModifiedRef.current = true;
@@ -97,7 +92,6 @@ const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, o
         : horario
     );
     
-    console.log('🕐 SeccionHorarioApertura - Horarios actualizados:', updatedHorarios);
     setHorarios(updatedHorarios);
   }, [horarios]);
 
@@ -113,7 +107,6 @@ const SeccionHorarioApertura: React.FC<SeccionHorarioAperturaProps> = ({ data, o
       dia, 
       valor: '' 
     };
-    console.log('🕐 SeccionHorarioApertura - Creando horario temporal para día', dia, ':', horarioTemporal);
     return horarioTemporal;
   }, [horarios]);
 

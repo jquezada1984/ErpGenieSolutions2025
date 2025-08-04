@@ -48,50 +48,22 @@ const Perfiles: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
 
   // GraphQL hooks para InicioNestJS (solo lectura)
-  const [getPerfiles, { loading: queryLoading }] = useLazyQuery(GET_PERFILES, {
+  const [getPerfiles, { loading: queryLoading, data, refetch }] = useLazyQuery(GET_PERFILES, {
     fetchPolicy: 'cache-and-network', // Siempre consultar red y caché
     errorPolicy: 'all',
   });
 
   useEffect(() => {
-    loadPerfiles();
-  }, []);
-
-  // Recargar datos cuando regrese a la página de perfiles
-  useEffect(() => {
     if (location.pathname === '/perfiles') {
-      console.log('🔄 Regresando a la página de perfiles, recargando datos...');
-      loadPerfiles();
+      refetch();
     }
-  }, [location.pathname]);
+  }, [location.pathname, refetch]);
 
-  const loadPerfiles = async () => {
-    try {
-      console.log('🔄 Cargando perfiles desde InicioNestJS...');
-      setLoading(true);
-      setError(null);
-      
-      const { data } = await getPerfiles();
-      console.log('📊 Datos recibidos de InicioNestJS:', data);
-      
-      if (data && data.perfiles) {
-        setPerfiles(data.perfiles);
-        console.log(`✅ ${data.perfiles.length} perfiles cargados desde InicioNestJS`);
-        console.log('📋 Perfiles:', data.perfiles);
-      } else {
-        console.log('⚠️ No se recibieron datos de perfiles');
-        setPerfiles([]);
-      }
-    } catch (error: any) {
-      console.error('❌ Error cargando perfiles desde InicioNestJS:', error);
-      console.error('❌ Error completo:', JSON.stringify(error, null, 2));
-      setPerfiles([]);
-      
-      setError('Error al cargar los perfiles: ' + (error.message || 'Error desconocido'));
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (data) {
+      setPerfiles(data.perfiles || []);
     }
-  };
+  }, [data]);
 
   const handleNuevoPerfil = () => {
     navigate('/perfiles/nuevo');
@@ -101,33 +73,37 @@ const Perfiles: React.FC = () => {
     navigate(`/perfiles/editar/${perfil.id_perfil}`);
   };
 
-  const handleDelete = async (idPerfil: string) => {
-    if (window.confirm('¿Está seguro de que desea eliminar este perfil?')) {
-      try {
-        console.log('🗑️ Eliminando perfil usando InicioPython...');
-        await eliminarPerfil(idPerfil);
-        setSuccess('Perfil eliminado exitosamente usando InicioPython');
-        setError(null);
-        loadPerfiles(); // Recargar datos después de eliminar
-      } catch (error: any) {
-        console.error('Error eliminando perfil con InicioPython:', error);
-        setError('Error al eliminar el perfil: ' + (error.message || 'Error desconocido'));
-        setSuccess(null);
-      }
+  const handleDelete = async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await eliminarPerfil(id);
+      
+      // Recargar datos después de eliminar
+      refetch();
+      setSuccess('Perfil eliminado exitosamente usando InicioPython');
+    } catch (error: any) {
+      setError('Error al eliminar el perfil: ' + (error.message || 'Error desconocido'));
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleToggleEstado = async (perfil: Perfil) => {
+  const handleToggleEstado = async (id: string, nuevoEstado: boolean) => {
     try {
-      console.log('🔄 Cambiando estado de perfil usando InicioPython...');
-      await cambiarEstadoPerfil(perfil.id_perfil, !perfil.estado);
-      setSuccess(`Perfil ${!perfil.estado ? 'activado' : 'desactivado'} exitosamente usando InicioPython`);
+      setLoading(true);
       setError(null);
-      loadPerfiles(); // Recargar datos después de cambiar estado
+      
+      await cambiarEstadoPerfil(id, nuevoEstado);
+      
+      // Recargar datos después de cambiar estado
+      refetch();
+      setSuccess(`Perfil ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente usando InicioPython`);
     } catch (error: any) {
-      console.error('Error cambiando estado con InicioPython:', error);
       setError('Error al cambiar el estado del perfil: ' + (error.message || 'Error desconocido'));
-      setSuccess(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -158,7 +134,7 @@ const Perfiles: React.FC = () => {
           <i className="bi bi-pencil-fill"></i>
         </Button>
         <Button
-          onClick={() => handleToggleEstado(perfil)}
+          onClick={() => handleToggleEstado(perfil.id_perfil, !perfil.estado)}
           color={perfil.estado ? 'warning' : 'success'}
           size="sm"
           className="me-2"
@@ -202,7 +178,7 @@ const Perfiles: React.FC = () => {
                     <i className="bi bi-plus-circle me-2"></i>
                     Nuevo Perfil
                   </Button>
-                  <Button color="secondary" className="ms-2" onClick={loadPerfiles}>
+                  <Button color="secondary" className="ms-2" onClick={refetch}>
                     <i className="bi bi-arrow-clockwise me-2"></i>
                     Actualizar
                   </Button>

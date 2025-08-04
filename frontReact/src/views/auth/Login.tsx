@@ -48,35 +48,18 @@ const Login = () => {
 
   const handleSubmit = async (values: LoginValues, { setErrors, setStatus, setSubmitting }: FormikHelpers<LoginValues>) => {
     try {
-      console.log('🚀 Iniciando login con:', values.email);
       setIsLoading(true);
       setSuccessMessage(null);
 
       await signInWithEmailAndPassword(values.email, values.password);
 
-      console.log('✅ Login exitoso, preparando redirección...');
-      
       setStatus({ success: true });
       setSuccessMessage('¡Login exitoso! Redirigiendo...');
       setSubmitting(true);
       
       // Redirección inmediata sin verificación de mounted
-      console.log('🔄 Redirigiendo al dashboard...');
-      console.log('🔄 URL actual:', window.location.href);
-      console.log('🔄 Intentando navegar a /dashboard...');
-      
-      try {
-        navigate('/dashboard', { replace: true });
-        console.log('🔄 Navegación ejecutada');
-      } catch (navError) {
-        console.error('❌ Error en navegación:', navError);
-        // Fallback: redirección directa
-        window.location.href = '/dashboard';
-      }
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
-      console.log('❌ Error capturado en Login:', err);
-      console.log('❌ Error message:', err.message);
-      
       setStatus({ success: false });
       
       // Manejar diferentes tipos de errores
@@ -92,8 +75,6 @@ const Login = () => {
           errorMessage = err.message;
         }
       }
-      
-      console.log('📝 Error message final:', errorMessage);
       
       // Solo mostrar en consola errores que no sean de autenticación esperados
       const isAuthError = err.message && (
@@ -138,8 +119,6 @@ const Login = () => {
                   onSubmit={handleSubmit}
                 >
                   {({ errors, touched, handleSubmit, handleChange, isSubmitting, values }) => {
-                    // Debug: Mostrar el estado de errors.submit
-                    console.log('🔍 Debug - errors.submit:', errors.submit);
                     
                     return (
                       <Form onSubmit={handleSubmit}>

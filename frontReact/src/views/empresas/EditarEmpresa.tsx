@@ -152,102 +152,64 @@ const EditarEmpresa: React.FC = () => {
 
   // Efecto para manejar los datos cuando se cargan
   useEffect(() => {
-    if (data?.empresa) {
-      console.log('🎯 EditarEmpresa - Datos GraphQL recibidos:', data);
+    if (data) {
       const empresa = data.empresa;
-      console.log('🎯 EditarEmpresa - Empresa encontrada:', empresa);
-      
-      // Logging específico para redes sociales
-      if (empresa.redes_sociales) {
-        console.log('🔗 Redes sociales recibidas:', empresa.redes_sociales);
-        console.log('🔗 Número de redes sociales:', empresa.redes_sociales.length);
-        empresa.redes_sociales.forEach((red: any, index: number) => {
-          console.log(`🔗 Red ${index + 1}:`, red);
+      if (empresa) {
+        setFormData({
+          nombre: empresa.nombre || '',
+          ruc: empresa.ruc || '',
+          email: empresa.email || '',
+          telefono: empresa.telefono || '',
+          direccion: empresa.direccion || '',
+          estado: empresa.estado ?? true,
+          id_moneda: empresa.id_moneda || '',
+          id_pais: empresa.id_pais || '',
+          codigo_postal: empresa.codigo_postal || '',
+          poblacion: empresa.poblacion || '',
+          movil: empresa.movil || '',
+          fax: empresa.fax || '',
+          web: empresa.web || '',
+          nota: empresa.nota || '',
+          sujeto_iva: empresa.sujeto_iva ?? true,
+          id_provincia: empresa.id_provincia || '',
+          fiscal_year_start_month: empresa.fiscal_year_start_month || 1,
+          fiscal_year_start_day: empresa.fiscal_year_start_day || 1,
+          identificacion: empresa.identificacion || {
+            administradores: '',
+            delegado_datos: '',
+            capital: undefined,
+            id_tipo_entidad: undefined,
+            objeto_empresa: '',
+            cif_intra: '',
+            id_profesional1: '',
+            id_profesional2: '',
+            id_profesional3: '',
+            id_profesional4: '',
+            id_profesional5: '',
+            id_profesional6: '',
+            id_profesional7: '',
+            id_profesional8: '',
+            id_profesional9: '',
+            id_profesional10: ''
+          },
+          redes_sociales: empresa.redes_sociales || [],
+          horarios_apertura: empresa.horarios_apertura || []
         });
-      } else {
-        console.log('🔗 No se recibieron redes sociales');
+
+        if (empresa.redes_sociales && empresa.redes_sociales.length > 0) {
+          empresa.redes_sociales.forEach((red: any, index: number) => {
+            // Los datos ya están en formData.redes_sociales
+          });
+        }
+
+        if (empresa.horarios_apertura && empresa.horarios_apertura.length > 0) {
+          // Los datos ya están en formData.horarios_apertura
+        }
+
+        if (empresa.identificacion) {
+          // Los datos ya están en formData.identificacion
+        }
       }
-      
-      // Logging para horarios de apertura
-      if (empresa.horarios_apertura) {
-        console.log('🕐 Horarios de apertura recibidos:', empresa.horarios_apertura);
-      } else {
-        console.log('🕐 No se recibieron horarios de apertura');
-      }
-      
-      // Logging específico para identificación
-      if (empresa.identificacion) {
-        console.log('📊 Identificación recibida:', empresa.identificacion);
-        console.log('📊 Campos de identificación:', {
-          administradores: empresa.identificacion.administradores,
-          delegado_datos: empresa.identificacion.delegado_datos,
-          capital: empresa.identificacion.capital,
-          id_tipo_entidad: empresa.identificacion.id_tipo_entidad,
-          objeto_empresa: empresa.identificacion.objeto_empresa,
-          cif_intra: empresa.identificacion.cif_intra,
-          id_profesional1: empresa.identificacion.id_profesional1,
-          id_profesional2: empresa.identificacion.id_profesional2,
-          id_profesional3: empresa.identificacion.id_profesional3,
-          id_profesional4: empresa.identificacion.id_profesional4,
-          id_profesional5: empresa.identificacion.id_profesional5,
-          id_profesional6: empresa.identificacion.id_profesional6,
-          id_profesional7: empresa.identificacion.id_profesional7,
-          id_profesional8: empresa.identificacion.id_profesional8,
-          id_profesional9: empresa.identificacion.id_profesional9,
-          id_profesional10: empresa.identificacion.id_profesional10
-        });
-      } else {
-        console.log('📊 No se recibió identificación');
-      }
-      
-      setFormData({
-        // Datos básicos
-        nombre: empresa.nombre || '',
-        ruc: empresa.ruc || '',
-        direccion: empresa.direccion || '',
-        telefono: empresa.telefono || '',
-        email: empresa.email || '',
-        estado: empresa.estado ?? true,
-        id_moneda: empresa.id_moneda || '',
-        id_pais: empresa.id_pais || '',
-        codigo_postal: empresa.codigo_postal || '',
-        poblacion: empresa.poblacion || '',
-        movil: empresa.movil || '',
-        fax: empresa.fax || '',
-        web: empresa.web || '',
-        nota: empresa.nota || '',
-        sujeto_iva: empresa.sujeto_iva ?? true,
-        id_provincia: empresa.id_provincia || '',
-        fiscal_year_start_month: empresa.fiscal_year_start_month || 1,
-        fiscal_year_start_day: empresa.fiscal_year_start_day || 1,
-        
-        // Identificación
-        identificacion: empresa.identificacion || {
-          administradores: '',
-          delegado_datos: '',
-          capital: undefined,
-          id_tipo_entidad: undefined,
-          objeto_empresa: '',
-          cif_intra: '',
-          id_profesional1: '',
-          id_profesional2: '',
-          id_profesional3: '',
-          id_profesional4: '',
-          id_profesional5: '',
-          id_profesional6: '',
-          id_profesional7: '',
-          id_profesional8: '',
-          id_profesional9: '',
-          id_profesional10: ''
-        },
-        
-        // Redes sociales
-        redes_sociales: empresa.redes_sociales || [],
-        
-        // Horarios de apertura
-        horarios_apertura: empresa.horarios_apertura || []
-      });
-      setDataKey(prev => prev + 1); // Incrementar clave para forzar re-renderizado
     }
   }, [data]);
 
@@ -289,17 +251,14 @@ const EditarEmpresa: React.FC = () => {
   }, [handleDataChange]);
 
   const handleIdentificacionChange = useCallback((data: any) => {
-    console.log('📊 EditarEmpresa - Recibiendo datos de identificación:', data);
     handleDataChange('identificacion', data);
   }, [handleDataChange]);
 
   const handleRedesSocialesChange = useCallback((data: any) => {
-    console.log('🔗 EditarEmpresa - Recibiendo datos de redes sociales:', data);
     handleDataChange('redes_sociales', data);
   }, [handleDataChange]);
 
   const handleHorariosAperturaChange = useCallback((data: any) => {
-    console.log('🕐 EditarEmpresa - Recibiendo datos de horarios de apertura:', data);
     handleDataChange('horarios_apertura', data);
   }, [handleDataChange]);
 
@@ -307,18 +266,13 @@ const EditarEmpresa: React.FC = () => {
     setLoading(true);
     setError(null);
     
-    console.log('💾 EditarEmpresa - Enviando datos al backend:', formData);
-    console.log('💾 EditarEmpresa - Datos de identificación:', formData.identificacion);
-    
     try {
       await actualizarEmpresa(id!, formData);
       setSuccess(true);
       setHasChanges(false);
       
       // Refetch los datos después de guardar exitosamente
-      console.log('🔄 Refetching datos después del guardado...');
       await refetch();
-      console.log('✅ Datos refetchados exitosamente');
       
       setTimeout(() => {
         setSuccess(false);

@@ -126,7 +126,6 @@ const EditarSucursal: React.FC = () => {
         }
       });
 
-      console.log('✅ Sucursal actualizada exitosamente:', result.data);
       setSuccess(true);
       
       // Redirigir después de un breve delay para mostrar el mensaje de éxito
@@ -134,7 +133,6 @@ const EditarSucursal: React.FC = () => {
         navigate('/sucursales');
       }, 2000);
     } catch (err: any) {
-      console.error('Error actualizando sucursal:', err);
       setError(err.message || 'Error al actualizar la sucursal');
     } finally {
       setLoading(false);

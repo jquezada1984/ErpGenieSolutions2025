@@ -1,23 +1,31 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from 'reactstrap';
-import { useLocation, Link } from 'react-router-dom';
-//import SidebarData from '../sidebars/sidebardata/SidebarData';
 
-const BreadCrumbs = () => {
-  const location = useLocation();
-  const firstUrl = location.pathname.split('/')[1];
-  const secondUrl = location.pathname.split('/')[2];
-  console.log(firstUrl, secondUrl);
+interface BreadCrumbsProps {
+  firstUrl?: string;
+  secondUrl?: string;
+  firstText?: string;
+  secondText?: string;
+}
+
+const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ firstUrl, secondUrl, firstText, secondText }) => {
   return (
-    <>
-      <h4 className="text-capitalize">{secondUrl ? `${secondUrl}` : `${firstUrl}`}</h4>
-      <Breadcrumb>
-        <BreadcrumbItem to="/" tag={Link} className="text-decoration-none">
-          Home
+    <Breadcrumb>
+      <BreadcrumbItem>
+        <Link to="/">Inicio</Link>
+      </BreadcrumbItem>
+      {firstUrl && (
+        <BreadcrumbItem>
+          <Link to={firstUrl}>{firstText}</Link>
         </BreadcrumbItem>
-        {firstUrl ? <BreadcrumbItem active>{firstUrl}</BreadcrumbItem> : ''}
-        {secondUrl ? <BreadcrumbItem active>{secondUrl}</BreadcrumbItem> : ''}
-      </Breadcrumb>
-    </>
+      )}
+      {secondUrl && (
+        <BreadcrumbItem active>
+          <Link to={secondUrl}>{secondText}</Link>
+        </BreadcrumbItem>
+      )}
+    </Breadcrumb>
   );
 };
 

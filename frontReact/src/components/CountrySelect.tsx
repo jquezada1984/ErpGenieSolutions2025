@@ -44,21 +44,16 @@ const CountrySelect: React.FC<CountrySelectProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const selectedCountry = countries.find(country => country.id_pais === value);
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
 
-  // Debug: Log para verificar el valor y países disponibles
   useEffect(() => {
-    console.log('🌍 CountrySelect - Valor recibido:', value);
-    console.log('🌍 CountrySelect - Países disponibles:', countries.length);
-    console.log('🌍 CountrySelect - País seleccionado:', selectedCountry);
-    
-    if (countries.length > 0 && value) {
-      const found = countries.find(country => country.id_pais === value);
-      if (!found) {
-        console.warn('🌍 CountrySelect - País no encontrado:', value, 'en países:', countries);
-      }
+    if (value) {
+      const selectedCountry = countries.find(country => country.id_pais === value);
+      setSelectedCountry(selectedCountry || null);
+    } else {
+      setSelectedCountry(null);
     }
-  }, [countries, value, selectedCountry]);
+  }, [value, countries]);
 
   const filteredCountries = countries.filter(country =>
     country.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||

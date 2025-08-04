@@ -74,14 +74,12 @@ const EditarPerfil: React.FC = () => {
     }
 
     try {
-      console.log('📝 Actualizando perfil usando InicioPython...');
       const result = await actualizarPerfil(id, {
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion.trim() || null,
         estado: formData.estado
       });
 
-      console.log('✅ Perfil actualizado exitosamente con InicioPython:', result);
       setSuccess(true);
       
       // Redirigir después de un breve delay para mostrar el mensaje de éxito
@@ -89,7 +87,6 @@ const EditarPerfil: React.FC = () => {
         navigate('/perfiles');
       }, 2000);
     } catch (err: any) {
-      console.error('Error actualizando perfil con InicioPython:', err);
       setError(err.message || 'Error al actualizar el perfil');
     } finally {
       setLoading(false);
