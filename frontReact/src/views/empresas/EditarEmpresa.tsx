@@ -387,8 +387,8 @@ const EditarEmpresa: React.FC = () => {
           {error && <ErrorAlert error={error} />}
           
           {success && (
-            <Alert color="success" className="mb-3" isOpen={success} toggle={() => setSuccess(false)} fade={false}>
-              <i className="fas fa-check-circle me-2"></i>
+            <Alert color="success" className="mb-3" isOpen={success} toggle={() => setSuccess(false)} fade={false} timeout={0}>
+              <i className="bi bi-check-circle me-2"></i>
               Empresa actualizada exitosamente
             </Alert>
           )}

@@ -2,7 +2,6 @@ import React, { lazy, ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import Loadable from '../layouts/loader/Loadable';
 import AuthGuard from '../components/authGurad/AuthGuard';
-import Login from '../views/auth/Login';
 import Error404 from '../views/auth/Error404';
 
 /****Layouts*****/
@@ -20,6 +19,9 @@ const Grid = Loadable(lazy(() => import('../views/ui/Grid')));
 const Tables = Loadable(lazy(() => import('../views/ui/Tables')));
 const Forms = Loadable(lazy(() => import('../views/ui/Forms')));
 const Breadcrumbs = Loadable(lazy(() => import('../views/ui/Breadcrumbs')));
+
+// Auth pages
+const Login = Loadable(lazy(() => import('../views/auth/Login')));
 
 // Dashboard pages
 const Comercio = Loadable(lazy(() => import('../views/dashboards/Comercio')));

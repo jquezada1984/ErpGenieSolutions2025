@@ -158,8 +158,8 @@ const NuevaSucursal: React.FC = () => {
           <div className="col-12">
             <Card>
               <CardBody>
-                <Alert color="danger" fade={false}>
-                  <h4>Error al cargar empresas</h4>
+                <Alert color="danger" fade={false} timeout={0}>
+                  <h4>Error al cargar empresas desde InicioNestJS</h4>
                   <p>{errorEmpresas.message}</p>
                   <Button color="primary" onClick={handleCancel}>
                     Volver a Sucursales
@@ -194,16 +194,16 @@ const NuevaSucursal: React.FC = () => {
               </div>
 
               {error && (
-                <Alert color="danger" fade={false} className="mb-3">
+                <Alert color="danger" fade={false} className="mb-3" timeout={0}>
                   <i className="bi bi-exclamation-triangle me-2"></i>
                   {error}
                 </Alert>
               )}
 
               {success && (
-                <Alert color="success" fade={false} className="mb-3">
+                <Alert color="success" fade={false} className="mb-3" timeout={0}>
                   <i className="bi bi-check-circle me-2"></i>
-                  Sucursal creada exitosamente. Redirigiendo...
+                  Sucursal creada exitosamente usando InicioPython. Redirigiendo...
                 </Alert>
               )}
 

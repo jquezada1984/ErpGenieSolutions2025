@@ -5,6 +5,7 @@ from models.empresa import db
 from models.usuario import Usuario
 from api.empresa_routes import empresa_bp
 from api.entidad_routes import entidad_bp
+from api.perfil_routes import perfil_routes
 from flask_jwt_extended import JWTManager
 # Importar los blueprints de las demás entidades cuando estén listos
 
@@ -22,8 +23,8 @@ db.init_app(app)
 # Registro de blueprints
 app.register_blueprint(empresa_bp, url_prefix='/api')
 app.register_blueprint(entidad_bp, url_prefix='/api')
+app.register_blueprint(perfil_routes, url_prefix='/api')
 # app.register_blueprint(sucursal_bp, url_prefix='/api')
-# app.register_blueprint(perfil_bp, url_prefix='/api')
 # app.register_blueprint(menu_bp, url_prefix='/api')
 # app.register_blueprint(usuario_bp, url_prefix='/api')
 # app.register_blueprint(usuario_sucursal_bp, url_prefix='/api')

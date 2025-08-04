@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToOne, OneToMany, JoinColumn } from 'typeorm';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { Sucursal } from './sucursal.entity';
+import { Perfil } from './perfil.entity';
 import { Pais } from './pais.entity';
 import { Moneda } from './moneda.entity';
 import { Provincia } from './provincia.entity';
@@ -134,4 +135,8 @@ export class Empresa {
   @Field(() => [Sucursal], { nullable: true })
   @OneToMany(() => Sucursal, sucursal => sucursal.empresa)
   sucursales: Sucursal[];
+
+  @Field(() => [Perfil], { nullable: true })
+  @OneToMany(() => Perfil, perfil => perfil.empresa)
+  perfiles: Perfil[];
 } 

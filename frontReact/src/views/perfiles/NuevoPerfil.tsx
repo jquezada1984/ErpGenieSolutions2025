@@ -1,23 +1,47 @@
 import React, { useState } from 'react';
 import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, gql } from '@apollo/client';
+import { crearPerfil } from '../../_apis_/perfil';
+
+// Consulta GraphQL para obtener empresas (InicioNestJS)
+const GET_EMPRESAS = gql`
+  query {
+    empresas {
+      id_empresa
+      nombre
+      ruc
+      estado
+    }
+  }
+`;
+
+interface Empresa {
+  id_empresa: string;
+  nombre: string;
+  ruc: string;
+  estado: boolean;
+}
 
 const NuevoPerfil: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    id_empresa: '',
     nombre: '',
-    descripcion: '',
-    estado: true
+    descripcion: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+  // Consulta GraphQL para obtener empresas desde InicioNestJS
+  const { loading: loadingEmpresas, error: errorEmpresas, data: empresasData } = useQuery(GET_EMPRESAS);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }));
   };
 
@@ -25,24 +49,92 @@ const NuevoPerfil: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    try {
-      // Aquí iría la llamada a la API para crear el perfil
-      setTimeout(() => {
-        setLoading(false);
-        setSuccess(true);
-        setTimeout(() => {
-          navigate('/perfiles');
-        }, 2000);
-      }, 1000);
-    } catch (err: any) {
+
+    // Validar campos requeridos
+    if (!formData.nombre.trim()) {
+      setError('El nombre del perfil es requerido');
       setLoading(false);
+      return;
+    }
+
+    if (!formData.id_empresa) {
+      setError('Debe seleccionar una empresa');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      console.log('📝 Creando perfil usando InicioPython...');
+      const result = await crearPerfil({
+        id_empresa: formData.id_empresa,
+        nombre: formData.nombre.trim(),
+        descripcion: formData.descripcion.trim() || null
+      });
+
+      console.log('✅ Perfil creado exitosamente con InicioPython:', result);
+      setSuccess(true);
+      
+      // Redirigir después de un breve delay para mostrar el mensaje de éxito
+      setTimeout(() => {
+        navigate('/perfiles');
+      }, 2000);
+    } catch (err: any) {
+      console.error('Error creando perfil con InicioPython:', err);
       setError(err.message || 'Error al crear el perfil');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleCancel = () => {
     navigate('/perfiles');
   };
+
+  // Mostrar loading mientras cargan las empresas
+  if (loadingEmpresas) {
+    return (
+      <div className="container-fluid">
+        <div className="row">
+          <div className="col-12">
+            <Card>
+              <CardBody className="text-center">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Cargando...</span>
+                </div>
+                <p className="mt-2">Cargando empresas desde InicioNestJS...</p>
+              </CardBody>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar error si no se pueden cargar las empresas
+  if (errorEmpresas) {
+    return (
+      <div className="container-fluid">
+        <div className="row">
+          <div className="col-12">
+            <Card>
+              <CardBody>
+                <Alert color="danger" fade={false} timeout={0}>
+                  <h4>Error al cargar empresas desde InicioNestJS</h4>
+                  <p>{errorEmpresas.message}</p>
+                  <Button color="primary" onClick={handleCancel}>
+                    Volver a Perfiles
+                  </Button>
+                </Alert>
+              </CardBody>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Filtrar solo empresas activas
+  const empresasActivas = empresasData?.empresas?.filter((empresa: Empresa) => empresa.estado) || [];
 
   return (
     <div className="container-fluid">
@@ -62,21 +154,46 @@ const NuevoPerfil: React.FC = () => {
               </div>
 
               {error && (
-                <Alert color="danger" fade={false} className="mb-3">
+                <Alert color="danger" fade={false} className="mb-3" timeout={0}>
                   <i className="bi bi-exclamation-triangle me-2"></i>
                   {error}
                 </Alert>
               )}
 
               {success && (
-                <Alert color="success" fade={false} className="mb-3">
+                <Alert color="success" fade={false} className="mb-3" timeout={0}>
                   <i className="bi bi-check-circle me-2"></i>
-                  Perfil creado exitosamente. Redirigiendo...
+                  Perfil creado exitosamente usando InicioPython. Redirigiendo...
                 </Alert>
               )}
 
               <Form onSubmit={handleSubmit}>
                 <Row>
+                  <Col md={6}>
+                    <FormGroup>
+                      <Label for="id_empresa" className="fw-bold">
+                        Empresa *
+                      </Label>
+                      <Input
+                        id="id_empresa"
+                        name="id_empresa"
+                        type="select"
+                        value={formData.id_empresa}
+                        onChange={handleInputChange}
+                        required
+                      >
+                        <option value="">Seleccione una empresa</option>
+                        {empresasActivas.map((empresa: Empresa) => (
+                          <option key={empresa.id_empresa} value={empresa.id_empresa}>
+                            {empresa.nombre} - {empresa.ruc}
+                          </option>
+                        ))}
+                      </Input>
+                      <small className="text-muted">
+                        Solo se muestran empresas activas (datos desde InicioNestJS)
+                      </small>
+                    </FormGroup>
+                  </Col>
                   <Col md={6}>
                     <FormGroup>
                       <Label for="nombre" className="fw-bold">
@@ -93,20 +210,8 @@ const NuevoPerfil: React.FC = () => {
                       />
                     </FormGroup>
                   </Col>
-                  <Col md={6}>
-                    <FormGroup check className="d-flex align-items-center h-100">
-                      <Label check className="fw-bold ms-2">
-                        <Input
-                          type="checkbox"
-                          name="estado"
-                          checked={formData.estado}
-                          onChange={handleInputChange}
-                        />
-                        <span className="ms-2">Perfil Activo</span>
-                      </Label>
-                    </FormGroup>
-                  </Col>
                 </Row>
+
                 <Row>
                   <Col md={12}>
                     <FormGroup>
@@ -119,22 +224,23 @@ const NuevoPerfil: React.FC = () => {
                         type="textarea"
                         value={formData.descripcion}
                         onChange={handleInputChange}
-                        placeholder="Ingrese una descripción del perfil"
-                        rows={3}
+                        placeholder="Ingrese la descripción del perfil"
+                        rows={4}
                       />
                     </FormGroup>
                   </Col>
                 </Row>
+
                 <div className="d-flex justify-content-end gap-2 mt-4">
                   <Button color="secondary" onClick={handleCancel} disabled={loading}>
                     <i className="bi bi-x-circle me-2"></i>
                     Cancelar
                   </Button>
-                  <Button color="primary" type="submit" disabled={loading}>
+                  <Button color="primary" type="submit" disabled={loading || !formData.id_empresa}>
                     {loading ? (
                       <>
                         <i className="bi bi-hourglass-split me-2"></i>
-                        Guardando...
+                        Guardando con InicioPython...
                       </>
                     ) : (
                       <>

@@ -63,14 +63,14 @@ const NuevoMenu: React.FC = () => {
               </div>
 
               {error && (
-                <Alert color="danger" fade={false} className="mb-3">
+                <Alert color="danger" fade={false} className="mb-3" timeout={0}>
                   <i className="bi bi-exclamation-triangle me-2"></i>
                   {error}
                 </Alert>
               )}
 
               {success && (
-                <Alert color="success" fade={false} className="mb-3">
+                <Alert color="success" fade={false} className="mb-3" timeout={0}>
                   <i className="bi bi-check-circle me-2"></i>
                   Menú creado exitosamente. Redirigiendo...
                 </Alert>

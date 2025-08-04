@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -11,6 +11,7 @@ import {
   Card,
   CardBody,
   Input,
+  Spinner,
 } from 'reactstrap';
 import { Formik, Field, Form, ErrorMessage, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
@@ -29,6 +30,8 @@ const Login = () => {
   const mounted = useMounted();
   const navigate = useNavigate();
   const { signInWithEmailAndPassword } = useContext(AuthContext);
+  const [isLoading, setIsLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const initialValues: LoginValues = {
     email: '',
@@ -43,6 +46,73 @@ const Login = () => {
       .required('La contraseña es obligatoria'),
   });
 
+  const handleSubmit = async (values: LoginValues, { setErrors, setStatus, setSubmitting }: FormikHelpers<LoginValues>) => {
+    try {
+      console.log('🚀 Iniciando login con:', values.email);
+      setIsLoading(true);
+      setSuccessMessage(null);
+
+      await signInWithEmailAndPassword(values.email, values.password);
+
+      console.log('✅ Login exitoso, preparando redirección...');
+      
+      setStatus({ success: true });
+      setSuccessMessage('¡Login exitoso! Redirigiendo...');
+      setSubmitting(true);
+      
+      // Redirección inmediata sin verificación de mounted
+      console.log('🔄 Redirigiendo al dashboard...');
+      console.log('🔄 URL actual:', window.location.href);
+      console.log('🔄 Intentando navegar a /dashboard...');
+      
+      try {
+        navigate('/dashboard', { replace: true });
+        console.log('🔄 Navegación ejecutada');
+      } catch (navError) {
+        console.error('❌ Error en navegación:', navError);
+        // Fallback: redirección directa
+        window.location.href = '/dashboard';
+      }
+    } catch (err: any) {
+      console.log('❌ Error capturado en Login:', err);
+      console.log('❌ Error message:', err.message);
+      
+      setStatus({ success: false });
+      
+      // Manejar diferentes tipos de errores
+      let errorMessage = 'Error al iniciar sesión';
+      if (err.message) {
+        if (err.message.includes('Usuario no encontrado')) {
+          errorMessage = 'Usuario no encontrado. Verifique su correo electrónico.';
+        } else if (err.message.includes('Contraseña incorrecta')) {
+          errorMessage = 'Contraseña incorrecta. Verifique sus credenciales.';
+        } else if (err.message.includes('network')) {
+          errorMessage = 'Error de conexión. Verifique su conexión a internet.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      console.log('📝 Error message final:', errorMessage);
+      
+      // Solo mostrar en consola errores que no sean de autenticación esperados
+      const isAuthError = err.message && (
+        err.message.includes('Contraseña incorrecta') ||
+        err.message.includes('Usuario no encontrado') ||
+        err.message.includes('Credenciales inválidas')
+      );
+      
+      if (!isAuthError) {
+        console.error('❌ Error en login:', err);
+      }
+      
+      setErrors({ submit: errorMessage });
+      setSubmitting(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="loginBox">
       <img src="/src/assets/images/bg/login-bgleft.svg" className="position-absolute left bottom-0" alt="Fondo izquierdo" />
@@ -54,86 +124,96 @@ const Login = () => {
             <Card>
               <CardBody className="p-4 m-1">
                 <h5 className="mb-0">Iniciar sesión</h5>
+                
+                {successMessage && (
+                  <Alert color="success" className="mt-3" fade={false} timeout={0}>
+                    <i className="bi bi-check-circle me-2"></i>
+                    {successMessage}
+                  </Alert>
+                )}
+
                 <Formik
                   initialValues={initialValues}
                   validationSchema={validationSchema}
-                  onSubmit={async (values, { setErrors, setStatus, setSubmitting }: FormikHelpers<LoginValues>) => {
-                    try {
-                      await signInWithEmailAndPassword(values.email, values.password);
-
-                      if (mounted.current) {
-                        setStatus({ success: true });
-                        setSubmitting(true);
-                        // Redirigir al dashboard después del login exitoso
-                        navigate('/dashboard');
-                      }
-                    } catch (err: any) {
-                      if (mounted.current) {
-                        setStatus({ success: false });
-                        setErrors({ submit: err.message });
-                        setSubmitting(false);
-                      }
-                    }
-                  }}
+                  onSubmit={handleSubmit}
                 >
-                  {({ errors, touched, handleSubmit, handleChange, isSubmitting, values }) => (
-                    <Form onSubmit={handleSubmit}>
-                      <FormGroup>
-                        <Label htmlFor="email">Correo electrónico</Label>
-                        <Field
-                          name="email"
-                          type="text"
-                          value={values.email}
-                          placeholder="usuario@correo.com"
-                          onChange={handleChange}
-                          className={`form-control${
-                            errors.email && touched.email ? ' is-invalid' : ''
-                          }`}
-                        />
-                        <ErrorMessage name="email" component="div" className="invalid-feedback" />
-                      </FormGroup>
-                      <FormGroup>
-                        <Label htmlFor="password">Contraseña</Label>
-                        <Field
-                          name="password"
-                          type="password"
-                          placeholder="Tu contraseña"
-                          value={values.password}
-                          onChange={handleChange}
-                          className={`form-control${
-                            errors.password && touched.password ? ' is-invalid' : ''
-                          }`}
-                        />
-                        <ErrorMessage
-                          name="password"
-                          component="div"
-                          className="invalid-feedback"
-                        />
-                      </FormGroup>
-                      <FormGroup className="form-check d-flex" inline>
-                        <Label check>
-                          <Input type="checkbox" />
-                          Recordarme
-                        </Label>
-                      </FormGroup>
-                      {errors.submit ? (
-                        <div className="mb-3">
-                          <ErrorAlert error={errors.submit} />
-                        </div>
-                      ) : ''}
+                  {({ errors, touched, handleSubmit, handleChange, isSubmitting, values }) => {
+                    // Debug: Mostrar el estado de errors.submit
+                    console.log('🔍 Debug - errors.submit:', errors.submit);
+                    
+                    return (
+                      <Form onSubmit={handleSubmit}>
+                        <FormGroup>
+                          <Label htmlFor="email">Correo electrónico</Label>
+                          <Field
+                            name="email"
+                            type="text"
+                            value={values.email}
+                            placeholder="usuario@correo.com"
+                            onChange={handleChange}
+                            className={`form-control${
+                              errors.email && touched.email ? ' is-invalid' : ''
+                            }`}
+                            disabled={isLoading}
+                            autoComplete="username"
+                          />
+                          <ErrorMessage name="email" component="div" className="invalid-feedback" />
+                        </FormGroup>
+                        <FormGroup>
+                          <Label htmlFor="password">Contraseña</Label>
+                          <Field
+                            name="password"
+                            type="password"
+                            placeholder="Tu contraseña"
+                            value={values.password}
+                            onChange={handleChange}
+                            className={`form-control${
+                              errors.password && touched.password ? ' is-invalid' : ''
+                            }`}
+                            disabled={isLoading}
+                            autoComplete="current-password"
+                          />
+                          <ErrorMessage
+                            name="password"
+                            component="div"
+                            className="invalid-feedback"
+                          />
+                        </FormGroup>
+                        <FormGroup className="form-check d-flex" inline>
+                          <Label check>
+                            <Input type="checkbox" disabled={isLoading} />
+                            Recordarme
+                          </Label>
+                        </FormGroup>
+                        {errors.submit ? (
+                          <div className="mb-3">
+                            <Alert color="danger" className="mt-3" fade={false} timeout={0}>
+                              <i className="bi bi-exclamation-triangle me-2"></i>
+                              {errors.submit}
+                            </Alert>
+                          </div>
+                        ) : ''}
 
-                      <FormGroup>
-                        <Button
-                          type="submit"
-                          color="danger"
-                          className="me-2"
-                          disabled={isSubmitting}
-                        >
-                          Ingresar
-                        </Button>
-                      </FormGroup>
-                    </Form>
-                  )}
+                        <FormGroup>
+                          <Button
+                            type="submit"
+                            color="danger"
+                            className="me-2"
+                            disabled={isLoading || isSubmitting}
+                          >
+                            {isLoading ? (
+                              <>
+                                <Spinner size="sm" className="me-2" />
+                                Iniciando sesión...
+                              </>
+                            ) : (
+                              'Ingresar'
+                            )}
+                          </Button>
+                        </FormGroup>
+                      </Form>
+                    );
+                  }}
                 </Formik>
               </CardBody>
             </Card>

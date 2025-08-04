@@ -171,8 +171,8 @@ const EditarSucursal: React.FC = () => {
           <div className="col-12">
             <Card>
               <CardBody>
-                <Alert color="danger" fade={false}>
-                  <h4>Error al cargar la sucursal</h4>
+                <Alert color="danger" fade={false} timeout={0}>
+                  <h4>Error al cargar la sucursal desde InicioNestJS</h4>
                   <p>{queryError?.message || 'Sucursal no encontrada'}</p>
                   <Button color="primary" onClick={handleCancel}>
                     Volver a Sucursales
@@ -204,7 +204,7 @@ const EditarSucursal: React.FC = () => {
               </div>
 
               {data.sucursal.empresa && (
-                <Alert color="info" fade={false} className="mb-3">
+                <Alert color="info" fade={false} className="mb-3" timeout={0}>
                   <div className="d-flex align-items-center">
                     <i className="bi bi-building me-2"></i>
                     <div>
@@ -222,16 +222,16 @@ const EditarSucursal: React.FC = () => {
               )}
 
               {error && (
-                <Alert color="danger" fade={false} className="mb-3">
+                <Alert color="danger" fade={false} className="mb-3" timeout={0}>
                   <i className="bi bi-exclamation-triangle me-2"></i>
                   {error}
                 </Alert>
               )}
 
               {success && (
-                <Alert color="success" fade={false} className="mb-3">
+                <Alert color="success" fade={false} className="mb-3" timeout={0}>
                   <i className="bi bi-check-circle me-2"></i>
-                  Sucursal actualizada exitosamente. Redirigiendo...
+                  Sucursal actualizada exitosamente usando InicioPython. Redirigiendo...
                 </Alert>
               )}
 

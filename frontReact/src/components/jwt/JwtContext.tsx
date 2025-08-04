@@ -1,14 +1,8 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import PropTypes from 'prop-types';
+import React, { createContext, useContext, useEffect, useReducer } from 'react';
 import { useMutation, useLazyQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
-import { setSession, isValidToken } from './Jwt';
+import { isValidToken, setSession } from './Jwt';
 
-// utils
-import axios from './axios';
-import EnhancedLoader from '../EnhancedLoader';
-
-// GraphQL mutation para login
 const LOGIN_MUTATION = gql`
   mutation Login($email: String!, $password: String!) {
     login(email: $email, password: $password) {
@@ -23,10 +17,9 @@ const LOGIN_MUTATION = gql`
   }
 `;
 
-const ME_QUERY = gql`
-  query Me {
+const GET_ME_QUERY = gql`
+  query GetMe {
     me {
-      accessToken
       user {
         id
         email
@@ -36,8 +29,6 @@ const ME_QUERY = gql`
     }
   }
 `;
-
-// ----------------------------------------------------------------------
 
 interface User {
   id: string;
@@ -58,84 +49,83 @@ const initialState: AuthState = {
   user: null,
 };
 
-const handlers = {
-  INITIALIZE: (state: AuthState, action: any) => {
-    const { isAuthenticated, user } = action.payload;
-    return {
-      ...state,
-      isAuthenticated,
-      isInitialized: true,
-      user,
-    };
-  },
-  LOGIN: (state: AuthState, action: any) => {
-    const { user } = action.payload;
-
-    return {
-      ...state,
-      isAuthenticated: true,
-      user,
-    };
-  },
+const handlers: Record<string, (state: AuthState, action: any) => AuthState> = {
+  INITIALIZE: (state: AuthState, action: any) => ({
+    ...state,
+    isAuthenticated: action.payload.isAuthenticated,
+    isInitialized: true,
+    user: action.payload.user,
+  }),
+  LOGIN: (state: AuthState, action: any) => ({
+    ...state,
+    isAuthenticated: true,
+    user: action.payload.user,
+  }),
   LOGOUT: (state: AuthState) => ({
     ...state,
     isAuthenticated: false,
     user: null,
   }),
-  REGISTER: (state: AuthState, action: any) => {
-    const { user } = action.payload;
-
-    return {
-      ...state,
-      isAuthenticated: true,
-      user,
-    };
-  },
 };
 
 const reducer = (state: AuthState, action: any) =>
   handlers[action.type] ? handlers[action.type](state, action) : state;
 
-const AuthContext = createContext({
-  ...initialState,
-  method: 'jwt',
-  signInWithEmailAndPassword: (email: string, password: string) => Promise.resolve(),
-  logout: () => Promise.resolve(),
-  createUserWithEmailAndPassword: (email: string, password: string, firstName: string, lastName: string) => Promise.resolve(),
+const AuthContext = createContext<{
+  isAuthenticated: boolean;
+  isInitialized: boolean;
+  user: User | null;
+  signInWithEmailAndPassword: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  updateToken: (newToken: string) => void;
+}>({
+  isAuthenticated: false,
+  isInitialized: false,
+  user: null,
+  signInWithEmailAndPassword: async () => {},
+  logout: async () => {},
+  updateToken: () => {},
 });
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [loginMutation] = useMutation(LOGIN_MUTATION);
-  const [getMe] = useLazyQuery(ME_QUERY);
+  const [getMe] = useLazyQuery(GET_ME_QUERY);
 
   useEffect(() => {
     const initialize = async () => {
       try {
-        const accessToken = window.localStorage.getItem('accessToken');
-        console.log('🔍 Token encontrado en localStorage:', accessToken ? 'SÍ' : 'NO');
-
+        // Limpiar token expirado al inicializar
+        const storedToken = localStorage.getItem('accessToken');
+        if (storedToken && !isValidToken(storedToken)) {
+          localStorage.removeItem('accessToken');
+        }
+        
+        const accessToken = localStorage.getItem('accessToken');
+        
         if (accessToken && isValidToken(accessToken)) {
-          console.log('✅ Token válido encontrado, configurando sesión...');
           setSession(accessToken);
-
-          // Usar GraphQL en lugar de REST
+          
           const { data } = await getMe();
-          if (!data || !data.me) {
-            console.error('⚠️ La respuesta de getMe es nula:', data);
-            throw new Error('No se pudo obtener el usuario autenticado (me=null)');
+          
+          if (data && data.me && data.me.user) {
+            dispatch({
+              type: 'INITIALIZE',
+              payload: {
+                isAuthenticated: true,
+                user: data.me.user,
+              },
+            });
+          } else {
+            dispatch({
+              type: 'INITIALIZE',
+              payload: {
+                isAuthenticated: false,
+                user: null,
+              },
+            });
           }
-          const { user } = data.me;
-
-          dispatch({
-            type: 'INITIALIZE',
-            payload: {
-              isAuthenticated: true,
-              user,
-            },
-          });
         } else {
-          console.log('❌ No hay token válido, usuario no autenticado');
           dispatch({
             type: 'INITIALIZE',
             payload: {
@@ -145,17 +135,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } catch (err) {
-        console.error('❌ Error al inicializar auth:', err);
-        if (err && typeof err === 'object') {
-          if ('networkError' in err) {
-            // @ts-ignore
-            console.error('🌐 Detalle networkError:', err.networkError);
-          }
-          if ('graphQLErrors' in err) {
-            // @ts-ignore
-            console.error('🟣 Detalle graphQLErrors:', err.graphQLErrors);
-          }
-        }
         dispatch({
           type: 'INITIALIZE',
           payload: {
@@ -171,28 +150,41 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmailAndPassword = async (email: string, password: string) => {
     try {
-      console.log('🔐 Iniciando proceso de login...');
-      const { data } = await loginMutation({
+      console.log('🔐 JwtContext: Iniciando login...');
+      const result = await loginMutation({
         variables: { email, password },
       });
       
+      console.log('📊 JwtContext: Resultado de la mutación:', result);
+      
+      // Verificar si hay errores de GraphQL en la respuesta
+      if (result.errors && result.errors.length > 0) {
+        console.log('❌ JwtContext: Errores de GraphQL encontrados:', result.errors);
+        const graphQLError = result.errors[0];
+        throw new Error(graphQLError.message || 'Error de GraphQL');
+      }
+      
+      const { data } = result;
+      console.log('📊 JwtContext: Data recibida:', data);
+      
+      if (!data || !data.login) {
+        throw new Error('Respuesta inválida del servidor');
+      }
+      
       const { accessToken, user } = data.login;
-      console.log('🎉 Login exitoso, token recibido:', accessToken ? 'SÍ' : 'NO');
-      console.log('👤 Usuario:', user);
+
+      if (!accessToken) {
+        throw new Error('No se recibió token de acceso del servidor');
+      }
 
       // Validar el token antes de guardar y autenticar
       if (!isValidToken(accessToken)) {
-        console.error('❌ Token inválido o expirado. No se puede autenticar.');
         setSession('');
         throw new Error('Token inválido o expirado. Por favor, intente nuevamente.');
       }
 
       setSession(accessToken);
-      console.log('💾 Token guardado en localStorage');
-      
-      // Verificar que se guardó correctamente
-      const storedToken = localStorage.getItem('accessToken');
-      console.log('🔍 Verificación - Token en localStorage:', storedToken ? 'SÍ' : 'NO');
+      console.log('✅ JwtContext: Login exitoso, token guardado');
       
       dispatch({
         type: 'LOGIN',
@@ -200,69 +192,56 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           user,
         },
       });
-      console.log('✅ Estado de autenticación actualizado');
     } catch (error: any) {
-      // Solo mostrar en consola si el error no es de contraseña incorrecta
-      if (!(error && error.message && error.message.includes('Contraseña incorrecta'))) {
-        console.error('❌ Error en login:', error);
+      console.log('❌ JwtContext: Error capturado:', error);
+      console.log('❌ JwtContext: Error type:', error.constructor.name);
+      console.log('❌ JwtContext: Error graphQLErrors:', error.graphQLErrors);
+      console.log('❌ JwtContext: Error networkError:', error.networkError);
+      
+      // Extraer mensaje de error específico
+      let errorMessage = 'Error al iniciar sesión';
+      
+      if (error.graphQLErrors && error.graphQLErrors.length > 0) {
+        const graphQLError = error.graphQLErrors[0];
+        errorMessage = graphQLError.message || 'Error de GraphQL';
+      } else if (error.networkError) {
+        errorMessage = 'Error de conexión. Verifique su conexión a internet.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-      throw error;
+      
+      console.log('📝 JwtContext: Error message final:', errorMessage);
+      
+      // Asegurar que el error se propague correctamente
+      const authError = new Error(errorMessage);
+      authError.name = 'AuthError';
+      throw authError;
     }
   };
 
-  const createUserWithEmailAndPassword = async (email: string, password: string, firstName: string, lastName: string) => {
-    const response = await axios.post('/api/account/register', {
-      email,
-      password,
-      firstName,
-      lastName,
-    });
-    const { accessToken, user } = response.data;
-
-    window.localStorage.setItem('accessToken', accessToken);
-    dispatch({
-      type: 'REGISTER',
-      payload: {
-        user,
-      },
-    });
-  };
-
   const logout = async () => {
-    console.log('🚪 Cerrando sesión...');
     setSession('');
-    console.log('🗑️ Token eliminado de localStorage');
-    dispatch({ type: 'LOGOUT' });
+    dispatch({
+      type: 'LOGOUT',
+    });
   };
 
-  // Función para actualizar el token en el contexto
   const updateToken = (newToken: string) => {
-    console.log('🔄 Actualizando token en contexto...');
     setSession(newToken);
-    // Ya no es necesario actualizar Apollo Client manualmente
-    console.log('✅ Token actualizado en contexto');
   };
 
   return (
     <AuthContext.Provider
       value={{
         ...state,
-        method: 'jwt',
         signInWithEmailAndPassword,
         logout,
-        createUserWithEmailAndPassword,
         updateToken,
       }}
     >
-      {!state.isInitialized ? (
-        <EnhancedLoader message="Validando sesión..." showProgress={false} />
-      ) : (
-        children
-      )}
+      {children}
     </AuthContext.Provider>
   );
 }
-AuthProvider.propTypes = {
-  children: PropTypes.node,
-};
+
 export { AuthContext, AuthProvider };

@@ -67,6 +67,7 @@ class Empresa(db.Model):
     moneda = db.relationship('Moneda', backref='empresas')
     pais = db.relationship('Pais', backref='empresas')
     provincia = db.relationship('Provincia', backref='empresas')
+    perfiles = db.relationship('Perfil', backref='empresa', lazy='dynamic', cascade='all, delete-orphan')
 
 class EmpresaIdentificacion(db.Model):
     __tablename__ = 'empresa_identificacion'
