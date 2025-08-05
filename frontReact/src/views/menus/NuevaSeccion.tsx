@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
-import { menuAPI } from '../../_apis_/menu';
+import { crearSeccion } from '../../_apis_/menu';
 
 const NuevaSeccion: React.FC = () => {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ const NuevaSeccion: React.FC = () => {
     setError(null);
     
     try {
-      const response = await menuAPI.createSeccion(formData);
+      const response = await crearSeccion(formData);
       if (response.success) {
         setSuccess(true);
         setTimeout(() => {

@@ -37,7 +37,8 @@ def create_menu_seccion():
         # Crear la sección
         nueva_seccion = MenuSeccion(
             nombre=data['nombre'],
-            orden=data.get('orden', 0)
+            orden=data.get('orden', 0),
+            icono=data.get('icono')
         )
         
         db.session.add(nueva_seccion)
@@ -90,6 +91,8 @@ def update_menu_seccion(seccion_id):
             seccion_existente.nombre = data['nombre']
         if 'orden' in data:
             seccion_existente.orden = data['orden']
+        if 'icono' in data:
+            seccion_existente.icono = data['icono']
         
         db.session.commit()
         db.session.refresh(seccion_existente)

@@ -1,57 +1,7 @@
-const axios = require('axios');
+const { perfilSchema, perfilUpdateSchema } = require('../schemas/perfil');
+const { pythonService } = require('../services');
 
-// Configuración del microservicio Python
-const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:5000';
-
-// Middleware para manejar errores de comunicación con Python
-const handlePythonError = (error) => {
-  console.error('❌ Error comunicándose con Python:', error.message);
-  
-  if (error.code === 'ECONNREFUSED') {
-    return {
-      success: false,
-      error: 'Servicio Python no disponible',
-      message: 'El servicio de Python no está respondiendo'
-    };
-  }
-  
-  if (error.response) {
-    // Error de respuesta del servidor Python
-    return {
-      success: false,
-      error: error.response.data?.error || 'Error en el servicio Python',
-      message: error.response.data?.message || 'Error interno del servidor'
-    };
-  }
-  
-  return {
-    success: false,
-    error: 'Error de comunicación',
-    message: 'No se pudo comunicar con el servicio Python'
-  };
-};
-
-// Esquemas de validación para Fastify
-const perfilSchema = {
-  type: 'object',
-  properties: {
-    nombre: { type: 'string', minLength: 1, maxLength: 50 },
-    descripcion: { type: 'string' },
-    id_empresa: { type: 'string' },
-    estado: { type: 'boolean' }
-  },
-  required: ['nombre', 'id_empresa']
-};
-
-const perfilUpdateSchema = {
-  type: 'object',
-  properties: {
-    nombre: { type: 'string', minLength: 1, maxLength: 50 },
-    descripcion: { type: 'string' },
-    estado: { type: 'boolean' }
-  }
-};
-
+// Esquema para cambio de estado
 const estadoSchema = {
   type: 'object',
   properties: {
@@ -67,14 +17,16 @@ async function perfilRoutes(fastify, options) {
     try {
       fastify.log.info('🔄 Gateway: Obteniendo perfiles desde Python...');
       
-      const response = await axios.get(`${PYTHON_SERVICE_URL}/api/perfiles`);
+      const response = await pythonService.get('/api/perfiles');
       
       fastify.log.info('✅ Gateway: Perfiles obtenidos exitosamente');
       return response.data;
     } catch (error) {
       fastify.log.error('❌ Gateway: Error obteniendo perfiles:', error.message);
-      const errorResponse = handlePythonError(error);
-      reply.status(error.response?.status || 500).send(errorResponse);
+      reply.status(error.response?.status || 500).send(error.response?.data || { 
+        success: false, 
+        error: 'Error interno del servidor' 
+      });
     }
   });
 
@@ -94,7 +46,7 @@ async function perfilRoutes(fastify, options) {
       const { id } = request.params;
       fastify.log.info(`🔄 Gateway: Obteniendo perfil ${id} desde Python...`);
       
-      const response = await axios.get(`${PYTHON_SERVICE_URL}/api/perfiles/${id}`);
+      const response = await pythonService.get(`/api/perfiles/${id}`);
       
       fastify.log.info('✅ Gateway: Perfil obtenido exitosamente');
       return response.data;

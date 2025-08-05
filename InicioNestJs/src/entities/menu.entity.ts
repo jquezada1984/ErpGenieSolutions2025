@@ -16,6 +16,10 @@ export class MenuSeccion {
   @Column({ default: 0 })
   orden: number;
 
+  @Field({ nullable: true })
+  @Column({ length: 100, nullable: true })
+  icono?: string;
+
   @Field(() => [MenuItem], { nullable: true })
   @OneToMany(() => MenuItem, menuItem => menuItem.seccion)
   items?: MenuItem[];

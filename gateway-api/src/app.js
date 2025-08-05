@@ -56,6 +56,8 @@ fastify.register(require('@fastify/helmet'));
 // Registrar rutas
 fastify.register(require('./routes/empresas'), { prefix: '/api' });
 fastify.register(require('./routes/perfil'), { prefix: '/api' });
+fastify.register(require('./routes/sucursal'), { prefix: '/api' });
+fastify.register(require('./routes/menu'), { prefix: '/api' });
 fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/graphql'), { prefix: '' });
 
@@ -135,6 +137,16 @@ const start = async () => {
     console.log(`   - DELETE /api/perfiles/:id`);
     console.log(`   - PUT  /api/perfiles/:id/estado`);
     console.log(`   - GET  /api/empresas/:empresaId/perfiles`);
+    console.log(`   - POST /api/sucursales`);
+    console.log(`   - PUT  /api/sucursales/:id`);
+    console.log(`   - DELETE /api/sucursales/:id`);
+    console.log(`   - PATCH /api/sucursales/:id/estado`);
+    console.log(`   - POST /api/menu-secciones`);
+    console.log(`   - PUT  /api/menu-secciones/:id`);
+    console.log(`   - DELETE /api/menu-secciones/:id`);
+    console.log(`   - POST /api/menu-items`);
+    console.log(`   - PUT  /api/menu-items/:id`);
+    console.log(`   - DELETE /api/menu-items/:id`);
     console.log(`   - GET  /api/health`);
     console.log(`   - GET  /api/status`);
     console.log('==================================================');

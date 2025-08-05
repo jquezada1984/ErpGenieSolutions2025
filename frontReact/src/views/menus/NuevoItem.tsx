@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
-import { menuAPI } from '../../_apis_/menu';
+import { useLazyQuery, gql } from '@apollo/client';
+import { crearItem } from '../../_apis_/menu';
+
+// GraphQL query para obtener secciones
+const GET_MENU_SECCIONES = gql`
+  query GetMenuSecciones {
+    secciones {
+      id_seccion
+      nombre
+      orden
+    }
+  }
+`;
 
 interface MenuSeccion {
   id_seccion: string;
@@ -29,22 +41,24 @@ const NuevoItem: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    loadSecciones();
-  }, []);
-
-  const loadSecciones = async () => {
-    try {
-      const response = await menuAPI.getSecciones();
-      if (response.success) {
-        setSecciones(response.data);
+  // GraphQL hook para obtener secciones
+  const [getSecciones, { loading: seccionesLoading }] = useLazyQuery(GET_MENU_SECCIONES, {
+    fetchPolicy: 'cache-and-network',
+    onCompleted: (data) => {
+      if (data && data.secciones) {
+        setSecciones(data.secciones);
       }
-    } catch (err: any) {
-      setError('Error al cargar las secciones');
-    } finally {
+      setLoadingSecciones(false);
+    },
+    onError: (error) => {
+      setError('Error al cargar las secciones: ' + error.message);
       setLoadingSecciones(false);
     }
-  };
+  });
+
+  useEffect(() => {
+    getSecciones();
+  }, [getSecciones]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -69,7 +83,7 @@ const NuevoItem: React.FC = () => {
     setError(null);
     
     try {
-      const response = await menuAPI.createItem(formData);
+      const response = await crearItem(formData);
       if (response.success) {
         setSuccess(true);
         setTimeout(() => {

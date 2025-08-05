@@ -7,6 +7,7 @@ class MenuSeccion(db.Model):
     id_seccion = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     nombre = db.Column(db.String(100), nullable=False, unique=True)
     orden = db.Column(db.Integer, nullable=False, default=0)
+    icono = db.Column(db.String(100), nullable=True)
 
 class MenuItem(db.Model):
     __tablename__ = 'menu_item'

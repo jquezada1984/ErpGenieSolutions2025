@@ -111,11 +111,11 @@ const Menus: React.FC = () => {
   }, [seccionesLoading, itemsLoading]);
 
   const handleNuevaSeccion = () => {
-    navigate('/menus/seccion/nueva');
+    navigate('/menus/nuevo');
   };
 
   const handleNuevoItem = () => {
-    navigate('/menus/item/nuevo');
+    navigate('/menus/nuevo');
   };
 
   const handleEditSeccion = (seccion: MenuSeccion) => {

@@ -32,10 +32,12 @@ export class MenuSeccionResolver {
   async crearSeccion(
     @Args('nombre') nombre: string,
     @Args('orden', { type: () => Int, nullable: true }) orden?: number,
+    @Args('icono', { nullable: true }) icono?: string,
   ): Promise<MenuSeccion> {
     const seccion = this.menuSeccionRepository.create({ 
       nombre, 
-      orden: orden || 0 
+      orden: orden || 0,
+      icono
     });
     return this.menuSeccionRepository.save(seccion);
   }
@@ -45,11 +47,13 @@ export class MenuSeccionResolver {
     @Args('id_seccion', { type: () => ID }) id_seccion: string,
     @Args('nombre', { nullable: true }) nombre?: string,
     @Args('orden', { type: () => Int, nullable: true }) orden?: number,
+    @Args('icono', { nullable: true }) icono?: string,
   ): Promise<MenuSeccion | null> {
     const seccion = await this.menuSeccionRepository.findOne({ where: { id_seccion } });
     if (!seccion) throw new NotFoundException('Sección no encontrada');
     if (nombre !== undefined) seccion.nombre = nombre;
     if (orden !== undefined) seccion.orden = orden;
+    if (icono !== undefined) seccion.icono = icono;
     return this.menuSeccionRepository.save(seccion);
   }
 

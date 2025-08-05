@@ -7,4 +7,7 @@ export class MenuSeccionListDto {
 
   @Field(() => Int)
   orden: number;
+
+  @Field({ nullable: true })
+  icono?: string;
 } 

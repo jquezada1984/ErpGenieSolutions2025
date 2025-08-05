@@ -4,6 +4,7 @@ class MenuSeccionSchema(Schema):
     id_seccion = fields.Str(dump_only=True)
     nombre = fields.Str(required=True)
     orden = fields.Int()
+    icono = fields.Str()
 
 class MenuItemSchema(Schema):
     id_item = fields.Str(dump_only=True)

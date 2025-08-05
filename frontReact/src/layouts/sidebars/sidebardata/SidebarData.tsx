@@ -29,7 +29,7 @@ const sidebarMenus = {
       id: 'menu',
       children: [
         { title: "Lista", href: "/menus", icon: <Icon.List size={14} /> },
-        { title: "Crear", href: "/menus/nueva", icon: <Icon.Plus size={14} /> },
+        { title: "Crear", href: "/menus/nuevo", icon: <Icon.Plus size={14} /> },
       ],
     },
     {
