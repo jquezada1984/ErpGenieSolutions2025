@@ -38,7 +38,7 @@ const sidebarMenus = {
       id: 'perfil',
       children: [
         { title: "Lista", href: "/perfiles", icon: <Icon.List size={14} /> },
-        { title: "Crear", href: "/perfiles/nueva", icon: <Icon.Plus size={14} /> },
+        { title: "Crear", href: "/perfiles/nuevo", icon: <Icon.Plus size={14} /> },
       ],
     },
     {

@@ -12,8 +12,6 @@ const GET_PERFIL = gql`
       nombre
       descripcion
       estado
-      created_at
-      updated_at
       empresa {
         id_empresa
         nombre

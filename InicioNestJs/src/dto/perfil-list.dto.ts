@@ -15,12 +15,6 @@ export class PerfilListDto {
   @Field()
   estado: boolean;
 
-  @Field()
-  created_at: Date;
-
-  @Field()
-  updated_at: Date;
-
   @Field(() => EmpresaBasicDto, { nullable: true })
   empresa?: EmpresaBasicDto;
 } 

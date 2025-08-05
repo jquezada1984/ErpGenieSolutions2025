@@ -45,10 +45,13 @@ class PerfilService:
             if not empresa:
                 raise ValueError("La empresa especificada no existe")
             
-            # Verificar que el nombre no esté duplicado
-            perfil_existente = Perfil.query.filter(Perfil.nombre == data['nombre']).first()
+            # Verificar que el nombre no esté duplicado en la misma empresa
+            perfil_existente = Perfil.query.filter(
+                Perfil.nombre == data['nombre'],
+                Perfil.id_empresa == data['id_empresa']
+            ).first()
             if perfil_existente:
-                raise ValueError("Ya existe un perfil con ese nombre")
+                raise ValueError("Ya existe un perfil con ese nombre en esta empresa")
             
             nuevo_perfil = Perfil(
                 nombre=data['nombre'],
@@ -74,14 +77,15 @@ class PerfilService:
             if not perfil:
                 raise ValueError("Perfil no encontrado")
             
-            # Verificar que el nombre no esté duplicado (si se está cambiando)
+            # Verificar que el nombre no esté duplicado en la misma empresa (si se está cambiando)
             if 'nombre' in data and data['nombre'] != perfil.nombre:
                 perfil_existente = Perfil.query.filter(
                     Perfil.nombre == data['nombre'],
+                    Perfil.id_empresa == perfil.id_empresa,
                     Perfil.id_perfil != perfil_id
                 ).first()
                 if perfil_existente:
-                    raise ValueError("Ya existe un perfil con ese nombre")
+                    raise ValueError("Ya existe un perfil con ese nombre en esta empresa")
             
             # Actualizar campos
             if 'nombre' in data:

@@ -14,8 +14,6 @@ class PerfilSchema(Schema):
     descripcion = fields.Str(allow_none=True)
     estado = fields.Bool()
     id_empresa = fields.Str(required=True)
-    created_at = fields.DateTime(dump_only=True)
-    updated_at = fields.DateTime(dump_only=True)
     empresa = fields.Nested(EmpresaBasicSchema, dump_only=True)
 
 class PerfilCreateSchema(Schema):

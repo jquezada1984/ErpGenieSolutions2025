@@ -14,8 +14,6 @@ const GET_PERFILES = gql`
       nombre
       descripcion
       estado
-      created_at
-      updated_at
       empresa {
         id_empresa
         nombre
@@ -30,8 +28,6 @@ interface Perfil {
   nombre: string;
   descripcion?: string;
   estado: boolean;
-  created_at: string;
-  updated_at: string;
   empresa?: {
     id_empresa: string;
     nombre: string;
@@ -43,7 +39,7 @@ const Perfiles: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [perfiles, setPerfiles] = useState<Perfil[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -64,6 +60,11 @@ const Perfiles: React.FC = () => {
       setPerfiles(data.perfiles || []);
     }
   }, [data]);
+
+  // Actualizar loading cuando cambia queryLoading
+  useEffect(() => {
+    setLoading(queryLoading);
+  }, [queryLoading]);
 
   const handleNuevoPerfil = () => {
     navigate('/perfiles/nuevo');
@@ -108,7 +109,7 @@ const Perfiles: React.FC = () => {
   };
 
   // Preparar datos para la tabla
-  const tableData = perfiles.map((perfil: Perfil) => ({
+  const tableData = perfiles.map(perfil => ({
     id_perfil: perfil.id_perfil,
     nombre: perfil.nombre,
     descripcion: perfil.descripcion || '-',
@@ -121,7 +122,6 @@ const Perfiles: React.FC = () => {
         {perfil.estado ? 'Activo' : 'Inactivo'}
       </Badge>
     ),
-    created_at: new Date(perfil.created_at).toLocaleDateString('es-ES'),
     actions: (
       <div className="grid-action-buttons text-center">
         <Button
@@ -159,7 +159,6 @@ const Perfiles: React.FC = () => {
     { Header: 'Nombre', accessor: 'nombre', filterable: true },
     { Header: 'Descripción', accessor: 'descripcion', filterable: true },
     { Header: 'Estado', accessor: 'estado', filterable: true, width: 100 },
-    { Header: 'Creado', accessor: 'created_at', width: 100 },
     { Header: 'Acciones', accessor: 'actions', sortable: false, filterable: false, width: 150 },
   ];
 
@@ -185,17 +184,24 @@ const Perfiles: React.FC = () => {
                 </div>
               </div>
 
-                      {error && (
-                        <Alert color="danger" fade={false} isOpen={!!error} toggle={() => setError(null)} timeout={0}>
-                          {error}
-                        </Alert>
-                      )}
+              {loading && (
+                <div className="text-center mb-3">
+                  <Spinner color="primary" size="sm" />
+                  <span className="ms-2">Cargando perfiles...</span>
+                </div>
+              )}
 
-                      {success && (
-                        <Alert color="success" fade={false} isOpen={!!success} toggle={() => setSuccess(null)} timeout={0}>
-                          {success}
-                        </Alert>
-                      )}
+              {error && (
+                <Alert color="danger" fade={false} isOpen={!!error} toggle={() => setError(null)} timeout={0}>
+                  {error}
+                </Alert>
+              )}
+
+              {success && (
+                <Alert color="success" fade={false} isOpen={!!success} toggle={() => setSuccess(null)} timeout={0}>
+                  {success}
+                </Alert>
+              )}
 
               <div className="grid-container">
                 <ReactTable
@@ -203,7 +209,6 @@ const Perfiles: React.FC = () => {
                   columns={columns}
                   defaultPageSize={10}
                   className="-striped -highlight"
-                  loading={loading}
                   showPagination={true}
                   showPageSizeOptions={true}
                   pageSizeOptions={[5, 10, 20, 50]}

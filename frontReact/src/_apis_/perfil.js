@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-// URL base del API Python
-const API_URL = `${import.meta.env.VITE_PYTHON_URL || 'http://localhost:5000'}/api`;
+// URL base del Gateway API
+const API_URL = `${import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002'}/api`;
 
-// Configurar axios para el microservicio Python
+// Configurar axios para el Gateway API
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
@@ -15,7 +15,7 @@ const apiClient = axios.create({
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('❌ Error en API Python:', error.response?.data || error.message);
+    console.error('❌ Error en Gateway API:', error.response?.data || error.message);
     
     // Extraer el mensaje de error específico de la respuesta
     if (error.response?.data?.error) {
@@ -29,10 +29,10 @@ apiClient.interceptors.response.use(
   }
 );
 
-// CREAR PERFIL (InicioPython)
+// CREAR PERFIL (Gateway -> InicioPython)
 export const crearPerfil = async (perfil) => {
   try {
-    console.log('📝 Creando perfil (Python):', perfil);
+    console.log('📝 Creando perfil (Gateway -> Python):', perfil);
     const response = await apiClient.post('/perfiles', perfil);
     console.log('✅ Perfil creado exitosamente:', response.data);
     return response.data;
@@ -42,10 +42,10 @@ export const crearPerfil = async (perfil) => {
   }
 };
 
-// ACTUALIZAR PERFIL (InicioPython)
+// ACTUALIZAR PERFIL (Gateway -> InicioPython)
 export const actualizarPerfil = async (id, perfil) => {
   try {
-    console.log('📝 Actualizando perfil (Python):', id, perfil);
+    console.log('📝 Actualizando perfil (Gateway -> Python):', id, perfil);
     const response = await apiClient.put(`/perfiles/${id}`, perfil);
     console.log('✅ Perfil actualizado exitosamente:', response.data);
     return response.data;
@@ -55,10 +55,10 @@ export const actualizarPerfil = async (id, perfil) => {
   }
 };
 
-// ELIMINAR PERFIL (InicioPython)
+// ELIMINAR PERFIL (Gateway -> InicioPython)
 export const eliminarPerfil = async (id) => {
   try {
-    console.log('🗑️ Eliminando perfil (Python):', id);
+    console.log('🗑️ Eliminando perfil (Gateway -> Python):', id);
     const response = await apiClient.delete(`/perfiles/${id}`);
     console.log('✅ Perfil eliminado exitosamente:', response.data);
     return response.data;
@@ -68,10 +68,10 @@ export const eliminarPerfil = async (id) => {
   }
 };
 
-// CAMBIAR ESTADO PERFIL (InicioPython)
+// CAMBIAR ESTADO PERFIL (Gateway -> InicioPython)
 export const cambiarEstadoPerfil = async (id, estado) => {
   try {
-    console.log('🔄 Cambiando estado de perfil (Python):', id, estado);
+    console.log('🔄 Cambiando estado de perfil (Gateway -> Python):', id, estado);
     const response = await apiClient.put(`/perfiles/${id}/estado`, { estado });
     console.log('✅ Estado de perfil cambiado exitosamente:', response.data);
     return response.data;
@@ -81,10 +81,10 @@ export const cambiarEstadoPerfil = async (id, estado) => {
   }
 };
 
-// OBTENER PERFILES POR EMPRESA (InicioPython)
+// OBTENER PERFILES POR EMPRESA (Gateway -> InicioPython)
 export const getPerfilesPorEmpresa = async (empresaId) => {
   try {
-    console.log('📊 Obteniendo perfiles por empresa (Python):', empresaId);
+    console.log('📊 Obteniendo perfiles por empresa (Gateway -> Python):', empresaId);
     const response = await apiClient.get(`/empresas/${empresaId}/perfiles`);
     console.log('✅ Perfiles por empresa obtenidos:', response.data);
     return response.data;

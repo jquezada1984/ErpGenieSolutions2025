@@ -55,6 +55,7 @@ fastify.register(require('@fastify/helmet'));
 
 // Registrar rutas
 fastify.register(require('./routes/empresas'), { prefix: '/api' });
+fastify.register(require('./routes/perfil'), { prefix: '/api' });
 fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/graphql'), { prefix: '' });
 
@@ -122,13 +123,20 @@ const start = async () => {
     console.log(`   - NestJS Service: ${config.nestjsService}`);
     console.log('==================================================');
     console.log('📡 Endpoints disponibles:');
-    console.log(`   - GET  /gateway/empresas`);
-    console.log(`   - GET  /gateway/empresas/:id`);
-    console.log(`   - POST /gateway/empresas`);
-    console.log(`   - PUT  /gateway/empresas/:id`);
-    console.log(`   - DELETE /gateway/empresas/:id`);
-    console.log(`   - GET  /gateway/health`);
-    console.log(`   - GET  /gateway/status`);
+    console.log(`   - GET  /api/empresas`);
+    console.log(`   - GET  /api/empresas/:id`);
+    console.log(`   - POST /api/empresas`);
+    console.log(`   - PUT  /api/empresas/:id`);
+    console.log(`   - DELETE /api/empresas/:id`);
+    console.log(`   - GET  /api/perfiles`);
+    console.log(`   - GET  /api/perfiles/:id`);
+    console.log(`   - POST /api/perfiles`);
+    console.log(`   - PUT  /api/perfiles/:id`);
+    console.log(`   - DELETE /api/perfiles/:id`);
+    console.log(`   - PUT  /api/perfiles/:id/estado`);
+    console.log(`   - GET  /api/empresas/:empresaId/perfiles`);
+    console.log(`   - GET  /api/health`);
+    console.log(`   - GET  /api/status`);
     console.log('==================================================');
     
   } catch (err) {

@@ -24,4 +24,8 @@ class MenuItem(db.Model):
     created_by = db.Column(db.String(36), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
     updated_by = db.Column(db.String(36), nullable=True)
-    updated_at = db.Column(db.DateTime, nullable=True) 
+    updated_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relaciones
+    seccion = db.relationship('MenuSeccion', backref='items')
+    parent = db.relationship('MenuItem', remote_side=[id_item], backref='children') 

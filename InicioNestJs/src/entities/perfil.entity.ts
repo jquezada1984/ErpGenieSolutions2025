@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { Empresa } from './empresa.entity';
 
@@ -24,14 +24,6 @@ export class Perfil {
   @Field(() => ID)
   @Column()
   id_empresa: string;
-
-  @Field()
-  @CreateDateColumn()
-  created_at: Date;
-
-  @Field()
-  @UpdateDateColumn()
-  updated_at: Date;
 
   @Field(() => Empresa, { nullable: true })
   @ManyToOne(() => Empresa, empresa => empresa.perfiles)

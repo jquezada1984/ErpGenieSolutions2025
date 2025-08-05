@@ -6,17 +6,17 @@ class Perfil(db.Model):
     __tablename__ = 'perfil'
     
     id_perfil = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    nombre = db.Column(db.String(50), nullable=False, unique=True)
+    nombre = db.Column(db.String(50), nullable=False)
     descripcion = db.Column(db.Text, nullable=True)
     estado = db.Column(db.Boolean, default=True, nullable=False)
     id_empresa = db.Column(db.String(36), db.ForeignKey('empresa.id_empresa', ondelete='RESTRICT'), nullable=False)
     
-    # Timestamps
-    created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
-    updated_at = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    # Timestamps - comentados porque no existen en la tabla
+    # created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    # updated_at = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
     
-    # Relación con Empresa
-    empresa = db.relationship('Empresa', backref=db.backref('perfiles', lazy='dynamic', cascade='all, delete-orphan'))
+    # Relación con Empresa - sin backref para evitar conflicto
+    empresa = db.relationship('Empresa')
     
     def __repr__(self):
         return f"<Perfil(id_perfil={self.id_perfil}, nombre='{self.nombre}', empresa='{self.id_empresa}')>"
@@ -29,8 +29,6 @@ class Perfil(db.Model):
             'descripcion': self.descripcion,
             'estado': self.estado,
             'id_empresa': str(self.id_empresa),
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'empresa': {
                 'id_empresa': str(self.empresa.id_empresa),
                 'nombre': self.empresa.nombre,

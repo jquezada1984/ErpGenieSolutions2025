@@ -75,7 +75,7 @@ const ThemeRoutes: RouteType[] = [
       { path: 'forms', element: <Forms /> },
       { path: 'breadcrumbs', element: <Breadcrumbs /> },
       { path: 'perfiles', element: <Perfiles /> },
-      { path: 'perfiles/nueva', element: <NuevoPerfil /> },
+      { path: 'perfiles/nuevo', element: <NuevoPerfil /> },
       { path: 'perfiles/editar/:id', element: <EditarPerfil /> },
       { path: 'menus', element: <Menus /> },
       { path: 'menus/nueva', element: <NuevoMenu /> },
