@@ -20,4 +20,5 @@ class MenuItemSchema(Schema):
     created_by = fields.Str()
     created_at = fields.DateTime(dump_only=True)
     updated_by = fields.Str()
-    updated_at = fields.DateTime() 
+    updated_at = fields.DateTime()
+    seccion = fields.Nested(MenuSeccionSchema, dump_only=True) 

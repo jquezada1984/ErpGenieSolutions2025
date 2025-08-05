@@ -13,10 +13,9 @@ export class MenuSeccionResolver {
     private menuSeccionRepository: Repository<MenuSeccion>,
   ) {}
 
-  @Query(() => [MenuSeccionListDto])
-  async secciones(): Promise<MenuSeccionListDto[]> {
+  @Query(() => [MenuSeccion])
+  async secciones(): Promise<MenuSeccion[]> {
     return this.menuSeccionRepository.find({
-      select: ['nombre', 'orden'],
       order: { orden: 'ASC' }
     });
   }
@@ -68,10 +67,10 @@ export class MenuItemResolver {
     private menuItemRepository: Repository<MenuItem>,
   ) {}
 
-  @Query(() => [MenuItemListDto])
-  async items(): Promise<MenuItemListDto[]> {
+  @Query(() => [MenuItem])
+  async items(): Promise<MenuItem[]> {
     return this.menuItemRepository.find({
-      select: ['etiqueta', 'icono', 'ruta', 'es_clickable', 'orden', 'muestra_badge', 'badge_text', 'estado'],
+      relations: ['seccion'],
       order: { orden: 'ASC' }
     });
   }

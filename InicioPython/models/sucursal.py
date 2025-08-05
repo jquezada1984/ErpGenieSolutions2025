@@ -9,6 +9,10 @@ class Sucursal(db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     direccion = db.Column(db.String(255))
     telefono = db.Column(db.String(20))
+    codigo_establecimiento = db.Column(db.String(50))
     estado = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
-    updated_at = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now()) 
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    
+    # Relación con Empresa
+    empresa = db.relationship('Empresa', backref='sucursales') 

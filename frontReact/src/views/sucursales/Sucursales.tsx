@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardBody, CardTitle, Button, Alert, Container, Row, Col, Badge, Spinner } from 'reactstrap';
+import { Card, CardBody, CardTitle, Button, Alert, Container, Row, Col, Badge } from 'reactstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useLazyQuery, useMutation, gql } from '@apollo/client';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
-import { useLazyQuery, useMutation, gql } from '@apollo/client';
+import { eliminarSucursal, cambiarEstadoSucursal } from '../../_apis_/sucursal';
 
-// Consultas GraphQL
+// GraphQL queries
 const GET_SUCURSALES = gql`
-  query {
+  query GetSucursales {
     sucursales {
       id_sucursal
       nombre
@@ -15,26 +16,12 @@ const GET_SUCURSALES = gql`
       telefono
       estado
       codigo_establecimiento
-      created_at
-      updated_at
       empresa {
         id_empresa
         nombre
         ruc
       }
     }
-  }
-`;
-
-const ELIMINAR_SUCURSAL = gql`
-  mutation EliminarSucursal($id_sucursal: ID!) {
-    eliminarSucursal(id_sucursal: $id_sucursal)
-  }
-`;
-
-const CAMBIAR_ESTADO_SUCURSAL = gql`
-  mutation CambiarEstadoSucursal($id_sucursal: ID!, $estado: Boolean!) {
-    cambiarEstadoSucursal(id_sucursal: $id_sucursal, estado: $estado)
   }
 `;
 
@@ -64,13 +51,9 @@ const Sucursales: React.FC = () => {
 
   // GraphQL hooks
   const [getSucursales, { loading: queryLoading, data, refetch }] = useLazyQuery(GET_SUCURSALES, {
-    fetchPolicy: 'cache-and-network', // Siempre consultar red y caché
+    fetchPolicy: 'cache-and-network',
     errorPolicy: 'all',
   });
-
-  // Mutaciones GraphQL
-  const [eliminarSucursal] = useMutation(ELIMINAR_SUCURSAL);
-  const [cambiarEstadoSucursal] = useMutation(CAMBIAR_ESTADO_SUCURSAL);
 
   useEffect(() => {
     if (location.pathname === '/sucursales') {
@@ -83,6 +66,14 @@ const Sucursales: React.FC = () => {
       setSucursales(data.sucursales || []);
     }
   }, [data]);
+
+  useEffect(() => {
+    if (queryLoading) {
+      setLoading(true);
+    } else {
+      setLoading(false);
+    }
+  }, [queryLoading]);
 
   const loadSucursales = async () => {
     try {
@@ -98,12 +89,8 @@ const Sucursales: React.FC = () => {
       }
     } catch (error: any) {
       console.error('❌ Error cargando sucursales:', error);
-      console.error('❌ Error completo:', JSON.stringify(error, null, 2));
       setSucursales([]);
-      
       setError('Error al cargar las sucursales: ' + (error.message || 'Error desconocido'));
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -118,9 +105,7 @@ const Sucursales: React.FC = () => {
   const handleDelete = async (idSucursal: string) => {
     if (window.confirm('¿Está seguro de que desea eliminar esta sucursal?')) {
       try {
-        await eliminarSucursal({
-          variables: { id_sucursal: idSucursal }
-        });
+        await eliminarSucursal(idSucursal);
         setSuccess('Sucursal eliminada exitosamente');
         setError(null);
         loadSucursales(); // Recargar datos después de eliminar
@@ -134,12 +119,7 @@ const Sucursales: React.FC = () => {
 
   const handleToggleEstado = async (sucursal: Sucursal) => {
     try {
-      await cambiarEstadoSucursal({
-        variables: {
-          id_sucursal: sucursal.id_sucursal,
-          estado: !sucursal.estado
-        }
-      });
+      await cambiarEstadoSucursal(sucursal.id_sucursal, !sucursal.estado);
       setSuccess(`Sucursal ${!sucursal.estado ? 'activada' : 'desactivada'} exitosamente`);
       setError(null);
       loadSucursales(); // Recargar datos después de cambiar estado

@@ -39,6 +39,8 @@ const NuevoPerfil = Loadable(lazy(() => import('../views/perfiles/NuevoPerfil'))
 const EditarPerfil = Loadable(lazy(() => import('../views/perfiles/EditarPerfil')));
 const Menus = Loadable(lazy(() => import('../views/menus/Menus')));
 const NuevoMenu = Loadable(lazy(() => import('../views/menus/NuevoMenu')));
+const NuevaSeccion = Loadable(lazy(() => import('../views/menus/NuevaSeccion')));
+const NuevoItem = Loadable(lazy(() => import('../views/menus/NuevoItem')));
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
@@ -79,6 +81,8 @@ const ThemeRoutes: RouteType[] = [
       { path: 'perfiles/editar/:id', element: <EditarPerfil /> },
       { path: 'menus', element: <Menus /> },
       { path: 'menus/nueva', element: <NuevoMenu /> },
+      { path: 'menus/seccion/nueva', element: <NuevaSeccion /> },
+      { path: 'menus/item/nuevo', element: <NuevoItem /> },
       { path: 'test-flags', element: <FlagTest /> },
     ],
   },
