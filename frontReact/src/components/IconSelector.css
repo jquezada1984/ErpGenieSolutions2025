@@ -1,0 +1,44 @@
+.icon-card {
+  transition: all 0.2s ease;
+  border: 1px solid #e9ecef;
+}
+
+.icon-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-color: #007bff;
+}
+
+.icon-card.border-primary {
+  border-color: #007bff !important;
+  background-color: #f8f9ff;
+}
+
+.icon-card .card-body {
+  padding: 0.5rem;
+}
+
+.icon-card small {
+  word-break: break-word;
+  line-height: 1.2;
+}
+
+/* Estilos para el modal */
+.modal-lg {
+  max-width: 900px;
+}
+
+/* Responsive para diferentes tamaños de pantalla */
+@media (max-width: 768px) {
+  .icon-card {
+    min-height: 70px !important;
+  }
+  
+  .icon-card .card-body {
+    padding: 0.25rem;
+  }
+  
+  .icon-card small {
+    font-size: 8px !important;
+  }
+} 

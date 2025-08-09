@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col, Badge, Collapse } from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
+import IconSelector from '../../components/IconSelector';
 
 import { crearSeccion, crearItem } from '../../_apis_/menu';
 
@@ -12,6 +13,8 @@ const NuevoMenuCompleto: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showIconSelector, setShowIconSelector] = useState(false);
+  const [currentIconField, setCurrentIconField] = useState<'seccion' | 'item'>('seccion');
   const [showSeccionForm, setShowSeccionForm] = useState(true);
 
   // Formulario de sección (cabecera)
@@ -103,6 +106,19 @@ const NuevoMenuCompleto: React.FC = () => {
     navigate('/menus');
   };
 
+  const handleIconSelect = (iconName: string) => {
+    if (currentIconField === 'seccion') {
+      setSeccionData(prev => ({ ...prev, icono: iconName }));
+    } else {
+      setItemData(prev => ({ ...prev, icono: iconName }));
+    }
+  };
+
+  const openIconSelector = (field: 'seccion' | 'item') => {
+    setCurrentIconField(field);
+    setShowIconSelector(true);
+  };
+
 
 
   return (
@@ -185,14 +201,26 @@ const NuevoMenuCompleto: React.FC = () => {
                              <Label for="seccion-icono" className="fw-bold">
                                Icono
                              </Label>
-                             <Input
-                               id="seccion-icono"
-                               name="icono"
-                               type="text"
-                               value={seccionData.icono}
-                               onChange={handleSeccionInputChange}
-                               placeholder="bi bi-list-ul"
-                             />
+                             <div className="d-flex">
+                               <Input
+                                 id="seccion-icono"
+                                 name="icono"
+                                 type="text"
+                                 value={seccionData.icono}
+                                 onChange={handleSeccionInputChange}
+                                 placeholder="bi bi-list-ul"
+                                 className="me-2"
+                               />
+                               <Button
+                                 type="button"
+                                 color="outline-primary"
+                                 size="sm"
+                                 onClick={() => openIconSelector('seccion')}
+                                 style={{ minWidth: '40px' }}
+                               >
+                                 <i className="bi bi-palette"></i>
+                               </Button>
+                             </div>
                            </FormGroup>
                          </Col>
                        </Row>
@@ -244,21 +272,33 @@ const NuevoMenuCompleto: React.FC = () => {
                     </Row>
 
                     <Row>
-                      <Col md={6}>
-                        <FormGroup>
-                          <Label for="item-icono" className="fw-bold">
-                            Icono
-                          </Label>
-                          <Input
-                            id="item-icono"
-                            name="icono"
-                            type="text"
-                            value={itemData.icono}
-                            onChange={handleItemInputChange}
-                            placeholder="bi bi-house"
-                          />
-                        </FormGroup>
-                      </Col>
+                                             <Col md={6}>
+                         <FormGroup>
+                           <Label for="item-icono" className="fw-bold">
+                             Icono
+                           </Label>
+                           <div className="d-flex">
+                             <Input
+                               id="item-icono"
+                               name="icono"
+                               type="text"
+                               value={itemData.icono}
+                               onChange={handleItemInputChange}
+                               placeholder="bi bi-house"
+                               className="me-2"
+                             />
+                             <Button
+                               type="button"
+                               color="outline-primary"
+                               size="sm"
+                               onClick={() => openIconSelector('item')}
+                               style={{ minWidth: '40px' }}
+                             >
+                               <i className="bi bi-palette"></i>
+                             </Button>
+                           </div>
+                         </FormGroup>
+                       </Col>
                       <Col md={6}>
                         <FormGroup>
                           <Label for="item-orden" className="fw-bold">
@@ -363,14 +403,22 @@ const NuevoMenuCompleto: React.FC = () => {
                       </>
                     )}
                   </Button>
-                </div>
-              </Form>
-            </CardBody>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-};
+                                 </div>
+               </Form>
+             </CardBody>
+           </Card>
+         </div>
+       </div>
+
+       {/* Selector de Iconos */}
+       <IconSelector
+         isOpen={showIconSelector}
+         toggle={() => setShowIconSelector(false)}
+         onSelect={handleIconSelect}
+         currentValue={currentIconField === 'seccion' ? seccionData.icono : itemData.icono}
+       />
+     </div>
+   );
+ };
 
 export default NuevoMenuCompleto; 
