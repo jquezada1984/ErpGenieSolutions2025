@@ -12,6 +12,11 @@ const menuSeccionSchema = {
       type: 'integer',
       minimum: 0,
       description: 'Orden de la sección'
+    },
+    icono: {
+      type: 'string',
+      maxLength: 100,
+      description: 'Icono de la sección'
     }
   },
   required: ['nombre'],
@@ -32,6 +37,11 @@ const menuSeccionUpdateSchema = {
       type: 'integer',
       minimum: 0,
       description: 'Orden de la sección'
+    },
+    icono: {
+      type: 'string',
+      maxLength: 100,
+      description: 'Icono de la sección'
     }
   },
   additionalProperties: false

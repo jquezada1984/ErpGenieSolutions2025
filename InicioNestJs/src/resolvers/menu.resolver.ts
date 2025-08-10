@@ -3,7 +3,7 @@ import { MenuSeccion, MenuItem } from '../entities/menu.entity';
 import { MenuSeccionListDto } from '../dto/menu-seccion-list.dto';
 import { MenuItemListDto } from '../dto/menu-item-list.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 
 @Resolver(() => MenuSeccion)
@@ -90,7 +90,7 @@ export class MenuItemResolver {
   @Query(() => [MenuItem])
   async itemsPorSeccion(@Args('id_seccion', { type: () => ID }) id_seccion: string): Promise<MenuItem[]> {
     return this.menuItemRepository.find({
-      where: { id_seccion, parent_id: undefined },
+      where: { id_seccion, parent_id: IsNull() },
       relations: ['subitems'],
       order: { orden: 'ASC' }
     });

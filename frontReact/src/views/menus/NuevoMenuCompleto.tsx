@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col, Badge, Collapse } from 'reactstrap';
+import React, { useState } from 'react';
+import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
 import IconSelector from '../../components/IconSelector';
 
@@ -38,6 +38,10 @@ const NuevoMenuCompleto: React.FC = () => {
     estado: true
   });
 
+  // Lista de items agregados (detalle)
+  const [itemsList, setItemsList] = useState<typeof itemData[]>([]);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
 
 
   const handleSeccionInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,6 +61,58 @@ const NuevoMenuCompleto: React.FC = () => {
     }));
   };
 
+  const handleAddItemToList = () => {
+    try {
+      if (!itemData.etiqueta.trim()) {
+        setError('Debe ingresar la etiqueta del item');
+        return;
+      }
+      const nextOrden = (itemsList.length || 0) + 1;
+      const newItem = { ...itemData, orden: nextOrden };
+      setItemsList(prev => [...prev, newItem]);
+      // limpiar formulario de item
+      setItemData({
+        id_seccion: '',
+        parent_id: '',
+        etiqueta: '',
+        icono: '',
+        ruta: '',
+        es_clickable: true,
+        orden: 0,
+        muestra_badge: false,
+        badge_text: '',
+        estado: true
+      });
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Error al agregar el item');
+    }
+  };
+
+  const handleDeleteItemFromList = (index: number) => {
+    setItemsList(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      // Reasignar orden secuencial
+      return updated.map((it, i) => ({ ...it, orden: i + 1 }));
+    });
+  };
+
+  const handleDragStart = (index: number) => setDragIndex(index);
+  const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>) => {
+    e.preventDefault();
+  };
+  const handleDrop = (index: number) => {
+    if (dragIndex === null || dragIndex === index) return;
+    setItemsList(prev => {
+      const updated = [...prev];
+      const [moved] = updated.splice(dragIndex, 1);
+      updated.splice(index, 0, moved);
+      // Reasignar orden secuencial
+      return updated.map((it, i) => ({ ...it, orden: i + 1 }));
+    });
+    setDragIndex(null);
+  };
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,36 +121,44 @@ const NuevoMenuCompleto: React.FC = () => {
     setError(null);
     
     try {
-      let seccionId = itemData.id_seccion;
-
-      // Crear nueva sección (obligatorio)
+      // Validaciones mínimas
       if (!seccionData.nombre.trim()) {
         throw new Error('Debe ingresar el nombre de la sección');
       }
 
+      // Crear sección primero
       const seccionResponse = await crearSeccion(seccionData);
-      if (seccionResponse.success) {
-        seccionId = seccionResponse.data.id_seccion;
-        setSuccess('Sección creada exitosamente');
-      } else {
+      if (!seccionResponse.success) {
         throw new Error(seccionResponse.message || 'Error al crear la sección');
       }
+      const seccionId = seccionResponse.data.id_seccion;
+      setSuccess('Sección creada exitosamente');
 
-      // Crear el item
-      const itemToCreate = {
-        ...itemData,
-        id_seccion: seccionId
-      };
-
-      const itemResponse = await crearItem(itemToCreate);
-      if (itemResponse.success) {
-        setSuccess('Menú creado exitosamente');
-        setTimeout(() => {
-          navigate('/menus');
-        }, 2000);
-      } else {
-        throw new Error(itemResponse.message || 'Error al crear el item');
+      // Crear items en orden según itemsList
+      for (let i = 0; i < itemsList.length; i++) {
+        const it = itemsList[i];
+        const payload = {
+          id_seccion: seccionId,
+          parent_id: it.parent_id || undefined,
+          etiqueta: it.etiqueta,
+          icono: it.icono || undefined,
+          ruta: it.ruta || undefined,
+          es_clickable: it.es_clickable,
+          orden: i + 1,
+          muestra_badge: it.muestra_badge,
+          badge_text: it.muestra_badge ? it.badge_text || undefined : undefined,
+          estado: it.estado
+        };
+        const itemResponse = await crearItem(payload);
+        if (!itemResponse.success) {
+          throw new Error(itemResponse.message || 'Error al crear un item');
+        }
       }
+
+      setSuccess('Menú creado exitosamente');
+      setTimeout(() => {
+        navigate('/menus');
+      }, 1200);
     } catch (err: any) {
       setError(err.message || 'Error al crear el menú');
     } finally {
@@ -234,7 +298,7 @@ const NuevoMenuCompleto: React.FC = () => {
                   <CardBody>
                     <h5 className="mb-3">
                       <i className="bi bi-menu-button-wide me-2"></i>
-                      Detalle - Item
+                      Detalle - Items
                     </h5>
 
                     <Row>
@@ -272,7 +336,7 @@ const NuevoMenuCompleto: React.FC = () => {
                     </Row>
 
                     <Row>
-                                             <Col md={6}>
+                      <Col md={6}>
                          <FormGroup>
                            <Label for="item-icono" className="fw-bold">
                              Icono
@@ -382,6 +446,64 @@ const NuevoMenuCompleto: React.FC = () => {
                         </Col>
                       </Row>
                     )}
+
+                    <div className="d-flex justify-content-end">
+                      <Button type="button" color="success" onClick={handleAddItemToList}>
+                        <i className="bi bi-plus-circle me-2"></i>
+                        Agregar Item a la lista
+                      </Button>
+                    </div>
+
+                    {/* Lista de items agregados con drag and drop para ordenar */}
+                    <div className="mt-4">
+                      <h6 className="mb-2">Items agregados ({itemsList.length})</h6>
+                      <div className="table-responsive">
+                        <table className="table table-striped align-middle">
+                          <thead>
+                            <tr>
+                              <th style={{ width: 60 }}>#</th>
+                              <th>Etiqueta</th>
+                              <th>Ruta</th>
+                              <th>Icono</th>
+                              <th style={{ width: 120 }}>Acciones</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {itemsList.length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="text-center text-muted py-3">
+                                  No hay items agregados aún
+                                </td>
+                              </tr>
+                            )}
+                            {itemsList.map((it, index) => (
+                              <tr
+                                key={`it-${index}`}
+                                draggable
+                                onDragStart={() => handleDragStart(index)}
+                                onDragOver={handleDragOver}
+                                onDrop={() => handleDrop(index)}
+                                style={{ cursor: 'grab' }}
+                              >
+                                <td>{it.orden || index + 1}</td>
+                                <td>{it.etiqueta}</td>
+                                <td>{it.ruta || '-'}</td>
+                                <td>{it.icono ? <i className={it.icono}></i> : '-'}</td>
+                                <td>
+                                  <Button
+                                    size="sm"
+                                    color="outline-danger"
+                                    onClick={() => handleDeleteItemFromList(index)}
+                                  >
+                                    <i className="bi bi-trash"></i>
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </CardBody>
                 </Card>
 
