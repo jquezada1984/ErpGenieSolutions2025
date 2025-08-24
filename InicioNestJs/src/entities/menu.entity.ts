@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { ObjectType, Field, Int, ID } from '@nestjs/graphql';
+import { PerfilMenuPermiso } from './perfil-menu-permiso.entity';
 
 @ObjectType()
 @Entity('menu_seccion')
@@ -19,6 +20,10 @@ export class MenuSeccion {
   @Field({ nullable: true })
   @Column({ length: 100, nullable: true })
   icono?: string;
+
+  @Field()
+  @Column({ default: true })
+  estado: boolean;
 
   @Field(() => [MenuItem], { nullable: true })
   @OneToMany(() => MenuItem, menuItem => menuItem.seccion)
@@ -101,4 +106,8 @@ export class MenuItem {
   @Field(() => [MenuItem], { nullable: true })
   @OneToMany(() => MenuItem, menuItem => menuItem.parent)
   subitems?: MenuItem[];
+
+  @Field(() => [PerfilMenuPermiso], { nullable: true })
+  @OneToMany(() => PerfilMenuPermiso, permiso => permiso.menuItem)
+  permisos?: PerfilMenuPermiso[];
 } 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLazyQuery, gql } from '@apollo/client';
 import { crearItem } from '../../_apis_/menu';
 
@@ -15,23 +15,45 @@ const GET_MENU_SECCIONES = gql`
   }
 `;
 
+// GraphQL query para obtener items de una sección (para jerarquía padre-hijo)
+const GET_ITEMS_SECCION = gql`
+  query GetItemsSeccion($idSeccion: String!) {
+    items(where: { id_seccion: $idSeccion }) {
+      id_item
+      etiqueta
+      parent_id
+      orden
+    }
+  }
+`;
+
 interface MenuSeccion {
   id_seccion: string;
   nombre: string;
   orden: number;
 }
 
+interface MenuItem {
+  id_item: string;
+  etiqueta: string;
+  parent_id?: string;
+  orden: number;
+}
+
 const NuevoItem: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const seccionIdFromUrl = searchParams.get('seccion');
+  
   const [secciones, setSecciones] = useState<MenuSeccion[]>([]);
+  const [itemsSeccion, setItemsSeccion] = useState<MenuItem[]>([]);
   const [formData, setFormData] = useState({
-    id_seccion: '',
+    id_seccion: seccionIdFromUrl || '',
     parent_id: '',
     etiqueta: '',
     icono: '',
     ruta: '',
     es_clickable: true,
-    orden: 0,
     muestra_badge: false,
     badge_text: '',
     estado: true
@@ -56,16 +78,37 @@ const NuevoItem: React.FC = () => {
     }
   });
 
+  // GraphQL hook para obtener items de una sección
+  const [getItemsSeccion] = useLazyQuery(GET_ITEMS_SECCION, {
+    fetchPolicy: 'cache-and-network',
+    onCompleted: (data) => {
+      if (data && data.items) {
+        setItemsSeccion(data.items);
+      }
+    },
+    onError: (error) => {
+      console.warn('Error al cargar items de la sección:', error.message);
+    }
+  });
+
   useEffect(() => {
     getSecciones();
   }, [getSecciones]);
+
+  // Cuando cambia la sección, cargar los items para la jerarquía
+  useEffect(() => {
+    if (formData.id_seccion) {
+      getItemsSeccion({ variables: { idSeccion: formData.id_seccion } });
+      // Resetear parent_id cuando cambia la sección
+      setFormData(prev => ({ ...prev, parent_id: '' }));
+    }
+  }, [formData.id_seccion, getItemsSeccion]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : 
-               type === 'number' ? parseInt(value) || 0 : value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -83,7 +126,16 @@ const NuevoItem: React.FC = () => {
     setError(null);
     
     try {
-      const response = await crearItem(formData);
+      // Calcular el orden automáticamente (último orden + 1)
+      const maxOrden = itemsSeccion.length > 0 ? Math.max(...itemsSeccion.map(item => item.orden)) : 0;
+      const nuevoOrden = maxOrden + 1;
+      
+      const itemData = {
+        ...formData,
+        orden: nuevoOrden
+      };
+      
+      const response = await crearItem(itemData);
       if (response.success) {
         setSuccess(true);
         setTimeout(() => {
@@ -101,6 +153,11 @@ const NuevoItem: React.FC = () => {
 
   const handleCancel = () => {
     navigate('/menus');
+  };
+
+  // Filtrar items que pueden ser padres (sin parent_id o que no sean hijos del item actual)
+  const getItemsPadres = () => {
+    return itemsSeccion.filter(item => !item.parent_id);
   };
 
   return (
@@ -209,23 +266,32 @@ const NuevoItem: React.FC = () => {
                   </Col>
                 </Row>
                 <Row>
-                  <Col md={4}>
+                  <Col md={6}>
                     <FormGroup>
-                      <Label for="orden" className="fw-bold">
-                        Orden
+                      <Label for="parent_id" className="fw-bold">
+                        Item Padre
                       </Label>
                       <Input
-                        id="orden"
-                        name="orden"
-                        type="number"
-                        value={formData.orden}
-                        onChange={handleInputChange}
-                        min="0"
-                        placeholder="0"
-                      />
+                        id="parent_id"
+                        name="parent_id"
+                        type="select"
+                        value={formData.parent_id}
+                        onChange={handleSelectChange}
+                        disabled={!formData.id_seccion || itemsSeccion.length === 0}
+                      >
+                        <option value="">Sin padre (Item principal)</option>
+                        {getItemsPadres().map(item => (
+                          <option key={item.id_item} value={item.id_item}>
+                            {item.etiqueta}
+                          </option>
+                        ))}
+                      </Input>
+                      <small className="form-text text-muted">
+                        Seleccione un item padre si desea crear un sub-item
+                      </small>
                     </FormGroup>
                   </Col>
-                  <Col md={4}>
+                  <Col md={6}>
                     <FormGroup check className="d-flex align-items-center h-100">
                       <Label check className="fw-bold ms-2">
                         <Input
@@ -238,8 +304,10 @@ const NuevoItem: React.FC = () => {
                       </Label>
                     </FormGroup>
                   </Col>
-                  <Col md={4}>
-                    <FormGroup check className="d-flex align-items-center h-100">
+                </Row>
+                <Row>
+                  <Col md={6}>
+                    <FormGroup check className="d-flex align-items-center">
                       <Label check className="fw-bold ms-2">
                         <Input
                           type="checkbox"
@@ -251,8 +319,6 @@ const NuevoItem: React.FC = () => {
                       </Label>
                     </FormGroup>
                   </Col>
-                </Row>
-                <Row>
                   <Col md={6}>
                     <FormGroup check className="d-flex align-items-center">
                       <Label check className="fw-bold ms-2">
@@ -266,8 +332,10 @@ const NuevoItem: React.FC = () => {
                       </Label>
                     </FormGroup>
                   </Col>
-                  <Col md={6}>
-                    {formData.muestra_badge && (
+                </Row>
+                {formData.muestra_badge && (
+                  <Row>
+                    <Col md={6}>
                       <FormGroup>
                         <Label for="badge_text" className="fw-bold">
                           Texto del Badge
@@ -281,9 +349,9 @@ const NuevoItem: React.FC = () => {
                           placeholder="Ej: Nuevo"
                         />
                       </FormGroup>
-                    )}
-                  </Col>
-                </Row>
+                    </Col>
+                  </Row>
+                )}
                 <div className="d-flex justify-content-end gap-2 mt-4">
                   <Button color="secondary" onClick={handleCancel} disabled={loading}>
                     <i className="bi bi-x-circle me-2"></i>

@@ -97,7 +97,7 @@ const IconSelector: React.FC<IconSelectorProps> = ({ isOpen, toggle, onSelect, c
     'Soporte': [
       { name: 'bi bi-ticket', icon: <FaTicketAlt size={20} />, category: 'Soporte' },
       { name: 'bi bi-tools', icon: <FaTools size={20} />, category: 'Soporte' },
-      { name: 'bi bi-wrench', icon: <Icon.Wrench size={20} />, category: 'Soporte' },
+      { name: 'bi bi-wrench', icon: <Icon.Tool size={20} />, category: 'Soporte' },
       { name: 'bi bi-life-buoy', icon: <Icon.HelpCircle size={20} />, category: 'Soporte' },
     ],
   };

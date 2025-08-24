@@ -11,6 +11,11 @@ export class Usuario {
   id_usuario: string;
 
   @Field(() => ID)
+  get id(): string {
+    return this.id_usuario;
+  }
+
+  @Field(() => ID)
   @Column()
   id_empresa: string;
 
@@ -37,6 +42,16 @@ export class Usuario {
   @Field()
   @Column({ default: true })
   estado: boolean;
+
+  @Field()
+  get firstName(): string {
+    return this.nombre_completo?.split(' ')[0] || this.username || '';
+  }
+
+  @Field()
+  get lastName(): string {
+    return this.nombre_completo?.split(' ').slice(1).join(' ') || '';
+  }
 
   @Field(() => Empresa, { nullable: true })
   @ManyToOne(() => Empresa)

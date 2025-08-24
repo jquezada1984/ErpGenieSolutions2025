@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { Empresa } from './empresa.entity';
+import { PerfilMenuPermiso } from './perfil-menu-permiso.entity';
 
 @ObjectType()
 @Entity('perfil')
@@ -29,4 +30,8 @@ export class Perfil {
   @ManyToOne(() => Empresa, empresa => empresa.perfiles)
   @JoinColumn({ name: 'id_empresa' })
   empresa?: Empresa;
+
+  @Field(() => [PerfilMenuPermiso], { nullable: true })
+  @OneToMany(() => PerfilMenuPermiso, permiso => permiso.perfil)
+  permisos?: PerfilMenuPermiso[];
 } 

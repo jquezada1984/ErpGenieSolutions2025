@@ -15,43 +15,66 @@ menu_items_schema = MenuItemSchema(many=True)
 def create_menu_seccion():
     """Crear una nueva sección de menú"""
     try:
+        print("=== INICIO CREAR SECCIÓN ===")
         data = request.get_json()
+        print(f"Datos recibidos: {data}")
         
         # Validar datos requeridos
         if not data.get('nombre'):
+            print("Error: Nombre no proporcionado")
             return jsonify({
                 'success': False,
                 'error': 'El nombre de la sección es requerido',
                 'message': 'Debe proporcionar un nombre para la sección'
             }), 400
 
+        print(f"Verificando duplicados para nombre: {data['nombre']}")
         # Verificar que el nombre no esté duplicado
         seccion_existente = MenuSeccion.query.filter(MenuSeccion.nombre == data['nombre']).first()
         if seccion_existente:
+            print(f"Error: Ya existe sección con nombre: {data['nombre']}")
             return jsonify({
                 'success': False,
                 'error': 'Ya existe una sección con ese nombre',
                 'message': 'El nombre de la sección ya está en uso'
             }), 400
 
+        print("Creando nueva sección...")
         # Crear la sección
         nueva_seccion = MenuSeccion(
             nombre=data['nombre'],
             orden=data.get('orden', 0),
             icono=data.get('icono')
         )
+        print(f"Sección creada en memoria: {nueva_seccion.__dict__}")
         
+        print("Agregando a la sesión...")
         db.session.add(nueva_seccion)
+        print("Haciendo commit...")
         db.session.commit()
+        print("Commit exitoso, refrescando...")
         db.session.refresh(nueva_seccion)
+        print(f"Sección final: {nueva_seccion.__dict__}")
         
-        return jsonify({
+        # Serializar la sección
+        seccion_serializada = menu_seccion_schema.dump(nueva_seccion)
+        print(f"Sección serializada: {seccion_serializada}")
+        
+        # Crear respuesta completa
+        respuesta_completa = {
             'success': True,
-            'data': menu_seccion_schema.dump(nueva_seccion),
+            'data': seccion_serializada,
             'message': 'Sección creada exitosamente'
-        }), 201
+        }
+        print(f"Respuesta completa a enviar: {respuesta_completa}")
+        
+        # Enviar respuesta con estructura correcta
+        return jsonify(respuesta_completa), 201
     except Exception as e:
         db.session.rollback()
+        import traceback
+        print(f"Error al crear sección: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'error': str(e),
@@ -198,11 +221,20 @@ def create_menu_item():
         db.session.commit()
         db.session.refresh(nuevo_item)
         
-        return jsonify({
+        # Serializar el item
+        item_serializado = menu_item_schema.dump(nuevo_item)
+        print(f"Item serializado: {item_serializado}")
+        
+        # Crear respuesta completa
+        respuesta_completa = {
             'success': True,
-            'data': menu_item_schema.dump(nuevo_item),
+            'data': item_serializado,
             'message': 'Item creado exitosamente'
-        }), 201
+        }
+        print(f"Respuesta completa a enviar (item): {respuesta_completa}")
+        
+        # Enviar respuesta con estructura correcta
+        return jsonify(respuesta_completa), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({

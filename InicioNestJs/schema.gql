@@ -1,0 +1,393 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Empresa {
+  codigo_postal: String
+  created_at: DateTime!
+  direccion: String
+  email: String
+  estado: Boolean!
+  fax: String
+  fiscal_year_start_day: Float!
+  fiscal_year_start_month: Float!
+  horarios_apertura: [EmpresaHorarioApertura!]
+  id_empresa: ID!
+  id_moneda: String
+  id_pais: String
+  id_provincia: String
+  identificacion: EmpresaIdentificacion
+  moneda: Moneda
+  movil: String
+  nombre: String!
+  nota: String
+  pais: Pais
+  perfiles: [Perfil!]
+  poblacion: String
+  provincia: Provincia
+  redes_sociales: [EmpresaRedSocial!]
+  ruc: String!
+  sucursales: [Sucursal!]
+  sujeto_iva: Boolean!
+  telefono: String
+  updated_at: DateTime!
+  web: String
+}
+
+type EmpresaBasicDto {
+  id_empresa: ID!
+  nombre: String!
+  ruc: String!
+}
+
+type EmpresaHorarioApertura {
+  created_at: DateTime!
+  created_by: String
+  dia: Float!
+  empresa: Empresa
+  id_empresa: String!
+  id_horario: ID!
+  updated_at: DateTime
+  updated_by: String
+  valor: String
+}
+
+type EmpresaIdentificacion {
+  administradores: String
+  capital: Float
+  cif_intra: String
+  created_at: DateTime!
+  created_by: String
+  delegado_datos: String
+  empresa: Empresa
+  id_empresa: String!
+  id_identificacion: ID!
+  id_profesional1: String
+  id_profesional2: String
+  id_profesional3: String
+  id_profesional4: String
+  id_profesional5: String
+  id_profesional6: String
+  id_profesional7: String
+  id_profesional8: String
+  id_profesional9: String
+  id_profesional10: String
+  id_tipo_entidad: Float
+  objeto_empresa: String
+  tipo_entidad: TipoEntidadComercial
+  updated_at: DateTime
+  updated_by: String
+}
+
+type EmpresaListDto {
+  direccion: String!
+  email: String!
+  estado: Boolean!
+  id_empresa: ID!
+  nombre: String!
+  ruc: String!
+  telefono: String!
+}
+
+type EmpresaRedSocial {
+  created_at: DateTime!
+  created_by: String
+  empresa: Empresa
+  es_principal: Boolean!
+  id: ID!
+  id_empresa: String!
+  id_red_social: String!
+  identificador: String
+  red_social: SocialNetwork
+  updated_at: DateTime
+  updated_by: String
+  url: String
+}
+
+type LoginResponse {
+  accessToken: String!
+  perfil: PerfilResponse!
+  permisos: PermisosResponse!
+  user: UsuarioResponse!
+}
+
+type MeResponse {
+  user: Usuario!
+}
+
+type MenuItem {
+  badge_text: String
+  created_at: DateTime!
+  created_by: ID
+  es_clickable: Boolean!
+  estado: Boolean!
+  etiqueta: String!
+  icono: String
+  id_item: ID!
+  id_seccion: ID!
+  muestra_badge: Boolean!
+  orden: Int!
+  parent: MenuItem
+  parent_id: ID
+  permisos: [PerfilMenuPermiso!]
+  ruta: String
+  seccion: MenuSeccion
+  subitems: [MenuItem!]
+  updated_at: DateTime
+  updated_by: ID
+}
+
+type MenuItemBasicDto {
+  estado: Boolean!
+  etiqueta: String!
+  icono: String
+  id_item: ID!
+  ruta: String
+}
+
+type MenuSeccion {
+  estado: Boolean!
+  icono: String
+  id_seccion: ID!
+  items: [MenuItem!]
+  nombre: String!
+  orden: Int!
+}
+
+type Moneda {
+  codigo: String!
+  empresas: [Empresa!]
+  id_moneda: ID!
+  nombre: String!
+}
+
+type Mutation {
+  actualizarItem(badge_text: String, es_clickable: Boolean, estado: Boolean, etiqueta: String, icono: String, id_item: ID!, muestra_badge: Boolean, orden: Int, ruta: String, updated_by: ID): MenuItem
+  actualizarPerfil(descripcion: String, estado: Boolean, id_perfil: ID!, nombre: String): Perfil
+  actualizarPermisoMenu(id_item: ID!, id_perfil: ID!, permitido: Boolean!): PerfilMenuPermiso!
+  actualizarSeccion(icono: String, id_seccion: ID!, nombre: String, orden: Int): MenuSeccion
+  actualizarSucursal(codigo_establecimiento: String, direccion: String, estado: Boolean, id_sucursal: ID!, nombre: String, telefono: String): Sucursal
+  actualizarUsuario(email: String, estado: Boolean, id_empresa: ID, id_perfil: ID, id_usuario: ID!, nombre_completo: String, password: String, username: String): Usuario
+  cambiarEstadoPerfil(estado: Boolean!, id_perfil: ID!): Boolean!
+  cambiarEstadoPermisosMenuItem(id_item: ID!, permitido: Boolean!): Boolean!
+  cambiarEstadoPermisosPerfil(id_perfil: ID!, permitido: Boolean!): Boolean!
+  cambiarEstadoSucursal(estado: Boolean!, id_sucursal: ID!): Boolean!
+  crearItem(badge_text: String, created_by: ID, es_clickable: Boolean, etiqueta: String!, icono: String, id_seccion: ID!, muestra_badge: Boolean, orden: Int, parent_id: ID, ruta: String): MenuItem!
+  crearPerfil(descripcion: String, id_empresa: ID!, nombre: String!): Perfil!
+  crearPermisoMenu(id_item: ID!, id_perfil: ID!, permitido: Boolean! = true): PerfilMenuPermiso!
+  crearPermisosMasivos(id_perfil: ID!, ids_items: [ID!]!, permitido: Boolean! = true): [PerfilMenuPermiso!]!
+  crearSeccion(icono: String, nombre: String!, orden: Int): MenuSeccion!
+  crearSucursal(codigo_establecimiento: String, direccion: String, id_empresa: ID!, nombre: String!, telefono: String): Sucursal!
+  crearUsuario(email: String, id_empresa: ID!, id_perfil: ID!, nombre_completo: String, password: String!, username: String!): Usuario!
+  eliminarItem(id_item: ID!): Boolean!
+  eliminarPerfil(id_perfil: ID!): Boolean!
+  eliminarPermisoMenu(id_item: ID!, id_perfil: ID!): Boolean!
+  eliminarSeccion(id_seccion: ID!): Boolean!
+  eliminarSucursal(id_sucursal: ID!): Boolean!
+  eliminarUsuario(id_usuario: ID!): Boolean!
+  login(email: String!, password: String!): LoginResponse!
+}
+
+type Pais {
+  codigo_iso: String!
+  empresas: [Empresa!]
+  icono: String!
+  id_pais: ID!
+  nombre: String!
+  provincias: [Provincia!]
+}
+
+type Perfil {
+  descripcion: String
+  empresa: Empresa
+  estado: Boolean!
+  id_empresa: ID!
+  id_perfil: ID!
+  nombre: String!
+  permisos: [PerfilMenuPermiso!]
+}
+
+type PerfilBasicDto {
+  estado: Boolean!
+  id_perfil: ID!
+  nombre: String!
+}
+
+type PerfilListDto {
+  descripcion: String
+  empresa: EmpresaBasicDto
+  estado: Boolean!
+  id_perfil: ID!
+  nombre: String!
+}
+
+type PerfilMenuPermiso {
+  id_item: ID!
+  id_perfil: ID!
+  menuItem: MenuItem
+  perfil: Perfil
+  permitido: Boolean!
+}
+
+type PerfilMenuPermisoDto {
+  id_item: ID!
+  id_perfil: ID!
+  menuItem: MenuItemBasicDto
+  perfil: PerfilBasicDto
+  permitido: Boolean!
+}
+
+type PerfilMenuPermisoListDto {
+  etiquetaMenuItem: String!
+  id_item: ID!
+  id_perfil: ID!
+  nombrePerfil: String!
+  nombreSeccion: String
+  permitido: Boolean!
+}
+
+type PerfilResponse {
+  estado: Boolean!
+  id_perfil: ID!
+  nombre: String!
+}
+
+type PermisosPorMenuItemDto {
+  etiquetaMenuItem: String!
+  id_item: ID!
+  perfilesConPermiso: Int!
+  permisos: [PerfilMenuPermisoDto!]!
+  totalPerfiles: Int!
+}
+
+type PermisosPorPerfilDto {
+  id_perfil: ID!
+  nombrePerfil: String!
+  permisos: [PerfilMenuPermisoDto!]!
+  permisosActivos: Int!
+  totalPermisos: Int!
+}
+
+type PermisosResponse {
+  modulosDisponibles: [String!]!
+  opcionesMenuSuperior: [String!]!
+  totalPermisos: Float!
+}
+
+type Provincia {
+  id_pais: String!
+  id_provincia: ID!
+  nombre: String!
+  pais: Pais
+}
+
+type Query {
+  empresa(id_empresa: ID!): Empresa
+  empresas: [EmpresaListDto!]!
+  getUserProfile: LoginResponse
+  item(id_item: ID!): MenuItem
+  items: [MenuItem!]!
+  itemsPorSeccion(id_seccion: ID!): [MenuItem!]!
+  me: MeResponse
+  monedas: [Moneda!]!
+  paises: [Pais!]!
+  perfil(id_perfil: ID!): Perfil
+  perfiles: [PerfilListDto!]!
+  perfilesPorEmpresa(id_empresa: ID!): [PerfilListDto!]!
+  permisoMenu(id_item: ID!, id_perfil: ID!): PerfilMenuPermisoDto
+  permisosActivos: [PerfilMenuPermisoDto!]!
+  permisosMenu: [PerfilMenuPermisoDto!]!
+  permisosMenuLista: [PerfilMenuPermisoListDto!]!
+  permisosPorMenuItem(id_item: ID!): [PerfilMenuPermisoDto!]!
+  permisosPorPerfil(id_perfil: ID!): [PerfilMenuPermisoDto!]!
+  provincias: [Provincia!]!
+  provinciasByPais(idPais: String!): [Provincia!]!
+  refreshToken: String!
+  refreshUserPermissions: LoginResponse
+  resumenPermisosPorMenuItem(id_item: ID!): PermisosPorMenuItemDto!
+  resumenPermisosPorPerfil(id_perfil: ID!): PermisosPorPerfilDto!
+  seccion(id_seccion: ID!): MenuSeccion
+  secciones: [MenuSeccion!]!
+  sucursal(id_sucursal: ID!): Sucursal
+  sucursales: [SucursalListDto!]!
+  sucursalesPorEmpresa(id_empresa: ID!): [SucursalListDto!]!
+  test: String!
+  usuario(id_usuario: ID!): Usuario
+  usuarios: [UsuarioListDto!]!
+  validateToken: Boolean!
+}
+
+type SocialNetwork {
+  icono: String!
+  id_red_social: ID!
+  nombre: String!
+  orden: Float!
+}
+
+type Sucursal {
+  codigo_establecimiento: String!
+  created_at: DateTime!
+  direccion: String
+  empresa: Empresa
+  estado: Boolean!
+  id_empresa: ID!
+  id_sucursal: ID!
+  nombre: String!
+  telefono: String
+  updated_at: DateTime!
+}
+
+type SucursalListDto {
+  codigo_establecimiento: String!
+  created_at: DateTime!
+  direccion: String
+  empresa: EmpresaBasicDto
+  estado: Boolean!
+  id_sucursal: ID!
+  nombre: String!
+  telefono: String
+  updated_at: DateTime!
+}
+
+type TipoEntidadComercial {
+  descripcion: String
+  id_tipo_entidad: ID!
+  nombre: String!
+}
+
+type Usuario {
+  email: String
+  empresa: Empresa
+  estado: Boolean!
+  firstName: String!
+  id: ID!
+  id_empresa: ID!
+  id_perfil: ID!
+  id_usuario: ID!
+  lastName: String!
+  nombre_completo: String
+  password_hash: String!
+  perfil: Perfil
+  username: String!
+}
+
+type UsuarioListDto {
+  email: String
+  estado: Boolean!
+  id_usuario: ID!
+  nombre_completo: String
+  username: String!
+}
+
+type UsuarioResponse {
+  email: String!
+  estado: Boolean!
+  firstName: String!
+  id: ID!
+  lastName: String!
+}

@@ -228,8 +228,8 @@ export class EmpresaResolver {
     const user = context.req.user;
     if (!user) throw new NotFoundException('Usuario no autenticado');
     // Generar un nuevo token usando el AuthService
-    const result = await this.authService.login(user);
-    return result.access_token;
+    const result = await this.authService.login(user.email, user.password_hash);
+    return result.accessToken;
   }
 
   // Mutaciones deshabilitadas por arquitectura:

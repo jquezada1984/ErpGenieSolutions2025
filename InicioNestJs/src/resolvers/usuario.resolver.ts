@@ -1,6 +1,7 @@
-import { Resolver, Query, Mutation, Args, Int, ID } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int, ID, Context } from '@nestjs/graphql';
 import { Usuario } from '../entities/usuario.entity';
 import { UsuarioListDto } from '../dto/usuario-list.dto';
+import { MeResponse } from '../dto/me.response';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotFoundException, UseGuards } from '@nestjs/common';
@@ -17,6 +18,11 @@ export class UsuarioResolver {
     private readonly httpService: HttpService,
   ) {}
 
+  @Query(() => String)
+  async test(): Promise<string> {
+    return "Test query working!";
+  }
+
   @Query(() => [UsuarioListDto])
   @UseGuards(GqlAuthGuard)
   async usuarios(): Promise<UsuarioListDto[]> {
@@ -29,6 +35,33 @@ export class UsuarioResolver {
   @UseGuards(GqlAuthGuard)
   async usuario(@Args('id_usuario', { type: () => ID }) id_usuario: string): Promise<Usuario | null> {
     return this.usuarioRepository.findOne({ where: { id_usuario } });
+  }
+
+  @Query(() => MeResponse, { nullable: true })
+  @UseGuards(GqlAuthGuard)
+  async me(@Context() context): Promise<MeResponse | null> {
+    try {
+      const user = context.req.user;
+      if (!user || !user.sub) {
+        return null;
+      }
+      
+      const usuario = await this.usuarioRepository.findOne({ 
+        where: { id_usuario: user.sub },
+        relations: ['perfil', 'perfil.empresa']
+      });
+
+      if (!usuario) {
+        return null;
+      }
+
+      return {
+        user: usuario
+      };
+    } catch (error) {
+      console.error('Error en query me:', error);
+      return null;
+    }
   }
 
   @Mutation(() => Usuario)

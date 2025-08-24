@@ -16,6 +16,8 @@ async function crearSeccion(request, reply) {
     const response = await pythonService.post('/api/menu-secciones', request.body);
     
     console.log('✅ Gateway: Sección creada exitosamente');
+    console.log('📝 Respuesta completa del backend Python:', response.data);
+    // Enviar la respuesta completa del backend, no solo response.data
     reply.status(201).send(response.data);
   } catch (error) {
     console.error('❌ Gateway: Error al crear sección:', error.response?.data || error.message);
@@ -74,6 +76,7 @@ async function crearItem(request, reply) {
     const response = await pythonService.post('/api/menu-items', request.body);
     
     console.log('✅ Gateway: Item creado exitosamente');
+    console.log('📝 Respuesta completa del backend Python (item):', response.data);
     reply.status(201).send(response.data);
   } catch (error) {
     console.error('❌ Gateway: Error al crear item:', error.response?.data || error.message);

@@ -31,6 +31,7 @@ import { EmpresaHorarioApertura } from './entities/empresa-horario-apertura.enti
 import { Sucursal } from './entities/sucursal.entity';
 import { Perfil } from './entities/perfil.entity';
 import { MenuSeccion, MenuItem } from './entities/menu.entity';
+import { PerfilMenuPermiso } from './entities/perfil-menu-permiso.entity';
 import { AuthModule } from './auth/auth.module';
 // Resolvers
 import { UsuarioResolver } from './resolvers/usuario.resolver';
@@ -38,6 +39,8 @@ import { EmpresaResolver } from './resolvers/empresa.resolver';
 import { SucursalResolver } from './resolvers/sucursal.resolver';
 import { PerfilResolver } from './resolvers/perfil.resolver';
 import { MenuSeccionResolver, MenuItemResolver } from './resolvers/menu.resolver';
+import { PerfilMenuPermisoResolver } from './resolvers/perfil-menu-permiso.resolver';
+import { AutorizacionResolver } from './resolvers/autorizacion.resolver';
 import { PaisResolver } from './resolvers/pais.resolver';
 import { MonedaResolver } from './resolvers/moneda.resolver';
 import { ProvinciaResolver } from './resolvers/provincia.resolver';
@@ -45,6 +48,7 @@ import { ProvinciaResolver } from './resolvers/provincia.resolver';
 import { PaisService } from './services/pais.service';
 import { MonedaService } from './services/moneda.service';
 import { ProvinciaService } from './services/provincia.service';
+import { AutorizacionService } from './services/autorizacion.service';
 
 @Module({
   imports: [
@@ -69,7 +73,8 @@ import { ProvinciaService } from './services/provincia.service';
         Sucursal, 
         Perfil, 
         MenuSeccion, 
-        MenuItem
+        MenuItem,
+        PerfilMenuPermiso
       ],
       synchronize: false, // Deshabilitado para evitar conflictos con datos existentes
       ssl: {
@@ -90,32 +95,37 @@ import { ProvinciaService } from './services/provincia.service';
       Sucursal, 
       Perfil, 
       MenuSeccion, 
-      MenuItem
+      MenuItem,
+      PerfilMenuPermiso
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
-      autoSchemaFile: true,
+      autoSchemaFile: 'schema.gql',
       playground: true,
       introspection: true,
+      sortSchema: true,
     }),
     AuthModule,
     HttpModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    UsuarioResolver,
-    EmpresaResolver,
-    SucursalResolver,
-    PerfilResolver,
-    MenuSeccionResolver,
-    MenuItemResolver,
-    PaisResolver,
-    MonedaResolver,
-    ProvinciaResolver,
-    PaisService,
-    MonedaService,
-    ProvinciaService,
-  ],
+      providers: [
+      AppService,
+      UsuarioResolver,
+      EmpresaResolver,
+      SucursalResolver,
+      PerfilResolver,
+      MenuSeccionResolver,
+      MenuItemResolver,
+      PerfilMenuPermisoResolver,
+      // AutorizacionResolver,
+      PaisResolver,
+      MonedaResolver,
+      ProvinciaResolver,
+      PaisService,
+      MonedaService,
+      ProvinciaService,
+      AutorizacionService,
+    ],
 })
 export class AppModule {}

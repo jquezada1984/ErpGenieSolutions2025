@@ -1,19 +1,20 @@
 from utils.db import db
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
 class MenuSeccion(db.Model):
     __tablename__ = 'menu_seccion'
-    id_seccion = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id_seccion = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     nombre = db.Column(db.String(100), nullable=False, unique=True)
     orden = db.Column(db.Integer, nullable=False, default=0)
     icono = db.Column(db.String(100), nullable=True)
 
 class MenuItem(db.Model):
     __tablename__ = 'menu_item'
-    id_item = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    id_seccion = db.Column(db.String(36), db.ForeignKey('menu_seccion.id_seccion', ondelete='CASCADE'), nullable=False)
-    parent_id = db.Column(db.String(36), db.ForeignKey('menu_item.id_item', ondelete='CASCADE'), nullable=True)
+    id_item = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id_seccion = db.Column(UUID(as_uuid=True), db.ForeignKey('menu_seccion.id_seccion', ondelete='CASCADE'), nullable=False)
+    parent_id = db.Column(UUID(as_uuid=True), db.ForeignKey('menu_item.id_item', ondelete='CASCADE'), nullable=True)
     etiqueta = db.Column(db.String(100), nullable=False)
     icono = db.Column(db.String(100), nullable=True)
     ruta = db.Column(db.String(255), nullable=True)

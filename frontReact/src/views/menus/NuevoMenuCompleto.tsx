@@ -12,7 +12,7 @@ const NuevoMenuCompleto: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [showIconSelector, setShowIconSelector] = useState(false);
   const [currentIconField, setCurrentIconField] = useState<'seccion' | 'item'>('seccion');
   const [showSeccionForm, setShowSeccionForm] = useState(true);
@@ -20,7 +20,6 @@ const NuevoMenuCompleto: React.FC = () => {
   // Formulario de sección (cabecera)
   const [seccionData, setSeccionData] = useState({
     nombre: '',
-    orden: 0,
     icono: ''
   });
 
@@ -32,14 +31,15 @@ const NuevoMenuCompleto: React.FC = () => {
     icono: '',
     ruta: '',
     es_clickable: true,
-    orden: 0,
     muestra_badge: false,
     badge_text: '',
-    estado: true
+    estado: true,
+    orden: 0,
+    tempId: ''
   });
 
   // Lista de items agregados (detalle)
-  const [itemsList, setItemsList] = useState<typeof itemData[]>([]);
+  const [itemsList, setItemsList] = useState<(typeof itemData & { tempId: string })[]>([]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
 
@@ -64,11 +64,12 @@ const NuevoMenuCompleto: React.FC = () => {
   const handleAddItemToList = () => {
     try {
       if (!itemData.etiqueta.trim()) {
-        setError('Debe ingresar la etiqueta del item');
+        setError('Debe ingresar la etiqueta del item para agregarlo a la lista');
         return;
       }
       const nextOrden = (itemsList.length || 0) + 1;
-      const newItem = { ...itemData, orden: nextOrden };
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newItem = { ...itemData, orden: nextOrden, tempId };
       setItemsList(prev => [...prev, newItem]);
       // limpiar formulario de item
       setItemData({
@@ -78,10 +79,11 @@ const NuevoMenuCompleto: React.FC = () => {
         icono: '',
         ruta: '',
         es_clickable: true,
-        orden: 0,
         muestra_badge: false,
         badge_text: '',
-        estado: true
+        estado: true,
+        orden: 0,
+        tempId: ''
       });
       setError(null);
     } catch (err: any) {
@@ -126,41 +128,89 @@ const NuevoMenuCompleto: React.FC = () => {
         throw new Error('Debe ingresar el nombre de la sección');
       }
 
-      // Crear sección primero
-      const seccionResponse = await crearSeccion(seccionData);
-      if (!seccionResponse.success) {
-        throw new Error(seccionResponse.message || 'Error al crear la sección');
+      // Validar que haya al menos un item en la lista
+      if (itemsList.length === 0) {
+        throw new Error('Debe agregar al menos un item al menú');
       }
-      const seccionId = seccionResponse.data.id_seccion;
-      setSuccess('Sección creada exitosamente');
+
+      // Crear sección primero
+      const seccionPayload = {
+        ...seccionData,
+        icono: seccionData.icono && seccionData.icono.trim() ? seccionData.icono : undefined
+      };
+      console.log('📝 Datos de sección a enviar:', seccionPayload);
+      const seccionResponse = await crearSeccion(seccionPayload);
+      console.log('✅ Respuesta de sección:', seccionResponse);
+      console.log('✅ Tipo de respuesta:', typeof seccionResponse);
+      console.log('✅ Propiedades de la respuesta:', Object.keys(seccionResponse));
+      
+      // Verificar si la respuesta tiene la estructura esperada o si es la respuesta directa
+      let seccionId;
+      if (seccionResponse.success !== undefined) {
+        // Respuesta con estructura completa
+        console.log('✅ Success:', seccionResponse.success);
+        console.log('✅ Data:', seccionResponse.data);
+        
+        if (!seccionResponse.success) {
+          throw new Error(seccionResponse.message || 'Error al crear la sección');
+        }
+        seccionId = seccionResponse.data.id_seccion;
+      } else if (seccionResponse.id_seccion) {
+        // Respuesta directa (sin estructura success/data)
+        console.log('✅ Respuesta directa detectada, usando id_seccion directamente');
+        seccionId = seccionResponse.id_seccion;
+      } else {
+        throw new Error('Respuesta de sección inválida');
+      }
+      console.log('🆔 ID de sección creada:', seccionId);
+      console.log('✅ Estableciendo mensaje de éxito para sección');
+      setSuccess(`Sección "${seccionData.nombre}" creada exitosamente. Creando items...`);
+      console.log('✅ Mensaje de éxito establecido');
 
       // Crear items en orden según itemsList
+      console.log('📝 Creando items... Total items a crear:', itemsList.length);
+      setSuccess(`Sección creada. Creando items (0/${itemsList.length})...`);
+      
       for (let i = 0; i < itemsList.length; i++) {
         const it = itemsList[i];
         const payload = {
           id_seccion: seccionId,
           parent_id: it.parent_id || undefined,
           etiqueta: it.etiqueta,
-          icono: it.icono || undefined,
-          ruta: it.ruta || undefined,
+          icono: it.icono && it.icono.trim() ? it.icono : undefined,
+          ruta: it.ruta && it.ruta.trim() ? it.ruta : undefined,
           es_clickable: it.es_clickable,
           orden: i + 1,
           muestra_badge: it.muestra_badge,
-          badge_text: it.muestra_badge ? it.badge_text || undefined : undefined,
+          badge_text: it.muestra_badge ? (it.badge_text && it.badge_text.trim() ? it.badge_text : undefined) : undefined,
           estado: it.estado
         };
+        console.log(`📝 Creando item ${i + 1}/${itemsList.length}:`, payload);
+        setSuccess(`Sección creada. Creando items (${i + 1}/${itemsList.length})...`);
+        
         const itemResponse = await crearItem(payload);
-        if (!itemResponse.success) {
-          throw new Error(itemResponse.message || 'Error al crear un item');
+        console.log(`✅ Item ${i + 1} creado:`, itemResponse);
+        
+        // Verificar si la respuesta tiene la estructura esperada o si es la respuesta directa
+        if (itemResponse.success !== undefined) {
+          // Respuesta con estructura completa
+          if (!itemResponse.success) {
+            throw new Error(itemResponse.message || 'Error al crear un item');
+          }
+        } else if (!itemResponse.id_item) {
+          // Respuesta directa pero sin id_item
+          throw new Error('Respuesta de item inválida');
         }
       }
 
-      setSuccess('Menú creado exitosamente');
+      console.log('🎉 Todos los items fueron creados exitosamente');
+      setSuccess(`✅ Menú creado exitosamente: Sección "${seccionData.nombre}" con ${itemsList.length} items`);
       setTimeout(() => {
         navigate('/menus');
-      }, 1200);
+      }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Error al crear el menú');
+      console.error('❌ Error en la creación del menú:', err);
+      setError(`Error al crear el menú: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -181,6 +231,13 @@ const NuevoMenuCompleto: React.FC = () => {
   const openIconSelector = (field: 'seccion' | 'item') => {
     setCurrentIconField(field);
     setShowIconSelector(true);
+  };
+
+  // Función para obtener la etiqueta del item padre
+  const getParentLabel = (parentId: string) => {
+    if (!parentId) return '';
+    const parent = itemsList.find(item => item.tempId === parentId);
+    return parent ? parent.etiqueta : '';
   };
 
 
@@ -246,22 +303,6 @@ const NuevoMenuCompleto: React.FC = () => {
                          </Col>
                          <Col md={4}>
                            <FormGroup>
-                             <Label for="seccion-orden" className="fw-bold">
-                               Orden
-                             </Label>
-                             <Input
-                               id="seccion-orden"
-                               name="orden"
-                               type="number"
-                               value={seccionData.orden}
-                               onChange={handleSeccionInputChange}
-                               placeholder="0"
-                               min="0"
-                             />
-                           </FormGroup>
-                         </Col>
-                         <Col md={4}>
-                           <FormGroup>
                              <Label for="seccion-icono" className="fw-bold">
                                Icono
                              </Label>
@@ -300,6 +341,16 @@ const NuevoMenuCompleto: React.FC = () => {
                       <i className="bi bi-menu-button-wide me-2"></i>
                       Detalle - Items
                     </h5>
+                    <div className="alert alert-info mb-3">
+                      <i className="bi bi-info-circle me-2"></i>
+                      <strong>Tip:</strong> Para crear sub-items (como "Lista" y "Crear" que son hijos de "Empresa"), 
+                      primero agrega el item principal (Empresa) y luego selecciona "Empresa" como padre al crear los sub-items.
+                      <br />
+                      <small className="text-muted">
+                        <strong>Nota:</strong> Solo necesitas llenar la etiqueta cuando vayas a agregar un nuevo item a la lista. 
+                        Para guardar el menú, solo asegúrate de que haya items en la tabla de abajo.
+                      </small>
+                    </div>
 
                     <Row>
                       <Col md={6}>
@@ -314,7 +365,6 @@ const NuevoMenuCompleto: React.FC = () => {
                             value={itemData.etiqueta}
                             onChange={handleItemInputChange}
                             placeholder="Ingrese la etiqueta del item"
-                            required
                           />
                         </FormGroup>
                       </Col>
@@ -363,22 +413,30 @@ const NuevoMenuCompleto: React.FC = () => {
                            </div>
                          </FormGroup>
                        </Col>
-                      <Col md={6}>
-                        <FormGroup>
-                          <Label for="item-orden" className="fw-bold">
-                            Orden
-                          </Label>
-                          <Input
-                            id="item-orden"
-                            name="orden"
-                            type="number"
-                            value={itemData.orden}
-                            onChange={handleItemInputChange}
-                            placeholder="0"
-                            min="0"
-                          />
-                        </FormGroup>
-                      </Col>
+                       <Col md={6}>
+                         <FormGroup>
+                           <Label for="item-parent" className="fw-bold">
+                             Item Padre
+                           </Label>
+                           <Input
+                             id="item-parent"
+                             name="parent_id"
+                             type="select"
+                             value={itemData.parent_id}
+                             onChange={handleItemInputChange}
+                           >
+                             <option value="">Sin padre (Item principal)</option>
+                             {itemsList.map((item, index) => (
+                               <option key={index} value={item.tempId}>
+                                 {item.etiqueta}
+                               </option>
+                             ))}
+                           </Input>
+                           <small className="form-text text-muted">
+                             Seleccione un item padre si desea crear un sub-item
+                           </small>
+                         </FormGroup>
+                       </Col>
                     </Row>
 
                     <Row>
@@ -465,13 +523,14 @@ const NuevoMenuCompleto: React.FC = () => {
                               <th>Etiqueta</th>
                               <th>Ruta</th>
                               <th>Icono</th>
+                              <th style={{ width: 100 }}>Jerarquía</th>
                               <th style={{ width: 120 }}>Acciones</th>
                             </tr>
                           </thead>
                           <tbody>
                             {itemsList.length === 0 && (
                               <tr>
-                                <td colSpan={5} className="text-center text-muted py-3">
+                                <td colSpan={6} className="text-center text-muted py-3">
                                   No hay items agregados aún
                                 </td>
                               </tr>
@@ -483,12 +542,43 @@ const NuevoMenuCompleto: React.FC = () => {
                                 onDragStart={() => handleDragStart(index)}
                                 onDragOver={handleDragOver}
                                 onDrop={() => handleDrop(index)}
-                                style={{ cursor: 'grab' }}
+                                style={{ 
+                                  cursor: 'grab',
+                                  backgroundColor: it.parent_id ? '#f8f9fa' : 'white'
+                                }}
                               >
                                 <td>{it.orden || index + 1}</td>
-                                <td>{it.etiqueta}</td>
+                                <td>
+                                  <div className="d-flex align-items-center">
+                                    {it.parent_id && (
+                                      <i className="bi bi-arrow-right-short me-2 text-muted"></i>
+                                    )}
+                                    <span className={it.parent_id ? 'text-muted' : 'fw-medium'}>
+                                      {it.etiqueta}
+                                    </span>
+                                  </div>
+                                </td>
                                 <td>{it.ruta || '-'}</td>
                                 <td>{it.icono ? <i className={it.icono}></i> : '-'}</td>
+                                <td>
+                                  {it.parent_id ? (
+                                    <div>
+                                      <span className="badge bg-secondary mb-1">
+                                        <i className="bi bi-arrow-down me-1"></i>
+                                        Sub-item
+                                      </span>
+                                      <br />
+                                      <small className="text-muted">
+                                        Padre: {getParentLabel(it.parent_id)}
+                                      </small>
+                                    </div>
+                                  ) : (
+                                    <span className="badge bg-primary">
+                                      <i className="bi bi-star me-1"></i>
+                                      Principal
+                                    </span>
+                                  )}
+                                </td>
                                 <td>
                                   <Button
                                     size="sm"

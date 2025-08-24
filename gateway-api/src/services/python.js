@@ -40,6 +40,23 @@ pythonClient.interceptors.response.use(
 );
 
 const pythonService = {
+  // Métodos HTTP genéricos
+  async get(endpoint, params = null) {
+    return this.call(endpoint, 'GET', params);
+  },
+
+  async post(endpoint, data = null) {
+    return this.call(endpoint, 'POST', data);
+  },
+
+  async put(endpoint, data = null) {
+    return this.call(endpoint, 'PUT', data);
+  },
+
+  async delete(endpoint) {
+    return this.call(endpoint, 'DELETE');
+  },
+
   // Crear empresa
   async createEmpresa(empresaData) {
     try {

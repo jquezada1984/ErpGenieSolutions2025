@@ -3,64 +3,183 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario } from '../entities/usuario.entity';
-import * as bcrypt from 'bcryptjs';
+import { Perfil } from '../entities/perfil.entity';
+import { AutorizacionService } from '../services/autorizacion.service';
+import { LoginResponse } from './dto/login.response';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(Usuario)
-    public readonly usuarioRepository: Repository<Usuario>,
-    private readonly jwtService: JwtService,
+    private usuarioRepository: Repository<Usuario>,
+    @InjectRepository(Perfil)
+    private perfilRepository: Repository<Perfil>,
+    private jwtService: JwtService,
+    private autorizacionService: AutorizacionService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<Usuario> {
-    console.log('🔐 Validando usuario:', { email });
-    
-    const user = await this.usuarioRepository.findOne({ 
-      where: { email: email.toLowerCase() } 
-    });
-    
-    if (!user) {
-      console.log('❌ Usuario no encontrado para email:', email);
-      throw new UnauthorizedException('Usuario no encontrado');
+  async validateUser(email: string, password: string): Promise<any> {
+    try {
+      const usuario = await this.usuarioRepository
+        .createQueryBuilder('usuario')
+        .leftJoinAndSelect('usuario.perfil', 'perfil')
+        .leftJoinAndSelect('perfil.empresa', 'empresa')
+        .where('usuario.email = :email', { email })
+        .andWhere('usuario.estado = :estado', { estado: true })
+        .andWhere('perfil.estado = :estadoPerfil', { estadoPerfil: true })
+        .getOne();
+
+      if (!usuario) {
+        throw new UnauthorizedException('Credenciales inválidas');
+      }
+
+      // Verificar contraseña
+      const isPasswordValid = await bcrypt.compare(password, usuario.password_hash);
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Credenciales inválidas');
+      }
+
+      // Verificar que el perfil esté activo
+      if (!usuario.perfil || !usuario.perfil.estado) {
+        throw new UnauthorizedException('Perfil no válido o inactivo');
+      }
+
+      return usuario;
+    } catch (error) {
+      throw new UnauthorizedException('Error en la validación del usuario');
     }
-    
-    console.log('✅ Usuario encontrado:', { id: user.id_usuario, email: user.email });
-    
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      console.log('❌ Contraseña incorrecta para usuario:', email);
-      throw new UnauthorizedException('Contraseña incorrecta');
-    }
-    
-    console.log('✅ Usuario validado exitosamente:', email);
-    return user;
   }
 
-  async login(user: Usuario) {
-    const payload = { 
-      sub: user.id_usuario, 
-      username: user.username, 
-      id_empresa: user.id_empresa, 
-      id_perfil: user.id_perfil 
-    };
-    
-    const access_token = this.jwtService.sign(payload, { expiresIn: '10m' });
-    
-    console.log('🎉 Login exitoso para usuario:', user.email);
-    console.log('🔑 Token generado:', access_token ? 'SÍ' : 'NO');
-    
-    return {
-      access_token,
-      user: {
-        id_usuario: user.id_usuario,
-        username: user.username,
-        id_empresa: user.id_empresa,
-        id_perfil: user.id_perfil,
-        nombre_completo: user.nombre_completo,
-        email: user.email,
-        estado: user.estado,
-      },
-    };
+  async login(email: string, password: string): Promise<LoginResponse> {
+    try {
+      const usuario = await this.validateUser(email, password);
+      
+      if (!usuario) {
+        throw new UnauthorizedException('Credenciales inválidas');
+      }
+
+      if (!usuario.perfil) {
+        throw new UnauthorizedException('Usuario sin perfil asignado');
+      }
+
+      // Generar token JWT
+      const payload = {
+        sub: usuario.id_usuario,
+        email: usuario.email,
+        id_perfil: usuario.perfil.id_perfil,
+        id_empresa: usuario.perfil.id_empresa,
+      };
+
+      const access_token = this.jwtService.sign(payload);
+
+      // Obtener permisos del perfil
+      const opcionesMenuSuperior = await this.autorizacionService.obtenerOpcionesMenuSuperior(usuario.perfil.id_perfil);
+      const modulosDisponibles = await this.autorizacionService.obtenerPermisosPorModulo(usuario.perfil.id_perfil);
+      const totalPermisos = Object.values(modulosDisponibles).reduce((total, permisos) => total + permisos.length, 0);
+
+      return {
+        accessToken: access_token,
+        user: {
+          id: usuario.id_usuario,
+          email: usuario.email || usuario.username,
+          firstName: usuario.nombre_completo?.split(' ')[0] || usuario.username,
+          lastName: usuario.nombre_completo?.split(' ').slice(1).join(' ') || '',
+          estado: usuario.estado,
+        },
+        perfil: {
+          id_perfil: usuario.perfil.id_perfil,
+          nombre: usuario.perfil.nombre,
+          estado: usuario.perfil.estado,
+        },
+        permisos: {
+          opcionesMenuSuperior,
+          modulosDisponibles: Object.keys(modulosDisponibles),
+          totalPermisos,
+        },
+      };
+    } catch (error) {
+      throw new UnauthorizedException(`Error en el login: ${error.message}`);
+    }
+  }
+
+  async validateToken(token: string): Promise<any> {
+    try {
+      const payload = this.jwtService.verify(token);
+      return payload;
+    } catch (error) {
+      throw new UnauthorizedException('Token inválido');
+    }
+  }
+
+  async refreshUserPermissions(id_usuario: string): Promise<any> {
+    try {
+      const usuario = await this.usuarioRepository
+        .createQueryBuilder('usuario')
+        .leftJoinAndSelect('usuario.perfil', 'perfil')
+        .where('usuario.id_usuario = :id_usuario', { id_usuario })
+        .getOne();
+
+      if (!usuario || !usuario.perfil) {
+        throw new UnauthorizedException('Usuario o perfil no encontrado');
+      }
+
+      if (!usuario.perfil.id_perfil) {
+        throw new UnauthorizedException('Perfil sin ID válido');
+      }
+
+      // Obtener permisos actualizados
+      const opcionesMenuSuperior = await this.autorizacionService.obtenerOpcionesMenuSuperior(usuario.perfil.id_perfil);
+      const modulosDisponibles = await this.autorizacionService.obtenerPermisosPorModulo(usuario.perfil.id_perfil);
+      const totalPermisos = Object.values(modulosDisponibles).reduce((total, permisos) => total + permisos.length, 0);
+
+      return {
+        opcionesMenuSuperior,
+        modulosDisponibles: Object.keys(modulosDisponibles),
+        totalPermisos,
+      };
+    } catch (error) {
+      throw new UnauthorizedException(`Error al refrescar permisos: ${error.message}`);
+    }
+  }
+
+  async getUserProfile(id_usuario: string): Promise<any> {
+    try {
+      const usuario = await this.usuarioRepository
+        .createQueryBuilder('usuario')
+        .leftJoinAndSelect('usuario.perfil', 'perfil')
+        .leftJoinAndSelect('perfil.empresa', 'empresa')
+        .where('usuario.id_usuario = :id_usuario', { id_usuario })
+        .getOne();
+
+      if (!usuario) {
+        throw new UnauthorizedException('Usuario no encontrado');
+      }
+
+      if (!usuario.perfil) {
+        throw new UnauthorizedException('Usuario sin perfil asignado');
+      }
+
+      if (!usuario.perfil.id_perfil) {
+        throw new UnauthorizedException('Perfil sin ID válido');
+      }
+
+      // Obtener permisos completos
+      const perfilConPermisos = await this.autorizacionService.obtenerPerfilConPermisos(usuario.perfil.id_perfil);
+
+      return {
+        usuario: {
+          id: usuario.id_usuario,
+          email: usuario.email || usuario.username,
+          firstName: usuario.nombre_completo?.split(' ')[0] || usuario.username,
+          lastName: usuario.nombre_completo?.split(' ').slice(1).join(' ') || '',
+          estado: usuario.estado,
+        },
+        perfil: perfilConPermisos,
+        empresa: usuario.perfil?.empresa || null,
+      };
+    } catch (error) {
+      throw new UnauthorizedException(`Error al obtener perfil: ${error.message}`);
+    }
   }
 } 

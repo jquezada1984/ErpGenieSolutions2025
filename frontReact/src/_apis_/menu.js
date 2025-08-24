@@ -36,7 +36,8 @@ export const crearSeccion = async (seccion) => {
   try {
     console.log('📝 Creando sección (Gateway):', seccion);
     const response = await apiClient.post('/menu-secciones', seccion);
-    console.log('✅ Sección creada exitosamente:', response.data);
+    console.log('✅ Respuesta completa del servidor:', response);
+    console.log('✅ Datos de la respuesta:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al crear sección:', error);
@@ -73,7 +74,8 @@ export const crearItem = async (item) => {
   try {
     console.log('📝 Creando item (Gateway):', item);
     const response = await apiClient.post('/menu-items', item);
-    console.log('✅ Item creado exitosamente:', response.data);
+    console.log('✅ Respuesta completa del servidor (item):', response);
+    console.log('✅ Datos de la respuesta (item):', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al crear item:', error);

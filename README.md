@@ -144,6 +144,8 @@ npm run dev
 ```bash
 cd frontReact
 npm run dev
+
+npm run build
 ```
 **Puerto:** 3000  
 **URL:** http://localhost:3000

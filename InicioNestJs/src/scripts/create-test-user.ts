@@ -11,7 +11,7 @@ async function createTestUser() {
     console.log('🔍 Verificando si existe usuario de prueba...');
     
     // Verificar si ya existe un usuario con email test@example.com
-    const existingUser = await authService.usuarioRepository.findOne({
+    const existingUser = await authService['usuarioRepository'].findOne({
       where: { email: 'test@example.com' }
     });
 
@@ -31,7 +31,7 @@ async function createTestUser() {
     const passwordHash = await bcrypt.hash('123456', 10);
     
     // Crear usuario de prueba
-    const testUser = authService.usuarioRepository.create({
+    const testUser = authService['usuarioRepository'].create({
       username: 'testuser',
       email: 'test@example.com',
       password_hash: passwordHash,
@@ -41,7 +41,7 @@ async function createTestUser() {
       id_perfil: '00000000-0000-0000-0000-000000000001', // UUID por defecto
     });
 
-    const savedUser = await authService.usuarioRepository.save(testUser);
+    const savedUser = await authService['usuarioRepository'].save(testUser);
     
     console.log('✅ Usuario de prueba creado exitosamente:');
     console.log('   - ID:', savedUser.id_usuario);

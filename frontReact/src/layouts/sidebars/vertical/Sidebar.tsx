@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button, Nav } from 'reactstrap';
 import { useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,11 +10,14 @@ import NavItemContainer from './NavItemContainer';
 import NavSubMenu from './NavSubMenu';
 import getSidebarData from '../sidebardata/SidebarData';
 import store from '../../../store/Store';
+import { usePermissions } from '../../../components/authGurad/usePermissions';
+import useAuth from '../../../components/authGurad/useAuth';
 type RootState = ReturnType<typeof store.getState>;
 
 const Sidebar = () => {
   const location = useLocation();
   const currentURL = location.pathname.split('/').slice(0, -1).join('/');
+  const { user } = useAuth();
 
   //const [collapsed, setCollapsed] = useState(null);
   // const toggle = (index) => {
@@ -25,7 +28,23 @@ const Sidebar = () => {
   const isFixed = useSelector((state: RootState) => state.customizer.isSidebarFixed);
   const dispatch = useDispatch();
   const selectedMenu = useSelector((state: RootState) => state.mainMenu.selected);
-  const SidebarData = getSidebarData(selectedMenu);
+  
+  // Hook de permisos
+  const { 
+    menuLateral, 
+    cargarMenuLateral, 
+    loading: loadingPermisos 
+  } = usePermissions();
+
+  // Cargar menú lateral cuando cambie el perfil o el menú seleccionado
+  useEffect(() => {
+    if (user?.id_perfil) {
+      cargarMenuLateral(user.id_perfil);
+    }
+  }, [user?.id_perfil, selectedMenu, cargarMenuLateral]);
+
+  // Usar menú lateral filtrado por permisos en lugar del estático
+  const SidebarData = menuLateral.length > 0 ? menuLateral : getSidebarData(selectedMenu);
 
   return (
     <div className={`sidebarBox shadow bg-${activeBg} ${isFixed ? 'fixedSidebar' : ''}`}>
@@ -41,8 +60,16 @@ const Sidebar = () => {
         </div>
         {/********Sidebar Content*******/}
         <div className="p-3 pt-1 mt-2">
-          <Nav vertical className={activeBg === 'white' ? '' : 'lightText'}>
-            {SidebarData.map((navi) => {
+          {loadingPermisos ? (
+            <div className="text-center py-4">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Cargando...</span>
+              </div>
+              <p className="mt-2 text-muted">Cargando menú...</p>
+            </div>
+          ) : (
+            <Nav vertical className={activeBg === 'white' ? '' : 'lightText'}>
+              {SidebarData.map((navi) => {
               if (navi.caption) {
                 return (
                   <div className="navCaption fw-bold mt-4" key={navi.caption}>
@@ -77,8 +104,9 @@ const Sidebar = () => {
                   icon={navi.icon}
                 />
               );
-            })}
-          </Nav>
+                          })}
+            </Nav>
+          )}
         </div>
       </SimpleBar>
     </div>

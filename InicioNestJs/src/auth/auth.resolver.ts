@@ -1,52 +1,61 @@
-import { Resolver, Mutation, Args, Query, Context } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query, ID } from '@nestjs/graphql';
 import { AuthService } from './auth.service';
 import { LoginResponse } from './dto/login.response';
+import { LoginInput } from './dto/login.input';
 import { UseGuards } from '@nestjs/common';
-import { GqlAuthGuard } from './gql-auth.guard';
-import { Repository } from 'typeorm';
-import { Usuario } from '../entities/usuario.entity';
+import { AuthGuard } from './auth.guard';
+import { CurrentUser } from './current-user.decorator';
 
 @Resolver()
 export class AuthResolver {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private authService: AuthService) {}
 
   @Mutation(() => LoginResponse)
-  async login(@Args('email') email: string, @Args('password') password: string) {
-    const user = await this.authService.validateUser(email, password);
-    const result = await this.authService.login(user);
-    
-    return {
-      accessToken: result.access_token,
-      user: {
-        id: user.id_usuario.toString(),
-        email: user.email || '',
-        firstName: user.nombre_completo?.split(' ')[0] || '',
-        lastName: user.nombre_completo?.split(' ').slice(1).join(' ') || '',
-      },
-    };
+  async login(
+    @Args('email') email: string,
+    @Args('password') password: string,
+  ): Promise<LoginResponse> {
+    try {
+      return await this.authService.login(email, password);
+    } catch (error) {
+      throw new Error(`Error en el login: ${error.message}`);
+    }
   }
 
-  @Query(() => LoginResponse)
-  @UseGuards(GqlAuthGuard)
-  async me(@Context() context: any): Promise<LoginResponse> {
-    const userFromToken = context.req.user;
-    if (!userFromToken) throw new Error('Usuario no autenticado');
+  @Query(() => LoginResponse, { nullable: true })
+  @UseGuards(AuthGuard)
+  async refreshUserPermissions(
+    @CurrentUser() user: any,
+  ): Promise<any> {
+    try {
+      return await this.authService.refreshUserPermissions(user.sub);
+    } catch (error) {
+      throw new Error(`Error al refrescar permisos: ${error.message}`);
+    }
+  }
 
-    // Buscar el usuario completo en la base de datos
-    const user = await this.authService.usuarioRepository.findOne({
-      where: { id_usuario: userFromToken.sub },
-    });
-    if (!user) throw new Error('Usuario no encontrado');
+  @Query(() => LoginResponse, { nullable: true })
+  @UseGuards(AuthGuard)
+  async getUserProfile(
+    @CurrentUser() user: any,
+  ): Promise<any> {
+    try {
+      return await this.authService.getUserProfile(user.sub);
+    } catch (error) {
+      throw new Error(`Error al obtener perfil: ${error.message}`);
+    }
+  }
 
-    const result = await this.authService.login(user);
-    return {
-      accessToken: result.access_token,
-      user: {
-        id: user.id_usuario.toString(),
-        email: user.email || '',
-        firstName: user.nombre_completo?.split(' ')[0] || '',
-        lastName: user.nombre_completo?.split(' ').slice(1).join(' ') || '',
-      },
-    };
+  @Query(() => Boolean)
+  @UseGuards(AuthGuard)
+  async validateToken(
+    @CurrentUser() user: any,
+  ): Promise<boolean> {
+    try {
+      // Si llegamos aquí, el token es válido
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 } 

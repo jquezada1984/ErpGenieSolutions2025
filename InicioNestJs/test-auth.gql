@@ -1,0 +1,107 @@
+# Prueba de Login
+mutation Login {
+  login(email: "admin@test.com", password: "password123") {
+    access_token
+    usuario {
+      id_usuario
+      email
+      nombre
+      apellido
+      estado
+    }
+    perfil {
+      id_perfil
+      nombre
+      estado
+    }
+    permisos {
+      opcionesMenuSuperior
+      modulosDisponibles
+      totalPermisos
+    }
+  }
+}
+
+# Prueba de permisos por perfil
+query GetPermisosPorPerfil {
+  permisosPorPerfil(id_perfil: "uuid-del-perfil") {
+    id_item
+    etiqueta
+    ruta
+    icono
+    permitido
+    seccion {
+      id_seccion
+      nombre
+      orden
+    }
+  }
+}
+
+# Prueba de menú lateral por perfil
+query GetMenuLateralPorPerfil {
+  menuLateralPorPerfil(id_perfil: "uuid-del-perfil") {
+    id_seccion
+    nombre
+    orden
+    icono
+    tienePermisos
+    items {
+      id_item
+      etiqueta
+      ruta
+      icono
+      permitido
+      seccion {
+        id_seccion
+        nombre
+        orden
+      }
+    }
+  }
+}
+
+# Prueba de opciones del menú superior
+query GetOpcionesMenuSuperior {
+  opcionesMenuSuperior(id_perfil: "uuid-del-perfil")
+}
+
+# Prueba de validación de acceso a ruta
+query ValidarAccesoRuta {
+  validarAccesoRuta(id_perfil: "uuid-del-perfil", ruta: "/empresas")
+}
+
+# Prueba de perfil completo con permisos
+query GetPerfilConPermisos {
+  perfilConPermisos(id_perfil: "uuid-del-perfil") {
+    id_perfil
+    nombre
+    estado
+    totalPermisos
+    permisosActivos
+    secciones {
+      id_seccion
+      nombre
+      orden
+      icono
+      tienePermisos
+      items {
+        id_item
+        etiqueta
+        ruta
+        icono
+        permitido
+        seccion {
+          id_seccion
+          nombre
+          orden
+        }
+      }
+    }
+  }
+}
+
+# Prueba de módulos disponibles
+query GetModulosDisponibles {
+  modulosDisponibles(id_perfil: "uuid-del-perfil")
+}

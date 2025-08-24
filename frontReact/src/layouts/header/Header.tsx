@@ -24,6 +24,8 @@ import { ToggleMiniSidebar, ToggleMobileSidebar } from '../../store/customizer/C
 import ProfileDD from './ProfileDD';
 import store from '../../store/Store';
 import { setMainMenu } from '../../store/MainMenuSlice';
+import { usePermissions } from '../../components/authGurad/usePermissions';
+import { useEffect } from 'react';
 // Iconos
 import { Home, Users, Box, Briefcase, ShoppingCart, DollarSign, BookOpen, Search, User, FileText, Calendar, Tag, Tool, Globe } from 'react-feather';
 import { FaBuilding, FaProjectDiagram, FaMoneyCheckAlt, FaUserCog, FaFileInvoice, FaUserFriends, FaRegFolderOpen, FaRegCalendarAlt, FaTicketAlt, FaTools, FaGlobe, FaUniversity } from 'react-icons/fa';
@@ -51,9 +53,28 @@ const Header = () => {
   const isDarkMode = useSelector((state: RootState) => state.customizer.isDark);
   const topbarColor = useSelector((state: RootState) => state.customizer.topbarBg);
   const dispatch = useDispatch();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const selectedMenu = useSelector((state: RootState) => state.mainMenu.selected);
+  
+  // Hook de permisos
+  const { 
+    opcionesMenuSuperior, 
+    cargarOpcionesMenuSuperior, 
+    loading: loadingPermisos 
+  } = usePermissions();
+
+  // Cargar permisos cuando el usuario esté autenticado
+  useEffect(() => {
+    if (user?.id_perfil) {
+      cargarOpcionesMenuSuperior(user.id_perfil);
+    }
+  }, [user?.id_perfil, cargarOpcionesMenuSuperior]);
+
+  // Filtrar opciones del menú según permisos
+  const opcionesPermitidas = mainMenuOptions.filter(option => 
+    opcionesMenuSuperior.includes(option.key)
+  );
 
   const handleLogout = async () => {
     try {
@@ -101,19 +122,28 @@ const Header = () => {
       {/******************************/}
 
       <Nav className="me-auto d-none d-lg-flex" navbar>
-        {mainMenuOptions.map((item) => (
-          <NavItem key={item.key}>
-            <Button
-              color="link"
-              className={`nav-link d-flex flex-column align-items-center justify-content-center${selectedMenu === item.key ? ' main-menu-active' : ''}`}
-              onClick={() => dispatch(setMainMenu(item.key))}
-              style={{ minWidth: 70, padding: 0 }}
-            >
-              {item.icon}
-              <span className="mt-1 text-center" style={{ fontSize: 12, lineHeight: 1.1 }}>{item.label}</span>
-            </Button>
-          </NavItem>
-        ))}
+        {loadingPermisos ? (
+          <div className="d-flex align-items-center">
+            <div className="spinner-border spinner-border-sm me-2" role="status">
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+            <span className="text-light">Cargando permisos...</span>
+          </div>
+        ) : (
+          opcionesPermitidas.map((item) => (
+            <NavItem key={item.key}>
+              <Button
+                color="link"
+                className={`nav-link d-flex flex-column align-items-center justify-content-center${selectedMenu === item.key ? ' main-menu-active' : ''}`}
+                onClick={() => dispatch(setMainMenu(item.key))}
+                style={{ minWidth: 70, padding: 0 }}
+              >
+                {item.icon}
+                <span className="mt-1 text-center" style={{ fontSize: 12, lineHeight: 1.1 }}>{item.label}</span>
+              </Button>
+            </NavItem>
+          ))
+        )}
       </Nav>
       {/******************************/}
       {/**********Notification DD**********/}

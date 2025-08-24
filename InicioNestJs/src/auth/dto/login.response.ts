@@ -1,8 +1,8 @@
-import { ObjectType, Field } from '@nestjs/graphql';
+import { ObjectType, Field, ID } from '@nestjs/graphql';
 
 @ObjectType()
-export class UserResponse {
-  @Field()
+export class UsuarioResponse {
+  @Field(() => ID)
   id: string;
 
   @Field()
@@ -13,6 +13,33 @@ export class UserResponse {
 
   @Field()
   lastName: string;
+
+  @Field()
+  estado: boolean;
+}
+
+@ObjectType()
+export class PerfilResponse {
+  @Field(() => ID)
+  id_perfil: string;
+
+  @Field()
+  nombre: string;
+
+  @Field()
+  estado: boolean;
+}
+
+@ObjectType()
+export class PermisosResponse {
+  @Field(() => [String])
+  opcionesMenuSuperior: string[];
+
+  @Field(() => [String])
+  modulosDisponibles: string[];
+
+  @Field()
+  totalPermisos: number;
 }
 
 @ObjectType()
@@ -20,6 +47,12 @@ export class LoginResponse {
   @Field()
   accessToken: string;
 
-  @Field(() => UserResponse)
-  user: UserResponse;
+  @Field(() => UsuarioResponse)
+  user: UsuarioResponse;
+
+  @Field(() => PerfilResponse)
+  perfil: PerfilResponse;
+
+  @Field(() => PermisosResponse)
+  permisos: PermisosResponse;
 } 
