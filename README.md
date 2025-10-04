@@ -24,14 +24,13 @@ Sistema ERP moderno con arquitectura de microservicios, API Gateway y frontend R
 ## 📋 Requisitos del Sistema
 
 ### **Software Requerido:**
-- **Python 3.8+** (para microservicio Python)
-- **Node.js 18.x+** (para Gateway API, NestJS y React)
-- **npm 9.x+** o **yarn** (gestor de paquetes)
+- **Docker** 20.10+ (contenedorización)
+- **Docker Compose** 2.0+ (orquestación)
 - **Git** (control de versiones)
 
 ### **Base de Datos:**
-- **SQLite** (desarrollo) - Incluido con Python
-- **PostgreSQL** (producción) - Opcional
+- **PostgreSQL** - Servicio externo (configurar DATABASE_URL)
+- **SQLite** - Para desarrollo local (opcional)
 
 ---
 
@@ -43,130 +42,235 @@ git clone https://github.com/jquezada1984/ErpGenieSolutions2025.git
 cd ErpGenieSolutions2025
 ```
 
-### **2. Configurar Variables de Entorno**
+---
 
-#### **Gateway API:**
+## 🐳 **Ejecución con Docker**
+
+### **Requisitos:**
+- **Docker** 20.10+
+- **Docker Compose** 2.0+
+
+### **Inicio Rápido:**
+
+#### **Opción 1: Scripts Automáticos (Windows)**
+
+##### **Para Desarrollo (con Hot-Reload):**
 ```bash
-cd gateway-api
-cp env.example .env
+# Iniciar servicios de desarrollo
+start-docker-dev.bat
+
+# Detener servicios de desarrollo
+stop-docker-dev.bat
 ```
 
-Editar `.env`:
-```env
-PYTHON_SERVICE_URL=http://localhost:5000
-NESTJS_SERVICE_URL=http://localhost:3001
-GATEWAY_PORT=3002
-CORS_ORIGIN=http://localhost:3000,http://localhost:5173
-NODE_ENV=development
-```
-
-#### **Microservicio Python:**
+##### **Para Producción:**
 ```bash
-cd InicioPython
-cp env.example .env
+# Iniciar servicios de producción
+start-docker.bat
+
+# Detener servicios de producción
+stop-docker.bat
 ```
 
-Editar `.env`:
-```env
-DATABASE_URL=sqlite:///database.db
-CORS_ORIGINS=http://localhost:3000,http://localhost:3002
-JWT_SECRET_KEY=your-secret-key
-```
+#### **Opción 2: Comandos Docker**
 
-#### **Frontend React:**
+##### **Para Desarrollo (con Hot-Reload):**
 ```bash
-cd frontReact
-cp env.example .env
+# Construir e iniciar servicios de desarrollo
+docker-compose -f docker-compose.dev.yml up --build -d
+
+# Ver logs en tiempo real
+docker-compose -f docker-compose.dev.yml logs -f
+
+# Detener servicios de desarrollo
+docker-compose -f docker-compose.dev.yml down
 ```
 
-Editar `.env`:
-```env
-VITE_GATEWAY_URL=http://localhost:3002
-```
-
-### **3. Instalar Dependencias**
-
-#### **Gateway API:**
+##### **Para Producción:**
 ```bash
-cd gateway-api
-npm install
-```
+# Construir e iniciar servicios de producción
+docker-compose up --build -d
 
-#### **Microservicio Python:**
-```bash
-cd InicioPython
-pip install -r requirements.txt
-```
+# Ver logs en tiempo real
+docker-compose logs -f
 
-#### **Backend NestJS:**
-```bash
-cd InicioNestJs
-npm install
-```
-
-#### **Frontend React:**
-```bash
-cd frontReact
-npm install
+# Detener servicios de producción
+docker-compose down
 ```
 
 ---
 
-## 🏃‍♂️ Ejecución del Sistema
+## 🐳 **Creación de Contenedores Docker**
 
-### **Opción 1: Ejecución Manual (Recomendado para desarrollo)**
+### **Paso a Paso - Primera Vez:**
 
-#### **1. Iniciar Microservicio Python:**
+#### **1. Configurar Variables de Entorno:**
 ```bash
-cd InicioPython
-python app.py
+# Copiar archivo de ejemplo
+cp env.example .env
+
+# Editar con tu configuración de base de datos
+# DATABASE_URL=postgresql://usuario:password@servidor:5432/erp_database
 ```
-**Puerto:** 5000  
-**URL:** http://localhost:5000
 
-#### **2. Iniciar Backend NestJS:**
+#### **2. Construir Contenedores:**
+
+##### **Para Desarrollo (con Hot-Reload):**
 ```bash
-cd InicioNestJs
-npm run start:dev
+# Construir imágenes de desarrollo
+docker-compose -f docker-compose.dev.yml build
+
+# O construir e iniciar en un solo comando
+docker-compose -f docker-compose.dev.yml up --build -d
 ```
-**Puerto:** 3001  
-**GraphQL:** http://localhost:3001/graphql
 
-#### **3. Iniciar Gateway API:**
+##### **Para Producción:**
 ```bash
-cd gateway-api
-npm run dev
+# Construir imágenes de producción
+docker-compose build
+
+# O construir e iniciar en un solo comando
+docker-compose up --build -d
 ```
-**Puerto:** 3002  
-**URL:** http://localhost:3002
 
-#### **4. Iniciar Frontend React:**
+#### **3. Verificar Contenedores:**
 ```bash
-cd frontReact
-npm run dev
+# Ver estado de todos los contenedores
+docker-compose ps
 
-npm run build
+# Ver logs de un servicio específico
+docker-compose logs -f python-service
+
+# Ver logs de todos los servicios
+docker-compose logs -f
 ```
-**Puerto:** 3000  
-**URL:** http://localhost:3000
 
-### **Opción 2: Ejecución con Scripts (Windows)**
+### **Comandos de Gestión de Contenedores:**
 
+#### **Construir Contenedores:**
+
+##### **Desarrollo (con Hot-Reload):**
 ```bash
-# Iniciar todos los servicios
-start-all-services.bat
+# Construir todos los servicios de desarrollo
+docker-compose -f docker-compose.dev.yml build
+
+# Construir un servicio específico
+docker-compose -f docker-compose.dev.yml build python-service
+
+# Forzar reconstrucción (sin cache)
+docker-compose -f docker-compose.dev.yml build --no-cache
+```
+
+##### **Producción:**
+```bash
+# Construir todos los servicios de producción
+docker-compose build
+
+# Construir un servicio específico
+docker-compose build python-service
+
+# Forzar reconstrucción (sin cache)
+docker-compose build --no-cache
+```
+
+#### **Iniciar/Detener Contenedores:**
+
+##### **Desarrollo (con Hot-Reload):**
+```bash
+# Iniciar todos los servicios de desarrollo
+docker-compose -f docker-compose.dev.yml up -d
+
+# Iniciar un servicio específico
+docker-compose -f docker-compose.dev.yml up -d python-service
 
 # Detener todos los servicios
-stop-all-services.bat
+docker-compose -f docker-compose.dev.yml down
+
+# Detener y eliminar volúmenes
+docker-compose -f docker-compose.dev.yml down -v
 ```
+
+##### **Producción:**
+```bash
+# Iniciar todos los servicios de producción
+docker-compose up -d
+
+# Iniciar un servicio específico
+docker-compose up -d python-service
+
+# Detener todos los servicios
+docker-compose down
+
+# Detener y eliminar volúmenes
+docker-compose down -v
+```
+
+#### **Gestión de Contenedores:**
+```bash
+# Ver contenedores en ejecución
+docker-compose ps
+
+# Reiniciar un servicio
+docker-compose restart python-service
+
+# Reiniciar todos los servicios
+docker-compose restart
+
+# Ver uso de recursos
+docker stats
+```
+
+### **Servicios Disponibles:**
+- **Frontend React:** http://localhost:3000
+- **Gateway API:** http://localhost:3002
+- **Python Service:** http://localhost:5000
+- **NestJS Service:** http://localhost:3001
+- **Menu Service:** http://localhost:3003
+
+---
+
+## 🔥 **Hot-Reload para Desarrollo**
+
+### **¿Qué es Hot-Reload?**
+El Hot-Reload permite que los cambios en tu código se reflejen automáticamente en los contenedores sin necesidad de reconstruirlos.
+
+### **Configuración de Hot-Reload:**
+
+#### **Archivos que se actualizan automáticamente:**
+- ✅ **Python Service** - Cambios en `InicioPython/`
+- ✅ **NestJS Service** - Cambios en `InicioNestJs/`
+- ✅ **Menu Service** - Cambios en `MenuNestJs/`
+- ✅ **Gateway API** - Cambios en `gateway-api/`
+- ✅ **Frontend React** - Cambios en `frontReact/`
+
+#### **Comandos para Desarrollo con Hot-Reload:**
+```bash
+# Iniciar en modo desarrollo (con hot-reload)
+docker-compose -f docker-compose.dev.yml up -d
+
+# Ver logs en tiempo real
+docker-compose -f docker-compose.dev.yml logs -f
+
+# Reiniciar un servicio específico
+docker-compose -f docker-compose.dev.yml restart python-service
+```
+
+### **Flujo de Desarrollo:**
+1. **Iniciar servicios en modo desarrollo**
+2. **Editar código** en tu editor
+3. **Los cambios se reflejan automáticamente** en el contenedor
+4. **Ver resultados** en el navegador/servicio
 
 ---
 
 ## 🔧 Configuración de Base de Datos
 
+### **Base de Datos Externa:**
+El sistema se conecta a una base de datos PostgreSQL externa. Configura la variable `DATABASE_URL` antes de iniciar los servicios.
+
 ### **Estructura Completa de Empresa:**
 
-La entidad empresa ahora incluye todos los campos del esquema PostgreSQL:
+La entidad empresa incluye todos los campos del esquema PostgreSQL:
 
 #### **Campos Básicos:**
 - `nombre`, `ruc`, `direccion`, `telefono`, `email`, `estado`
@@ -184,28 +288,45 @@ La entidad empresa ahora incluye todos los campos del esquema PostgreSQL:
 - **empresa_red_social**: Redes sociales de la empresa
 - **empresa_horario_apertura**: Horarios de apertura
 
-### **Insertar Datos Maestros:**
+### **Configuración de Variables de Entorno:**
+
+#### **Crear archivo .env:**
 ```bash
-cd InicioPython
-python insert_master_data.py
+cp env.example .env
 ```
 
-### **Probar Empresa Completa:**
-```bash
-cd InicioPython
-python test_empresa_completa.py
+#### **Editar .env con tu configuración:**
+```env
+# Para PostgreSQL externo:
+DATABASE_URL=postgresql://usuario:password@servidor-externo:5432/erp_database
+
+# Para SQLite local (desarrollo):
+# DATABASE_URL=sqlite:///app/data/database.db
+
+JWT_SECRET_KEY=your-secret-key-here
+JWT_SECRET=your-jwt-secret-here
 ```
 
-### **Aplicar Migración de Email Único:**
+### **Comandos de Base de Datos con Docker:**
+
+#### **Insertar Datos Maestros:**
 ```bash
-cd InicioPython
-python apply_email_unique.py
+docker-compose exec python-service python insert_master_data.py
 ```
 
-### **Verificar Conexión:**
+#### **Probar Empresa Completa:**
 ```bash
-cd InicioPython
-python test_connection.py
+docker-compose exec python-service python test_empresa_completa.py
+```
+
+#### **Aplicar Migración de Email Único:**
+```bash
+docker-compose exec python-service python apply_email_unique.py
+```
+
+#### **Verificar Conexión:**
+```bash
+docker-compose exec python-service python test_connection.py
 ```
 
 ---
@@ -278,33 +399,126 @@ python test_connection.py
 
 ## 🐛 Solución de Problemas
 
-### **Puerto en Uso:**
+### **Ver Estado de Contenedores:**
 ```bash
-# Windows
+# Ver todos los contenedores
+docker-compose ps
+
+# Ver logs de un servicio específico
+docker-compose logs -f python-service
+
+# Ver logs de todos los servicios
+docker-compose logs -f
+```
+
+### **Reiniciar Servicios:**
+```bash
+# Reiniciar un servicio específico
+docker-compose restart python-service
+
+# Reiniciar todos los servicios
+docker-compose restart
+
+# Reconstruir y reiniciar
+docker-compose up --build -d
+```
+
+### **Problemas de Base de Datos:**
+```bash
+# Verificar conexión
+docker-compose exec python-service python test_connection.py
+
+# Verificar variables de entorno
+docker-compose exec python-service env | grep DATABASE_URL
+```
+
+### **Limpiar Sistema Docker:**
+```bash
+# Detener y eliminar contenedores
+docker-compose down
+
+# Eliminar volúmenes (CUIDADO: borra datos)
+docker-compose down -v
+
+# Limpiar imágenes no utilizadas
+docker system prune -a
+
+# Ver uso de recursos
+docker stats
+```
+
+### **Problemas de Puerto en Uso:**
+```bash
+# Ver qué está usando un puerto
 netstat -ano | findstr :3002
-taskkill /PID <PID> /F
 
-# Linux/Mac
-lsof -ti:3002 | xargs kill -9
+# Detener contenedores que usan el puerto
+docker-compose down
 ```
 
-### **Problemas de CORS:**
-Verificar configuración en:
-- `gateway-api/.env` - CORS_ORIGIN
-- `InicioPython/.env` - CORS_ORIGINS
-
-### **Errores de Base de Datos:**
+### **Problemas de Dependencias (npm):**
 ```bash
-cd InicioPython
-python test_connection.py
+# Si hay conflictos de dependencias en el frontend
+# Los Dockerfiles ya incluyen --legacy-peer-deps
+
+# Para reconstruir solo el frontend
+docker-compose build --no-cache frontend
+
+# Para desarrollo, reconstruir frontend
+docker-compose -f docker-compose.dev.yml build --no-cache frontend
 ```
 
-### **Problemas de React (Múltiples Raíces):**
+### **Problemas de Versiones de Node.js:**
 ```bash
-cd frontReact
-npm run clean
-npm install
-npm run dev
+# Si hay errores de versión de Node.js (requiere Node 20+)
+# Los Dockerfiles ya están actualizados a Node.js 20
+
+# Para limpiar cache y reconstruir
+docker-compose build --no-cache
+
+# Para desarrollo
+docker-compose -f docker-compose.dev.yml build --no-cache
+```
+
+### **Problemas de Dependencias Faltantes (TypeScript):**
+```bash
+# Si hay errores de módulos no encontrados (@nestjs/axios, @nestjs/jwt, etc.)
+# Los Dockerfiles instalan TODAS las dependencias (incluyendo devDependencies)
+
+# Para reconstruir con todas las dependencias
+docker-compose -f docker-compose.dev.yml build --no-cache nestjs-service
+docker-compose -f docker-compose.dev.yml build --no-cache menu-service
+```
+
+### **Problemas de Compilación Nativa:**
+```bash
+# Si hay errores de compilación nativa (msnodesqlv8, etc.)
+# Los Dockerfiles ya incluyen python3, make, g++
+# La dependencia msnodesqlv8 se elimina automáticamente durante la construcción
+
+# Para reconstruir con dependencias del sistema
+docker-compose build --no-cache nestjs-service
+docker-compose build --no-cache menu-service
+```
+
+### **Problemas con msnodesqlv8 (SQL Server):**
+```bash
+# Si hay errores con msnodesqlv8 (requiere SQL Server ODBC)
+# El Dockerfile elimina automáticamente esta dependencia
+# Solo se usa PostgreSQL en este proyecto
+
+# Para verificar que se eliminó correctamente
+docker-compose exec nestjs-service npm list msnodesqlv8
+```
+
+### **Problemas de Hot-Reload:**
+```bash
+# Si los cambios no se reflejan automáticamente
+# Verificar que estés usando el modo desarrollo
+docker-compose -f docker-compose.dev.yml up -d
+
+# Reiniciar un servicio específico
+docker-compose -f docker-compose.dev.yml restart frontend
 ```
 
 ---
@@ -327,8 +541,26 @@ npm run dev
 
 ### **Probar API Gateway:**
 ```bash
+# Verificar salud del gateway
 curl http://localhost:3002/gateway/health
+
+# Listar empresas
 curl http://localhost:3002/gateway/empresas
+
+# Verificar todos los servicios
+docker-compose ps
+```
+
+### **Ejecutar Tests con Docker:**
+```bash
+# Ejecutar tests de Python
+docker-compose exec python-service python test_empresa_completa.py
+
+# Verificar conexión a base de datos
+docker-compose exec python-service python test_connection.py
+
+# Insertar datos de prueba
+docker-compose exec python-service python insert_master_data.py
 ```
 
 ---
@@ -354,6 +586,124 @@ Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
 - **Issues:** [GitHub Issues](https://github.com/jquezada1984/ErpGenieSolutions2025/issues)
 - **Documentación:** Revisar README de cada componente
 - **Equipo:** Contactar al equipo de desarrollo
+
+---
+
+## 🐳 **Configuración Docker Detallada**
+
+### **Estructura de Dockerfiles:**
+
+#### **Microservicio Python (Flask):**
+- **Imagen base:** `python:3.13.5-slim`
+- **Puerto:** 5000
+- **Dependencias:** Flask, SQLAlchemy, CORS, JWT
+
+#### **Gateway API (Fastify):**
+- **Imagen base:** `node:20-alpine`
+- **Puerto:** 3002
+- **Dependencias:** Fastify, CORS, Axios
+
+#### **Backend NestJS (GraphQL):**
+- **Imagen base:** `node:20-alpine`
+- **Puerto:** 3001
+- **Dependencias:** NestJS, GraphQL, TypeORM
+
+#### **Frontend React (Vite):**
+- **Imagen base:** `node:20-alpine` (build) + `nginx:alpine` (production)
+- **Puerto:** 3000
+- **Servidor:** Nginx
+
+#### **MenuNestJs:**
+- **Imagen base:** `node:20-alpine`
+- **Puerto:** 3003
+- **Dependencias:** NestJS, GraphQL
+
+### **Proceso de Construcción de Imágenes:**
+
+#### **Construir Todas las Imágenes:**
+```bash
+# Construir todas las imágenes Docker
+docker-compose build
+
+# Construir con verbose (ver detalles)
+docker-compose build --progress=plain
+
+# Construir sin usar cache
+docker-compose build --no-cache
+```
+
+#### **Construir Imagen Específica:**
+```bash
+# Construir solo Python service
+docker-compose build python-service
+
+# Construir solo Frontend
+docker-compose build frontend
+
+# Construir solo Gateway
+docker-compose build gateway-api
+```
+
+#### **Ver Imágenes Construidas:**
+```bash
+# Ver todas las imágenes Docker
+docker images
+
+# Ver imágenes del proyecto
+docker images | grep erp
+
+# Ver tamaño de imágenes
+docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+```
+
+### **Comandos Docker Útiles:**
+
+```bash
+# Ver estado de contenedores
+docker-compose ps
+
+# Ver logs de un servicio específico
+docker-compose logs -f python-service
+
+# Reconstruir un servicio específico
+docker-compose up --build python-service
+
+# Ejecutar comandos en un contenedor
+docker-compose exec python-service python insert_master_data.py
+
+# Limpiar sistema Docker
+docker system prune -a
+
+# Ver uso de recursos
+docker stats
+```
+
+### **Variables de Entorno Docker:**
+
+```env
+# Base de datos (servicio externo)
+DATABASE_URL=postgresql://usuario:password@servidor-externo:5432/erp_database
+
+# Servicios (configurados automáticamente)
+PYTHON_SERVICE_URL=http://python-service:5000
+NESTJS_SERVICE_URL=http://nestjs-service:3001
+MENU_SERVICE_URL=http://menu-service:3003
+GATEWAY_PORT=3002
+
+# CORS
+CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
+
+# JWT
+JWT_SECRET_KEY=your-secret-key-here
+JWT_SECRET=your-jwt-secret-here
+```
+
+### **Volúmenes Docker:**
+- `python_data`: Datos de SQLite (si se usa)
+
+### **Red Docker:**
+- `erp-network`: Red interna para comunicación entre servicios
 
 ---
 

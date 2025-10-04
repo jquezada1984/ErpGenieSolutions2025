@@ -19,7 +19,9 @@ const NavSubMenu = ({ icon, title, items, isUrl, suffixColor, suffix }) => {
   return (
     <NavItem>
       <NavLink className="cursor-pointer gap-3" onClick={toggle}>
-        <span className="sidebarIcon">{icon}</span>
+        <span className="sidebarIcon">
+          {icon && <i className={icon} />}
+        </span>
         <span className="hide-mini w-100">
           <div className="d-flex align-items-center">
             <span className="d-block">{title}</span>
@@ -32,13 +34,15 @@ const NavSubMenu = ({ icon, title, items, isUrl, suffixColor, suffix }) => {
       </NavLink>
 
       <Collapse isOpen={collapsed} navbar tag="ul" className="subMenu">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <NavItem
-            key={item.title}
+            key={`${item.id || item.title}-${index}`}
             className={`hide-mini ${location.pathname === item.href ? 'activeLink' : ''}`}
           >
             <NavLink tag={Link} to={item.href} className="gap-3">
-              <span className="sidebarIcon">{item.icon}</span>
+              <span className="sidebarIcon">
+                {item.icon && <i className={item.icon} />}
+              </span>
               <span className="hide-mini">
                 <span>{item.title}</span>
               </span>

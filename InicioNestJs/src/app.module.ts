@@ -44,6 +44,7 @@ import { AutorizacionResolver } from './resolvers/autorizacion.resolver';
 import { PaisResolver } from './resolvers/pais.resolver';
 import { MonedaResolver } from './resolvers/moneda.resolver';
 import { ProvinciaResolver } from './resolvers/provincia.resolver';
+import { AuthResolver } from './auth/auth.resolver';
 // Services
 import { PaisService } from './services/pais.service';
 import { MonedaService } from './services/moneda.service';
@@ -54,11 +55,7 @@ import { AutorizacionService } from './services/autorizacion.service';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_DATABASE || 'postgres',
+      url: process.env.DATABASE_URL || `postgresql://${process.env.DB_USERNAME || 'postgres'}:${process.env.DB_PASSWORD || ''}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}/${process.env.DB_DATABASE || 'postgres'}`,
       entities: [
         Usuario, 
         Empresa, 
@@ -122,6 +119,7 @@ import { AutorizacionService } from './services/autorizacion.service';
       PaisResolver,
       MonedaResolver,
       ProvinciaResolver,
+      AuthResolver,
       PaisService,
       MonedaService,
       ProvinciaService,

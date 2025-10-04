@@ -21,24 +21,46 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<any> {
     try {
+      console.log('🔍 Validando usuario:', email);
+      
       const usuario = await this.usuarioRepository
         .createQueryBuilder('usuario')
         .leftJoinAndSelect('usuario.perfil', 'perfil')
         .leftJoinAndSelect('perfil.empresa', 'empresa')
-        .where('usuario.email = :email', { email })
+        .where('(usuario.email = :email OR usuario.username = :email)', { email })
         .andWhere('usuario.estado = :estado', { estado: true })
-        .andWhere('perfil.estado = :estadoPerfil', { estadoPerfil: true })
         .getOne();
 
+      console.log('🔍 Usuario encontrado:', usuario ? 'Sí' : 'No');
+      
       if (!usuario) {
+        console.log('❌ Usuario no encontrado o inactivo');
         throw new UnauthorizedException('Credenciales inválidas');
+      }
+
+      console.log('🔍 Perfil encontrado:', usuario.perfil ? 'Sí' : 'No');
+      console.log('🔍 Estado del perfil:', usuario.perfil?.estado);
+      
+      // Verificar que el perfil esté activo
+      if (!usuario.perfil || !usuario.perfil.estado) {
+        console.log('❌ Perfil no válido o inactivo');
+        throw new UnauthorizedException('Perfil no válido o inactivo');
       }
 
       // Verificar contraseña
+      console.log('🔍 Verificando contraseña...');
+      console.log('🔍 Contraseña ingresada:', password);
+      console.log('🔍 Hash almacenado:', usuario.password_hash);
+      
       const isPasswordValid = await bcrypt.compare(password, usuario.password_hash);
+      console.log('🔍 Resultado de verificación:', isPasswordValid);
+      
       if (!isPasswordValid) {
+        console.log('❌ Contraseña incorrecta');
         throw new UnauthorizedException('Credenciales inválidas');
       }
+      
+      console.log('✅ Contraseña válida');
 
       // Verificar que el perfil esté activo
       if (!usuario.perfil || !usuario.perfil.estado) {
@@ -47,7 +69,8 @@ export class AuthService {
 
       return usuario;
     } catch (error) {
-      throw new UnauthorizedException('Error en la validación del usuario');
+      console.error('Error en validateUser:', error);
+      throw new UnauthorizedException(`Error en la validación del usuario: ${error.message}`);
     }
   }
 
@@ -86,6 +109,7 @@ export class AuthService {
           firstName: usuario.nombre_completo?.split(' ')[0] || usuario.username,
           lastName: usuario.nombre_completo?.split(' ').slice(1).join(' ') || '',
           estado: usuario.estado,
+          id_perfil: usuario.perfil.id_perfil,
         },
         perfil: {
           id_perfil: usuario.perfil.id_perfil,

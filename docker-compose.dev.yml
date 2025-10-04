@@ -1,0 +1,110 @@
+services:
+  # Microservicio Python (Flask) - Desarrollo
+  python-service:
+    build:
+      context: ./InicioPython
+      dockerfile: Dockerfile
+    container_name: erp-python-service-dev
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres.xfeycgctysoumclptgoh:XeCWl8Dam9CNUS1m@aws-0-sa-east-1.pooler.supabase.com:5432/postgres}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
+      - JWT_SECRET_KEY=your-secret-key-here
+      - FLASK_ENV=development
+      - TZ=America/Guayaquil
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./InicioPython:/app
+      - python_dev_data:/app/data
+    networks:
+      - erp-network
+    command: ["python", "start_server_improved.py"]
+
+  # Backend NestJS (GraphQL) - Desarrollo
+  nestjs-service:
+    build:
+      context: ./InicioNestJs
+      dockerfile: Dockerfile
+    container_name: erp-nestjs-service-dev
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - TZ=America/Guayaquil
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./InicioNestJs:/app
+      - /app/node_modules
+    networks:
+      - erp-network
+    command: ["npm", "run", "start:dev"]
+
+  # MenuNestJs - Desarrollo
+  menu-service:
+    build:
+      context: ./MenuNestJs
+      dockerfile: Dockerfile
+    container_name: erp-menu-service-dev
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - TZ=America/Guayaquil
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./MenuNestJs:/app
+      - /app/node_modules
+    networks:
+      - erp-network
+    command: ["npm", "run", "start:dev"]
+
+  # Gateway API (Fastify) - Desarrollo
+  gateway-api:
+    build:
+      context: ./gateway-api
+      dockerfile: Dockerfile
+    container_name: erp-gateway-api-dev
+    environment:
+      - NODE_ENV=development
+      - PYTHON_SERVICE_URL=http://python-service:5000
+      - NESTJS_SERVICE_URL=http://nestjs-service:3001
+      - MENU_SERVICE_URL=http://menu-service:3003
+      - GATEWAY_PORT=3002
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+      - TZ=America/Guayaquil
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./gateway-api:/app
+      - /app/node_modules
+    networks:
+      - erp-network
+    command: ["npm", "run", "dev"]
+
+  # Frontend React - Desarrollo
+  frontend:
+    build:
+      context: ./frontReact
+      dockerfile: Dockerfile.dev
+    container_name: erp-frontend-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontReact:/app
+      - /app/node_modules
+    networks:
+      - erp-network
+
+volumes:
+  python_dev_data:
+
+networks:
+  erp-network:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+        - subnet: 2001:db8::/64

@@ -147,56 +147,32 @@ export class AutorizacionService {
   }
 
   /**
-   * Determina qué opciones del menú superior debe ver un perfil
-   * basándose en si tiene permisos en las secciones correspondientes
+   * Obtiene las opciones del menú superior basadas en las secciones disponibles
    */
   async obtenerOpcionesMenuSuperior(id_perfil: string): Promise<string[]> {
     try {
+      console.log('🔍 DEBUG - obtenerOpcionesMenuSuperior - id_perfil:', id_perfil);
+      
       const menuLateral = await this.obtenerMenuLateralPorPerfil(id_perfil);
+      console.log('🔍 DEBUG - menuLateral obtenido:', menuLateral);
       
-      // Mapear secciones a opciones del menú superior
-      const opcionesPermitidas = new Set<string>();
+      // Extraer nombres únicos de secciones
+      const seccionesUnicas = [...new Set(menuLateral.map(seccion => seccion.nombre))];
+      console.log('🔍 DEBUG - secciones únicas:', seccionesUnicas);
       
-      menuLateral.forEach(seccion => {
-        // Mapeo de secciones a opciones del menú superior
-        const mapeoSeccionOpcion = this.mapearSeccionAOpcionMenu(seccion.nombre);
-        if (mapeoSeccionOpcion) {
-          opcionesPermitidas.add(mapeoSeccionOpcion);
-        }
+      // Ordenar por el orden de la sección
+      const seccionesOrdenadas = seccionesUnicas.sort((a, b) => {
+        const seccionA = menuLateral.find(s => s.nombre === a);
+        const seccionB = menuLateral.find(s => s.nombre === b);
+        return (seccionA?.orden || 0) - (seccionB?.orden || 0);
       });
-
-      return Array.from(opcionesPermitidas);
+      
+      console.log('🔍 DEBUG - secciones ordenadas:', seccionesOrdenadas);
+      return seccionesOrdenadas;
     } catch (error) {
+      console.error('❌ ERROR en obtenerOpcionesMenuSuperior:', error);
       throw new Error(`Error al obtener opciones del menú superior: ${error.message}`);
     }
-  }
-
-  /**
-   * Mapea el nombre de una sección a la opción correspondiente del menú superior
-   */
-  private mapearSeccionAOpcionMenu(nombreSeccion: string): string | null {
-    const mapeo: { [key: string]: string } = {
-      'Administración': 'inicio',
-      'Empresa': 'inicio',
-      'Sucursal': 'inicio',
-      'Menú': 'inicio',
-      'Perfil': 'inicio',
-      'Usuario': 'inicio',
-      'Terceros': 'terceros',
-      'Servicios': 'servicios',
-      'Proyectos': 'proyectos',
-      'Comercial': 'comercial',
-      'Financiera': 'financiera',
-      'Bancos': 'bancos',
-      'Contabilidad': 'contabilidad',
-      'RRHH': 'rrhh',
-      'Documentos': 'documentos',
-      'Agenda': 'agenda',
-      'Tickets': 'tickets',
-      'Utilidades': 'utilidades'
-    };
-
-    return mapeo[nombreSeccion] || null;
   }
 
   /**
@@ -258,13 +234,11 @@ export class AutorizacionService {
       const permisosPorModulo: { [modulo: string]: PermisoMenu[] } = {};
 
       permisos.forEach(permiso => {
-        const modulo = this.mapearSeccionAOpcionMenu(permiso.seccion.nombre);
-        if (modulo) {
-          if (!permisosPorModulo[modulo]) {
-            permisosPorModulo[modulo] = [];
-          }
-          permisosPorModulo[modulo].push(permiso);
+        const modulo = permiso.seccion.nombre; // Usar el nombre real de la sección
+        if (!permisosPorModulo[modulo]) {
+          permisosPorModulo[modulo] = [];
         }
+        permisosPorModulo[modulo].push(permiso);
       });
 
       return permisosPorModulo;

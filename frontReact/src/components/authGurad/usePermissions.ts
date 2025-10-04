@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLazyQuery, gql } from '@apollo/client';
 
-// GraphQL queries para permisos - MenuNestJs
+// GraphQL queries para permisos - Ahora van por el gateway
 const GET_PERMISOS_POR_PERFIL = gql`
   query GetPermisosPorPerfil($id_perfil: ID!) {
     permisosPorPerfil(id_perfil: $id_perfil) {
@@ -142,7 +142,10 @@ export const usePermissions = (): UsePermissionsReturn => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Queries GraphQL
+  console.log('🔍 DEBUG - usePermissions - Hook inicializado');
+  console.log('🔍 DEBUG - usePermissions - Usando gateway para todas las consultas');
+
+  // Queries GraphQL usando el cliente por defecto (gateway)
   const [getPermisosPorPerfil, { loading: loadingPermisos }] = useLazyQuery(GET_PERMISOS_POR_PERFIL);
   const [getMenuLateralPorPerfil, { loading: loadingMenuLateral }] = useLazyQuery(GET_MENU_LATERAL_POR_PERFIL);
   const [getOpcionesMenuSuperior, { loading: loadingOpciones }] = useLazyQuery(GET_OPCIONES_MENU_SUPERIOR);
@@ -156,97 +159,89 @@ export const usePermissions = (): UsePermissionsReturn => {
   // Cargar permisos por perfil
   const cargarPermisos = useCallback(async (id_perfil: string) => {
     try {
+      console.log('🔍 DEBUG - cargarPermisos - Iniciando con id_perfil:', id_perfil);
       setError(null);
       const { data } = await getPermisosPorPerfil({ variables: { id_perfil } });
       
+      console.log('🔍 DEBUG - cargarPermisos - Respuesta:', data);
+      
       if (data?.permisosPorPerfil) {
         setPermisos(data.permisosPorPerfil);
+        console.log('🔍 DEBUG - cargarPermisos - Permisos establecidos:', data.permisosPorPerfil);
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar permisos');
-      console.error('Error al cargar permisos:', err);
+      console.error('❌ ERROR en cargarPermisos:', err);
     }
   }, [getPermisosPorPerfil]);
 
   // Cargar menú lateral por perfil
   const cargarMenuLateral = useCallback(async (id_perfil: string) => {
     try {
+      console.log('🔍 DEBUG - cargarMenuLateral - Iniciando con id_perfil:', id_perfil);
       setError(null);
       const { data } = await getMenuLateralPorPerfil({ variables: { id_perfil } });
       
+      console.log('🔍 DEBUG - cargarMenuLateral - Respuesta:', data);
+      
       if (data?.menuLateralPorPerfil) {
         setMenuLateral(data.menuLateralPorPerfil);
+        console.log('🔍 DEBUG - cargarMenuLateral - Menú lateral establecido:', data.menuLateralPorPerfil);
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar menú lateral');
-      console.error('Error al cargar menú lateral:', err);
+      console.error('❌ ERROR en cargarMenuLateral:', err);
     }
   }, [getMenuLateralPorPerfil]);
 
   // Cargar opciones del menú superior
   const cargarOpcionesMenuSuperior = useCallback(async (id_perfil: string) => {
     try {
+      console.log('🔍 DEBUG - cargarOpcionesMenuSuperior - Iniciando con id_perfil:', id_perfil);
       setError(null);
       const { data } = await getOpcionesMenuSuperior({ variables: { id_perfil } });
       
+      console.log('🔍 DEBUG - cargarOpcionesMenuSuperior - Respuesta:', data);
+      
       if (data?.opcionesMenuSuperior) {
         setOpcionesMenuSuperior(data.opcionesMenuSuperior);
+        console.log('🔍 DEBUG - cargarOpcionesMenuSuperior - Opciones establecidas:', data.opcionesMenuSuperior);
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar opciones del menú superior');
-      console.error('Error al cargar opciones del menú superior:', err);
+      console.error('❌ ERROR en cargarOpcionesMenuSuperior:', err);
     }
   }, [getOpcionesMenuSuperior]);
 
   // Cargar perfil completo con permisos
   const cargarPerfilCompleto = useCallback(async (id_perfil: string) => {
     try {
+      console.log('🔍 DEBUG - cargarPerfilCompleto - Iniciando con id_perfil:', id_perfil);
       setError(null);
       const { data } = await getPerfilConPermisos({ variables: { id_perfil } });
+      
+      console.log('🔍 DEBUG - cargarPerfilCompleto - Respuesta:', data);
       
       if (data?.perfilConPermisos) {
         setPerfilCompleto(data.perfilConPermisos);
         // También actualizar los otros estados
-        setPermisos(data.perfilConPermisos.secciones.flatMap(s => s.items));
+        setPermisos(data.perfilConPermisos.secciones.flatMap((s: any) => s.items));
         setMenuLateral(data.perfilConPermisos.secciones);
         
         // Mapear secciones a opciones del menú superior
         const opciones = data.perfilConPermisos.secciones
-          .map(s => mapearSeccionAOpcionMenu(s.nombre))
+          .map((s: any) => s.nombre) // Usar el nombre real de la sección
           .filter(Boolean);
         setOpcionesMenuSuperior(opciones);
+        
+        console.log('🔍 DEBUG - cargarPerfilCompleto - Perfil completo establecido:', data.perfilConPermisos);
+        console.log('🔍 DEBUG - cargarPerfilCompleto - Opciones del menú superior:', opciones);
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar perfil completo');
-      console.error('Error al cargar perfil completo:', err);
+      console.error('❌ ERROR en cargarPerfilCompleto:', err);
     }
   }, [getPerfilConPermisos]);
-
-  // Mapear sección a opción del menú superior
-  const mapearSeccionAOpcionMenu = (nombreSeccion: string): string | null => {
-    const mapeo: { [key: string]: string } = {
-      'Administración': 'inicio',
-      'Empresa': 'inicio',
-      'Sucursal': 'inicio',
-      'Menú': 'inicio',
-      'Perfil': 'inicio',
-      'Usuario': 'inicio',
-      'Terceros': 'terceros',
-      'Servicios': 'servicios',
-      'Proyectos': 'proyectos',
-      'Comercial': 'comercial',
-      'Financiera': 'financiera',
-      'Bancos': 'bancos',
-      'Contabilidad': 'contabilidad',
-      'RRHH': 'rrhh',
-      'Documentos': 'documentos',
-      'Agenda': 'agenda',
-      'Tickets': 'tickets',
-      'Utilidades': 'utilidades'
-    };
-
-    return mapeo[nombreSeccion] || null;
-  };
 
   // Verificar si tiene permiso para una ruta específica
   const tienePermiso = useCallback((ruta: string): boolean => {
@@ -266,6 +261,18 @@ export const usePermissions = (): UsePermissionsReturn => {
       permiso.permitido && permiso.seccion.nombre === nombreSeccion
     );
   }, [permisos]);
+
+  // Log del estado actual
+  useEffect(() => {
+    console.log('🔍 DEBUG - usePermissions - Estado actual:', {
+      permisos: permisos.length,
+      menuLateral: menuLateral.length,
+      opcionesMenuSuperior,
+      perfilCompleto: !!perfilCompleto,
+      loading,
+      error
+    });
+  }, [permisos, menuLateral, opcionesMenuSuperior, perfilCompleto, loading, error]);
 
   return {
     // Estado

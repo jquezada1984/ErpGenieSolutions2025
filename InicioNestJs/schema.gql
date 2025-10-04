@@ -389,5 +389,6 @@ type UsuarioResponse {
   estado: Boolean!
   firstName: String!
   id: ID!
+  id_perfil: ID!
   lastName: String!
 }

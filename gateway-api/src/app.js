@@ -21,6 +21,7 @@ const config = {
   port: process.env.GATEWAY_PORT || 3000,
   pythonService: process.env.PYTHON_SERVICE_URL,
   nestjsService: process.env.NESTJS_SERVICE_URL,
+  menuService: process.env.MENU_SERVICE_URL, // Agregar servicio de menú
   cors: {
     origin: process.env.CORS_ORIGIN?.split(',') || ['*'],
     credentials: true
@@ -31,6 +32,7 @@ const config = {
 console.log('🔍 DEBUG - Variables de entorno:');
 console.log('process.env.PYTHON_SERVICE_URL:', process.env.PYTHON_SERVICE_URL);
 console.log('process.env.NESTJS_SERVICE_URL:', process.env.NESTJS_SERVICE_URL);
+console.log('process.env.MENU_SERVICE_URL:', process.env.MENU_SERVICE_URL); // Agregar
 console.log('process.env.GATEWAY_PORT:', process.env.GATEWAY_PORT);
 console.log('process.env.CORS_ORIGIN:', process.env.CORS_ORIGIN);
 console.log('process.env.NODE_ENV:', process.env.NODE_ENV);
@@ -46,6 +48,12 @@ if (!config.pythonService) {
 if (!config.nestjsService) {
   console.error('❌ ERROR: NESTJS_SERVICE_URL no está configurado en las variables de entorno');
   console.error('Valor actual:', process.env.NESTJS_SERVICE_URL);
+  process.exit(1);
+}
+
+if (!config.menuService) {
+  console.error('❌ ERROR: MENU_SERVICE_URL no está configurado en las variables de entorno');
+  console.error('Valor actual:', process.env.MENU_SERVICE_URL);
   process.exit(1);
 }
 

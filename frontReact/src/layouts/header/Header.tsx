@@ -71,10 +71,35 @@ const Header = () => {
     }
   }, [user?.id_perfil, cargarOpcionesMenuSuperior]);
 
+  // Mapear nombres de secciones a claves del menú
+  const mapearSeccionAClave = (nombreSeccion: string): string => {
+    const mapeo: { [key: string]: string } = {
+      'Inicio': 'inicio',
+      'Terceros': 'terceros',
+      'Servicios': 'servicios',
+      'Proyectos': 'proyectos',
+      'Comercial': 'comercial',
+      'Financiera': 'financiera',
+      'Bancos': 'bancos',
+      'Contabilidad': 'contabilidad',
+      'RRHH': 'rrhh',
+      'Documentos': 'documentos',
+      'Agenda': 'agenda',
+      'Tickets': 'tickets',
+      'Utilidades': 'utilidades'
+    };
+    return mapeo[nombreSeccion] || nombreSeccion.toLowerCase();
+  };
+
   // Filtrar opciones del menú según permisos
   const opcionesPermitidas = mainMenuOptions.filter(option => 
-    opcionesMenuSuperior.includes(option.key)
+    opcionesMenuSuperior.some(seccion => mapearSeccionAClave(seccion) === option.key)
   );
+
+  // Debug logs
+  console.log('🔍 DEBUG - Header - opcionesMenuSuperior:', opcionesMenuSuperior);
+  console.log('🔍 DEBUG - Header - opcionesPermitidas:', opcionesPermitidas);
+  console.log('🔍 DEBUG - Header - loadingPermisos:', loadingPermisos);
 
   const handleLogout = async () => {
     try {

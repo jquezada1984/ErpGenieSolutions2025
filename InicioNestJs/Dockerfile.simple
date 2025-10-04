@@ -1,0 +1,46 @@
+# Dockerfile para Backend NestJS - Versión Simplificada (Solo PostgreSQL)
+FROM node:20-slim
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar archivos de dependencias
+COPY package*.json ./
+
+# Crear package.json temporal sin msnodesqlv8
+RUN npm pkg delete dependencies.msnodesqlv8
+
+# Instalar dependencias con --legacy-peer-deps para resolver conflictos
+RUN npm ci --only=production --legacy-peer-deps
+
+# Copiar código fuente
+COPY . .
+
+# Construir la aplicación
+RUN npm run build
+
+# Exponer puerto
+EXPOSE 3001
+
+# Variables de entorno por defecto
+ENV NODE_ENV=production
+ENV PORT=3001
+
+# Comando por defecto
+CMD ["npm", "run", "start:prod"]
+
+
+
+
+
+
+
+
+

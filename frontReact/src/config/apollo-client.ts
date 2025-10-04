@@ -2,19 +2,19 @@ import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/clien
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 
-// Configuración para MenuNestJs (permisos de menú)
-const menuHttpLink = createHttpLink({
-  uri: process.env.REACT_APP_MENU_GRAPHQL_URL || 'http://localhost:3003/graphql',
+// Configuración para InicioNestJs (autenticación y servicios principales)
+const mainHttpLink = createHttpLink({
+  uri: import.meta.env.VITE_GATEWAY_URL + '/graphql' || 'http://localhost:3000/graphql',
 });
 
-// Configuración para InicioNestJs (autenticación y otros servicios)
-const mainHttpLink = createHttpLink({
-  uri: process.env.REACT_APP_MAIN_GRAPHQL_URL || 'http://localhost:3001/graphql',
+// Configuración para MenuNestJs (permisos de menú)
+const menuHttpLink = createHttpLink({
+  uri: import.meta.env.VITE_MENU_GRAPHQL_URL || 'http://localhost:3003/graphql',
 });
 
 // Middleware para agregar token de autenticación
 const authLink = setContext((_, { headers }) => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem('accessToken');
   return {
     headers: {
       ...headers,
@@ -32,6 +32,23 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
       )
     );
   if (networkError) console.error(`[Network error]: ${networkError}`);
+});
+
+// Cliente principal para InicioNestJs (autenticación y servicios principales)
+export const mainClient = new ApolloClient({
+  link: from([errorLink, authLink, mainHttpLink]),
+  cache: new InMemoryCache(),
+  defaultOptions: {
+    watchQuery: {
+      errorPolicy: 'all',
+    },
+    query: {
+      errorPolicy: 'all',
+    },
+    mutate: {
+      errorPolicy: 'all',
+    },
+  },
 });
 
 // Cliente para MenuNestJs (permisos)
@@ -67,19 +84,5 @@ export const menuClient = new ApolloClient({
   },
 });
 
-// Cliente para InicioNestJs (principal)
-export const mainClient = new ApolloClient({
-  link: from([errorLink, authLink, mainHttpLink]),
-  cache: new InMemoryCache(),
-  defaultOptions: {
-    watchQuery: {
-      errorPolicy: 'all',
-    },
-    query: {
-      errorPolicy: 'all',
-    },
-  },
-});
-
-// Cliente principal (por defecto)
+// Cliente principal (por defecto) - Usar el mismo que main.tsx
 export const client = mainClient;

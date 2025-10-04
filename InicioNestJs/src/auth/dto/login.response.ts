@@ -16,6 +16,9 @@ export class UsuarioResponse {
 
   @Field()
   estado: boolean;
+
+  @Field(() => ID)
+  id_perfil: string;
 }
 
 @ObjectType()

@@ -1,0 +1,90 @@
+services:
+  # Microservicio Python (Flask)
+  python-service:
+    build:
+      context: ./InicioPython
+      dockerfile: Dockerfile
+    container_name: erp-python-service
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - FLASK_ENV=production
+    ports:
+      - "5000:5000"
+    networks:
+      - erp-network
+    volumes:
+      - python_data:/app/data
+
+  # Backend NestJS (GraphQL)
+  nestjs-service:
+    build:
+      context: ./InicioNestJs
+      dockerfile: Dockerfile
+    container_name: erp-nestjs-service
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+    ports:
+      - "3001:3001"
+    networks:
+      - erp-network
+
+  # MenuNestJs (Servicio de Menús)
+  menu-service:
+    build:
+      context: ./MenuNestJs
+      dockerfile: Dockerfile
+    container_name: erp-menu-service
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+    ports:
+      - "3003:3003"
+    networks:
+      - erp-network
+
+  # Gateway API (Fastify)
+  gateway-api:
+    build:
+      context: ./gateway-api
+      dockerfile: Dockerfile
+    container_name: erp-gateway-api
+    environment:
+      - NODE_ENV=production
+      - PYTHON_SERVICE_URL=http://python-service:5000
+      - NESTJS_SERVICE_URL=http://nestjs-service:3001
+      - MENU_SERVICE_URL=http://menu-service:3003
+      - GATEWAY_PORT=3002
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+    ports:
+      - "3002:3002"
+    depends_on:
+      - python-service
+      - nestjs-service
+      - menu-service
+    networks:
+      - erp-network
+
+  # Frontend React (Nginx)
+  frontend:
+    build:
+      context: ./frontReact
+      dockerfile: Dockerfile
+    container_name: erp-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway-api
+    networks:
+      - erp-network
+
+volumes:
+  python_data:
+
+networks:
+  erp-network:
+    driver: bridge

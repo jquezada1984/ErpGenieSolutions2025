@@ -1,14 +1,50 @@
 const axios = require('axios');
 
-// URL del servicio NestJS GraphQL
-const NESTJS_GRAPHQL_URL = process.env.NESTJS_SERVICE_URL + '/graphql';
+// Función para determinar el servicio objetivo basado en la consulta
+const getTargetService = (query, config) => {
+  // Primero verificar si es una mutación de autenticación (debe ir a InicioNestJs)
+  if (query && (
+    query.includes('mutation') && (
+      query.includes('login') ||
+      query.includes('register') ||
+      query.includes('refreshToken') ||
+      query.includes('validateToken')
+    )
+  )) {
+    console.log('🔄 Redirigiendo mutación de autenticación a InicioNestJs');
+    return config.nestjsService;
+  }
+  
+  // Luego verificar si es una consulta específica de menús y permisos
+  if (query && (
+    query.includes('menu') || 
+    query.includes('permiso') || 
+    query.includes('seccion') ||
+    query.includes('autorizacion') ||
+    query.includes('opcionesMenuSuperior') ||
+    query.includes('permisosPorPerfil') ||
+    query.includes('permisosPorModulo') ||
+    query.includes('menuLateralPorPerfil')
+  )) {
+    console.log('🔄 Redirigiendo consulta de menú a MenuNestJs');
+    return config.menuService;
+  } else {
+    console.log('🔄 Redirigiendo consulta a InicioNestJs');
+    return config.nestjsService;
+  }
+};
 
 // Función para ejecutar consultas GraphQL
-async function executeGraphQLQuery(query, variables, operationName, context) {
+async function executeGraphQLQuery(query, variables, operationName, context, config) {
   try {
-    console.log('🟣 Ejecutando consulta GraphQL:', operationName || 'anonymous');
+    // Determinar servicio objetivo
+    const targetUrl = getTargetService(query, config);
+    const target = `${targetUrl}/graphql`;
     
-    const response = await axios.post(NESTJS_GRAPHQL_URL, {
+    console.log('🟣 Ejecutando consulta GraphQL:', operationName || 'anonymous');
+    console.log('🔄 Target service:', target);
+    
+    const response = await axios.post(target, {
       query,
       variables,
       operationName
@@ -17,7 +53,7 @@ async function executeGraphQLQuery(query, variables, operationName, context) {
         'Content-Type': 'application/json',
         'Authorization': context.request.headers.authorization || '',
       },
-      timeout: parseInt(process.env.NESTJS_SERVICE_TIMEOUT || '5000')
+      timeout: parseInt(process.env.GRAPHQL_SERVICE_TIMEOUT || '10000')
     });
 
     console.log('✅ Consulta GraphQL ejecutada exitosamente');
@@ -42,7 +78,13 @@ async function routes(fastify, options) {
         });
       }
 
-      const result = await executeGraphQLQuery(query, variables, operationName, { request });
+      // Obtener configuración del gateway
+      const config = {
+        nestjsService: process.env.NESTJS_SERVICE_URL,
+        menuService: process.env.MENU_SERVICE_URL
+      };
+
+      const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);
       
       return reply.send(result);
     } catch (error) {
