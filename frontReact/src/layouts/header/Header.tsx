@@ -101,9 +101,16 @@ const Header = () => {
   };
 
   // Filtrar opciones del menú según permisos
-  const opcionesPermitidas = mainMenuOptions.filter(option => 
-    opcionesMenuSuperior.some(seccion => mapearSeccionAClave(seccion) === option.key)
-  );
+  const opcionesPermitidas = mainMenuOptions.filter(option => {
+    const tienePermiso = opcionesMenuSuperior.some(seccion => mapearSeccionAClave(seccion) === option.key);
+    console.log(`🔍 DEBUG - Header - Verificando permiso para ${option.key}:`, { 
+      opcionesMenuSuperior, 
+      seccion: opcionesMenuSuperior.find(s => mapearSeccionAClave(s) === option.key),
+      mapeado: mapearSeccionAClave(opcionesMenuSuperior.find(s => mapearSeccionAClave(s) === option.key) || ''),
+      tienePermiso 
+    });
+    return tienePermiso;
+  });
 
   // Debug logs
   console.log('🔍 DEBUG - Header - opcionesMenuSuperior:', opcionesMenuSuperior);
