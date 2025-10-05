@@ -26,3 +26,4 @@ echo.
 echo Para ver logs: docker-compose -f docker-compose.dev.yml logs -f
 echo.
 pause
+
