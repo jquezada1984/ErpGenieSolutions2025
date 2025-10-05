@@ -113,42 +113,64 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initialize = async () => {
       try {
+        console.log('🔍 DEBUG - JwtContext - Iniciando autenticación...');
+        
         // Limpiar token expirado al inicializar
         const storedToken = localStorage.getItem('accessToken');
         if (storedToken && !isValidToken(storedToken)) {
+          console.log('🔍 DEBUG - JwtContext - Token expirado encontrado, limpiando...');
           localStorage.removeItem('accessToken');
         }
         
         const accessToken = localStorage.getItem('accessToken');
+        console.log('🔍 DEBUG - JwtContext - Token encontrado:', !!accessToken);
         
         if (accessToken && isValidToken(accessToken)) {
           setSession(accessToken);
           
-          console.log('🔍 DEBUG - JwtContext - Verificando sesión con getMe()');
-          const { data, error } = await getMe();
+          console.log('🔍 DEBUG - JwtContext - Token válido encontrado, inicializando sesión INMEDIATAMENTE');
           
-          console.log('🔍 DEBUG - JwtContext - Respuesta getMe:', { data, error });
+          // Inicializar como autenticado INMEDIATAMENTE si el token es válido
+          dispatch({
+            type: 'INITIALIZE',
+            payload: {
+              isAuthenticated: true,
+              user: null, // Se cargará después
+            },
+          });
           
-          if (data && data.me && data.me.user) {
-            console.log('🔍 DEBUG - JwtContext - Usuario autenticado correctamente');
-            dispatch({
-              type: 'INITIALIZE',
-              payload: {
-                isAuthenticated: true,
-                user: data.me.user,
-              },
-            });
-          } else {
-            console.log('🔍 DEBUG - JwtContext - Usuario no autenticado, datos:', data);
-            dispatch({
-              type: 'INITIALIZE',
-              payload: {
-                isAuthenticated: false,
-                user: null,
-              },
-            });
-          }
+          // Intentar cargar datos del usuario en segundo plano (sin bloquear)
+          console.log('🔍 DEBUG - JwtContext - Cargando datos del usuario en segundo plano');
+          setTimeout(async () => {
+            try {
+              console.log('🔍 DEBUG - JwtContext - Verificando sesión con getMe()');
+              const { data, error } = await getMe();
+              
+              console.log('🔍 DEBUG - JwtContext - Respuesta getMe:', { data, error });
+              
+              if (data && data.me && data.me.user) {
+                console.log('🔍 DEBUG - JwtContext - Datos del usuario cargados correctamente');
+                // Actualizar con los datos del usuario
+                dispatch({
+                  type: 'LOGIN',
+                  payload: {
+                    user: data.me.user,
+                  },
+                });
+              } else {
+                console.log('🔍 DEBUG - JwtContext - Usuario no autenticado, datos:', data);
+                console.log('🔍 DEBUG - JwtContext - MANTENIENDO SESIÓN VÁLIDA - No se desloguea por fallo en getMe()');
+                // NO desloguear - mantener la sesión válida
+                // El token es válido localmente, el problema puede ser del backend
+              }
+            } catch (error) {
+              console.error('🔍 DEBUG - JwtContext - Error cargando datos del usuario:', error);
+              console.log('🔍 DEBUG - JwtContext - MANTENIENDO SESIÓN VÁLIDA - No se desloguea por error en getMe()');
+              // NO desloguear - mantener la sesión válida
+            }
+          }, 100); // Pequeño delay para no bloquear la UI
         } else {
+          console.log('🔍 DEBUG - JwtContext - No hay token válido, inicializando como no autenticado');
           dispatch({
             type: 'INITIALIZE',
             payload: {

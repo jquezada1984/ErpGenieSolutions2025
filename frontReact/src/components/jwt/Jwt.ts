@@ -25,8 +25,18 @@ const isValidToken = (accessToken: string) => {
     const decoded = JSON.parse(jsonPayload);
     const currentTime = Date.now() / 1000;
 
+    // Agregar margen de 5 minutos para evitar problemas de sincronización
+    const margin = 5 * 60; // 5 minutos en segundos
+    const isValid = decoded && decoded.exp && (decoded.exp > (currentTime + margin));
+    
+    console.log('🔍 DEBUG - Jwt - Validación de token:', {
+      exp: decoded.exp,
+      currentTime,
+      margin,
+      isValid
+    });
 
-    return decoded && decoded.exp > currentTime;
+    return isValid;
   } catch (error) {
     console.error('❌ Error decodificando token:', error);
     return false;

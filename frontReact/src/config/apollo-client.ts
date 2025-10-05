@@ -16,23 +16,42 @@ const menuHttpLink = createHttpLink({
 const authLink = setContext((_, { headers }) => {
   const token = localStorage.getItem('accessToken');
   console.log('🔍 DEBUG - Apollo Client - Token encontrado:', !!token);
+  console.log('🔍 DEBUG - Apollo Client - Token completo:', token ? token.substring(0, 20) + '...' : 'null');
+  console.log('🔍 DEBUG - Apollo Client - Headers originales:', headers);
+  
+  const authHeaders = {
+    ...headers,
+    authorization: token ? `Bearer ${token}` : "",
+  };
+  
+  console.log('🔍 DEBUG - Apollo Client - Headers con auth:', authHeaders);
+  
   return {
-    headers: {
-      ...headers,
-      authorization: token ? `Bearer ${token}` : "",
-    }
+    headers: authHeaders
   };
 });
 
 // Middleware para manejo de errores
-const errorLink = onError(({ graphQLErrors, networkError }) => {
-  if (graphQLErrors)
-    graphQLErrors.forEach(({ message, locations, path }) =>
-      console.error(
-        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
-      )
-    );
-  if (networkError) console.error(`[Network error]: ${networkError}`);
+const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
+  console.log('🔍 DEBUG - Apollo Client - Error detectado:', {
+    graphQLErrors,
+    networkError,
+    operation: operation.operationName,
+    variables: operation.variables
+  });
+  
+  if (graphQLErrors) {
+    graphQLErrors.forEach(({ message, locations, path, extensions }) => {
+      console.error(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
+      console.error(`[GraphQL error]: Extensions:`, extensions);
+    });
+  }
+  
+  if (networkError) {
+    console.error(`[Network error]: ${networkError}`);
+    console.error(`[Network error]: Type:`, networkError.constructor.name);
+    console.error(`[Network error]: Message:`, networkError.message);
+  }
 });
 
 // Cliente principal para InicioNestJs (autenticación y servicios principales)

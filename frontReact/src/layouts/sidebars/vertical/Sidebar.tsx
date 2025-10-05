@@ -45,6 +45,9 @@ const Sidebar = () => {
 
   // Usar menú lateral filtrado por permisos en lugar del estático
   const SidebarData = menuLateral.length > 0 ? menuLateral : getSidebarData(selectedMenu);
+  
+  console.log('🔍 DEBUG - Sidebar - menuLateral:', menuLateral);
+  console.log('🔍 DEBUG - Sidebar - SidebarData:', SidebarData);
 
   return (
     <div className={`sidebarBox shadow bg-${activeBg} ${isFixed ? 'fixedSidebar' : ''}`}>
@@ -69,42 +72,72 @@ const Sidebar = () => {
             </div>
           ) : (
             <Nav vertical className={activeBg === 'white' ? '' : 'lightText'}>
-              {SidebarData.map((navi) => {
-              if (navi.caption) {
+              {SidebarData.map((navi, index) => {
+                console.log('🔍 DEBUG - Sidebar - Mapeando elemento:', { navi, index });
+                
+                // Manejar estructura del menuLateral (SeccionConPermisos)
+                if (navi.id_seccion) {
+                  // Es una sección del menuLateral
+                  const key = navi.id_seccion || `seccion-${index}`;
+                  console.log('🔍 DEBUG - Sidebar - Renderizando sección:', key);
+                  return (
+                    <NavSubMenu
+                      key={key}
+                      icon={navi.icono ? <i className={navi.icono} /> : <i className="bi bi-folder" />}
+                      title={navi.nombre}
+                      items={navi.items?.map((item, itemIndex) => ({
+                        title: item.etiqueta,
+                        href: item.ruta,
+                        icon: item.icono ? <i className={item.icono} /> : <i className="bi bi-file" />,
+                        id: item.id_item || `item-${itemIndex}`
+                      })) || []}
+                      suffix={navi.tienePermisos ? "✓" : ""}
+                      suffixColor={navi.tienePermisos ? "bg-success" : "bg-secondary"}
+                      isUrl={false}
+                    />
+                  );
+                }
+                
+                // Manejar estructura del SidebarData estático
+                if (navi.caption) {
+                  const key = navi.caption || `caption-${index}`;
+                  console.log('🔍 DEBUG - Sidebar - Renderizando caption:', key);
+                  return (
+                    <div className="navCaption fw-bold mt-4" key={key}>
+                      {navi.caption}
+                    </div>
+                  );
+                }
+                if (navi.children) {
+                  const key = navi.id || `navi-${index}`;
+                  console.log('🔍 DEBUG - Sidebar - Renderizando NavSubMenu:', key);
+                  return (
+                    <NavSubMenu
+                      key={key}
+                      icon={navi.icon}
+                      title={navi.title}
+                      items={navi.children}
+                      suffix={navi.suffix}
+                      suffixColor={navi.suffixColor}
+                      isUrl={currentURL === navi.href}
+                    />
+                  );
+                }
+                
+                const key = navi.id || `item-${index}`;
+                console.log('🔍 DEBUG - Sidebar - Renderizando NavItemContainer:', key);
                 return (
-                  <div className="navCaption fw-bold mt-4" key={navi.caption}>
-                    {navi.caption}
-                  </div>
-                );
-              }
-              if (navi.children) {
-                return (
-                  <NavSubMenu
-                    key={navi.id}
-                    icon={navi.icon}
+                  <NavItemContainer
+                    key={key}
+                    className={location.pathname === navi.href ? 'activeLink' : ''}
+                    to={navi.href}
                     title={navi.title}
-                    items={navi.children}
                     suffix={navi.suffix}
                     suffixColor={navi.suffixColor}
-                    // toggle={() => toggle(navi.id)}
-                    // collapsed={collapsed === navi.id}
-                    isUrl={currentURL === navi.href}
+                    icon={navi.icon}
                   />
                 );
-              }
-              return (
-                <NavItemContainer
-                  key={navi.id}
-                  //toggle={() => toggle(navi.id)}
-                  className={location.pathname === navi.href ? 'activeLink' : ''}
-                  to={navi.href}
-                  title={navi.title}
-                  suffix={navi.suffix}
-                  suffixColor={navi.suffixColor}
-                  icon={navi.icon}
-                />
-              );
-                          })}
+              })}
             </Nav>
           )}
         </div>

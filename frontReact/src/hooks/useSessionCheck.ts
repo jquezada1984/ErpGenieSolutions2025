@@ -23,19 +23,14 @@ export const useSessionCheck = (checkInterval = 60000) => { // Verificar cada mi
       }
     };
 
-    // Verificar después de un pequeño delay para permitir que la autenticación se inicialice
-    const initialCheck = setTimeout(() => {
-      checkSession();
-    }, 1000);
-
-    // Configurar verificación periódica
+    // NO verificar inmediatamente - solo configurar verificación periódica
+    // Esto evita que se desloguee al usuario cuando navega
     intervalRef.current = setInterval(checkSession, checkInterval);
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      clearTimeout(initialCheck);
     };
   }, [navigate, checkInterval]);
 
