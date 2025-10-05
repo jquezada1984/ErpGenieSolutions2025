@@ -9,16 +9,24 @@ export const useSessionCheck = (checkInterval = 60000) => { // Verificar cada mi
   useEffect(() => {
     const checkSession = () => {
       const token = localStorage.getItem('accessToken');
+      console.log('🔍 DEBUG - useSessionCheck - Verificando sesión:', { 
+        hasToken: !!token, 
+        tokenValid: token ? isValidToken(token) : false 
+      });
       
       if (!token || !isValidToken(token)) {
         console.log('🔒 Sesión expirada, redirigiendo al login...');
         localStorage.removeItem('accessToken');
         navigate('/auth/login', { replace: true });
+      } else {
+        console.log('🔍 DEBUG - useSessionCheck - Sesión válida');
       }
     };
 
-    // Verificar inmediatamente
-    checkSession();
+    // Verificar después de un pequeño delay para permitir que la autenticación se inicialice
+    const initialCheck = setTimeout(() => {
+      checkSession();
+    }, 1000);
 
     // Configurar verificación periódica
     intervalRef.current = setInterval(checkSession, checkInterval);
@@ -27,6 +35,7 @@ export const useSessionCheck = (checkInterval = 60000) => { // Verificar cada mi
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      clearTimeout(initialCheck);
     };
   }, [navigate, checkInterval]);
 

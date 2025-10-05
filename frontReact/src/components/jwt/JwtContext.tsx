@@ -124,9 +124,13 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         if (accessToken && isValidToken(accessToken)) {
           setSession(accessToken);
           
-          const { data } = await getMe();
+          console.log('🔍 DEBUG - JwtContext - Verificando sesión con getMe()');
+          const { data, error } = await getMe();
+          
+          console.log('🔍 DEBUG - JwtContext - Respuesta getMe:', { data, error });
           
           if (data && data.me && data.me.user) {
+            console.log('🔍 DEBUG - JwtContext - Usuario autenticado correctamente');
             dispatch({
               type: 'INITIALIZE',
               payload: {
@@ -135,6 +139,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
               },
             });
           } else {
+            console.log('🔍 DEBUG - JwtContext - Usuario no autenticado, datos:', data);
             dispatch({
               type: 'INITIALIZE',
               payload: {
@@ -153,6 +158,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } catch (err) {
+        console.error('🔍 DEBUG - JwtContext - Error en inicialización:', err);
         dispatch({
           type: 'INITIALIZE',
           payload: {

@@ -24,7 +24,7 @@ services:
   nestjs-service:
     build:
       context: ./InicioNestJs
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: erp-nestjs-service-dev
     environment:
       - NODE_ENV=development
@@ -44,7 +44,7 @@ services:
   menu-service:
     build:
       context: ./MenuNestJs
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: erp-menu-service-dev
     environment:
       - NODE_ENV=development
@@ -64,7 +64,7 @@ services:
   gateway-api:
     build:
       context: ./gateway-api
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: erp-gateway-api-dev
     environment:
       - NODE_ENV=development
@@ -72,7 +72,7 @@ services:
       - NESTJS_SERVICE_URL=http://nestjs-service:3001
       - MENU_SERVICE_URL=http://menu-service:3003
       - GATEWAY_PORT=3002
-      - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3004,http://localhost:5173
       - TZ=America/Guayaquil
     ports:
       - "3002:3002"
@@ -82,6 +82,10 @@ services:
     networks:
       - erp-network
     command: ["npm", "run", "dev"]
+    depends_on:
+      - python-service
+      - nestjs-service
+      - menu-service
 
   # Frontend React - Desarrollo
   frontend:
@@ -94,8 +98,14 @@ services:
     volumes:
       - ./frontReact:/app
       - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_GATEWAY_URL=http://localhost:3002
+      - VITE_PYTHON_URL=http://localhost:5000
+      - TZ=America/Guayaquil
     networks:
       - erp-network
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 volumes:
   python_dev_data:

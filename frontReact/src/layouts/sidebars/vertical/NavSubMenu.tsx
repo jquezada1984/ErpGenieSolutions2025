@@ -36,7 +36,7 @@ const NavSubMenu = ({ icon, title, items, isUrl, suffixColor, suffix }) => {
       <Collapse isOpen={collapsed} navbar tag="ul" className="subMenu">
         {items.map((item, index) => (
           <NavItem
-            key={`${item.id || item.title}-${index}`}
+            key={item.id || item.href || `${item.title}-${index}`}
             className={`hide-mini ${location.pathname === item.href ? 'activeLink' : ''}`}
           >
             <NavLink tag={Link} to={item.href} className="gap-3">

@@ -71,6 +71,15 @@ const Header = () => {
     }
   }, [user?.id_perfil, cargarOpcionesMenuSuperior]);
 
+  // Asegurar que el estado inicial se mantenga
+  useEffect(() => {
+    console.log('🔍 DEBUG - Header - Verificando estado inicial:', { selectedMenu, opcionesMenuSuperior });
+    if (selectedMenu === '' || selectedMenu === null || selectedMenu === undefined) {
+      console.log('🔍 DEBUG - Header - Estableciendo estado inicial a "inicio"');
+      dispatch(setMainMenu('inicio'));
+    }
+  }, [selectedMenu, dispatch, opcionesMenuSuperior]);
+
   // Mapear nombres de secciones a claves del menú
   const mapearSeccionAClave = (nombreSeccion: string): string => {
     const mapeo: { [key: string]: string } = {
@@ -100,6 +109,8 @@ const Header = () => {
   console.log('🔍 DEBUG - Header - opcionesMenuSuperior:', opcionesMenuSuperior);
   console.log('🔍 DEBUG - Header - opcionesPermitidas:', opcionesPermitidas);
   console.log('🔍 DEBUG - Header - loadingPermisos:', loadingPermisos);
+  console.log('🔍 DEBUG - Header - selectedMenu:', selectedMenu);
+  console.log('🔍 DEBUG - Header - mainMenuOptions:', mainMenuOptions);
 
   const handleLogout = async () => {
     try {
@@ -155,19 +166,23 @@ const Header = () => {
             <span className="text-light">Cargando permisos...</span>
           </div>
         ) : (
-          opcionesPermitidas.map((item) => (
-            <NavItem key={item.key}>
-              <Button
-                color="link"
-                className={`nav-link d-flex flex-column align-items-center justify-content-center${selectedMenu === item.key ? ' main-menu-active' : ''}`}
-                onClick={() => dispatch(setMainMenu(item.key))}
-                style={{ minWidth: 70, padding: 0 }}
-              >
-                {item.icon}
-                <span className="mt-1 text-center" style={{ fontSize: 12, lineHeight: 1.1 }}>{item.label}</span>
-              </Button>
-            </NavItem>
-          ))
+          opcionesPermitidas.map((item) => {
+            const isActive = selectedMenu === item.key;
+            console.log(`🔍 DEBUG - Header - Botón ${item.label}: selectedMenu=${selectedMenu}, item.key=${item.key}, isActive=${isActive}`);
+            return (
+              <NavItem key={item.key}>
+                <Button
+                  color="link"
+                  className={`nav-link d-flex flex-column align-items-center justify-content-center${isActive ? ' main-menu-active' : ''}`}
+                  onClick={() => dispatch(setMainMenu(item.key))}
+                  style={{ minWidth: 70, padding: 0 }}
+                >
+                  {item.icon}
+                  <span className="mt-1 text-center" style={{ fontSize: 12, lineHeight: 1.1 }}>{item.label}</span>
+                </Button>
+              </NavItem>
+            );
+          })
         )}
       </Nav>
       {/******************************/}

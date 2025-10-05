@@ -2,9 +2,9 @@ import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/clien
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 
-// Configuración para InicioNestJs (autenticación y servicios principales)
+// Configuración para Gateway (todos los servicios)
 const mainHttpLink = createHttpLink({
-  uri: import.meta.env.VITE_GATEWAY_URL + '/graphql' || 'http://localhost:3000/graphql',
+  uri: import.meta.env.VITE_GATEWAY_URL + '/graphql' || 'http://localhost:3002/graphql',
 });
 
 // Configuración para MenuNestJs (permisos de menú)
@@ -15,6 +15,7 @@ const menuHttpLink = createHttpLink({
 // Middleware para agregar token de autenticación
 const authLink = setContext((_, { headers }) => {
   const token = localStorage.getItem('accessToken');
+  console.log('🔍 DEBUG - Apollo Client - Token encontrado:', !!token);
   return {
     headers: {
       ...headers,
