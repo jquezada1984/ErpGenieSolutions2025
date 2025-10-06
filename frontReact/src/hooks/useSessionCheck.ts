@@ -9,17 +9,12 @@ export const useSessionCheck = (checkInterval = 60000) => { // Verificar cada mi
   useEffect(() => {
     const checkSession = () => {
       const token = localStorage.getItem('accessToken');
-      console.log('🔍 DEBUG - useSessionCheck - Verificando sesión:', { 
-        hasToken: !!token, 
-        tokenValid: token ? isValidToken(token) : false 
-      });
       
       if (!token || !isValidToken(token)) {
         console.log('🔒 Sesión expirada, redirigiendo al login...');
         localStorage.removeItem('accessToken');
         navigate('/auth/login', { replace: true });
       } else {
-        console.log('🔍 DEBUG - useSessionCheck - Sesión válida');
       }
     };
 

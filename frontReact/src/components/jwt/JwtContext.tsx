@@ -113,22 +113,18 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initialize = async () => {
       try {
-        console.log('🔍 DEBUG - JwtContext - Iniciando autenticación...');
         
         // Limpiar token expirado al inicializar
         const storedToken = localStorage.getItem('accessToken');
         if (storedToken && !isValidToken(storedToken)) {
-          console.log('🔍 DEBUG - JwtContext - Token expirado encontrado, limpiando...');
           localStorage.removeItem('accessToken');
         }
         
         const accessToken = localStorage.getItem('accessToken');
-        console.log('🔍 DEBUG - JwtContext - Token encontrado:', !!accessToken);
         
         if (accessToken && isValidToken(accessToken)) {
           setSession(accessToken);
           
-          console.log('🔍 DEBUG - JwtContext - Token válido encontrado, inicializando sesión INMEDIATAMENTE');
           
           // Inicializar como autenticado INMEDIATAMENTE si el token es válido
           dispatch({
@@ -140,7 +136,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           });
           
           // Intentar cargar datos del usuario en segundo plano (sin bloquear)
-          console.log('🔍 DEBUG - JwtContext - Cargando datos del usuario en segundo plano');
           setTimeout(async () => {
             try {
               console.log('🔍 DEBUG - JwtContext - Verificando sesión con getMe()');
@@ -149,7 +144,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
               console.log('🔍 DEBUG - JwtContext - Respuesta getMe:', { data, error });
               
               if (data && data.me && data.me.user) {
-                console.log('🔍 DEBUG - JwtContext - Datos del usuario cargados correctamente');
+                console.log('🔍 DEBUG - JwtContext - Usuario autenticado:', data.me.user);
                 // Actualizar con los datos del usuario
                 dispatch({
                   type: 'LOGIN',
@@ -160,17 +155,46 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
               } else {
                 console.log('🔍 DEBUG - JwtContext - Usuario no autenticado, datos:', data);
                 console.log('🔍 DEBUG - JwtContext - MANTENIENDO SESIÓN VÁLIDA - No se desloguea por fallo en getMe()');
+                
+                // Intentar obtener el perfil del token directamente
+                try {
+                  const token = localStorage.getItem('accessToken');
+                  if (token) {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    console.log('🔍 DEBUG - JwtContext - Payload del token:', payload);
+                    
+                    if (payload.id_perfil) {
+                      console.log('🔍 DEBUG - JwtContext - id_perfil encontrado en token:', payload.id_perfil);
+                      // Crear un usuario temporal con el id_perfil del token
+                      const tempUser = {
+                        id: payload.sub || payload.id || 'temp',
+                        email: payload.email || 'usuario@temp.com',
+                        firstName: payload.firstName || 'Usuario',
+                        lastName: payload.lastName || 'Temporal',
+                        id_perfil: payload.id_perfil
+                      };
+                      
+                      dispatch({
+                        type: 'LOGIN',
+                        payload: {
+                          user: tempUser,
+                        },
+                      });
+                    }
+                  }
+                } catch (tokenError) {
+                  console.error('Error al decodificar token:', tokenError);
+                }
+                
                 // NO desloguear - mantener la sesión válida
                 // El token es válido localmente, el problema puede ser del backend
               }
             } catch (error) {
-              console.error('🔍 DEBUG - JwtContext - Error cargando datos del usuario:', error);
-              console.log('🔍 DEBUG - JwtContext - MANTENIENDO SESIÓN VÁLIDA - No se desloguea por error en getMe()');
+              console.error('Error cargando datos del usuario:', error);
               // NO desloguear - mantener la sesión válida
             }
           }, 100); // Pequeño delay para no bloquear la UI
         } else {
-          console.log('🔍 DEBUG - JwtContext - No hay token válido, inicializando como no autenticado');
           dispatch({
             type: 'INITIALIZE',
             payload: {
@@ -235,7 +259,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Cargar opciones del menú superior después del login exitoso
       if (user?.id_perfil) {
-        console.log('🔍 DEBUG - Login exitoso, cargando opciones del menú para perfil:', user.id_perfil);
         try {
           await cargarOpcionesMenuSuperior(user.id_perfil);
           console.log('✅ Opciones del menú cargadas exitosamente');
@@ -243,13 +266,11 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('❌ Error al cargar opciones del menú:', error);
         }
       } else {
-        console.log('⚠️ DEBUG - Usuario no tiene id_perfil, intentando obtenerlo...');
         
         // Intentar obtener el perfil del usuario
         try {
           const { data: profileData } = await getMe();
           if (profileData?.me?.user?.id_perfil) {
-            console.log('🔍 DEBUG - Perfil obtenido:', profileData.me.user.id_perfil);
             await cargarOpcionesMenuSuperior(profileData.me.user.id_perfil);
             console.log('✅ Opciones del menú cargadas exitosamente desde perfil');
           } else {

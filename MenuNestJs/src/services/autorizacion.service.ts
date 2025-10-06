@@ -9,7 +9,9 @@ import {
   PermisoMenu, 
   SeccionConPermisos, 
   PerfilConPermisos,
-  EstadisticasPermisos 
+  EstadisticasPermisos,
+  MenuItemOrdenado,
+  MenuLateralOrdenado
 } from '../types/graphql.types';
 
 @Injectable()
@@ -89,9 +91,6 @@ export class AutorizacionService {
 
       // Filtrar secciones y items según permisos
       const seccionesConPermisos: SeccionConPermisos[] = secciones.map(seccion => {
-        console.log(`🔍 DEBUG - MenuNestJs - Procesando sección: ${seccion.nombre}`);
-        console.log(`🔍 DEBUG - MenuNestJs - Items antes del filtro:`, seccion.items.map(item => ({ etiqueta: item.etiqueta, orden: item.orden })));
-        
         const itemsConPermisos = seccion.items
           .filter(item => permisosMap.has(item.id_item) && permisosMap.get(item.id_item))
           .sort((a, b) => a.orden - b.orden) // Ordenar por la columna orden
@@ -111,8 +110,6 @@ export class AutorizacionService {
             };
           });
 
-        console.log(`🔍 DEBUG - MenuNestJs - Items después del ordenamiento:`, itemsConPermisos.map(item => ({ etiqueta: item.etiqueta, orden: item.seccion.orden })));
-        
         const tienePermisos = itemsConPermisos.length > 0;
 
         return {
@@ -272,6 +269,177 @@ export class AutorizacionService {
       };
     } catch (error) {
       throw new Error(`Error al obtener estadísticas: ${error.message}`);
+    }
+  }
+
+  /**
+   * Obtiene el menú principal ordenado (items sin parent_id) para una sección específica
+   * Implementa la consulta exacta: SELECT id_item, id_seccion, parent_id, etiqueta, icono, ruta, es_clickable, orden, muestra_badge, badge_text, estado, created_by, created_at, updated_by, updated_at FROM public.menu_item WHERE id_seccion='29dea275-b0f7-4fb3-83fa-7c0ea31c3cf1' and parent_id is null and estado=true ORDER BY orden ASC
+   */
+  async obtenerMenuPrincipalOrdenado(id_seccion: string): Promise<MenuItemOrdenado[]> {
+    try {
+      console.log('🔍 DEBUG - obtenerMenuPrincipalOrdenado - id_seccion:', id_seccion);
+      console.log('🔍 DEBUG - Ejecutando consulta SQL exacta para items principales');
+      
+      const items = await this.menuItemRepository
+        .createQueryBuilder('item')
+        .select([
+          'item.id_item',
+          'item.id_seccion', 
+          'item.parent_id',
+          'item.etiqueta',
+          'item.icono',
+          'item.ruta',
+          'item.es_clickable',
+          'item.orden',
+          'item.muestra_badge',
+          'item.badge_text',
+          'item.estado',
+          'item.created_by',
+          'item.created_at',
+          'item.updated_by',
+          'item.updated_at'
+        ])
+        .where('item.id_seccion = :id_seccion', { id_seccion })
+        .andWhere('item.parent_id IS NULL')
+        .andWhere('item.estado = :estado', { estado: true })
+        .orderBy('item.orden', 'ASC')
+        .cache('menu_principal_' + id_seccion, 300000) // Cache por 5 minutos
+        .getMany();
+
+      console.log('🔍 DEBUG - Items principales encontrados:', items.length);
+      console.log('🔍 DEBUG - Items principales:', items.map(item => ({
+        etiqueta: item.etiqueta,
+        orden: item.orden,
+        es_clickable: item.es_clickable
+      })));
+      
+      return items.map(item => ({
+        id_item: item.id_item,
+        id_seccion: item.id_seccion,
+        parent_id: null, // Los items principales no tienen parent_id
+        etiqueta: item.etiqueta,
+        icono: item.icono,
+        ruta: item.ruta,
+        es_clickable: !!item.ruta, // Es clickable si tiene ruta
+        orden: item.orden,
+        muestra_badge: false, // Default value until entity is updated
+        badge_text: null, // Default value until entity is updated
+        estado: item.estado,
+        created_by: null, // Default value until entity is updated
+        created_at: null, // Default value until entity is updated
+        updated_by: null, // Default value until entity is updated
+        updated_at: null, // Default value until entity is updated
+        children: [] // Se llenará después
+      }));
+    } catch (error) {
+      console.error('❌ ERROR en obtenerMenuPrincipalOrdenado:', error);
+      throw new Error(`Error al obtener menú principal: ${error.message}`);
+    }
+  }
+
+  /**
+   * Obtiene los submenús ordenados para un item específico
+   * Implementa la consulta: SELECT * FROM menu_item WHERE parent_id=? AND estado=true ORDER BY orden ASC
+   */
+  async obtenerSubmenusOrdenados(parent_id: string): Promise<MenuItemOrdenado[]> {
+    try {
+      console.log('🔍 DEBUG - obtenerSubmenusOrdenados - parent_id:', parent_id);
+      
+      const submenus = await this.menuItemRepository
+        .createQueryBuilder('item')
+        .where('item.parent_id = :parent_id', { parent_id })
+        .andWhere('item.estado = :estado', { estado: true })
+        .orderBy('item.orden', 'ASC')
+        .cache('submenus_' + parent_id, 300000) // Cache por 5 minutos
+        .getMany();
+
+      console.log('🔍 DEBUG - Submenús encontrados:', submenus.length);
+      
+      return submenus.map(item => ({
+        id_item: item.id_item,
+        id_seccion: item.id_seccion,
+        parent_id: parent_id, // Usar el parent_id pasado como parámetro
+        etiqueta: item.etiqueta,
+        icono: item.icono,
+        ruta: item.ruta,
+        es_clickable: !!item.ruta,
+        orden: item.orden,
+        muestra_badge: false,
+        badge_text: null,
+        estado: item.estado,
+        created_by: null,
+        created_at: null,
+        updated_by: null,
+        updated_at: null,
+        children: [] // Los submenús no tienen hijos por ahora
+      }));
+    } catch (error) {
+      console.error('❌ ERROR en obtenerSubmenusOrdenados:', error);
+      throw new Error(`Error al obtener submenús: ${error.message}`);
+    }
+  }
+
+  /**
+   * Obtiene el menú lateral completo ordenado jerárquicamente para una sección
+   * Combina menú principal y submenús en una estructura jerárquica
+   */
+  async obtenerMenuLateralOrdenado(id_seccion: string): Promise<MenuLateralOrdenado> {
+    try {
+      console.log('🔍 DEBUG - obtenerMenuLateralOrdenado - id_seccion:', id_seccion);
+      
+      // Obtener información de la sección
+      const seccion = await this.menuSeccionRepository.findOne({
+        where: { id_seccion, estado: true }
+      });
+
+      if (!seccion) {
+        throw new Error('Sección no encontrada');
+      }
+
+      // Obtener items principales
+      const itemsPrincipales = await this.obtenerMenuPrincipalOrdenado(id_seccion);
+      
+      // Para cada item principal, obtener sus submenús
+      const itemsCompletos: MenuItemOrdenado[] = [];
+      
+      for (const item of itemsPrincipales) {
+        console.log('🔍 DEBUG - Procesando item principal:', item.etiqueta);
+        
+        // Obtener submenús de este item
+        const submenus = await this.obtenerSubmenusOrdenados(item.id_item);
+        
+        const itemCompleto: MenuItemOrdenado = {
+          ...item,
+          children: submenus
+        };
+        
+        console.log('🔍 DEBUG - Item con submenús:', {
+          etiqueta: item.etiqueta,
+          submenus: submenus.length
+        });
+        
+        itemsCompletos.push(itemCompleto);
+      }
+
+      const menuLateralOrdenado: MenuLateralOrdenado = {
+        id_seccion: seccion.id_seccion,
+        nombre: seccion.nombre,
+        orden: seccion.orden,
+        icono: seccion.icono,
+        items: itemsCompletos
+      };
+
+      console.log('🔍 DEBUG - Menú lateral ordenado creado:', {
+        seccion: seccion.nombre,
+        itemsPrincipales: itemsPrincipales.length,
+        totalItems: itemsCompletos.length
+      });
+
+      return menuLateralOrdenado;
+    } catch (error) {
+      console.error('❌ ERROR en obtenerMenuLateralOrdenado:', error);
+      throw new Error(`Error al obtener menú lateral ordenado: ${error.message}`);
     }
   }
 }

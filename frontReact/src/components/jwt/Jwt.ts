@@ -29,12 +29,6 @@ const isValidToken = (accessToken: string) => {
     const margin = 5 * 60; // 5 minutos en segundos
     const isValid = decoded && decoded.exp && (decoded.exp > (currentTime + margin));
     
-    console.log('🔍 DEBUG - Jwt - Validación de token:', {
-      exp: decoded.exp,
-      currentTime,
-      margin,
-      isValid
-    });
 
     return isValid;
   } catch (error) {

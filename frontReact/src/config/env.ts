@@ -14,19 +14,12 @@ export const env = {
 // Función para obtener la URL del gateway GraphQL
 export const getGatewayGraphQLUrl = () => {
   const url = env.GATEWAY_GRAPHQL_URL;
-  console.log('🔍 DEBUG - Configuración - URL del Gateway GraphQL:', url);
   return url;
 };
 
 // Función para obtener la URL del gateway
 export const getGatewayUrl = () => {
   const url = env.GATEWAY_URL;
-  console.log('🔍 DEBUG - Configuración - URL del Gateway:', url);
   return url;
 };
 
-// Log de configuración al cargar
-console.log('🔍 DEBUG - Configuración cargada:', {
-  GATEWAY_URL: env.GATEWAY_URL,
-  GATEWAY_GRAPHQL_URL: env.GATEWAY_GRAPHQL_URL
-});

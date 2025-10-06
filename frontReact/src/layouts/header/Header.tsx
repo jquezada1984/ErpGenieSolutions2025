@@ -67,15 +67,19 @@ const Header = () => {
   // Cargar permisos cuando el usuario esté autenticado
   useEffect(() => {
     if (user?.id_perfil) {
+      console.log('🔍 DEBUG - Header - Cargando opciones menú superior para perfil:', user.id_perfil);
       cargarOpcionesMenuSuperior(user.id_perfil);
+    } else {
+      console.log('🔍 DEBUG - Header - No hay id_perfil disponible, usando menú por defecto');
+      // Mostrar menú por defecto si no hay perfil
+      dispatch(setMainMenu('inicio'));
     }
-  }, [user?.id_perfil, cargarOpcionesMenuSuperior]);
+  }, [user?.id_perfil, cargarOpcionesMenuSuperior, dispatch]);
 
   // Asegurar que el estado inicial se mantenga
   useEffect(() => {
-    console.log('🔍 DEBUG - Header - Verificando estado inicial:', { selectedMenu, opcionesMenuSuperior });
     if (selectedMenu === '' || selectedMenu === null || selectedMenu === undefined) {
-      console.log('🔍 DEBUG - Header - Estableciendo estado inicial a "inicio"');
+      console.log('🔍 DEBUG - Header - Configurando menú inicial a "inicio"');
       dispatch(setMainMenu('inicio'));
     }
   }, [selectedMenu, dispatch, opcionesMenuSuperior]);
@@ -102,22 +106,18 @@ const Header = () => {
 
   // Filtrar opciones del menú según permisos
   const opcionesPermitidas = mainMenuOptions.filter(option => {
-    const tienePermiso = opcionesMenuSuperior.some(seccion => mapearSeccionAClave(seccion) === option.key);
-    console.log(`🔍 DEBUG - Header - Verificando permiso para ${option.key}:`, { 
-      opcionesMenuSuperior, 
-      seccion: opcionesMenuSuperior.find(s => mapearSeccionAClave(s) === option.key),
-      mapeado: mapearSeccionAClave(opcionesMenuSuperior.find(s => mapearSeccionAClave(s) === option.key) || ''),
-      tienePermiso 
-    });
-    return tienePermiso;
+    return opcionesMenuSuperior.some(seccion => mapearSeccionAClave(seccion) === option.key);
   });
 
-  // Debug logs
-  console.log('🔍 DEBUG - Header - opcionesMenuSuperior:', opcionesMenuSuperior);
-  console.log('🔍 DEBUG - Header - opcionesPermitidas:', opcionesPermitidas);
-  console.log('🔍 DEBUG - Header - loadingPermisos:', loadingPermisos);
-  console.log('🔍 DEBUG - Header - selectedMenu:', selectedMenu);
-  console.log('🔍 DEBUG - Header - mainMenuOptions:', mainMenuOptions);
+  // Logs de debug para el menú superior
+  useEffect(() => {
+    console.log('🔍 DEBUG - Header - opcionesMenuSuperior:', opcionesMenuSuperior);
+    console.log('🔍 DEBUG - Header - opcionesPermitidas:', opcionesPermitidas);
+    console.log('🔍 DEBUG - Header - loadingPermisos:', loadingPermisos);
+    console.log('🔍 DEBUG - Header - selectedMenu:', selectedMenu);
+    console.log('🔍 DEBUG - Header - mainMenuOptions:', mainMenuOptions);
+  }, [opcionesMenuSuperior, opcionesPermitidas, loadingPermisos, selectedMenu]);
+
 
   const handleLogout = async () => {
     try {
@@ -172,10 +172,28 @@ const Header = () => {
             </div>
             <span className="text-light">Cargando permisos...</span>
           </div>
-        ) : (
+        ) : opcionesPermitidas.length > 0 ? (
+          // Mostrar opciones filtradas por permisos
           opcionesPermitidas.map((item) => {
             const isActive = selectedMenu === item.key;
-            console.log(`🔍 DEBUG - Header - Botón ${item.label}: selectedMenu=${selectedMenu}, item.key=${item.key}, isActive=${isActive}`);
+            return (
+              <NavItem key={item.key}>
+                <Button
+                  color="link"
+                  className={`nav-link d-flex flex-column align-items-center justify-content-center${isActive ? ' main-menu-active' : ''}`}
+                  onClick={() => dispatch(setMainMenu(item.key))}
+                  style={{ minWidth: 70, padding: 0 }}
+                >
+                  {item.icon}
+                  <span className="mt-1 text-center" style={{ fontSize: 12, lineHeight: 1.1 }}>{item.label}</span>
+                </Button>
+              </NavItem>
+            );
+          })
+        ) : (
+          // Mostrar menú por defecto si no hay permisos cargados
+          mainMenuOptions.slice(0, 5).map((item) => {
+            const isActive = selectedMenu === item.key;
             return (
               <NavItem key={item.key}>
                 <Button

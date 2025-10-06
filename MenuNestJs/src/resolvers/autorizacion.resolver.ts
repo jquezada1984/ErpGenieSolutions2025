@@ -4,7 +4,9 @@ import {
   PermisoMenu, 
   SeccionConPermisos, 
   PerfilConPermisos,
-  EstadisticasPermisos 
+  EstadisticasPermisos,
+  MenuItemOrdenado,
+  MenuLateralOrdenado
 } from '../types/graphql.types';
 
 @Resolver()
@@ -89,6 +91,41 @@ export class AutorizacionResolver {
       return await this.autorizacionService.obtenerEstadisticasPermisos(id_perfil);
     } catch (error) {
       throw new Error(`Error al obtener estadísticas: ${error.message}`);
+    }
+  }
+
+  // Nuevos resolvers para el menú ordenado jerárquico
+
+  @Query(() => [MenuItemOrdenado])
+  async menuPrincipalOrdenado(
+    @Args('id_seccion', { type: () => ID }) id_seccion: string,
+  ): Promise<MenuItemOrdenado[]> {
+    try {
+      return await this.autorizacionService.obtenerMenuPrincipalOrdenado(id_seccion);
+    } catch (error) {
+      throw new Error(`Error al obtener menú principal: ${error.message}`);
+    }
+  }
+
+  @Query(() => [MenuItemOrdenado])
+  async submenusOrdenados(
+    @Args('parent_id', { type: () => ID }) parent_id: string,
+  ): Promise<MenuItemOrdenado[]> {
+    try {
+      return await this.autorizacionService.obtenerSubmenusOrdenados(parent_id);
+    } catch (error) {
+      throw new Error(`Error al obtener submenús: ${error.message}`);
+    }
+  }
+
+  @Query(() => MenuLateralOrdenado)
+  async menuLateralOrdenado(
+    @Args('id_seccion', { type: () => ID }) id_seccion: string,
+  ): Promise<MenuLateralOrdenado> {
+    try {
+      return await this.autorizacionService.obtenerMenuLateralOrdenado(id_seccion);
+    } catch (error) {
+      throw new Error(`Error al obtener menú lateral ordenado: ${error.message}`);
     }
   }
 }

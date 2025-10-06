@@ -30,9 +30,41 @@ export class MenuItem {
   @Column({ default: true })
   estado: boolean;
 
+  @Field()
+  @Column({ default: false })
+  es_clickable: boolean;
+
+  @Field()
+  @Column({ default: false })
+  muestra_badge: boolean;
+
+  @Field({ nullable: true })
+  @Column({ length: 50, nullable: true })
+  badge_text?: string;
+
+  @Field({ nullable: true })
+  @Column({ length: 100, nullable: true })
+  created_by?: string;
+
+  @Field({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
+  created_at?: Date;
+
+  @Field({ nullable: true })
+  @Column({ length: 100, nullable: true })
+  updated_by?: string;
+
+  @Field({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
+  updated_at?: Date;
+
   @Field(() => ID)
   @Column()
   id_seccion: string;
+
+  @Field(() => ID, { nullable: true })
+  @Column({ nullable: true })
+  parent_id?: string;
 
   @Field(() => MenuSeccion, { nullable: true })
   @ManyToOne(() => MenuSeccion, seccion => seccion.items)

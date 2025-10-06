@@ -7,16 +7,9 @@ const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const auth = useAuth();
   const location = useLocation();
 
-  console.log('🔍 DEBUG - AuthGuard - Estado de autenticación:', {
-    isInitialized: auth.isInitialized,
-    isAuthenticated: auth.isAuthenticated,
-    hasToken: !!localStorage.getItem('accessToken'),
-    currentPath: location.pathname
-  });
 
   // Mostrar loader mientras se inicializa la autenticación
   if (!auth.isInitialized) {
-    console.log('🔍 DEBUG - AuthGuard - Mostrando loader durante inicialización');
     return <Loader />;
   }
 
@@ -47,17 +40,14 @@ const AuthGuard = ({ children }: { children: React.ReactNode }) => {
 
   // Si no está autenticado pero hay un token válido, esperar un poco más
   if (!auth.isAuthenticated && hasValidToken() && location.pathname !== '/auth/login') {
-    console.log('🔍 DEBUG - AuthGuard - Token válido encontrado, esperando autenticación...');
     return <Loader />;
   }
 
   // Redirigir al login solo si realmente no está autenticado y no hay token válido
   if (!auth.isAuthenticated && !hasValidToken() && location.pathname !== '/auth/login') {
-    console.log('🔍 DEBUG - AuthGuard - Redirigiendo al login - no autenticado y sin token válido');
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  console.log('🔍 DEBUG - AuthGuard - Permitiendo acceso');
   return <>{children}</>;
 };
 
