@@ -89,8 +89,12 @@ export class AutorizacionService {
 
       // Filtrar secciones y items según permisos
       const seccionesConPermisos: SeccionConPermisos[] = secciones.map(seccion => {
+        console.log(`🔍 DEBUG - MenuNestJs - Procesando sección: ${seccion.nombre}`);
+        console.log(`🔍 DEBUG - MenuNestJs - Items antes del filtro:`, seccion.items.map(item => ({ etiqueta: item.etiqueta, orden: item.orden })));
+        
         const itemsConPermisos = seccion.items
           .filter(item => permisosMap.has(item.id_item) && permisosMap.get(item.id_item))
+          .sort((a, b) => a.orden - b.orden) // Ordenar por la columna orden
           .map(item => {
             const permiso = permisos.find(p => p.id_item === item.id_item);
             return {
@@ -107,6 +111,8 @@ export class AutorizacionService {
             };
           });
 
+        console.log(`🔍 DEBUG - MenuNestJs - Items después del ordenamiento:`, itemsConPermisos.map(item => ({ etiqueta: item.etiqueta, orden: item.seccion.orden })));
+        
         const tienePermisos = itemsConPermisos.length > 0;
 
         return {
