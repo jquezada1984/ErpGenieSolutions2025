@@ -1,10 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col } from 'reactstrap';
-import { useNavigate } from 'react-router-dom';
-import { crearSeccion } from '../../_apis_/menu';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useMutation } from '@apollo/client';
+import { gql } from '@apollo/client';
+import { crearSeccion, actualizarSeccion } from '../../_apis_/menu';
+
+// Consulta GraphQL para obtener una sección
+const GET_SECCION = gql`
+  query GetSeccion($id_seccion: ID!) {
+    seccion(id_seccion: $id_seccion) {
+      id_seccion
+      nombre
+      orden
+    }
+  }
+`;
 
 const NuevaSeccion: React.FC = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
+  const isEditing = Boolean(id);
+  
   const [formData, setFormData] = useState({
     nombre: '',
     orden: 0
@@ -12,6 +28,30 @@ const NuevaSeccion: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Consulta GraphQL para obtener la sección cuando se está editando
+  const { data: seccionData, loading: loadingData, error: queryError } = useQuery(GET_SECCION, {
+    variables: { id_seccion: id },
+    skip: !isEditing || !id,
+    onCompleted: (data) => {
+      if (data?.seccion) {
+        setFormData({
+          nombre: data.seccion.nombre || '',
+          orden: data.seccion.orden || 0
+        });
+      }
+    },
+    onError: (error) => {
+      setError(error.message || 'Error al cargar la sección');
+    }
+  });
+
+  // Manejar errores de la consulta GraphQL
+  useEffect(() => {
+    if (queryError) {
+      setError(queryError.message || 'Error al cargar la sección');
+    }
+  }, [queryError]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -27,17 +67,23 @@ const NuevaSeccion: React.FC = () => {
     setError(null);
     
     try {
-      const response = await crearSeccion(formData);
+      let response;
+      if (isEditing && id) {
+        response = await actualizarSeccion(id, formData);
+      } else {
+        response = await crearSeccion(formData);
+      }
+      
       if (response.success) {
         setSuccess(true);
         setTimeout(() => {
           navigate('/menus');
         }, 2000);
       } else {
-        setError(response.message || 'Error al crear la sección');
+        setError(response.message || `Error al ${isEditing ? 'actualizar' : 'crear'} la sección`);
       }
     } catch (err: any) {
-      setError(err.message || 'Error al crear la sección');
+      setError(err.message || `Error al ${isEditing ? 'actualizar' : 'crear'} la sección`);
     } finally {
       setLoading(false);
     }
@@ -55,8 +101,8 @@ const NuevaSeccion: React.FC = () => {
             <CardBody>
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <CardTitle tag="h4" className="mb-0">
-                  <i className="bi bi-plus-circle me-2"></i>
-                  Nueva Sección de Menú
+                  <i className={`bi ${isEditing ? 'bi-pencil-square' : 'bi-plus-circle'} me-2`}></i>
+                  {isEditing ? 'Editar Sección de Menú' : 'Nueva Sección de Menú'}
                 </CardTitle>
                 <Button color="secondary" onClick={handleCancel}>
                   <i className="bi bi-arrow-left me-2"></i>
@@ -74,7 +120,14 @@ const NuevaSeccion: React.FC = () => {
               {success && (
                 <Alert color="success" fade={false} className="mb-3" timeout={0}>
                   <i className="bi bi-check-circle me-2"></i>
-                  Sección creada exitosamente. Redirigiendo...
+                  Sección {isEditing ? 'actualizada' : 'creada'} exitosamente. Redirigiendo...
+                </Alert>
+              )}
+
+              {loadingData && (
+                <Alert color="info" fade={false} className="mb-3" timeout={0}>
+                  <i className="bi bi-hourglass-split me-2"></i>
+                  Cargando información de la sección...
                 </Alert>
               )}
 
@@ -92,6 +145,7 @@ const NuevaSeccion: React.FC = () => {
                         value={formData.nombre}
                         onChange={handleInputChange}
                         required
+                        disabled={loadingData}
                         placeholder="Ingrese el nombre de la sección"
                       />
                     </FormGroup>
@@ -109,26 +163,27 @@ const NuevaSeccion: React.FC = () => {
                         onChange={handleInputChange}
                         required
                         min="0"
+                        disabled={loadingData}
                         placeholder="0"
                       />
                     </FormGroup>
                   </Col>
                 </Row>
                 <div className="d-flex justify-content-end gap-2 mt-4">
-                  <Button color="secondary" onClick={handleCancel} disabled={loading}>
+                  <Button color="secondary" onClick={handleCancel} disabled={loading || loadingData}>
                     <i className="bi bi-x-circle me-2"></i>
                     Cancelar
                   </Button>
-                  <Button color="primary" type="submit" disabled={loading}>
+                  <Button color="primary" type="submit" disabled={loading || loadingData}>
                     {loading ? (
                       <>
                         <i className="bi bi-hourglass-split me-2"></i>
-                        Guardando...
+                        {isEditing ? 'Actualizando...' : 'Guardando...'}
                       </>
                     ) : (
                       <>
                         <i className="bi bi-check-circle me-2"></i>
-                        Guardar Sección
+                        {isEditing ? 'Actualizar Sección' : 'Guardar Sección'}
                       </>
                     )}
                   </Button>

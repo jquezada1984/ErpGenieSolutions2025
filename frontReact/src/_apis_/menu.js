@@ -42,6 +42,16 @@ export const crearSeccion = async (seccion) => {
   }
 };
 
+export const obtenerSeccion = async (id) => {
+  try {
+    const response = await apiClient.get(`/menu-secciones/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error al obtener sección:', error);
+    throw error;
+  }
+};
+
 export const actualizarSeccion = async (id, seccion) => {
   try {
     const response = await apiClient.put(`/menu-secciones/${id}`, seccion);

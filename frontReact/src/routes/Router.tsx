@@ -86,6 +86,7 @@ const ThemeRoutes: RouteType[] = [
       { path: 'menus/nuevo', element: <NuevoMenuCompleto /> },
       { path: 'menus/nueva', element: <NuevoMenu /> },
       { path: 'menus/seccion/nueva', element: <NuevaSeccion /> },
+      { path: 'menus/seccion/editar/:id', element: <NuevaSeccion /> },
       { path: 'menus/item/nuevo', element: <NuevoItem /> },
       { path: 'test-flags', element: <FlagTest /> },
     ],

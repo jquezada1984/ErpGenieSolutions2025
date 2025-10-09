@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // URL base del Gateway Fastify
-const GATEWAY_URL = 'http://localhost:3000/gateway';
+const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002';
 
 // Configurar axios para el Gateway
 const gatewayClient = axios.create({

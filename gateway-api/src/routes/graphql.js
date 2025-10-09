@@ -19,7 +19,6 @@ const getTargetService = (query, config) => {
   if (query && (
     query.includes('menu') || 
     query.includes('permiso') || 
-    query.includes('seccion') ||
     query.includes('autorizacion') ||
     query.includes('opcionesMenuSuperior') ||
     query.includes('permisosPorPerfil') ||
