@@ -3,7 +3,6 @@ import axios from './axios';
 
 const isValidToken = (accessToken: string) => {
   if (!accessToken) {
-    console.log('❌ Token vacío');
     return false;
   }
 
@@ -11,7 +10,6 @@ const isValidToken = (accessToken: string) => {
     // Verificar que el token tenga el formato correcto (3 partes separadas por puntos)
     const parts = accessToken.split('.');
     if (parts.length !== 3) {
-      console.log('❌ Token con formato incorrecto');
       return false;
     }
 
@@ -32,7 +30,7 @@ const isValidToken = (accessToken: string) => {
 
     return isValid;
   } catch (error) {
-    console.error('❌ Error decodificando token:', error);
+    console.error('Error decodificando token:', error);
     return false;
   }
 };

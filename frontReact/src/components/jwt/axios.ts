@@ -13,8 +13,6 @@ instance.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      console.log('🔒 Error 401 detectado, redirigiendo al login...');
-      
       // Limpiar token expirado
       localStorage.removeItem('accessToken');
       delete instance.defaults.headers.common.Authorization;

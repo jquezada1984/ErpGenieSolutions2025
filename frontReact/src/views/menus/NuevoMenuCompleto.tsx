@@ -138,37 +138,25 @@ const NuevoMenuCompleto: React.FC = () => {
         ...seccionData,
         icono: seccionData.icono && seccionData.icono.trim() ? seccionData.icono : undefined
       };
-      console.log('📝 Datos de sección a enviar:', seccionPayload);
       const seccionResponse = await crearSeccion(seccionPayload);
-      console.log('✅ Respuesta de sección:', seccionResponse);
-      console.log('✅ Tipo de respuesta:', typeof seccionResponse);
-      console.log('✅ Propiedades de la respuesta:', Object.keys(seccionResponse));
       
       // Verificar si la respuesta tiene la estructura esperada o si es la respuesta directa
       let seccionId;
       if (seccionResponse.success !== undefined) {
         // Respuesta con estructura completa
-        console.log('✅ Success:', seccionResponse.success);
-        console.log('✅ Data:', seccionResponse.data);
-        
         if (!seccionResponse.success) {
           throw new Error(seccionResponse.message || 'Error al crear la sección');
         }
         seccionId = seccionResponse.data.id_seccion;
       } else if (seccionResponse.id_seccion) {
         // Respuesta directa (sin estructura success/data)
-        console.log('✅ Respuesta directa detectada, usando id_seccion directamente');
         seccionId = seccionResponse.id_seccion;
       } else {
         throw new Error('Respuesta de sección inválida');
       }
-      console.log('🆔 ID de sección creada:', seccionId);
-      console.log('✅ Estableciendo mensaje de éxito para sección');
       setSuccess(`Sección "${seccionData.nombre}" creada exitosamente. Creando items...`);
-      console.log('✅ Mensaje de éxito establecido');
 
       // Crear items en orden según itemsList
-      console.log('📝 Creando items... Total items a crear:', itemsList.length);
       setSuccess(`Sección creada. Creando items (0/${itemsList.length})...`);
       
       for (let i = 0; i < itemsList.length; i++) {
@@ -185,11 +173,9 @@ const NuevoMenuCompleto: React.FC = () => {
           badge_text: it.muestra_badge ? (it.badge_text && it.badge_text.trim() ? it.badge_text : undefined) : undefined,
           estado: it.estado
         };
-        console.log(`📝 Creando item ${i + 1}/${itemsList.length}:`, payload);
         setSuccess(`Sección creada. Creando items (${i + 1}/${itemsList.length})...`);
         
         const itemResponse = await crearItem(payload);
-        console.log(`✅ Item ${i + 1} creado:`, itemResponse);
         
         // Verificar si la respuesta tiene la estructura esperada o si es la respuesta directa
         if (itemResponse.success !== undefined) {
@@ -203,7 +189,6 @@ const NuevoMenuCompleto: React.FC = () => {
         }
       }
 
-      console.log('🎉 Todos los items fueron creados exitosamente');
       setSuccess(`✅ Menú creado exitosamente: Sección "${seccionData.nombre}" con ${itemsList.length} items`);
       setTimeout(() => {
         navigate('/menus');

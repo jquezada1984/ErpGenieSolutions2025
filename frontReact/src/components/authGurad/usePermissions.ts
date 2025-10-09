@@ -221,8 +221,6 @@ export const usePermissions = (): UsePermissionsReturn => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('🔍 DEBUG - usePermissions - Hook inicializado');
-  console.log('🔍 DEBUG - usePermissions - Usando cliente específico para permisos (MenuNestJs)');
 
 
   // Queries GraphQL usando el cliente específico para permisos (MenuNestJs)
@@ -257,16 +255,10 @@ export const usePermissions = (): UsePermissionsReturn => {
   const cargarMenuLateral = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      console.log('🔍 DEBUG - usePermissions - Cargando menú lateral para perfil:', id_perfil);
       const { data, error } = await getMenuLateralPorPerfil({ variables: { id_perfil } });
       
-      console.log('🔍 DEBUG - usePermissions - Respuesta menú lateral:', { data, error });
-      
       if (data?.menuLateralPorPerfil) {
-        console.log('🔍 DEBUG - usePermissions - Menú lateral cargado:', data.menuLateralPorPerfil);
         setMenuLateral(data.menuLateralPorPerfil);
-      } else {
-        console.log('🔍 DEBUG - usePermissions - No hay datos de menú lateral');
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar menú lateral');
@@ -278,33 +270,26 @@ export const usePermissions = (): UsePermissionsReturn => {
   const cargarMenuLateralOrdenado = useCallback(async (id_seccion: string) => {
     try {
       setError(null);
-      console.log('🔍 DEBUG - usePermissions - Cargando menú lateral ordenado para sección:', id_seccion);
       
       // Obtener menú principal (items sin parent_id)
       const { data: menuPrincipal, error: errorPrincipal } = await getMenuPrincipalOrdenado({ 
         variables: { id_seccion } 
       });
       
-      console.log('🔍 DEBUG - usePermissions - Menú principal:', { menuPrincipal, errorPrincipal });
-      
       if (errorPrincipal) {
         throw new Error(`Error al cargar menú principal: ${errorPrincipal.message}`);
       }
       
       if (!menuPrincipal?.menuPrincipalOrdenado) {
-        console.log('🔍 DEBUG - usePermissions - No hay menú principal disponible');
         return;
       }
       
       const itemsPrincipales = menuPrincipal.menuPrincipalOrdenado;
-      console.log('🔍 DEBUG - usePermissions - Items principales encontrados:', itemsPrincipales.length);
       
       // Para cada item principal, obtener sus submenús
       const menuCompleto: MenuItemOrdenado[] = [];
       
       for (const item of itemsPrincipales) {
-        console.log('🔍 DEBUG - usePermissions - Procesando item principal:', item.etiqueta);
-        
         // Obtener submenús de este item
         const { data: submenus, error: errorSubmenus } = await getSubmenusOrdenados({ 
           variables: { parent_id: item.id_item } 
@@ -319,11 +304,6 @@ export const usePermissions = (): UsePermissionsReturn => {
           children: submenus?.submenusOrdenados || []
         };
         
-        console.log('🔍 DEBUG - usePermissions - Item con submenús:', {
-          etiqueta: item.etiqueta,
-          submenus: itemConSubmenus.children?.length || 0
-        });
-        
         menuCompleto.push(itemConSubmenus);
       }
       
@@ -336,7 +316,6 @@ export const usePermissions = (): UsePermissionsReturn => {
         items: menuCompleto
       };
       
-      console.log('🔍 DEBUG - usePermissions - Menú lateral ordenado creado:', menuLateralOrdenado);
       setMenuLateralOrdenado([menuLateralOrdenado]);
       
     } catch (err: any) {
@@ -349,16 +328,10 @@ export const usePermissions = (): UsePermissionsReturn => {
   const cargarOpcionesMenuSuperior = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      console.log('🔍 DEBUG - usePermissions - Cargando opciones menú superior para perfil:', id_perfil);
       const { data, error } = await getOpcionesMenuSuperior({ variables: { id_perfil } });
       
-      console.log('🔍 DEBUG - usePermissions - Respuesta opciones menú superior:', { data, error });
-      
       if (data?.opcionesMenuSuperior) {
-        console.log('🔍 DEBUG - usePermissions - Opciones menú superior cargadas:', data.opcionesMenuSuperior);
         setOpcionesMenuSuperior(data.opcionesMenuSuperior);
-      } else {
-        console.log('🔍 DEBUG - usePermissions - No hay datos de opciones menú superior');
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar opciones del menú superior');
@@ -410,18 +383,6 @@ export const usePermissions = (): UsePermissionsReturn => {
     );
   }, [permisos]);
 
-  // Log del estado actual
-  useEffect(() => {
-    console.log('🔍 DEBUG - usePermissions - Estado actual:', {
-      permisos: permisos.length,
-      menuLateral: menuLateral.length,
-      menuLateralOrdenado: menuLateralOrdenado.length,
-      opcionesMenuSuperior: opcionesMenuSuperior.length,
-      perfilCompleto: !!perfilCompleto,
-      loading,
-      error
-    });
-  }, [permisos, menuLateral, menuLateralOrdenado, opcionesMenuSuperior, perfilCompleto, loading, error]);
 
   return {
     // Estado

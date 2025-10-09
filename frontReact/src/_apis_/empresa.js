@@ -32,9 +32,7 @@ apiClient.interceptors.response.use(
 // SOLO MUTACIONES (Gateway API)
 export const crearEmpresa = async (empresa) => {
   try {
-    console.log('📝 Creando empresa (Gateway):', empresa);
     const response = await apiClient.post('/', empresa);
-    console.log('✅ Empresa creada exitosamente:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al crear empresa:', error);
@@ -44,9 +42,7 @@ export const crearEmpresa = async (empresa) => {
 
 export const actualizarEmpresa = async (id, empresa) => {
   try {
-    console.log('📝 Actualizando empresa (Gateway):', id, empresa);
     const response = await apiClient.put(`/${id}`, empresa);
-    console.log('✅ Empresa actualizada exitosamente:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al actualizar empresa:', error);
@@ -57,9 +53,7 @@ export const actualizarEmpresa = async (id, empresa) => {
 // "Eliminar" empresa: solo cambia el estado a false (Gateway API)
 export const eliminarEmpresa = async (id) => {
   try {
-    console.log('🗑️ Eliminando empresa (Gateway):', id);
     const response = await apiClient.put(`/${id}`, { estado: false });
-    console.log('✅ Empresa eliminada exitosamente:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al eliminar empresa:', error);

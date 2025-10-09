@@ -25,9 +25,7 @@ gatewayClient.interceptors.response.use(
 // CONSULTAS (GraphQL a través del Gateway)
 export const getEmpresas = async () => {
   try {
-    console.log('📋 Obteniendo empresas (Gateway)...');
     const response = await gatewayClient.get('/empresas');
-    console.log('✅ Empresas obtenidas:', response.data);
     return response.data.data || [];
   } catch (error) {
     console.error('❌ Error al obtener empresas:', error);
@@ -37,9 +35,7 @@ export const getEmpresas = async () => {
 
 export const getEmpresa = async (id) => {
   try {
-    console.log(`📋 Obteniendo empresa ${id} (Gateway)...`);
     const response = await gatewayClient.get(`/empresas/${id}`);
-    console.log('✅ Empresa obtenida:', response.data);
     return response.data.data;
   } catch (error) {
     console.error('❌ Error al obtener empresa:', error);
@@ -50,9 +46,7 @@ export const getEmpresa = async (id) => {
 // MUTACIONES (Python a través del Gateway)
 export const crearEmpresa = async (empresaData) => {
   try {
-    console.log('📝 Creando empresa (Gateway):', empresaData);
     const response = await gatewayClient.post('/empresas', empresaData);
-    console.log('✅ Empresa creada exitosamente:', response.data);
     return response.data.data;
   } catch (error) {
     console.error('❌ Error al crear empresa:', error);
@@ -62,9 +56,7 @@ export const crearEmpresa = async (empresaData) => {
 
 export const actualizarEmpresa = async (id, empresaData) => {
   try {
-    console.log(`📝 Actualizando empresa ${id} (Gateway):`, empresaData);
     const response = await gatewayClient.put(`/empresas/${id}`, empresaData);
-    console.log('✅ Empresa actualizada exitosamente:', response.data);
     return response.data.data;
   } catch (error) {
     console.error('❌ Error al actualizar empresa:', error);
@@ -74,9 +66,7 @@ export const actualizarEmpresa = async (id, empresaData) => {
 
 export const eliminarEmpresa = async (id) => {
   try {
-    console.log(`🗑️ Eliminando empresa ${id} (Gateway)...`);
     const response = await gatewayClient.delete(`/empresas/${id}`);
-    console.log('✅ Empresa eliminada exitosamente:', response.data);
     return response.data.data;
   } catch (error) {
     console.error('❌ Error al eliminar empresa:', error);
@@ -88,9 +78,7 @@ export const eliminarEmpresa = async (id) => {
 
 export const checkGatewayHealth = async () => {
   try {
-    console.log('🏥 Verificando salud del Gateway...');
     const response = await gatewayClient.get('/health');
-    console.log('✅ Gateway saludable:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Gateway no saludable:', error);
@@ -100,9 +88,7 @@ export const checkGatewayHealth = async () => {
 
 export const getGatewayStatus = async () => {
   try {
-    console.log('📊 Obteniendo estado del Gateway...');
     const response = await gatewayClient.get('/status');
-    console.log('✅ Estado del Gateway:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al obtener estado del Gateway:', error);

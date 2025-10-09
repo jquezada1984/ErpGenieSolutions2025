@@ -60,37 +60,21 @@ const Sidebar = () => {
 
   // Cargar menú lateral cuando cambie el perfil o el menú seleccionado
   useEffect(() => {
-    console.log('🔍 DEBUG - Sidebar - Menú seleccionado:', selectedMenu);
-    console.log('🔍 DEBUG - Sidebar - Usuario id_perfil:', user?.id_perfil);
-    
     // For "inicio" menu, use dynamic menu from database
     if (selectedMenu === 'inicio' && user?.id_perfil) {
       const idSeccion = obtenerIdSeccionPorMenu(selectedMenu);
-      console.log('🔍 DEBUG - Sidebar - Cargando menú dinámico para inicio, id_seccion:', idSeccion);
       cargarMenuLateralOrdenado(idSeccion);
-    } else {
-      console.log('🔍 DEBUG - Sidebar - Usando menú estático para:', selectedMenu);
     }
   }, [selectedMenu, user?.id_perfil, cargarMenuLateralOrdenado]);
 
-  // Log adicional para verificar cambios en selectedMenu
-  useEffect(() => {
-    console.log('🔍 DEBUG - Sidebar - selectedMenu cambió a:', selectedMenu);
-  }, [selectedMenu]);
 
   // Usar menú lateral ordenado si está disponible, sino usar el estático
   // Pero siempre priorizar el menú estático que ya tiene la estructura correcta
   // Use dynamic menu for "inicio" if available, otherwise use static
   let SidebarData;
-  console.log('🔍 DEBUG - Sidebar - Verificando condiciones:', {
-    selectedMenu,
-    menuLateralOrdenadoLength: menuLateralOrdenado.length,
-    userPerfil: user?.id_perfil
-  });
   
   if (selectedMenu === 'inicio') {
     if (menuLateralOrdenado.length > 0) {
-      console.log('🔍 DEBUG - Sidebar - Usando menú dinámico ordenado para inicio');
       // Convert menuLateralOrdenado to SidebarData format
       const menuOrdenado = menuLateralOrdenado[0];
       SidebarData = [
@@ -107,7 +91,6 @@ const Sidebar = () => {
         }))
       ];
     } else {
-      console.log('🔍 DEBUG - Sidebar - Menú dinámico no cargado, usando estático simplificado para inicio');
       // Use simplified static menu for inicio (only Empresa)
       SidebarData = [
         { caption: "Administración" },
@@ -123,30 +106,7 @@ const Sidebar = () => {
       ];
     }
   } else {
-    console.log('🔍 DEBUG - Sidebar - Usando menú estático para:', selectedMenu);
     SidebarData = getSidebarData(selectedMenu);
-  }
-  
-  console.log('🔍 DEBUG - Sidebar - selectedMenu:', selectedMenu);
-  console.log('🔍 DEBUG - Sidebar - menuLateral:', menuLateral);
-  console.log('🔍 DEBUG - Sidebar - menuLateralOrdenado:', menuLateralOrdenado);
-  console.log('🔍 DEBUG - Sidebar - SidebarData (final):', SidebarData);
-  console.log('🔍 DEBUG - Sidebar - Tipo de SidebarData:', typeof SidebarData);
-  console.log('🔍 DEBUG - Sidebar - Es array:', Array.isArray(SidebarData));
-  console.log('🔍 DEBUG - Sidebar - Longitud:', SidebarData?.length);
-  
-  // Debug adicional para verificar la estructura
-  if (SidebarData && Array.isArray(SidebarData)) {
-    console.log('🔍 DEBUG - Sidebar - Primeros 3 items:', SidebarData.slice(0, 3));
-    SidebarData.forEach((item, index) => {
-      console.log(`🔍 DEBUG - Sidebar - Item ${index}:`, {
-        caption: item.caption,
-        title: item.title,
-        id: item.id,
-        hasChildren: !!item.children,
-        childrenCount: item.children?.length || 0
-      });
-    });
   }
 
   return (

@@ -32,9 +32,7 @@ apiClient.interceptors.response.use(
 // SOLO MUTACIONES (Gateway API)
 export const crearSucursal = async (sucursal) => {
   try {
-    console.log('📝 Creando sucursal (Gateway):', sucursal);
     const response = await apiClient.post('/', sucursal);
-    console.log('✅ Sucursal creada exitosamente:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al crear sucursal:', error);
@@ -44,9 +42,7 @@ export const crearSucursal = async (sucursal) => {
 
 export const actualizarSucursal = async (id, sucursal) => {
   try {
-    console.log('📝 Actualizando sucursal (Gateway):', id, sucursal);
     const response = await apiClient.put(`/${id}`, sucursal);
-    console.log('✅ Sucursal actualizada exitosamente:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al actualizar sucursal:', error);
@@ -57,9 +53,7 @@ export const actualizarSucursal = async (id, sucursal) => {
 // "Eliminar" sucursal: solo cambia el estado a false (Gateway API)
 export const eliminarSucursal = async (id) => {
   try {
-    console.log('🗑️ Eliminando sucursal (Gateway):', id);
     const response = await apiClient.put(`/${id}`, { estado: false });
-    console.log('✅ Sucursal eliminada exitosamente:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al eliminar sucursal:', error);
@@ -70,9 +64,7 @@ export const eliminarSucursal = async (id) => {
 // Cambiar estado de sucursal
 export const cambiarEstadoSucursal = async (id, estado) => {
   try {
-    console.log('🔄 Cambiando estado de sucursal (Gateway):', id, estado);
     const response = await apiClient.put(`/${id}/estado`, { estado });
-    console.log('✅ Estado de sucursal cambiado exitosamente:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al cambiar estado de sucursal:', error);

@@ -16,16 +16,10 @@ const menuHttpLink = createHttpLink({
 const authLink = setContext((_, { headers }) => {
   const token = localStorage.getItem('accessToken');
   
-  console.log('🔍 DEBUG - Apollo Client - Token encontrado:', !!token);
-  console.log('🔍 DEBUG - Apollo Client - Token completo:', token ? `${token.substring(0, 20)}...` : 'No token');
-  console.log('🔍 DEBUG - Apollo Client - Headers originales:', headers);
-  
   const authHeaders = {
     ...headers,
     authorization: token ? `Bearer ${token}` : "",
   };
-  
-  console.log('🔍 DEBUG - Apollo Client - Headers con auth:', authHeaders);
   
   return {
     headers: authHeaders,

@@ -138,13 +138,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           // Intentar cargar datos del usuario en segundo plano (sin bloquear)
           setTimeout(async () => {
             try {
-              console.log('🔍 DEBUG - JwtContext - Verificando sesión con getMe()');
               const { data, error } = await getMe();
               
-              console.log('🔍 DEBUG - JwtContext - Respuesta getMe:', { data, error });
-              
               if (data && data.me && data.me.user) {
-                console.log('🔍 DEBUG - JwtContext - Usuario autenticado:', data.me.user);
                 // Actualizar con los datos del usuario
                 dispatch({
                   type: 'LOGIN',
@@ -153,18 +149,13 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
                   },
                 });
               } else {
-                console.log('🔍 DEBUG - JwtContext - Usuario no autenticado, datos:', data);
-                console.log('🔍 DEBUG - JwtContext - MANTENIENDO SESIÓN VÁLIDA - No se desloguea por fallo en getMe()');
-                
                 // Intentar obtener el perfil del token directamente
                 try {
                   const token = localStorage.getItem('accessToken');
                   if (token) {
                     const payload = JSON.parse(atob(token.split('.')[1]));
-                    console.log('🔍 DEBUG - JwtContext - Payload del token:', payload);
                     
                     if (payload.id_perfil) {
-                      console.log('🔍 DEBUG - JwtContext - id_perfil encontrado en token:', payload.id_perfil);
                       // Crear un usuario temporal con el id_perfil del token
                       const tempUser = {
                         id: payload.sub || payload.id || 'temp',
@@ -204,7 +195,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } catch (err) {
-        console.error('🔍 DEBUG - JwtContext - Error en inicialización:', err);
+        console.error('Error en inicialización:', err);
         dispatch({
           type: 'INITIALIZE',
           payload: {
@@ -261,20 +252,15 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user?.id_perfil) {
         try {
           await cargarOpcionesMenuSuperior(user.id_perfil);
-          console.log('✅ Opciones del menú cargadas exitosamente');
         } catch (error) {
           console.error('❌ Error al cargar opciones del menú:', error);
         }
       } else {
-        
         // Intentar obtener el perfil del usuario
         try {
           const { data: profileData } = await getMe();
           if (profileData?.me?.user?.id_perfil) {
             await cargarOpcionesMenuSuperior(profileData.me.user.id_perfil);
-            console.log('✅ Opciones del menú cargadas exitosamente desde perfil');
-          } else {
-            console.error('❌ No se pudo obtener id_perfil del usuario');
           }
         } catch (error) {
           console.error('❌ Error al obtener perfil del usuario:', error);

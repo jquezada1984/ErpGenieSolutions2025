@@ -11,10 +11,8 @@ export const useSessionCheck = (checkInterval = 60000) => { // Verificar cada mi
       const token = localStorage.getItem('accessToken');
       
       if (!token || !isValidToken(token)) {
-        console.log('🔒 Sesión expirada, redirigiendo al login...');
         localStorage.removeItem('accessToken');
         navigate('/auth/login', { replace: true });
-      } else {
       }
     };
 

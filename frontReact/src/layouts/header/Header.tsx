@@ -67,10 +67,8 @@ const Header = () => {
   // Cargar permisos cuando el usuario esté autenticado
   useEffect(() => {
     if (user?.id_perfil) {
-      console.log('🔍 DEBUG - Header - Cargando opciones menú superior para perfil:', user.id_perfil);
       cargarOpcionesMenuSuperior(user.id_perfil);
     } else {
-      console.log('🔍 DEBUG - Header - No hay id_perfil disponible, usando menú por defecto');
       // Mostrar menú por defecto si no hay perfil
       dispatch(setMainMenu('inicio'));
     }
@@ -79,7 +77,6 @@ const Header = () => {
   // Asegurar que el estado inicial se mantenga
   useEffect(() => {
     if (selectedMenu === '' || selectedMenu === null || selectedMenu === undefined) {
-      console.log('🔍 DEBUG - Header - Configurando menú inicial a "inicio"');
       dispatch(setMainMenu('inicio'));
     }
   }, [selectedMenu, dispatch, opcionesMenuSuperior]);
@@ -109,14 +106,6 @@ const Header = () => {
     return opcionesMenuSuperior.some(seccion => mapearSeccionAClave(seccion) === option.key);
   });
 
-  // Logs de debug para el menú superior
-  useEffect(() => {
-    console.log('🔍 DEBUG - Header - opcionesMenuSuperior:', opcionesMenuSuperior);
-    console.log('🔍 DEBUG - Header - opcionesPermitidas:', opcionesPermitidas);
-    console.log('🔍 DEBUG - Header - loadingPermisos:', loadingPermisos);
-    console.log('🔍 DEBUG - Header - selectedMenu:', selectedMenu);
-    console.log('🔍 DEBUG - Header - mainMenuOptions:', mainMenuOptions);
-  }, [opcionesMenuSuperior, opcionesPermitidas, loadingPermisos, selectedMenu]);
 
 
   const handleLogout = async () => {

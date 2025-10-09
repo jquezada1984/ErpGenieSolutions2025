@@ -34,10 +34,7 @@ apiClient.interceptors.response.use(
 // Secciones de menú
 export const crearSeccion = async (seccion) => {
   try {
-    console.log('📝 Creando sección (Gateway):', seccion);
     const response = await apiClient.post('/menu-secciones', seccion);
-    console.log('✅ Respuesta completa del servidor:', response);
-    console.log('✅ Datos de la respuesta:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al crear sección:', error);
@@ -47,9 +44,7 @@ export const crearSeccion = async (seccion) => {
 
 export const actualizarSeccion = async (id, seccion) => {
   try {
-    console.log('📝 Actualizando sección (Gateway):', id, seccion);
     const response = await apiClient.put(`/menu-secciones/${id}`, seccion);
-    console.log('✅ Sección actualizada exitosamente:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al actualizar sección:', error);
@@ -59,9 +54,7 @@ export const actualizarSeccion = async (id, seccion) => {
 
 export const eliminarSeccion = async (id) => {
   try {
-    console.log('🗑️ Eliminando sección (Gateway):', id);
     const response = await apiClient.delete(`/menu-secciones/${id}`);
-    console.log('✅ Sección eliminada exitosamente:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al eliminar sección:', error);
@@ -72,10 +65,7 @@ export const eliminarSeccion = async (id) => {
 // Items de menú
 export const crearItem = async (item) => {
   try {
-    console.log('📝 Creando item (Gateway):', item);
     const response = await apiClient.post('/menu-items', item);
-    console.log('✅ Respuesta completa del servidor (item):', response);
-    console.log('✅ Datos de la respuesta (item):', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al crear item:', error);
@@ -85,9 +75,7 @@ export const crearItem = async (item) => {
 
 export const actualizarItem = async (id, item) => {
   try {
-    console.log('📝 Actualizando item (Gateway):', id, item);
     const response = await apiClient.put(`/menu-items/${id}`, item);
-    console.log('✅ Item actualizado exitosamente:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al actualizar item:', error);
@@ -97,9 +85,7 @@ export const actualizarItem = async (id, item) => {
 
 export const eliminarItem = async (id) => {
   try {
-    console.log('🗑️ Eliminando item (Gateway):', id);
     const response = await apiClient.delete(`/menu-items/${id}`);
-    console.log('✅ Item eliminado exitosamente:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Error al eliminar item:', error);
