@@ -14,6 +14,7 @@ const GET_MENU_COMPLETO = gql`
       id_seccion
       nombre
       orden
+      icono
       items {
         id_item
         etiqueta
@@ -55,6 +56,7 @@ interface MenuSeccion {
   id_seccion: string;
   nombre: string;
   orden: number;
+  icono?: string;
   items?: MenuItem[];
 }
 

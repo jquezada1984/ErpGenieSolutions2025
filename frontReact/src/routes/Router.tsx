@@ -43,6 +43,7 @@ const NuevoMenuCompleto = Loadable(lazy(() => import('../views/menus/NuevoMenuCo
 const NuevoMenu = Loadable(lazy(() => import('../views/menus/NuevoMenu')));
 const NuevaSeccion = Loadable(lazy(() => import('../views/menus/NuevaSeccion')));
 const NuevoItem = Loadable(lazy(() => import('../views/menus/NuevoItem')));
+const EditarItem = Loadable(lazy(() => import('../views/menus/EditarItem')));
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
@@ -88,6 +89,7 @@ const ThemeRoutes: RouteType[] = [
       { path: 'menus/seccion/nueva', element: <NuevaSeccion /> },
       { path: 'menus/seccion/editar/:id', element: <NuevaSeccion /> },
       { path: 'menus/item/nuevo', element: <NuevoItem /> },
+      { path: 'menus/item/editar/:id', element: <EditarItem /> },
       { path: 'test-flags', element: <FlagTest /> },
     ],
   },

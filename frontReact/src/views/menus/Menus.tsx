@@ -13,6 +13,7 @@ const GET_MENU_SECCIONES = gql`
       id_seccion
       nombre
       orden
+      icono
     }
   }
 `;
@@ -21,6 +22,7 @@ interface MenuSeccion {
   id_seccion: string;
   nombre: string;
   orden: number;
+  icono?: string;
 }
 
 const Menus: React.FC = () => {
@@ -81,6 +83,16 @@ const Menus: React.FC = () => {
     id_seccion: seccion.id_seccion,
     nombre: seccion.nombre,
     orden: seccion.orden,
+    icono: seccion.icono ? (
+      <div className="text-center">
+        <i className={`${seccion.icono} me-2`}></i>
+        <small className="text-muted">{seccion.icono}</small>
+      </div>
+    ) : (
+      <div className="text-center text-muted">
+        <small>Sin icono</small>
+      </div>
+    ),
     actions: (
       <div className="grid-action-buttons text-center">
         <Button
@@ -109,6 +121,7 @@ const Menus: React.FC = () => {
     { Header: 'ID', accessor: 'id_seccion', width: 200 },
     { Header: 'Nombre', accessor: 'nombre', filterable: true },
     { Header: 'Orden', accessor: 'orden', width: 80 },
+    { Header: 'Icono', accessor: 'icono', sortable: false, filterable: false, width: 150 },
     { Header: 'Acciones', accessor: 'actions', sortable: false, filterable: false, width: 120 },
   ];
 

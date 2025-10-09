@@ -11,6 +11,7 @@ const GET_MENU_SECCIONES = gql`
       id_seccion
       nombre
       orden
+      icono
     }
   }
 `;
@@ -31,6 +32,7 @@ interface MenuSeccion {
   id_seccion: string;
   nombre: string;
   orden: number;
+  icono?: string;
 }
 
 interface MenuItem {

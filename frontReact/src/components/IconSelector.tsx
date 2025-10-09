@@ -123,7 +123,7 @@ const IconSelector: React.FC<IconSelectorProps> = ({ isOpen, toggle, onSelect, c
   };
 
   return (
-    <Modal isOpen={isOpen} toggle={handleClose} size="lg">
+    <Modal isOpen={isOpen} toggle={handleClose} size="lg" style={{ zIndex: 9999 }} backdrop="static" keyboard={false} centered>
       <ModalHeader toggle={handleClose}>
         <i className="bi bi-palette me-2"></i>
         Seleccionar Icono
