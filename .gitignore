@@ -16,6 +16,7 @@ yarn-error.log*
 
 # IDEs y editores
 .vscode/
+.vs/
 .idea/
 *.sublime-workspace
 *.sublime-project
@@ -46,4 +47,50 @@ back-nest-js/dist/
 # Otros
 npm-debug.log
 yarn.lock
-package-lock.json 
+package-lock.json
+
+# Archivos de cache y temporales adicionales
+.cache/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Archivos de configuración local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Archivos de base de datos local
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Archivos de TypeScript
+*.tsbuildinfo
+
+# Archivos de Docker
+.dockerignore
+
+# Archivos de testing
+.nyc_output/
+coverage/
+*.lcov
+
+# Archivos de backup
+*.bak
+*.backup
+*~ 
