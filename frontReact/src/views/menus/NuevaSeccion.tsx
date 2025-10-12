@@ -60,8 +60,6 @@ const NuevaSeccion: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const isEditing = Boolean(id);
   
-  console.log('🔧 NuevaSeccion - ID recibido:', id);
-  console.log('🔧 NuevaSeccion - isEditing:', isEditing);
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -69,10 +67,6 @@ const NuevaSeccion: React.FC = () => {
     icono: ''
   });
   
-  // Log del estado del formulario
-  useEffect(() => {
-    console.log('📋 Estado actual del formulario:', formData);
-  }, [formData]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -83,44 +77,42 @@ const NuevaSeccion: React.FC = () => {
   const { data: seccionData, loading: loadingData, error: queryError } = useQuery(GET_SECCION, {
     variables: { id_seccion: id },
     skip: !isEditing || !id,
-    onCompleted: (data) => {
-      console.log('🔍 Datos recibidos de GraphQL:', data);
-      if (data?.seccion) {
-        console.log('📝 Sección encontrada:', data.seccion);
-        setFormData({
-          nombre: data.seccion.nombre || '',
-          orden: data.seccion.orden || 0,
-          icono: data.seccion.icono || ''
-        });
-      } else {
-        console.log('❌ No se encontró la sección');
-      }
-    },
     onError: (error) => {
       console.error('❌ Error en consulta GraphQL:', error);
       setError(error.message || 'Error al cargar la sección');
     }
   });
 
+  // Actualizar el formulario cuando se reciban los datos de la sección
+  useEffect(() => {
+    if (seccionData?.seccion) {
+      setFormData({
+        nombre: seccionData.seccion.nombre || '',
+        orden: seccionData.seccion.orden || 0,
+        icono: seccionData.seccion.icono || ''
+      });
+    }
+  }, [seccionData]);
+
   // Consulta GraphQL para obtener los items de la sección cuando se está editando
   const { data: itemsData, loading: itemsLoading, error: itemsError, refetch: refetchItems } = useQuery(GET_ITEMS_SECCION, {
     variables: { id_seccion: id },
     skip: !isEditing || !id,
-    onCompleted: (data) => {
-      console.log('🔍 Items recibidos de GraphQL:', data);
-      if (data?.itemsPorSeccion) {
-        console.log('📝 Items encontrados:', data.itemsPorSeccion);
-        setItems(data.itemsPorSeccion);
-      } else {
-        console.log('❌ No se encontraron items');
-        setItems([]);
-      }
-    },
+    fetchPolicy: 'network-only', // Evitar cache para asegurar la consulta correcta
     onError: (error) => {
       console.error('❌ Error en consulta de items GraphQL:', error);
       setError(error.message || 'Error al cargar los items de la sección');
     }
   });
+
+  // Actualizar items cuando se reciban los datos
+  useEffect(() => {
+    if (itemsData?.itemsPorSeccion) {
+      setItems(itemsData.itemsPorSeccion);
+    } else if (itemsData && !itemsData.itemsPorSeccion) {
+      setItems([]);
+    }
+  }, [itemsData]);
 
   // Manejar errores de la consulta GraphQL
   useEffect(() => {
@@ -152,7 +144,6 @@ const NuevaSeccion: React.FC = () => {
   };
 
   const handleIconSelect = (iconName: string) => {
-    console.log('🎨 Icono seleccionado:', iconName);
     setFormData(prev => ({
       ...prev,
       icono: iconName
@@ -310,7 +301,6 @@ const NuevaSeccion: React.FC = () => {
                           type="button"
                           color="outline-primary"
                           onClick={() => {
-                            console.log('🎨 Abriendo selector de iconos');
                             setShowIconSelector(true);
                           }}
                           disabled={loadingData}
@@ -483,7 +473,6 @@ const NuevaSeccion: React.FC = () => {
       <IconSelector
         isOpen={showIconSelector}
         toggle={() => {
-          console.log('🎨 Cerrando selector de iconos');
           setShowIconSelector(!showIconSelector);
         }}
         onSelect={handleIconSelect}

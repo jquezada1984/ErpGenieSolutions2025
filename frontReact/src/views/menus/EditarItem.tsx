@@ -42,8 +42,8 @@ const GET_MENU_SECCIONES = gql`
 
 // GraphQL query para obtener items de una sección (para jerarquía padre-hijo)
 const GET_ITEMS_SECCION = gql`
-  query GetItemsSeccion($idSeccion: String!) {
-    items(where: { id_seccion: $idSeccion }) {
+  query GetItemsSeccion($id_seccion: ID!) {
+    itemsPorSeccion(id_seccion: $id_seccion) {
       id_item
       etiqueta
       parent_id
@@ -94,53 +94,53 @@ const EditarItem: React.FC = () => {
   const { data: itemData, loading: loadingData, error: queryError } = useQuery(GET_ITEM, {
     variables: { id_item: id },
     skip: !id,
-    onCompleted: (data) => {
-      console.log('🔍 Datos recibidos de GraphQL:', data);
-      if (data?.item) {
-        console.log('📝 Item encontrado:', data.item);
-        setFormData({
-          id_seccion: data.item.id_seccion || '',
-          parent_id: data.item.parent_id || '',
-          etiqueta: data.item.etiqueta || '',
-          icono: data.item.icono || '',
-          ruta: data.item.ruta || '',
-          es_clickable: data.item.es_clickable !== undefined ? data.item.es_clickable : true,
-          orden: data.item.orden || 0,
-          muestra_badge: data.item.muestra_badge || false,
-          badge_text: data.item.badge_text || '',
-          estado: data.item.estado !== undefined ? data.item.estado : true
-        });
-        
-        // Los items de la sección se cargarán automáticamente cuando se actualice formData.id_seccion
-      } else {
-        console.log('❌ No se encontró el item');
-      }
-    },
     onError: (error) => {
       console.error('❌ Error en consulta GraphQL:', error);
       setError(error.message || 'Error al cargar el item');
     }
   });
 
-  // Consulta para obtener secciones
-  const { data: seccionesData } = useQuery(GET_MENU_SECCIONES, {
-    onCompleted: (data) => {
-      if (data?.secciones) {
-        setSecciones(data.secciones);
-      }
+  // Actualizar el formulario cuando se reciban los datos
+  useEffect(() => {
+    if (itemData?.item) {
+      setFormData({
+        id_seccion: itemData.item.id_seccion || '',
+        parent_id: itemData.item.parent_id || '',
+        etiqueta: itemData.item.etiqueta || '',
+        icono: itemData.item.icono || '',
+        ruta: itemData.item.ruta || '',
+        es_clickable: itemData.item.es_clickable !== undefined ? itemData.item.es_clickable : true,
+        orden: itemData.item.orden || 0,
+        muestra_badge: itemData.item.muestra_badge || false,
+        badge_text: itemData.item.badge_text || '',
+        estado: itemData.item.estado !== undefined ? itemData.item.estado : true
+      });
     }
-  });
+  }, [itemData]);
+
+  // Consulta para obtener secciones
+  const { data: seccionesData } = useQuery(GET_MENU_SECCIONES);
+
+  // Actualizar secciones cuando se reciban los datos
+  useEffect(() => {
+    if (seccionesData?.secciones) {
+      setSecciones(seccionesData.secciones);
+    }
+  }, [seccionesData]);
 
   // Consulta para obtener items de la sección (para jerarquía padre-hijo)
   const { data: itemsData } = useQuery(GET_ITEMS_SECCION, {
-    variables: { idSeccion: formData.id_seccion },
+    variables: { id_seccion: formData.id_seccion },
     skip: !formData.id_seccion,
-    onCompleted: (data) => {
-      if (data?.items) {
-        setItemsSeccion(data.items);
-      }
-    }
+    fetchPolicy: 'network-only' // Evitar cache para asegurar la consulta correcta
   });
+
+  // Actualizar items de la sección cuando se reciban los datos
+  useEffect(() => {
+    if (itemsData?.itemsPorSeccion) {
+      setItemsSeccion(itemsData.itemsPorSeccion);
+    }
+  }, [itemsData]);
 
   // Manejar errores de la consulta GraphQL
   useEffect(() => {

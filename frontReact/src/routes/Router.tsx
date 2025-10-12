@@ -44,6 +44,9 @@ const NuevoMenu = Loadable(lazy(() => import('../views/menus/NuevoMenu')));
 const NuevaSeccion = Loadable(lazy(() => import('../views/menus/NuevaSeccion')));
 const NuevoItem = Loadable(lazy(() => import('../views/menus/NuevoItem')));
 const EditarItem = Loadable(lazy(() => import('../views/menus/EditarItem')));
+const Usuarios = Loadable(lazy(() => import('../views/usuarios/Usuarios')));
+const NuevoUsuario = Loadable(lazy(() => import('../views/usuarios/NuevoUsuario')));
+const EditarUsuario = Loadable(lazy(() => import('../views/usuarios/EditarUsuario')));
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
@@ -90,6 +93,9 @@ const ThemeRoutes: RouteType[] = [
       { path: 'menus/seccion/editar/:id', element: <NuevaSeccion /> },
       { path: 'menus/item/nuevo', element: <NuevoItem /> },
       { path: 'menus/item/editar/:id', element: <EditarItem /> },
+      { path: 'usuarios', element: <Usuarios /> },
+      { path: 'usuarios/nuevo', element: <NuevoUsuario /> },
+      { path: 'usuarios/editar/:id', element: <EditarUsuario /> },
       { path: 'test-flags', element: <FlagTest /> },
     ],
   },

@@ -1,11 +1,16 @@
 import React from 'react';
 import { Row, Col } from 'reactstrap';
-import Chart from 'react-apexcharts';
+import SafeApexChart from '../SafeApexChart';
 import { ApexOptions } from 'apexcharts';
 import DashCard from '../dashboardCards/DashCard';
 import OrderStatsData from './OrderStatsData';
 
 const OrderStats: React.FC = () => {
+  // Validar que los datos estén disponibles antes de renderizar
+  const isValidData = (data: any[]) => {
+    return Array.isArray(data) && data.length > 0 && data.every(val => typeof val === 'number' && !isNaN(val));
+  };
+
   const optionsorder: ApexOptions = {
     chart: {
       id: 'donut-chart',
@@ -47,11 +52,23 @@ const OrderStats: React.FC = () => {
       fillSeriesColor: false,
     },
   };
-  const seriesorder = [45, 27, 15, 18];
+  const seriesorder = [45, 27, 15, 18].map(val => isNaN(val) ? 0 : val);
+  
+  // No renderizar el gráfico si los datos no son válidos
+  if (!isValidData(seriesorder)) {
+    return (
+      <DashCard title="Order Stats" subtitle="Overview of orders">
+        <div className="mt-5 text-center">
+          <p>Datos no disponibles</p>
+        </div>
+      </DashCard>
+    );
+  }
+
   return (
     <DashCard title="Order Stats" subtitle="Overview of orders">
       <div className="mt-5">
-        <Chart options={optionsorder} series={seriesorder} type="donut" height={245} />
+        <SafeApexChart options={optionsorder} series={seriesorder} type="donut" height={245} />
       </div>
       <Row className="mt-4">
         <Col className="xs-4">

@@ -3,6 +3,7 @@ import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, gql } from '@apollo/client';
 import { actualizarPerfil } from '../../_apis_/perfil';
+import PermisosMenu from '../../components/PermisosMenu';
 
 // Consulta GraphQL para obtener perfil (InicioNestJS)
 const GET_PERFIL = gql`
@@ -259,6 +260,18 @@ const EditarPerfil: React.FC = () => {
               </Form>
             </CardBody>
           </Card>
+        </div>
+      </div>
+
+      {/* Componente de Permisos de Menú */}
+      <div className="row mt-4">
+        <div className="col-12">
+          <PermisosMenu 
+            idPerfil={id!} 
+            onPermisosChange={(permisos) => {
+              console.log('Permisos actualizados:', permisos);
+            }}
+          />
         </div>
       </div>
     </div>

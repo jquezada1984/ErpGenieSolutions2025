@@ -3,6 +3,7 @@ import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert
 import { useNavigate } from 'react-router-dom';
 import { useQuery, gql } from '@apollo/client';
 import { crearPerfil } from '../../_apis_/perfil';
+import PermisosMenu from '../../components/PermisosMenu';
 
 // Consulta GraphQL para obtener empresas (InicioNestJS)
 const GET_EMPRESAS = gql`
@@ -33,6 +34,7 @@ const NuevoPerfil: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [perfilCreado, setPerfilCreado] = useState<string | null>(null);
 
   // Consulta GraphQL para obtener empresas desde InicioNestJS
   const { loading: loadingEmpresas, error: errorEmpresas, data: empresasData } = useQuery(GET_EMPRESAS);
@@ -71,11 +73,9 @@ const NuevoPerfil: React.FC = () => {
       });
 
       setSuccess(true);
+      setPerfilCreado(result.data?.id_perfil || null);
       
-      // Redirigir después de un breve delay para mostrar el mensaje de éxito
-      setTimeout(() => {
-        navigate('/perfiles');
-      }, 2000);
+      // No redirigir automáticamente para permitir configurar permisos
     } catch (err: any) {
       setError(err.message || 'Error al crear el perfil');
     } finally {
@@ -252,6 +252,20 @@ const NuevoPerfil: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Componente de Permisos de Menú - Solo cuando el perfil ha sido creado */}
+      {perfilCreado && (
+        <div className="row mt-4">
+          <div className="col-12">
+            <PermisosMenu 
+              idPerfil={perfilCreado} 
+              onPermisosChange={(permisos) => {
+                console.log('Permisos actualizados:', permisos);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

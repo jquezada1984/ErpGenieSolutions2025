@@ -1,10 +1,15 @@
 import React from 'react';
-import Chart from 'react-apexcharts';
+import SafeApexChart from '../SafeApexChart';
 import { ApexOptions } from 'apexcharts';
 import { Row, Col } from 'reactstrap';
 import DashCard from '../dashboardCards/DashCard';
 
 const ProductSales: React.FC = () => {
+  // Validar que los datos estén disponibles antes de renderizar
+  const isValidData = (data: any[]) => {
+    return Array.isArray(data) && data.length > 0 && data.every(val => typeof val === 'number' && !isNaN(val));
+  };
+
   const optionsproductsales: ApexOptions = {
     chart: {
       id: 'basic-bar',
@@ -102,14 +107,33 @@ const ProductSales: React.FC = () => {
     {
       name: 'Product A',
       type: 'column' as const,
-      data: [5, 6, 3, 7, 9, 10, 14, 12, 11, 9, 8, 7, 10, 6, 12, 10, 8],
+      data: [5, 6, 3, 7, 9, 10, 14, 12, 11, 9, 8, 7, 10, 6, 12, 10, 8].map(val => isNaN(val) ? 0 : val),
     },
     {
       name: 'Product B',
       type: 'column' as const,
-      data: [1, 2, 8, 3, 4, 5, 7, 6, 5, 6, 4, 3, 3, 12, 5, 6, 3],
+      data: [1, 2, 8, 3, 4, 5, 7, 6, 5, 6, 4, 3, 3, 12, 5, 6, 3].map(val => isNaN(val) ? 0 : val),
     },
   ];
+  
+  // No renderizar el gráfico si los datos no son válidos
+  if (!isValidData(seriesproductsales[0].data) || !isValidData(seriesproductsales[1].data)) {
+    return (
+      <Row>
+        <Col xs="12">
+          <DashCard
+            title="Product Sales"
+            subtitle="Total Earnings of the Month"
+          >
+            <div className="mt-4 text-center">
+              <p>Datos no disponibles</p>
+            </div>
+          </DashCard>
+        </Col>
+      </Row>
+    );
+  }
+
   return (
     <Row>
       <Col xs="12">
@@ -118,7 +142,7 @@ const ProductSales: React.FC = () => {
           subtitle="Total Earnings of the Month"
         >
           <div className="mt-4">
-            <Chart
+            <SafeApexChart
               options={optionsproductsales}
               series={seriesproductsales}
               type="line"

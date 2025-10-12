@@ -18,8 +18,8 @@ const GET_MENU_SECCIONES = gql`
 
 // GraphQL query para obtener items de una sección (para jerarquía padre-hijo)
 const GET_ITEMS_SECCION = gql`
-  query GetItemsSeccion($idSeccion: String!) {
-    items(where: { id_seccion: $idSeccion }) {
+  query GetItemsSeccion($id_seccion: ID!) {
+    itemsPorSeccion(id_seccion: $id_seccion) {
       id_item
       etiqueta
       parent_id
@@ -82,10 +82,10 @@ const NuevoItem: React.FC = () => {
 
   // GraphQL hook para obtener items de una sección
   const [getItemsSeccion] = useLazyQuery(GET_ITEMS_SECCION, {
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: 'network-only', // Evitar cache para asegurar la consulta correcta
     onCompleted: (data) => {
-      if (data && data.items) {
-        setItemsSeccion(data.items);
+      if (data && data.itemsPorSeccion) {
+        setItemsSeccion(data.itemsPorSeccion);
       }
     },
     onError: (error) => {
@@ -100,7 +100,7 @@ const NuevoItem: React.FC = () => {
   // Cuando cambia la sección, cargar los items para la jerarquía
   useEffect(() => {
     if (formData.id_seccion) {
-      getItemsSeccion({ variables: { idSeccion: formData.id_seccion } });
+      getItemsSeccion({ variables: { id_seccion: formData.id_seccion } });
       // Resetear parent_id cuando cambia la sección
       setFormData(prev => ({ ...prev, parent_id: '' }));
     }
