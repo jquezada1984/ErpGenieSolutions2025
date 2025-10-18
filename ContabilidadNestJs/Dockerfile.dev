@@ -1,4 +1,4 @@
-# Dockerfile para MenuNestJs
+# Dockerfile para Backend Contabilidad NestJS - Desarrollo
 FROM node:20-slim
 
 # Instalar dependencias del sistema para compilación nativa
@@ -19,21 +19,18 @@ WORKDIR /app
 # Copiar archivos de dependencias
 COPY package*.json ./
 
-# Instalar TODAS las dependencias (incluyendo devDependencies para el build)
+# Remover dependencia problemática msnodesqlv8 temporalmente
+RUN npm pkg delete dependencies.msnodesqlv8
+
+# Instalar dependencias de desarrollo
 RUN npm install --legacy-peer-deps
 
-# Copiar código fuente
-COPY . .
-
-# Construir la aplicación
-RUN npm run build
-
 # Exponer puerto
-EXPOSE 3003
+EXPOSE 3004
 
-# Variables de entorno por defecto
-ENV NODE_ENV=production
-ENV PORT=3003
+# Variables de entorno para desarrollo
+ENV NODE_ENV=development
+ENV PORT=3004
 
-# Comando por defecto
-CMD ["npm", "run", "start:prod"]
+# Comando por defecto para desarrollo con watch mode
+CMD ["npm", "run", "start:dev"]

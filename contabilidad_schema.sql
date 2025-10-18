@@ -1,4 +1,351 @@
 -- =====================================================
+--=====================================================
+-- TABLAS PARA EMPRESA
+-- =====================================================
+-- Table: public.empresa
+
+-- DROP TABLE IF EXISTS public.empresa;
+
+
+
+CREATE TABLE IF NOT EXISTS public.empresa
+(
+    id_empresa uuid NOT NULL DEFAULT gen_random_uuid(),
+    nombre character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    ruc character varying(13) COLLATE pg_catalog."default" NOT NULL,
+    direccion character varying(255) COLLATE pg_catalog."default",
+    telefono character varying(20) COLLATE pg_catalog."default",
+    email character varying(128) COLLATE pg_catalog."default",
+    estado boolean NOT NULL DEFAULT true,
+    created_at timestamp without time zone NOT NULL DEFAULT now(),
+    updated_at timestamp without time zone NOT NULL DEFAULT now(),
+    id_moneda uuid,
+    id_pais uuid,
+    codigo_postal character varying(20) COLLATE pg_catalog."default",
+    poblacion character varying(100) COLLATE pg_catalog."default",
+    movil character varying(20) COLLATE pg_catalog."default",
+    fax character varying(20) COLLATE pg_catalog."default",
+    web character varying(255) COLLATE pg_catalog."default",
+    logo bytea,
+    logotipo_cuadrado bytea,
+    nota text COLLATE pg_catalog."default",
+    sujeto_iva boolean NOT NULL DEFAULT true,
+    id_provincia uuid,
+    fiscal_year_start_month smallint NOT NULL DEFAULT 1,
+    fiscal_year_start_day smallint NOT NULL DEFAULT 1,
+    CONSTRAINT empresa_pkey PRIMARY KEY (id_empresa),
+    CONSTRAINT empresa_ruc_key UNIQUE (ruc),
+    CONSTRAINT empresa_id_moneda_fkey FOREIGN KEY (id_moneda)
+        REFERENCES public.moneda (id_moneda) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT empresa_id_pais_fkey FOREIGN KEY (id_pais)
+        REFERENCES public.pais (id_pais) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT empresa_id_provincia_fkey FOREIGN KEY (id_provincia)
+        REFERENCES public.provincia (id_provincia) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE SET NULL,
+    CONSTRAINT empresa_fiscal_year_start_day_check CHECK (fiscal_year_start_day >= 1 AND fiscal_year_start_day <= 31),
+    CONSTRAINT empresa_fiscal_year_start_month_check CHECK (fiscal_year_start_month >= 1 AND fiscal_year_start_month <= 12)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.empresa
+    OWNER to postgres;
+
+GRANT ALL ON TABLE public.empresa TO anon;
+
+GRANT ALL ON TABLE public.empresa TO authenticated;
+
+GRANT ALL ON TABLE public.empresa TO postgres;
+
+GRANT ALL ON TABLE public.empresa TO service_role;
+
+
+-- =====================================================
+-- ESQUEMA DE BASE DE DATOS PARA MÓDULO DE CONTABILIDAD
+-- ACTUALIZADO CON FORMATO CONSISTENTE (UUID, estructura real)
+-- =====================================================
+
+-- Table: public.empresa_horario_apertura
+
+-- DROP TABLE IF EXISTS public.empresa_horario_apertura;
+
+CREATE TABLE IF NOT EXISTS public.empresa_horario_apertura
+(
+    id_horario uuid NOT NULL DEFAULT gen_random_uuid(),
+    id_empresa uuid NOT NULL,
+    dia smallint NOT NULL,
+    valor character varying(50) COLLATE pg_catalog."default",
+    created_by uuid,
+    created_at timestamp without time zone NOT NULL DEFAULT now(),
+    updated_by uuid,
+    updated_at timestamp without time zone,
+    CONSTRAINT empresa_horario_apertura_pkey PRIMARY KEY (id_horario),
+    CONSTRAINT uq_empresa_dia UNIQUE (id_empresa, dia),
+    CONSTRAINT empresa_horario_apertura_created_by_fkey FOREIGN KEY (created_by)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT empresa_horario_apertura_id_empresa_fkey FOREIGN KEY (id_empresa)
+        REFERENCES public.empresa (id_empresa) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT empresa_horario_apertura_updated_by_fkey FOREIGN KEY (updated_by)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT empresa_horario_apertura_dia_check CHECK (dia >= 1 AND dia <= 7)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.empresa_horario_apertura
+    OWNER to postgres;
+
+GRANT ALL ON TABLE public.empresa_horario_apertura TO anon;
+
+GRANT ALL ON TABLE public.empresa_horario_apertura TO authenticated;
+
+GRANT ALL ON TABLE public.empresa_horario_apertura TO postgres;
+
+GRANT ALL ON TABLE public.empresa_horario_apertura TO service_role;
+
+
+
+-- =====================================================
+
+
+-- Table: public.empresa_identificacion
+
+-- DROP TABLE IF EXISTS public.empresa_identificacion;
+
+CREATE TABLE IF NOT EXISTS public.empresa_identificacion
+(
+    id_identificacion uuid NOT NULL DEFAULT gen_random_uuid(),
+    id_empresa uuid NOT NULL,
+    administradores character varying(255) COLLATE pg_catalog."default",
+    delegado_datos character varying(255) COLLATE pg_catalog."default",
+    capital numeric(14,2),
+    id_tipo_entidad smallint,
+    objeto_empresa text COLLATE pg_catalog."default",
+    cif_intra character varying(64) COLLATE pg_catalog."default",
+    id_profesional1 character varying(100) COLLATE pg_catalog."default",
+    id_profesional2 character varying(100) COLLATE pg_catalog."default",
+    id_profesional3 character varying(100) COLLATE pg_catalog."default",
+    id_profesional4 character varying(100) COLLATE pg_catalog."default",
+    id_profesional5 character varying(100) COLLATE pg_catalog."default",
+    id_profesional6 character varying(100) COLLATE pg_catalog."default",
+    id_profesional7 character varying(100) COLLATE pg_catalog."default",
+    id_profesional8 character varying(100) COLLATE pg_catalog."default",
+    id_profesional9 character varying(100) COLLATE pg_catalog."default",
+    id_profesional10 character varying(100) COLLATE pg_catalog."default",
+    created_by uuid,
+    created_at timestamp without time zone NOT NULL DEFAULT now(),
+    updated_by uuid,
+    updated_at timestamp without time zone,
+    CONSTRAINT empresa_identificacion_pkey PRIMARY KEY (id_identificacion),
+    CONSTRAINT empresa_identificacion_created_by_fkey FOREIGN KEY (created_by)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT empresa_identificacion_id_empresa_fkey FOREIGN KEY (id_empresa)
+        REFERENCES public.empresa (id_empresa) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT empresa_identificacion_id_tipo_entidad_fkey FOREIGN KEY (id_tipo_entidad)
+        REFERENCES public.tipo_entidad_comercial (id_tipo_entidad) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT empresa_identificacion_updated_by_fkey FOREIGN KEY (updated_by)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.empresa_identificacion
+    OWNER to postgres;
+
+GRANT ALL ON TABLE public.empresa_identificacion TO anon;
+
+GRANT ALL ON TABLE public.empresa_identificacion TO authenticated;
+
+GRANT ALL ON TABLE public.empresa_identificacion TO postgres;
+
+GRANT ALL ON TABLE public.empresa_identificacion TO service_role;
+-- =====================================================
+
+-- Table: public.empresa_red_social
+
+-- DROP TABLE IF EXISTS public.empresa_red_social;
+
+CREATE TABLE IF NOT EXISTS public.empresa_red_social
+(
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    id_empresa uuid NOT NULL,
+    id_red_social uuid NOT NULL,
+    identificador character varying(100) COLLATE pg_catalog."default",
+    url character varying(255) COLLATE pg_catalog."default",
+    es_principal boolean NOT NULL DEFAULT false,
+    created_by uuid,
+    created_at timestamp without time zone NOT NULL DEFAULT now(),
+    updated_by uuid,
+    updated_at timestamp without time zone,
+    CONSTRAINT empresa_red_social_pkey PRIMARY KEY (id),
+    CONSTRAINT empresa_red_social_created_by_fkey FOREIGN KEY (created_by)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT empresa_red_social_id_empresa_fkey FOREIGN KEY (id_empresa)
+        REFERENCES public.empresa (id_empresa) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT empresa_red_social_id_red_social_fkey FOREIGN KEY (id_red_social)
+        REFERENCES public.social_network (id_red_social) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT empresa_red_social_updated_by_fkey FOREIGN KEY (updated_by)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.empresa_red_social
+    OWNER to postgres;
+
+GRANT ALL ON TABLE public.empresa_red_social TO anon;
+
+GRANT ALL ON TABLE public.empresa_red_social TO authenticated;
+
+GRANT ALL ON TABLE public.empresa_red_social TO postgres;
+
+GRANT ALL ON TABLE public.empresa_red_social TO service_role;
+-- Index: idx_ers_empresa
+
+-- DROP INDEX IF EXISTS public.idx_ers_empresa;
+
+CREATE INDEX IF NOT EXISTS idx_ers_empresa
+    ON public.empresa_red_social USING btree
+    (id_empresa ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_ers_red_social
+
+-- DROP INDEX IF EXISTS public.idx_ers_red_social;
+
+CREATE INDEX IF NOT EXISTS idx_ers_red_social
+    ON public.empresa_red_social USING btree
+    (id_red_social ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+
+
+-- Index: uk_empresa_identificacion_empresa
+
+-- DROP INDEX IF EXISTS public.uk_empresa_identificacion_empresa;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_empresa_identificacion_empresa
+    ON public.empresa_identificacion USING btree
+    (id_empresa ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+-- =====================================================
+-- ESQUEMA DE BASE DE DATOS PARA MÓDULO DE CONTABILIDAD
+-- ACTUALIZADO CON FORMATO CONSISTENTE (UUID, estructura real)
+-- =====================================================
+
+-- =====================================================
+-- TABLAS PARA CONDICIONES DE PAGO
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.condicion_pago_catalogo
+(
+    id_condicion_pago uuid NOT NULL DEFAULT gen_random_uuid(),
+    descripcion character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT condicion_pago_catalogo_pkey PRIMARY KEY (id_condicion_pago),
+    CONSTRAINT condicion_pago_catalogo_descripcion_key UNIQUE (descripcion)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.condicion_pago_catalogo
+    OWNER to postgres;
+
+GRANT ALL ON TABLE public.condicion_pago_catalogo TO anon;
+
+GRANT ALL ON TABLE public.condicion_pago_catalogo TO authenticated;
+
+GRANT ALL ON TABLE public.condicion_pago_catalogo TO postgres;
+
+GRANT ALL ON TABLE public.condicion_pago_catalogo TO service_role;
+
+------------------------------
+
+-- Table: public.forma_pago_catalogo
+
+-- DROP TABLE IF EXISTS public.forma_pago_catalogo;
+
+CREATE TABLE IF NOT EXISTS public.forma_pago_catalogo
+(
+    id_forma_pago uuid NOT NULL DEFAULT gen_random_uuid(),
+    descripcion character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT forma_pago_catalogo_pkey PRIMARY KEY (id_forma_pago),
+    CONSTRAINT forma_pago_catalogo_descripcion_key UNIQUE (descripcion)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.forma_pago_catalogo
+    OWNER to postgres;
+
+GRANT ALL ON TABLE public.forma_pago_catalogo TO anon;
+
+GRANT ALL ON TABLE public.forma_pago_catalogo TO authenticated;
+
+GRANT ALL ON TABLE public.forma_pago_catalogo TO postgres;
+
+GRANT ALL ON TABLE public.forma_pago_catalogo TO service_role;
+--------------------------
+
+-- Table: public.forma_pago_catalogo
+
+-- DROP TABLE IF EXISTS public.forma_pago_catalogo;
+
+CREATE TABLE IF NOT EXISTS public.forma_pago_catalogo
+(
+    id_forma_pago uuid NOT NULL DEFAULT gen_random_uuid(),
+    descripcion character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT forma_pago_catalogo_pkey PRIMARY KEY (id_forma_pago),
+    CONSTRAINT forma_pago_catalogo_descripcion_key UNIQUE (descripcion)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.forma_pago_catalogo
+    OWNER to postgres;
+
+GRANT ALL ON TABLE public.forma_pago_catalogo TO anon;
+
+GRANT ALL ON TABLE public.forma_pago_catalogo TO authenticated;
+
+GRANT ALL ON TABLE public.forma_pago_catalogo TO postgres;
+
+GRANT ALL ON TABLE public.forma_pago_catalogo TO service_role;
+
+--------------------------------
+
+
+
+
+
+-------------------------------
+
+-- =====================================================
 -- ESQUEMA DE BASE DE DATOS PARA MÓDULO DE CONTABILIDAD
 -- ACTUALIZADO CON FORMATO CONSISTENTE (UUID, estructura real)
 -- =====================================================
@@ -548,6 +895,212 @@ CREATE TABLE IF NOT EXISTS public.factura_linea (
         ON DELETE SET NULL
 );
 
+-- =====================================================
+-- TABLAS PARA SISTEMA DE COTIZACIONES, PREFACTURAS Y FACTURAS
+-- =====================================================
+
+-- Tabla para cotizaciones
+CREATE TABLE IF NOT EXISTS public.cotizacion (
+    id_cotizacion UUID NOT NULL DEFAULT gen_random_uuid(),
+    id_empresa UUID NOT NULL,
+    numero_cotizacion VARCHAR(50) NOT NULL,
+    id_tercero UUID NOT NULL,
+    fecha_cotizacion DATE NOT NULL,
+    fecha_vencimiento DATE,
+    subtotal DECIMAL(15,2) NOT NULL,
+    total_impuestos DECIMAL(15,2) DEFAULT 0,
+    total_descuentos DECIMAL(15,2) DEFAULT 0,
+    total_cotizacion DECIMAL(15,2) NOT NULL,
+    estado VARCHAR(20) DEFAULT 'BORRADOR', -- 'BORRADOR', 'ENVIADA', 'ACEPTADA', 'RECHAZADA', 'VENCIDA'
+    observaciones TEXT,
+    id_usuario_creacion UUID,
+    id_usuario_aprobacion UUID,
+    fecha_aprobacion TIMESTAMP WITHOUT TIME ZONE,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+    CONSTRAINT cotizacion_pkey PRIMARY KEY (id_cotizacion),
+    CONSTRAINT cotizacion_id_empresa_fkey FOREIGN KEY (id_empresa)
+        REFERENCES public.empresa (id_empresa) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT cotizacion_id_tercero_fkey FOREIGN KEY (id_tercero)
+        REFERENCES public.tercero (id_tercero) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT cotizacion_id_usuario_creacion_fkey FOREIGN KEY (id_usuario_creacion)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE SET NULL,
+    CONSTRAINT cotizacion_id_usuario_aprobacion_fkey FOREIGN KEY (id_usuario_aprobacion)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE SET NULL,
+    CONSTRAINT cotizacion_numero_unique UNIQUE (id_empresa, numero_cotizacion)
+);
+
+-- Tabla para líneas de cotización
+CREATE TABLE IF NOT EXISTS public.cotizacion_linea (
+    id_cotizacion_linea UUID NOT NULL DEFAULT gen_random_uuid(),
+    id_cotizacion UUID NOT NULL,
+    id_producto UUID,
+    descripcion VARCHAR(500) NOT NULL,
+    cantidad DECIMAL(10,3) NOT NULL,
+    precio_unitario DECIMAL(15,2) NOT NULL,
+    descuento_porcentaje DECIMAL(5,2) DEFAULT 0,
+    descuento_valor DECIMAL(15,2) DEFAULT 0,
+    subtotal DECIMAL(15,2) NOT NULL,
+    orden INTEGER NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+    CONSTRAINT cotizacion_linea_pkey PRIMARY KEY (id_cotizacion_linea),
+    CONSTRAINT cotizacion_linea_id_cotizacion_fkey FOREIGN KEY (id_cotizacion)
+        REFERENCES public.cotizacion (id_cotizacion) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT cotizacion_linea_id_producto_fkey FOREIGN KEY (id_producto)
+        REFERENCES public.producto (id_producto) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE SET NULL
+);
+
+-- Tabla para prefacturas
+CREATE TABLE IF NOT EXISTS public.prefactura (
+    id_prefactura UUID NOT NULL DEFAULT gen_random_uuid(),
+    id_empresa UUID NOT NULL,
+    numero_prefactura VARCHAR(50) NOT NULL,
+    id_cotizacion UUID NOT NULL,
+    id_tercero UUID NOT NULL,
+    fecha_prefactura DATE NOT NULL,
+    fecha_vencimiento DATE,
+    subtotal DECIMAL(15,2) NOT NULL,
+    total_impuestos DECIMAL(15,2) DEFAULT 0,
+    total_descuentos DECIMAL(15,2) DEFAULT 0,
+    total_prefactura DECIMAL(15,2) NOT NULL,
+    estado VARCHAR(20) DEFAULT 'BORRADOR', -- 'BORRADOR', 'ENVIADA', 'APROBADA', 'CONVERTIDA', 'ANULADA'
+    observaciones TEXT,
+    id_factura UUID, -- Si se convierte en factura
+    id_usuario_creacion UUID,
+    id_usuario_aprobacion UUID,
+    fecha_aprobacion TIMESTAMP WITHOUT TIME ZONE,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+    CONSTRAINT prefactura_pkey PRIMARY KEY (id_prefactura),
+    CONSTRAINT prefactura_id_empresa_fkey FOREIGN KEY (id_empresa)
+        REFERENCES public.empresa (id_empresa) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT prefactura_id_cotizacion_fkey FOREIGN KEY (id_cotizacion)
+        REFERENCES public.cotizacion (id_cotizacion) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT prefactura_id_tercero_fkey FOREIGN KEY (id_tercero)
+        REFERENCES public.tercero (id_tercero) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT prefactura_id_factura_fkey FOREIGN KEY (id_factura)
+        REFERENCES public.factura (id_factura) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE SET NULL,
+    CONSTRAINT prefactura_id_usuario_creacion_fkey FOREIGN KEY (id_usuario_creacion)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE SET NULL,
+    CONSTRAINT prefactura_id_usuario_aprobacion_fkey FOREIGN KEY (id_usuario_aprobacion)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE SET NULL,
+    CONSTRAINT prefactura_numero_unique UNIQUE (id_empresa, numero_prefactura)
+);
+
+-- Tabla para líneas de prefactura
+CREATE TABLE IF NOT EXISTS public.prefactura_linea (
+    id_prefactura_linea UUID NOT NULL DEFAULT gen_random_uuid(),
+    id_prefactura UUID NOT NULL,
+    id_cotizacion_linea UUID NOT NULL, -- Referencia a la línea de cotización original
+    id_producto UUID,
+    descripcion VARCHAR(500) NOT NULL,
+    cantidad DECIMAL(10,3) NOT NULL,
+    precio_unitario DECIMAL(15,2) NOT NULL,
+    descuento_porcentaje DECIMAL(5,2) DEFAULT 0,
+    descuento_valor DECIMAL(15,2) DEFAULT 0,
+    subtotal DECIMAL(15,2) NOT NULL,
+    orden INTEGER NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+    CONSTRAINT prefactura_linea_pkey PRIMARY KEY (id_prefactura_linea),
+    CONSTRAINT prefactura_linea_id_prefactura_fkey FOREIGN KEY (id_prefactura)
+        REFERENCES public.prefactura (id_prefactura) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT prefactura_linea_id_cotizacion_linea_fkey FOREIGN KEY (id_cotizacion_linea)
+        REFERENCES public.cotizacion_linea (id_cotizacion_linea) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT prefactura_linea_id_producto_fkey FOREIGN KEY (id_producto)
+        REFERENCES public.producto (id_producto) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE SET NULL
+);
+
+-- Tabla para relacionar cotizaciones con prefacturas
+CREATE TABLE IF NOT EXISTS public.cotizacion_prefactura (
+    id_cotizacion_prefactura UUID NOT NULL DEFAULT gen_random_uuid(),
+    id_cotizacion UUID NOT NULL,
+    id_prefactura UUID NOT NULL,
+    porcentaje_utilizado DECIMAL(5,2) DEFAULT 100, -- Porcentaje de la cotización utilizado en esta prefactura
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+    CONSTRAINT cotizacion_prefactura_pkey PRIMARY KEY (id_cotizacion_prefactura),
+    CONSTRAINT cotizacion_prefactura_id_cotizacion_fkey FOREIGN KEY (id_cotizacion)
+        REFERENCES public.cotizacion (id_cotizacion) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT cotizacion_prefactura_id_prefactura_fkey FOREIGN KEY (id_prefactura)
+        REFERENCES public.prefactura (id_prefactura) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT cotizacion_prefactura_unique UNIQUE (id_cotizacion, id_prefactura)
+);
+
+-- Tabla para relacionar prefacturas con facturas
+CREATE TABLE IF NOT EXISTS public.prefactura_factura (
+    id_prefactura_factura UUID NOT NULL DEFAULT gen_random_uuid(),
+    id_prefactura UUID NOT NULL,
+    id_factura UUID NOT NULL,
+    porcentaje_utilizado DECIMAL(5,2) DEFAULT 100, -- Porcentaje de la prefactura utilizado en esta factura
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+    CONSTRAINT prefactura_factura_pkey PRIMARY KEY (id_prefactura_factura),
+    CONSTRAINT prefactura_factura_id_prefactura_fkey FOREIGN KEY (id_prefactura)
+        REFERENCES public.prefactura (id_prefactura) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT prefactura_factura_id_factura_fkey FOREIGN KEY (id_factura)
+        REFERENCES public.factura (id_factura) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT prefactura_factura_unique UNIQUE (id_prefactura, id_factura)
+);
+
+-- Tabla para historial de conversiones
+CREATE TABLE IF NOT EXISTS public.historial_conversion (
+    id_historial_conversion UUID NOT NULL DEFAULT gen_random_uuid(),
+    id_empresa UUID NOT NULL,
+    tipo_origen VARCHAR(20) NOT NULL, -- 'COTIZACION', 'PREFACTURA'
+    id_documento_origen UUID NOT NULL,
+    tipo_destino VARCHAR(20) NOT NULL, -- 'PREFACTURA', 'FACTURA'
+    id_documento_destino UUID NOT NULL,
+    fecha_conversion TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+    id_usuario_conversion UUID,
+    observaciones TEXT,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+    CONSTRAINT historial_conversion_pkey PRIMARY KEY (id_historial_conversion),
+    CONSTRAINT historial_conversion_id_empresa_fkey FOREIGN KEY (id_empresa)
+        REFERENCES public.empresa (id_empresa) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE RESTRICT,
+    CONSTRAINT historial_conversion_id_usuario_conversion_fkey FOREIGN KEY (id_usuario_conversion)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE SET NULL
+);
+
 -- Tabla para pagos
 CREATE TABLE IF NOT EXISTS public.pago (
     id_pago UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -943,6 +1496,7 @@ CREATE TABLE IF NOT EXISTS public.cierre_contable (
         ON DELETE RESTRICT
 );
 
+
 -- =====================================================
 -- ÍNDICES PARA OPTIMIZACIÓN
 -- =====================================================
@@ -978,120 +1532,25 @@ CREATE INDEX IF NOT EXISTS idx_centro_costo_empresa ON public.centro_costo(id_em
 CREATE INDEX IF NOT EXISTS idx_tipo_cambio_fecha ON public.tipo_cambio(fecha_cambio);
 CREATE INDEX IF NOT EXISTS idx_cierre_contable_periodo ON public.cierre_contable(id_periodo_contable);
 
--- =====================================================
--- DATOS INICIALES
--- =====================================================
+-- Índices para las tablas de cotizaciones, prefacturas y facturas
+CREATE INDEX IF NOT EXISTS idx_cotizacion_empresa ON public.cotizacion(id_empresa);
+CREATE INDEX IF NOT EXISTS idx_cotizacion_tercero ON public.cotizacion(id_tercero);
+CREATE INDEX IF NOT EXISTS idx_cotizacion_fecha ON public.cotizacion(fecha_cotizacion);
+CREATE INDEX IF NOT EXISTS idx_cotizacion_estado ON public.cotizacion(estado);
+CREATE INDEX IF NOT EXISTS idx_cotizacion_linea_cotizacion ON public.cotizacion_linea(id_cotizacion);
+CREATE INDEX IF NOT EXISTS idx_cotizacion_linea_producto ON public.cotizacion_linea(id_producto);
+CREATE INDEX IF NOT EXISTS idx_prefactura_empresa ON public.prefactura(id_empresa);
+CREATE INDEX IF NOT EXISTS idx_prefactura_tercero ON public.prefactura(id_tercero);
+CREATE INDEX IF NOT EXISTS idx_prefactura_cotizacion ON public.prefactura(id_cotizacion);
+CREATE INDEX IF NOT EXISTS idx_prefactura_fecha ON public.prefactura(fecha_prefactura);
+CREATE INDEX IF NOT EXISTS idx_prefactura_estado ON public.prefactura(estado);
+CREATE INDEX IF NOT EXISTS idx_prefactura_linea_prefactura ON public.prefactura_linea(id_prefactura);
+CREATE INDEX IF NOT EXISTS idx_prefactura_linea_cotizacion_linea ON public.prefactura_linea(id_cotizacion_linea);
+CREATE INDEX IF NOT EXISTS idx_cotizacion_prefactura_cotizacion ON public.cotizacion_prefactura(id_cotizacion);
+CREATE INDEX IF NOT EXISTS idx_cotizacion_prefactura_prefactura ON public.cotizacion_prefactura(id_prefactura);
+CREATE INDEX IF NOT EXISTS idx_prefactura_factura_prefactura ON public.prefactura_factura(id_prefactura);
+CREATE INDEX IF NOT EXISTS idx_prefactura_factura_factura ON public.prefactura_factura(id_factura);
+CREATE INDEX IF NOT EXISTS idx_historial_conversion_empresa ON public.historial_conversion(id_empresa);
+CREATE INDEX IF NOT EXISTS idx_historial_conversion_origen ON public.historial_conversion(tipo_origen, id_documento_origen);
+CREATE INDEX IF NOT EXISTS idx_historial_conversion_destino ON public.historial_conversion(tipo_destino, id_documento_destino);
 
--- Insertar modelos de plan contable básicos
-INSERT INTO public.modelo_plan_contable (nombre, descripcion, codigo) VALUES
-('Plan Contable General', 'Plan contable estándar para empresas generales', 'PCG'),
-('Plan Contable PYMES', 'Plan contable simplificado para pequeñas y medianas empresas', 'PCPYMES'),
-('Plan Contable Comercial', 'Plan contable especializado para empresas comerciales', 'PCC')
-ON CONFLICT (codigo) DO NOTHING;
-
--- Insertar diarios contables básicos (solo si existe una empresa)
-INSERT INTO public.diario_contable (id_empresa, codigo, nombre, descripcion, tipo_diario) 
-SELECT 
-    id_empresa, -- Usar el UUID real de la empresa
-    'VEN',
-    'Diario de Ventas',
-    'Registro de todas las operaciones de venta',
-    'VENTAS'
-FROM public.empresa 
-WHERE estado = true
-LIMIT 1
-ON CONFLICT (id_empresa, codigo) DO NOTHING;
-
-INSERT INTO public.diario_contable (id_empresa, codigo, nombre, descripcion, tipo_diario) 
-SELECT 
-    id_empresa, -- Usar el UUID real de la empresa
-    'COM',
-    'Diario de Compras',
-    'Registro de todas las operaciones de compra',
-    'COMPRAS'
-FROM public.empresa 
-WHERE estado = true
-LIMIT 1
-ON CONFLICT (id_empresa, codigo) DO NOTHING;
-
-INSERT INTO public.diario_contable (id_empresa, codigo, nombre, descripcion, tipo_diario) 
-SELECT 
-    id_empresa, -- Usar el UUID real de la empresa
-    'BAN',
-    'Diario Financiero',
-    'Registro de todas las operaciones bancarias',
-    'BANCO'
-FROM public.empresa 
-WHERE estado = true
-LIMIT 1
-ON CONFLICT (id_empresa, codigo) DO NOTHING;
-
-INSERT INTO public.diario_contable (id_empresa, codigo, nombre, descripcion, tipo_diario) 
-SELECT 
-    id_empresa, -- Usar el UUID real de la empresa
-    'EGR',
-    'Diario de Egresos',
-    'Registro de todos los egresos y gastos',
-    'EGRESOS'
-FROM public.empresa 
-WHERE estado = true
-LIMIT 1
-ON CONFLICT (id_empresa, codigo) DO NOTHING;
-
-INSERT INTO public.diario_contable (id_empresa, codigo, nombre, descripcion, tipo_diario) 
-SELECT 
-    id_empresa, -- Usar el UUID real de la empresa
-    'ING',
-    'Diario de Ingresos',
-    'Registro de todos los ingresos',
-    'INGRESOS'
-FROM public.empresa 
-WHERE estado = true
-LIMIT 1
-ON CONFLICT (id_empresa, codigo) DO NOTHING;
-
-INSERT INTO public.diario_contable (id_empresa, codigo, nombre, descripcion, tipo_diario) 
-SELECT 
-    id_empresa, -- Usar el UUID real de la empresa
-    'CIE',
-    'Diario de Cierre',
-    'Registro de asientos de cierre contable',
-    'CIERRE'
-FROM public.empresa 
-WHERE estado = true
-LIMIT 1
-ON CONFLICT (id_empresa, codigo) DO NOTHING;
-
--- Insertar centros de costo básicos
-INSERT INTO public.centro_costo (id_empresa, codigo, nombre, descripcion) 
-SELECT 
-    id_empresa, -- Usar el UUID real de la empresa
-    'ADMIN',
-    'Administración',
-    'Centro de costo para gastos administrativos'
-FROM public.empresa 
-WHERE estado = true
-LIMIT 1
-ON CONFLICT (id_empresa, codigo) DO NOTHING;
-
-INSERT INTO public.centro_costo (id_empresa, codigo, nombre, descripcion) 
-SELECT 
-    id_empresa, -- Usar el UUID real de la empresa
-    'VENTAS',
-    'Ventas',
-    'Centro de costo para gastos de ventas'
-FROM public.empresa 
-WHERE estado = true
-LIMIT 1
-ON CONFLICT (id_empresa, codigo) DO NOTHING;
-
-INSERT INTO public.centro_costo (id_empresa, codigo, nombre, descripcion) 
-SELECT 
-    id_empresa, -- Usar el UUID real de la empresa
-    'PROD',
-    'Producción',
-    'Centro de costo para gastos de producción'
-FROM public.empresa 
-WHERE estado = true
-LIMIT 1
-ON CONFLICT (id_empresa, codigo) DO NOTHING;

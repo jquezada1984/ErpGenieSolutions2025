@@ -1,4 +1,4 @@
-# Dockerfile para MenuNestJs
+# Dockerfile para Backend Contabilidad NestJS
 FROM node:20-slim
 
 # Instalar dependencias del sistema para compilación nativa
@@ -19,6 +19,9 @@ WORKDIR /app
 # Copiar archivos de dependencias
 COPY package*.json ./
 
+# Remover dependencia problemática msnodesqlv8 temporalmente
+RUN npm pkg delete dependencies.msnodesqlv8
+
 # Instalar TODAS las dependencias (incluyendo devDependencies para el build)
 RUN npm install --legacy-peer-deps
 
@@ -29,11 +32,11 @@ COPY . .
 RUN npm run build
 
 # Exponer puerto
-EXPOSE 3003
+EXPOSE 3004
 
 # Variables de entorno por defecto
 ENV NODE_ENV=production
-ENV PORT=3003
+ENV PORT=3004
 
 # Comando por defecto
 CMD ["npm", "run", "start:prod"]
