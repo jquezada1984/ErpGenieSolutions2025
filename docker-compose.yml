@@ -47,6 +47,41 @@ services:
     networks:
       - erp-network
 
+  # Microservicio Python Financiero (Flask)
+  financiero-python-service:
+    build:
+      context: ./FinancieroPython
+      dockerfile: Dockerfile
+    container_name: erp-financiero-python-service
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - FLASK_ENV=production
+      - PORT=5001
+    ports:
+      - "5001:5001"
+    networks:
+      - erp-network
+    volumes:
+      - financiero_python_data:/app/data
+
+  # Backend NestJS Financiero (GraphQL)
+  financiero-nestjs-service:
+    build:
+      context: ./FinancieroNestJs
+      dockerfile: Dockerfile
+    container_name: erp-financiero-nestjs-service
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - PORT=3004
+    ports:
+      - "3004:3004"
+    networks:
+      - erp-network
+
   # Gateway API (Fastify)
   gateway-api:
     build:
@@ -58,6 +93,8 @@ services:
       - PYTHON_SERVICE_URL=http://python-service:5000
       - NESTJS_SERVICE_URL=http://nestjs-service:3001
       - MENU_SERVICE_URL=http://menu-service:3003
+      - FINANCIERO_PYTHON_SERVICE_URL=http://financiero-python-service:5001
+      - FINANCIERO_NESTJS_SERVICE_URL=http://financiero-nestjs-service:3004
       - GATEWAY_PORT=3002
       - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
     ports:
@@ -66,6 +103,8 @@ services:
       - python-service
       - nestjs-service
       - menu-service
+      - financiero-python-service
+      - financiero-nestjs-service
     networks:
       - erp-network
 
@@ -84,6 +123,7 @@ services:
 
 volumes:
   python_data:
+  financiero_python_data:
 
 networks:
   erp-network:

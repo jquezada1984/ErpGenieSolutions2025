@@ -1,0 +1,37 @@
+# Dockerfile para Microservicio Python (Flask) - Desarrollo
+FROM python:3.12-slim
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
+    tzdata \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configurar zona horaria de Guayaquil, Ecuador
+ENV TZ=America/Guayaquil
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Copiar archivos de dependencias
+COPY requirements.txt .
+
+# Instalar dependencias de Python
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Exponer puerto
+EXPOSE 5001
+
+# Variables de entorno por defecto
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=development
+ENV PYTHONPATH=/app
+ENV PORT=5001
+
+# Comando por defecto para desarrollo
+CMD ["python", "start_server_improved.py"]
+

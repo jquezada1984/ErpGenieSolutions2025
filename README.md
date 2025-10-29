@@ -16,8 +16,43 @@ Sistema ERP moderno con arquitectura de microservicios, API Gateway y frontend R
 
 - **Frontend React** (`frontReact/`) - Interfaz de usuario moderna
 - **Gateway API** (`gateway-api/`) - API Gateway centralizado (Fastify)
-- **Microservicio Python** (`InicioPython/`) - Gestión de base de datos (Flask)
-- **Backend NestJS** (`InicioNestJs/`) - API GraphQL (NestJS)
+- **Microservicio Python** (`InicioPython/`) - Gestión de base de datos (Flask) - Puerto: 5000
+- **Backend NestJS** (`InicioNestJs/`) - API GraphQL (NestJS) - Puerto: 3001
+- **MenuNestJs** (`MenuNestJs/`) - Servicio de menús (NestJS) - Puerto: 3003
+- **Microservicio Python Financiero** (`FinancieroPython/`) - Módulo financiero (Flask) - Puerto: 5001
+- **Backend NestJS Financiero** (`FinancieroNestJs/`) - API GraphQL Financiero (NestJS) - Puerto: 3004
+
+---
+
+## 🔌 **Puertos de los Servicios**
+
+Esta es la configuración completa de puertos utilizada por cada servicio del sistema:
+
+| Servicio | Puerto | Descripción | URL Local |
+|----------|--------|-------------|-----------|
+| **Frontend React** | 3000 | Interfaz de usuario (Nginx) | http://localhost:3000 |
+| **Gateway API** | 3002 | API Gateway centralizado (Fastify) | http://localhost:3002 |
+| **Python Service (Inicio)** | 5000 | Microservicio Flask - Gestión base de datos | http://localhost:5000 |
+| **NestJS Service (Inicio)** | 3001 | API GraphQL - Módulo de inicio | http://localhost:3001 |
+| **Menu Service** | 3003 | API GraphQL - Servicio de menús | http://localhost:3003 |
+| **Python Service Financiero** | 5001 | Microservicio Flask - Módulo financiero | http://localhost:5001 |
+| **NestJS Service Financiero** | 3004 | API GraphQL - Módulo financiero | http://localhost:3004 |
+
+### **Endpoints Especiales:**
+
+- **GraphQL Playground (Inicio):** http://localhost:3001/graphql
+- **GraphQL Playground (Financiero):** http://localhost:3004/graphql
+- **GraphQL Playground (Menú):** http://localhost:3003/graphql
+- **Health Check (Python Inicio):** http://localhost:5000/health
+- **Health Check (Python Financiero):** http://localhost:5001/health
+- **Gateway Health Check:** http://localhost:3002/gateway/health
+
+### **Notas Importantes:**
+
+- Todos los servicios se comunican internamente a través de la red Docker `erp-network`
+- Los puertos expuestos son para acceso desde el host local
+- El Gateway API actúa como punto de entrada único para el frontend
+- Los servicios GraphQL tienen sus propios playgrounds para desarrollo y pruebas
 
 ---
 
@@ -223,9 +258,11 @@ docker stats
 ### **Servicios Disponibles:**
 - **Frontend React:** http://localhost:3000
 - **Gateway API:** http://localhost:3002
-- **Python Service:** http://localhost:5000
-- **NestJS Service:** http://localhost:3001
+- **Python Service (Inicio):** http://localhost:5000
+- **NestJS Service (Inicio):** http://localhost:3001
 - **Menu Service:** http://localhost:3003
+- **Python Service Financiero:** http://localhost:5001
+- **NestJS Service Financiero:** http://localhost:3004 (GraphQL Playground: http://localhost:3004/graphql)
 
 ---
 
@@ -237,9 +274,11 @@ El Hot-Reload permite que los cambios en tu código se reflejen automáticamente
 ### **Configuración de Hot-Reload:**
 
 #### **Archivos que se actualizan automáticamente:**
-- ✅ **Python Service** - Cambios en `InicioPython/`
-- ✅ **NestJS Service** - Cambios en `InicioNestJs/`
+- ✅ **Python Service (Inicio)** - Cambios en `InicioPython/`
+- ✅ **NestJS Service (Inicio)** - Cambios en `InicioNestJs/`
 - ✅ **Menu Service** - Cambios en `MenuNestJs/`
+- ✅ **Python Service Financiero** - Cambios en `FinancieroPython/`
+- ✅ **NestJS Service Financiero** - Cambios en `FinancieroNestJs/`
 - ✅ **Gateway API** - Cambios en `gateway-api/`
 - ✅ **Frontend React** - Cambios en `frontReact/`
 
@@ -527,7 +566,10 @@ docker-compose -f docker-compose.dev.yml restart frontend
 
 - **Arquitectura CORS:** `ARQUITECTURA_CORS.md`
 - **Gateway API:** `gateway-api/README.md`
-- **Microservicio Python:** `InicioPython/README.md`
+- **Microservicio Python (Inicio):** `InicioPython/README.md`
+- **Microservicio Python Financiero:** `FinancieroPython/README.md`
+- **Backend NestJS (Inicio):** `InicioNestJs/README.md`
+- **Backend NestJS Financiero:** `FinancieroNestJs/README.md`
 - **Frontend React:** `frontReact/README.md`
 
 ---
@@ -593,9 +635,14 @@ Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
 
 ### **Estructura de Dockerfiles:**
 
-#### **Microservicio Python (Flask):**
-- **Imagen base:** `python:3.13.5-slim`
+#### **Microservicio Python (Flask) - Inicio:**
+- **Imagen base:** `python:3.12-slim`
 - **Puerto:** 5000
+- **Dependencias:** Flask, SQLAlchemy, CORS, JWT
+
+#### **Microservicio Python (Flask) - Financiero:**
+- **Imagen base:** `python:3.12-slim`
+- **Puerto:** 5001
 - **Dependencias:** Flask, SQLAlchemy, CORS, JWT
 
 #### **Gateway API (Fastify):**
@@ -603,9 +650,14 @@ Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
 - **Puerto:** 3002
 - **Dependencias:** Fastify, CORS, Axios
 
-#### **Backend NestJS (GraphQL):**
-- **Imagen base:** `node:20-alpine`
+#### **Backend NestJS (GraphQL) - Inicio:**
+- **Imagen base:** `node:20-slim`
 - **Puerto:** 3001
+- **Dependencias:** NestJS, GraphQL, TypeORM
+
+#### **Backend NestJS (GraphQL) - Financiero:**
+- **Imagen base:** `node:20-slim`
+- **Puerto:** 3004
 - **Dependencias:** NestJS, GraphQL, TypeORM
 
 #### **Frontend React (Vite):**
@@ -614,7 +666,7 @@ Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
 - **Servidor:** Nginx
 
 #### **MenuNestJs:**
-- **Imagen base:** `node:20-alpine`
+- **Imagen base:** `node:20-slim`
 - **Puerto:** 3003
 - **Dependencias:** NestJS, GraphQL
 
@@ -634,8 +686,20 @@ docker-compose build --no-cache
 
 #### **Construir Imagen Específica:**
 ```bash
-# Construir solo Python service
+# Construir solo Python service (Inicio)
 docker-compose build python-service
+
+# Construir solo Python service Financiero
+docker-compose build financiero-python-service
+
+# Construir solo NestJS service (Inicio)
+docker-compose build nestjs-service
+
+# Construir solo NestJS service Financiero
+docker-compose build financiero-nestjs-service
+
+# Construir solo Menu service
+docker-compose build menu-service
 
 # Construir solo Frontend
 docker-compose build frontend
