@@ -91,9 +91,3 @@ export const cambiarPasswordUsuario = async (id, password) => {
     throw error;
   }
 };
-
-
-
-
-
-

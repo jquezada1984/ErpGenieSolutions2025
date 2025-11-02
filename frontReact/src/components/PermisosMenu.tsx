@@ -379,9 +379,3 @@ const PermisosMenu: React.FC<PermisosMenuProps> = ({ idPerfil, onPermisosChange 
 };
 
 export default PermisosMenu;
-
-
-
-
-
-

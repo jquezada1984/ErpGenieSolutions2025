@@ -106,9 +106,3 @@ class SafeApexChart extends Component<SafeApexChartProps, SafeApexChartState> {
 }
 
 export default SafeApexChart;
-
-
-
-
-
-

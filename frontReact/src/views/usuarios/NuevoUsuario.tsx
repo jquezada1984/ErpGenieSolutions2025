@@ -373,9 +373,3 @@ const NuevoUsuario: React.FC = () => {
 };
 
 export default NuevoUsuario;
-
-
-
-
-
-

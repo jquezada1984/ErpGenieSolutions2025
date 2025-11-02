@@ -72,17 +72,3 @@ if __name__ == "__main__":
     
     # Iniciar aplicación Flask
     start_flask_app()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
