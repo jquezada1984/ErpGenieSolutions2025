@@ -1,4 +1,4 @@
-import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
+import { ObjectType, Field, ID, Int, registerEnumType } from '@nestjs/graphql';
 
 @ObjectType()
 export class SeccionMenu {
@@ -138,7 +138,7 @@ export class MenuItemOrdenado {
   @Field({ nullable: true })
   updated_at?: string;
 
-  @Field(() => [MenuItemOrdenado], { nullable: true })
+  @Field((type) => [MenuItemOrdenado], { nullable: true })
   children?: MenuItemOrdenado[];
 }
 

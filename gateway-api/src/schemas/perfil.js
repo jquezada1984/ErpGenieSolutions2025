@@ -21,7 +21,7 @@ const perfilSchema = {
       description: 'ID de la empresa'
     }
   },
-  required: ['nombre', 'estado', 'id_empresa'],
+  required: ['nombre', 'id_empresa'],
   additionalProperties: false
 };
 

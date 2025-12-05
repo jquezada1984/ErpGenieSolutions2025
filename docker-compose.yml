@@ -99,6 +99,11 @@ services:
       - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
     ports:
       - "3002:3002"
+    volumes:
+      # Montar código fuente para cambios sin reconstruir
+      - ./gateway-api/src:/app/src
+      # Mantener node_modules del contenedor (no sobrescribir)
+      - /app/node_modules
     depends_on:
       - python-service
       - nestjs-service

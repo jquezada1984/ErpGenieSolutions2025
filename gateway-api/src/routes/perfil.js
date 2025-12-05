@@ -65,16 +65,26 @@ async function perfilRoutes(fastify, options) {
   }, async (request, reply) => {
     try {
       const perfilData = request.body;
+      
+      // Agregar estado por defecto si no viene en el body
+      if (perfilData.estado === undefined) {
+        perfilData.estado = true;
+      }
+      
       fastify.log.info('🔄 Gateway: Creando perfil en Python...', perfilData);
       
-      const response = await axios.post(`${PYTHON_SERVICE_URL}/api/perfiles`, perfilData);
+      const response = await pythonService.post('/api/perfiles', perfilData);
       
       fastify.log.info('✅ Gateway: Perfil creado exitosamente');
       reply.status(201).send(response.data);
     } catch (error) {
       fastify.log.error('❌ Gateway: Error creando perfil:', error.message);
-      const errorResponse = handlePythonError(error);
-      reply.status(error.response?.status || 500).send(errorResponse);
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data || { 
+        success: false, 
+        error: 'Error interno del servidor' 
+      };
+      reply.status(statusCode).send(errorMessage);
     }
   });
 
