@@ -15,7 +15,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instalar dependencias de desarrollo
-RUN npm ci --legacy-peer-deps
+# Usar npm install en lugar de npm ci porque puede no existir package-lock.json
+RUN npm install --legacy-peer-deps
 
 # Exponer puerto
 EXPOSE 3002
