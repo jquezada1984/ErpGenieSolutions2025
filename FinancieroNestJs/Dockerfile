@@ -16,17 +16,35 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package*.json ./
+# Copiar primero la librería compartida (necesaria para la dependencia local)
+COPY shared-logging-nestjs ./shared-logging-nestjs
+
+# Construir la librería compartida primero
+WORKDIR /app/shared-logging-nestjs
+RUN npm install --legacy-peer-deps && npm run build
+WORKDIR /app
+
+# Copiar archivos de dependencias del servicio
+COPY FinancieroNestJs/package*.json ./
+
+# Ajustar temporalmente la ruta de la dependencia local para que apunte a ./shared-logging-nestjs
+# (en lugar de file:../shared-logging-nestjs que requiere el directorio padre)
+RUN npm pkg set dependencies.@erp/shared-logging-nestjs="file:./shared-logging-nestjs"
 
 # Remover dependencia problemática msnodesqlv8 temporalmente
 RUN npm pkg delete dependencies.msnodesqlv8
 
 # Instalar TODAS las dependencias (incluyendo devDependencies para el build)
+# Esto creará el symlink a shared-logging-nestjs en node_modules
 RUN npm install --legacy-peer-deps
 
-# Copiar código fuente
-COPY . .
+# Verificar que el symlink se creó correctamente
+RUN ls -la node_modules/@erp/ || echo "Verificando estructura de node_modules"
+
+# Copiar código fuente del servicio (después de instalar dependencias para preservar node_modules)
+COPY FinancieroNestJs/tsconfig*.json ./
+COPY FinancieroNestJs/nest-cli.json ./
+COPY FinancieroNestJs/src ./src
 
 # Construir la aplicación
 RUN npm run build

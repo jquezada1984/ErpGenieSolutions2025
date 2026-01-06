@@ -122,3 +122,4 @@ logger.logWarning('Advertencia', { datos: 'adicionales' }, 'Contexto');
 */
 
 
+

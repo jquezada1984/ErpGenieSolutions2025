@@ -69,8 +69,8 @@ services:
   # Backend NestJS Financiero (GraphQL)
   financiero-nestjs-service:
     build:
-      context: ./FinancieroNestJs
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: FinancieroNestJs/Dockerfile
     container_name: erp-financiero-nestjs-service
     environment:
       - NODE_ENV=production
