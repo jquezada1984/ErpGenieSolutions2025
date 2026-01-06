@@ -5,7 +5,9 @@ echo ========================================
 echo.
 
 echo Deteniendo todos los servicios...
-docker-compose down
+
+
+
 
 echo.
 echo Eliminando imágenes anteriores...

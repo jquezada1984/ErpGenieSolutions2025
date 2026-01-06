@@ -7,6 +7,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
+import { LoggerModule } from '@erp/shared-logging-nestjs';
 import * as dotenv from 'dotenv';
 
 // Cargar variables de entorno al inicio
@@ -25,6 +26,11 @@ console.log('---');
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    LoggerModule.forRoot({
+      serviceName: 'financiero-nestjs',
+      logDir: process.env.LOG_DIR || './logs',
+      logLevel: process.env.LOG_LEVEL || 'info',
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',

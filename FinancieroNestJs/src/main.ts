@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { corsConfig } from './config/cors.config';
+import { LoggerService, AllExceptionsFilter, GraphQLExceptionFilter } from '@erp/shared-logging-nestjs';
 import * as dotenv from 'dotenv';
 
 // Cargar variables de entorno
@@ -18,15 +19,30 @@ console.log('PORT:', process.env.PORT || '3004');
 console.log('---');
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: false, // Deshabilitar logger por defecto para usar nuestro logger personalizado
+  });
+  
+  // Obtener instancia del logger
+  const logger = app.get(LoggerService);
+  
+  // Configurar filtros de excepciones globales
+  app.useGlobalFilters(
+    new AllExceptionsFilter(logger),
+    new GraphQLExceptionFilter(logger),
+  );
   
   // Configurar CORS
   app.enableCors(corsConfig);
   
   const port = process.env.PORT || 3004;
   await app.listen(port);
-  console.log(`🚀 Backend Financiero NestJS ejecutándose en puerto ${port}`);
-  console.log(`📊 GraphQL Playground disponible en: http://localhost:${port}/graphql`);
+  
+  logger.log(`🚀 Backend Financiero NestJS ejecutándose en puerto ${port}`, 'Bootstrap');
+  logger.log(`📊 GraphQL Playground disponible en: http://localhost:${port}/graphql`, 'Bootstrap');
 }
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('Error al iniciar la aplicación:', error);
+  process.exit(1);
+});
 
