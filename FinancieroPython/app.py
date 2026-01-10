@@ -1,11 +1,32 @@
 import os
+import sys
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from config.config import Config
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'shared-logging-python'))
-from logger import Logger
+import importlib.util
+
+# Buscar el módulo logger en múltiples ubicaciones (Docker y desarrollo local)
+possible_paths = [
+    '/shared-logging-python/logger.py',  # Docker: volumen montado
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'shared-logging-python', 'logger.py')),  # Desarrollo local
+]
+
+logger_file = None
+for path in possible_paths:
+    if os.path.exists(path):
+        logger_file = path
+        break
+
+if logger_file is None:
+    raise ImportError(
+        f"No se pudo encontrar el módulo logger. Buscado en: {possible_paths}"
+    )
+
+# Cargar el módulo logger usando importlib
+spec = importlib.util.spec_from_file_location("logger", logger_file)
+logger_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(logger_module)
+Logger = logger_module.Logger
 
 logger = Logger(service_name='financiero-python')
 
