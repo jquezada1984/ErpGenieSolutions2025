@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instalar dependencias con --legacy-peer-deps para resolver conflictos
-RUN npm ci --legacy-peer-deps
+# Usar npm install en lugar de npm ci porque puede no existir package-lock.json
+RUN npm install --legacy-peer-deps
 
 # Copiar código fuente
 COPY . .
