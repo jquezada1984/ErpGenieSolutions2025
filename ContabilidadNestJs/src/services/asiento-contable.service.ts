@@ -30,22 +30,4 @@ export class AsientoContableService {
       .getMany();
   }
 
-  async create(asientoData: Partial<AsientoContable>): Promise<AsientoContable> {
-    const asiento = this.asientoContableRepository.create(asientoData);
-    return this.asientoContableRepository.save(asiento);
-  }
-
-  async update(id: number, asientoData: Partial<AsientoContable>): Promise<AsientoContable> {
-    await this.asientoContableRepository.update(id, asientoData);
-    return this.findOne(id);
-  }
-
-  async remove(id: number): Promise<void> {
-    await this.asientoContableRepository.update(id, { estado: 'ANULADO' });
-  }
-
-  async aprobar(id: number): Promise<AsientoContable> {
-    await this.asientoContableRepository.update(id, { estado: 'APROBADO' });
-    return this.findOne(id);
-  }
 }

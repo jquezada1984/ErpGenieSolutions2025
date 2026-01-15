@@ -28,17 +28,4 @@ export class CuentaContableService {
     });
   }
 
-  async create(cuentaData: Partial<CuentaContable>): Promise<CuentaContable> {
-    const cuenta = this.cuentaContableRepository.create(cuentaData);
-    return this.cuentaContableRepository.save(cuenta);
-  }
-
-  async update(id: number, cuentaData: Partial<CuentaContable>): Promise<CuentaContable> {
-    await this.cuentaContableRepository.update(id, cuentaData);
-    return this.findOne(id);
-  }
-
-  async remove(id: number): Promise<void> {
-    await this.cuentaContableRepository.update(id, { activa: false });
-  }
 }

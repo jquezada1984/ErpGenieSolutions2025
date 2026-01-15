@@ -104,6 +104,49 @@ services:
       - erp-network
     command: ["npm", "run", "start:dev"]
 
+  # Microservicio Python Contabilidad (Flask) - Desarrollo
+  contabilidad-python-service:
+    build:
+      context: ./ContabilidadPython
+      dockerfile: Dockerfile.dev
+    container_name: erp-contabilidad-python-service-dev
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres.xfeycgctysoumclptgoh:XeCWl8Dam9CNUS1m@aws-0-sa-east-1.pooler.supabase.com:5432/postgres}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
+      - JWT_SECRET_KEY=your-secret-key-here
+      - FLASK_ENV=development
+      - PORT=5002
+      - TZ=America/Guayaquil
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./ContabilidadPython:/app
+      - contabilidad_python_dev_data:/app/data
+    networks:
+      - erp-network
+    command: ["python", "app.py"]
+
+  # Backend NestJS Contabilidad (GraphQL) - Desarrollo
+  contabilidad-nestjs-service:
+    build:
+      context: ./ContabilidadNestJs
+      dockerfile: Dockerfile.dev
+    container_name: erp-contabilidad-nestjs-service-dev
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres.xfeycgctysoumclptgoh:XeCWl8Dam9CNUS1m@aws-0-sa-east-1.pooler.supabase.com:5432/postgres}
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - PORT=3005
+      - TZ=America/Guayaquil
+    ports:
+      - "3005:3005"
+    volumes:
+      - ./ContabilidadNestJs:/app
+      - /app/node_modules
+    networks:
+      - erp-network
+    command: ["npm", "run", "start:dev"]
+
   # Gateway API (Fastify) - Desarrollo
   gateway-api:
     build:
@@ -117,6 +160,8 @@ services:
       - MENU_SERVICE_URL=http://menu-service:3003
       - FINANCIERO_PYTHON_SERVICE_URL=http://financiero-python-service:5001
       - FINANCIERO_NESTJS_SERVICE_URL=http://financiero-nestjs-service:3004
+      - CONTABILIDAD_PYTHON_SERVICE_URL=http://contabilidad-python-service:5002
+      - CONTABILIDAD_NESTJS_SERVICE_URL=http://contabilidad-nestjs-service:3005
       - GATEWAY_PORT=3002
       - CORS_ORIGIN=http://localhost:3000,http://localhost:3004,http://localhost:5173
       - TZ=America/Guayaquil
@@ -134,6 +179,8 @@ services:
       - menu-service
       - financiero-python-service
       - financiero-nestjs-service
+      - contabilidad-python-service
+      - contabilidad-nestjs-service
 
   # Frontend React - Desarrollo
   frontend:
@@ -158,6 +205,7 @@ services:
 volumes:
   python_dev_data:
   financiero_python_dev_data:
+  contabilidad_python_dev_data:
 
 networks:
   erp-network:

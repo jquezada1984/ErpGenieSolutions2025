@@ -80,11 +80,13 @@ echo.
 echo Servicios disponibles:
 echo - Frontend React: http://localhost:3000
 echo - Gateway API: http://localhost:3002
-echo - NestJS GraphQL: http://localhost:3001
+echo - Inicio NestJS (GraphQL): http://localhost:3001
 echo - Menu Service: http://localhost:3003
 echo - Financiero NestJS: http://localhost:3004
-echo - Python Service: http://localhost:5000
+echo - Contabilidad NestJS: http://localhost:3005
+echo - Inicio Python Service: http://localhost:5000
 echo - Financiero Python: http://localhost:5001
+echo - Contabilidad Python: http://localhost:5002
 echo.
 echo Para ver logs: docker-compose -f %COMPOSE_FILE% logs -f
 echo Para ver logs de un servicio específico: docker-compose -f %COMPOSE_FILE% logs -f [nombre-servicio]

@@ -32,11 +32,11 @@ COPY . .
 RUN npm run build
 
 # Exponer puerto
-EXPOSE 3004
+EXPOSE 3005
 
 # Variables de entorno por defecto
 ENV NODE_ENV=production
-ENV PORT=3004
+ENV PORT=3005
 
 # Comando por defecto
 CMD ["npm", "run", "start:prod"]

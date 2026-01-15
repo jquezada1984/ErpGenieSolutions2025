@@ -23,14 +23,47 @@ import { CuentaContable } from './entities/cuenta-contable.entity';
 import { AsientoContable } from './entities/asiento-contable.entity';
 import { MovimientoContable } from './entities/movimiento-contable.entity';
 import { BalanceGeneral } from './entities/balance-general.entity';
+import { DiarioContable } from './entities/diario-contable.entity';
+import { PeriodoContable } from './entities/periodo-contable.entity';
+import { LibroMayor } from './entities/libro-mayor.entity';
+import { SaldoCuenta } from './entities/saldo-cuenta.entity';
+import { ConfiguracionContabilidad } from './entities/configuracion-contabilidad.entity';
+import { ModeloPlanContable } from './entities/modelo-plan-contable.entity';
+import { PlanContable } from './entities/plan-contable.entity';
+import { CuentaContableDefecto } from './entities/cuenta-contable-defecto.entity';
+import { CuentaIva } from './entities/cuenta-iva.entity';
+import { CuentaImpuesto } from './entities/cuenta-impuesto.entity';
+import { CuentaBancaria } from './entities/cuenta-bancaria.entity';
 
 // Resolvers
 import { CuentaContableResolver } from './resolvers/cuenta-contable.resolver';
 import { AsientoContableResolver } from './resolvers/asiento-contable.resolver';
+import { DiarioContableResolver } from './resolvers/diario-contable.resolver';
+import { PeriodoContableResolver } from './resolvers/periodo-contable.resolver';
+import { LibroMayorResolver } from './resolvers/libro-mayor.resolver';
+import { SaldoCuentaResolver } from './resolvers/saldo-cuenta.resolver';
+import { ConfiguracionContabilidadResolver } from './resolvers/configuracion-contabilidad.resolver';
+import { ModeloPlanContableResolver } from './resolvers/modelo-plan-contable.resolver';
+import { PlanContableResolver } from './resolvers/plan-contable.resolver';
+import { CuentaContableDefectoResolver } from './resolvers/cuenta-contable-defecto.resolver';
+import { CuentaIvaResolver } from './resolvers/cuenta-iva.resolver';
+import { CuentaImpuestoResolver } from './resolvers/cuenta-impuesto.resolver';
+import { CuentaBancariaResolver } from './resolvers/cuenta-bancaria.resolver';
 
 // Services
 import { CuentaContableService } from './services/cuenta-contable.service';
 import { AsientoContableService } from './services/asiento-contable.service';
+import { DiarioContableService } from './services/diario-contable.service';
+import { PeriodoContableService } from './services/periodo-contable.service';
+import { LibroMayorService } from './services/libro-mayor.service';
+import { SaldoCuentaService } from './services/saldo-cuenta.service';
+import { ConfiguracionContabilidadService } from './services/configuracion-contabilidad.service';
+import { ModeloPlanContableService } from './services/modelo-plan-contable.service';
+import { PlanContableService } from './services/plan-contable.service';
+import { CuentaContableDefectoService } from './services/cuenta-contable-defecto.service';
+import { CuentaIvaService } from './services/cuenta-iva.service';
+import { CuentaImpuestoService } from './services/cuenta-impuesto.service';
+import { CuentaBancariaService } from './services/cuenta-bancaria.service';
 
 @Module({
   imports: [
@@ -42,6 +75,17 @@ import { AsientoContableService } from './services/asiento-contable.service';
         AsientoContable,
         MovimientoContable,
         BalanceGeneral,
+        DiarioContable,
+        PeriodoContable,
+        LibroMayor,
+        SaldoCuenta,
+        ConfiguracionContabilidad,
+        ModeloPlanContable,
+        PlanContable,
+        CuentaContableDefecto,
+        CuentaIva,
+        CuentaImpuesto,
+        CuentaBancaria,
       ],
       synchronize: false, // Deshabilitado para evitar conflictos con datos existentes
       ssl: {
@@ -53,6 +97,17 @@ import { AsientoContableService } from './services/asiento-contable.service';
       AsientoContable,
       MovimientoContable,
       BalanceGeneral,
+      DiarioContable,
+      PeriodoContable,
+      LibroMayor,
+      SaldoCuenta,
+      ConfiguracionContabilidad,
+      ModeloPlanContable,
+      PlanContable,
+      CuentaContableDefecto,
+      CuentaIva,
+      CuentaImpuesto,
+      CuentaBancaria,
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -68,8 +123,30 @@ import { AsientoContableService } from './services/asiento-contable.service';
     AppService,
     CuentaContableResolver,
     AsientoContableResolver,
+    DiarioContableResolver,
+    PeriodoContableResolver,
+    LibroMayorResolver,
+    SaldoCuentaResolver,
+    ConfiguracionContabilidadResolver,
+    ModeloPlanContableResolver,
+    PlanContableResolver,
+    CuentaContableDefectoResolver,
+    CuentaIvaResolver,
+    CuentaImpuestoResolver,
+    CuentaBancariaResolver,
     CuentaContableService,
     AsientoContableService,
+    DiarioContableService,
+    PeriodoContableService,
+    LibroMayorService,
+    SaldoCuentaService,
+    ConfiguracionContabilidadService,
+    ModeloPlanContableService,
+    PlanContableService,
+    CuentaContableDefectoService,
+    CuentaIvaService,
+    CuentaImpuestoService,
+    CuentaBancariaService,
   ],
 })
 export class AppModule {}

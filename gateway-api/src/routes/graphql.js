@@ -27,10 +27,33 @@ const getTargetService = (query, config) => {
   )) {
     console.log('🔄 Redirigiendo consulta de menú a MenuNestJs');
     return config.menuService;
-  } else {
-    console.log('🔄 Redirigiendo consulta a InicioNestJs');
-    return config.nestjsService;
   }
+  
+  // Verificar si es una consulta de contabilidad
+  if (query && (
+    query.includes('cuentaContable') ||
+    query.includes('asientoContable') ||
+    query.includes('movimientoContable') ||
+    query.includes('balanceGeneral') ||
+    query.includes('diarioContable') ||
+    query.includes('periodoContable') ||
+    query.includes('libroMayor') ||
+    query.includes('saldoCuenta') ||
+    query.includes('configuracionContabilidad') ||
+    query.includes('planContable') ||
+    query.includes('modeloPlanContable') ||
+    query.includes('cuentaContableDefecto') ||
+    query.includes('cuentaIva') ||
+    query.includes('cuentaImpuesto') ||
+    query.includes('cuentaBancaria')
+  )) {
+    console.log('🔄 Redirigiendo consulta de contabilidad a ContabilidadNestJs');
+    return config.contabilidadService;
+  }
+  
+  // Por defecto, redirigir a InicioNestJs
+  console.log('🔄 Redirigiendo consulta a InicioNestJs');
+  return config.nestjsService;
 };
 
 // Función para ejecutar consultas GraphQL
@@ -80,7 +103,8 @@ async function routes(fastify, options) {
       // Obtener configuración del gateway
       const config = {
         nestjsService: process.env.NESTJS_SERVICE_URL,
-        menuService: process.env.MENU_SERVICE_URL
+        menuService: process.env.MENU_SERVICE_URL,
+        contabilidadService: process.env.CONTABILIDAD_NESTJS_SERVICE_URL
       };
 
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);
@@ -116,24 +140,49 @@ async function routes(fastify, options) {
     }
   });
 
-  // Endpoint para verificar conectividad con NestJS GraphQL
+  // Endpoint para verificar conectividad con servicios GraphQL
   fastify.get('/graphql/health', async (request, reply) => {
     try {
-      const response = await axios.get(NESTJS_GRAPHQL_URL.replace('/graphql', '/health'), {
-        timeout: 3000
-      });
+      const config = {
+        nestjsService: process.env.NESTJS_SERVICE_URL,
+        menuService: process.env.MENU_SERVICE_URL,
+        contabilidadService: process.env.CONTABILIDAD_NESTJS_SERVICE_URL
+      };
+      
+      const healthChecks = {};
+      
+      // Verificar InicioNestJs
+      try {
+        const response = await axios.get(`${config.nestjsService}/health`, { timeout: 3000 });
+        healthChecks.inicioNestJs = { status: 'connected', data: response.data };
+      } catch (error) {
+        healthChecks.inicioNestJs = { status: 'disconnected', error: error.message };
+      }
+      
+      // Verificar MenuNestJs
+      try {
+        const response = await axios.get(`${config.menuService}/health`, { timeout: 3000 });
+        healthChecks.menuNestJs = { status: 'connected', data: response.data };
+      } catch (error) {
+        healthChecks.menuNestJs = { status: 'disconnected', error: error.message };
+      }
+      
+      // Verificar ContabilidadNestJs
+      try {
+        const response = await axios.get(`${config.contabilidadService}/health`, { timeout: 3000 });
+        healthChecks.contabilidadNestJs = { status: 'connected', data: response.data };
+      } catch (error) {
+        healthChecks.contabilidadNestJs = { status: 'disconnected', error: error.message };
+      }
       
       return reply.send({
         success: true,
-        service: 'NestJS GraphQL',
-        status: 'connected',
+        services: healthChecks,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
       return reply.status(503).send({
         success: false,
-        service: 'NestJS GraphQL',
-        status: 'disconnected',
         error: error.message,
         timestamp: new Date().toISOString()
       });

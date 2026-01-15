@@ -1,0 +1,40 @@
+from marshmallow import Schema, fields, validate, validates, ValidationError
+
+class CuentaContableSchema(Schema):
+    id = fields.Int(dump_only=True)
+    plan_contable_id = fields.Int(allow_none=True)
+    codigo = fields.Str(required=True, validate=validate.Length(max=20))
+    nombre = fields.Str(required=True, validate=validate.Length(max=200))
+    descripcion = fields.Str(validate=validate.Length(max=500))
+    tipo = fields.Str(required=True, validate=validate.OneOf(['ACTIVO', 'PASIVO', 'PATRIMONIO', 'INGRESO', 'GASTO', 'COSTO']))
+    naturaleza = fields.Str(required=True, validate=validate.OneOf(['DEUDORA', 'ACREEDORA']))
+    nivel = fields.Int(load_default=1)
+    cuenta_padre_id = fields.Int(allow_none=True)
+    permite_movimientos = fields.Bool(load_default=True)
+    activa = fields.Bool(load_default=True)
+    created_at = fields.DateTime(dump_only=True)
+    updated_at = fields.DateTime(dump_only=True)
+
+class CuentaContableCreateSchema(Schema):
+    plan_contable_id = fields.Int(allow_none=True)
+    codigo = fields.Str(required=True, validate=validate.Length(max=20))
+    nombre = fields.Str(required=True, validate=validate.Length(max=200))
+    descripcion = fields.Str(validate=validate.Length(max=500), allow_none=True)
+    tipo = fields.Str(required=True, validate=validate.OneOf(['ACTIVO', 'PASIVO', 'PATRIMONIO', 'INGRESO', 'GASTO', 'COSTO']))
+    naturaleza = fields.Str(required=True, validate=validate.OneOf(['DEUDORA', 'ACREEDORA']))
+    nivel = fields.Int(load_default=1)
+    cuenta_padre_id = fields.Int(allow_none=True)
+    permite_movimientos = fields.Bool(load_default=True)
+    activa = fields.Bool(load_default=True)
+
+class CuentaContableUpdateSchema(Schema):
+    plan_contable_id = fields.Int(allow_none=True)
+    codigo = fields.Str(validate=validate.Length(max=20))
+    nombre = fields.Str(validate=validate.Length(max=200))
+    descripcion = fields.Str(validate=validate.Length(max=500), allow_none=True)
+    tipo = fields.Str(validate=validate.OneOf(['ACTIVO', 'PASIVO', 'PATRIMONIO', 'INGRESO', 'GASTO', 'COSTO']))
+    naturaleza = fields.Str(validate=validate.OneOf(['DEUDORA', 'ACREEDORA']))
+    nivel = fields.Int()
+    cuenta_padre_id = fields.Int(allow_none=True)
+    permite_movimientos = fields.Bool()
+    activa = fields.Bool()

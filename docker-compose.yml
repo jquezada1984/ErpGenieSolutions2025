@@ -82,6 +82,41 @@ services:
     networks:
       - erp-network
 
+  # Microservicio Python Contabilidad (Flask)
+  contabilidad-python-service:
+    build:
+      context: ./ContabilidadPython
+      dockerfile: Dockerfile
+    container_name: erp-contabilidad-python-service
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - FLASK_ENV=production
+      - PORT=5002
+    ports:
+      - "5002:5002"
+    networks:
+      - erp-network
+    volumes:
+      - contabilidad_python_data:/app/data
+
+  # Backend NestJS Contabilidad (GraphQL)
+  contabilidad-nestjs-service:
+    build:
+      context: ./ContabilidadNestJs
+      dockerfile: Dockerfile
+    container_name: erp-contabilidad-nestjs-service
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - PORT=3005
+    ports:
+      - "3005:3005"
+    networks:
+      - erp-network
+
   # Gateway API (Fastify)
   gateway-api:
     build:
@@ -95,6 +130,8 @@ services:
       - MENU_SERVICE_URL=http://menu-service:3003
       - FINANCIERO_PYTHON_SERVICE_URL=http://financiero-python-service:5001
       - FINANCIERO_NESTJS_SERVICE_URL=http://financiero-nestjs-service:3004
+      - CONTABILIDAD_PYTHON_SERVICE_URL=http://contabilidad-python-service:5002
+      - CONTABILIDAD_NESTJS_SERVICE_URL=http://contabilidad-nestjs-service:3005
       - GATEWAY_PORT=3002
       - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
     ports:
@@ -110,6 +147,8 @@ services:
       - menu-service
       - financiero-python-service
       - financiero-nestjs-service
+      - contabilidad-python-service
+      - contabilidad-nestjs-service
     networks:
       - erp-network
 
@@ -129,6 +168,7 @@ services:
 volumes:
   python_data:
   financiero_python_data:
+  contabilidad_python_data:
 
 networks:
   erp-network:

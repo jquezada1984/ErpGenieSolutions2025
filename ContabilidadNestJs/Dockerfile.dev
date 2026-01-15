@@ -26,11 +26,11 @@ RUN npm pkg delete dependencies.msnodesqlv8
 RUN npm install --legacy-peer-deps
 
 # Exponer puerto
-EXPOSE 3004
+EXPOSE 3005
 
 # Variables de entorno para desarrollo
 ENV NODE_ENV=development
-ENV PORT=3004
+ENV PORT=3005
 
 # Comando por defecto para desarrollo con watch mode
 CMD ["npm", "run", "start:dev"]

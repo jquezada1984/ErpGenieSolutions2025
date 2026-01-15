@@ -29,6 +29,9 @@ export class AsientoContable {
   @Column({ nullable: true })
   empresa_id: number;
 
+  @Column({ nullable: true })
+  diario_contable_id: number;
+
   @CreateDateColumn()
   created_at: Date;
 

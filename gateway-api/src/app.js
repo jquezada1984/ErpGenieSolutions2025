@@ -21,7 +21,11 @@ const config = {
   port: process.env.GATEWAY_PORT || 3000,
   pythonService: process.env.PYTHON_SERVICE_URL,
   nestjsService: process.env.NESTJS_SERVICE_URL,
-  menuService: process.env.MENU_SERVICE_URL, // Agregar servicio de menú
+  menuService: process.env.MENU_SERVICE_URL,
+  financieroPythonService: process.env.FINANCIERO_PYTHON_SERVICE_URL,
+  financieroNestjsService: process.env.FINANCIERO_NESTJS_SERVICE_URL,
+  contabilidadPythonService: process.env.CONTABILIDAD_PYTHON_SERVICE_URL,
+  contabilidadNestjsService: process.env.CONTABILIDAD_NESTJS_SERVICE_URL,
   cors: {
     origin: process.env.CORS_ORIGIN?.split(',') || ['*'],
     credentials: true
@@ -32,7 +36,11 @@ const config = {
 console.log('🔍 DEBUG - Variables de entorno:');
 console.log('process.env.PYTHON_SERVICE_URL:', process.env.PYTHON_SERVICE_URL);
 console.log('process.env.NESTJS_SERVICE_URL:', process.env.NESTJS_SERVICE_URL);
-console.log('process.env.MENU_SERVICE_URL:', process.env.MENU_SERVICE_URL); // Agregar
+console.log('process.env.MENU_SERVICE_URL:', process.env.MENU_SERVICE_URL);
+console.log('process.env.FINANCIERO_PYTHON_SERVICE_URL:', process.env.FINANCIERO_PYTHON_SERVICE_URL);
+console.log('process.env.FINANCIERO_NESTJS_SERVICE_URL:', process.env.FINANCIERO_NESTJS_SERVICE_URL);
+console.log('process.env.CONTABILIDAD_PYTHON_SERVICE_URL:', process.env.CONTABILIDAD_PYTHON_SERVICE_URL);
+console.log('process.env.CONTABILIDAD_NESTJS_SERVICE_URL:', process.env.CONTABILIDAD_NESTJS_SERVICE_URL);
 console.log('process.env.GATEWAY_PORT:', process.env.GATEWAY_PORT);
 console.log('process.env.CORS_ORIGIN:', process.env.CORS_ORIGIN);
 console.log('process.env.NODE_ENV:', process.env.NODE_ENV);
@@ -129,8 +137,13 @@ const start = async () => {
     console.log('🚀 API Gateway ejecutándose en: http://localhost:' + config.port);
     console.log('📊 Configuración:');
     console.log(`   - Puerto: ${config.port}`);
-    console.log(`   - Python Service: ${config.pythonService}`);
-    console.log(`   - NestJS Service: ${config.nestjsService}`);
+    console.log(`   - Inicio Python Service: ${config.pythonService}`);
+    console.log(`   - Inicio NestJS Service: ${config.nestjsService}`);
+    console.log(`   - Menu Service: ${config.menuService}`);
+    console.log(`   - Financiero Python Service: ${config.financieroPythonService}`);
+    console.log(`   - Financiero NestJS Service: ${config.financieroNestjsService}`);
+    console.log(`   - Contabilidad Python Service: ${config.contabilidadPythonService}`);
+    console.log(`   - Contabilidad NestJS Service: ${config.contabilidadNestjsService}`);
     console.log('==================================================');
     console.log('📡 Endpoints disponibles:');
     console.log(`   - GET  /api/empresas`);
