@@ -54,10 +54,20 @@ export default defineConfig({
   },
   // Optimizaciones de desarrollo
   server: {
+    host: '0.0.0.0', // Permitir conexiones desde fuera del contenedor
     port: 3000,
-    open: true,
+    strictPort: false, // No fallar si el puerto está ocupado, usar otro
+    open: false, // No abrir navegador automáticamente en Docker
+    cors: true, // Habilitar CORS
     hmr: {
-      overlay: false // Deshabilitar overlay de errores para evitar problemas con múltiples raíces
+      protocol: 'ws',
+      host: 'localhost',
+      port: 3000,
+      clientPort: 3000
+    },
+    watch: {
+      usePolling: true, // Usar polling para detectar cambios en Docker
+      interval: 1000
     }
   },
   // Configuración para evitar problemas de múltiples raíces

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, CardTitle, Button, Alert, Row, Col, Badge, Spinner } from 'reactstrap';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, useMutation, gql } from '@apollo/client';
 import { Accordion, AccordionItem, AccordionHeader, AccordionBody } from 'reactstrap';
 
 // Consulta GraphQL para obtener el menú completo con permisos del perfil
@@ -35,12 +35,39 @@ const GET_MENU_CON_PERMISOS = gql`
   }
 `;
 
-// Mutation para actualizar permisos
-const UPDATE_PERMISOS = gql`
-  mutation UpdatePermisos($id_perfil: ID!, $permisos: [PermisoInput!]!) {
-    actualizarPermisosMenu(id_perfil: $id_perfil, permisos: $permisos) {
-      success
-      message
+// Mutations para actualizar permisos
+const CREAR_PERMISO = gql`
+  mutation CrearPermisoMenu($id_perfil: ID!, $id_item: ID!, $permitido: Boolean!) {
+    crearPermisoMenu(id_perfil: $id_perfil, id_item: $id_item, permitido: $permitido) {
+      id_perfil
+      id_item
+      permitido
+    }
+  }
+`;
+
+const ACTUALIZAR_PERMISO = gql`
+  mutation ActualizarPermisoMenu($id_perfil: ID!, $id_item: ID!, $permitido: Boolean!) {
+    actualizarPermisoMenu(id_perfil: $id_perfil, id_item: $id_item, permitido: $permitido) {
+      id_perfil
+      id_item
+      permitido
+    }
+  }
+`;
+
+const ELIMINAR_PERMISO = gql`
+  mutation EliminarPermisoMenu($id_perfil: ID!, $id_item: ID!) {
+    eliminarPermisoMenu(id_perfil: $id_perfil, id_item: $id_item)
+  }
+`;
+
+const CREAR_PERMISOS_MASIVOS = gql`
+  mutation CrearPermisosMasivos($id_perfil: ID!, $ids_items: [ID!]!, $permitido: Boolean!) {
+    crearPermisosMasivos(id_perfil: $id_perfil, ids_items: $ids_items, permitido: $permitido) {
+      id_perfil
+      id_item
+      permitido
     }
   }
 `;
@@ -83,32 +110,41 @@ interface PermisosMenuProps {
 
 const PermisosMenu: React.FC<PermisosMenuProps> = ({ idPerfil, onPermisosChange }) => {
   const [permisos, setPermisos] = useState<{ [key: string]: boolean }>({});
+  const [permisosOriginales, setPermisosOriginales] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+  const [openAccordion, setOpenAccordion] = useState<string>('');
+  const [mostrarTodasLasSecciones, setMostrarTodasLasSecciones] = useState(false);
+
+  // Mutations
+  const [crearPermiso] = useMutation(CREAR_PERMISO);
+  const [actualizarPermiso] = useMutation(ACTUALIZAR_PERMISO);
+  const [eliminarPermiso] = useMutation(ELIMINAR_PERMISO);
+  const [crearPermisosMasivos] = useMutation(CREAR_PERMISOS_MASIVOS);
 
   // Consulta GraphQL para obtener el menú con permisos
   const { data, loading: queryLoading, error: queryError, refetch } = useQuery(GET_MENU_CON_PERMISOS, {
     variables: { id_perfil: idPerfil },
     skip: !idPerfil,
-    onCompleted: (data) => {
-      if (data?.perfilConPermisos) {
-        const perfil = data.perfilConPermisos;
-        // Inicializar permisos desde los datos
-        const permisosIniciales: { [key: string]: boolean } = {};
-        perfil.secciones.forEach((seccion: SeccionConPermisos) => {
-          seccion.items.forEach((item: MenuItem) => {
-            permisosIniciales[item.id_item] = item.permitido;
-          });
-        });
-        setPermisos(permisosIniciales);
-      }
-    },
-    onError: (error) => {
-      setError(error.message || 'Error al cargar los permisos del menú');
-    }
+    errorPolicy: 'all'
   });
+
+  // Inicializar permisos cuando los datos estén disponibles (después de que el componente se monte)
+  useEffect(() => {
+    if (data?.perfilConPermisos) {
+      const perfil = data.perfilConPermisos;
+      // Inicializar permisos desde los datos
+      const permisosIniciales: { [key: string]: boolean } = {};
+      perfil.secciones.forEach((seccion: SeccionConPermisos) => {
+        seccion.items.forEach((item: MenuItem) => {
+          permisosIniciales[item.id_item] = item.permitido;
+        });
+      });
+      setPermisos(permisosIniciales);
+      setPermisosOriginales(permisosIniciales);
+    }
+  }, [data]);
 
   // Manejar errores de la consulta
   useEffect(() => {
@@ -140,24 +176,153 @@ const PermisosMenu: React.FC<PermisosMenuProps> = ({ idPerfil, onPermisosChange 
   const handleGuardarPermisos = async () => {
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
-      // Convertir permisos a formato requerido por la API
-      const permisosArray = Object.entries(permisos).map(([id_item, permitido]) => ({
-        id_item,
-        permitido
-      }));
+      // Identificar cambios: nuevos permisos, actualizaciones y eliminaciones
+      const nuevosPermisos: string[] = [];
+      const permisosActualizar: Array<{ id_item: string; permitido: boolean }> = [];
+      const permisosEliminar: string[] = [];
 
-      // Aquí iría la llamada a la API para guardar los permisos
-      // Por ahora simulamos el éxito
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      Object.keys(permisos).forEach(id_item => {
+        const permitido = permisos[id_item];
+        const originalPermitido = permisosOriginales[id_item];
+
+        if (originalPermitido === undefined) {
+          // Es un permiso nuevo
+          if (permitido) {
+            nuevosPermisos.push(id_item);
+          }
+        } else if (originalPermitido !== permitido) {
+          // El permiso cambió
+          if (permitido) {
+            permisosActualizar.push({ id_item, permitido: true });
+          } else {
+            permisosEliminar.push(id_item);
+          }
+        }
+      });
+
+      // También eliminar permisos que estaban antes pero ya no están
+      Object.keys(permisosOriginales).forEach(id_item => {
+        if (permisos[id_item] === undefined && permisosOriginales[id_item]) {
+          permisosEliminar.push(id_item);
+        }
+      });
+
+      // Ejecutar mutations
+      const promises: Promise<any>[] = [];
+
+      // Crear nuevos permisos masivamente si hay muchos
+      if (nuevosPermisos.length > 0) {
+        if (nuevosPermisos.length > 10) {
+          promises.push(
+            crearPermisosMasivos({
+              variables: {
+                id_perfil: idPerfil,
+                ids_items: nuevosPermisos,
+                permitido: true
+              }
+            })
+          );
+        } else {
+          nuevosPermisos.forEach(id_item => {
+            promises.push(
+              crearPermiso({
+                variables: {
+                  id_perfil: idPerfil,
+                  id_item,
+                  permitido: true
+                }
+              })
+            );
+          });
+        }
+      }
+
+      // Actualizar permisos existentes
+      // Usar crearPermisoMenu en lugar de actualizarPermisoMenu porque crearPermisoMenu
+      // maneja automáticamente el caso de permisos existentes (los actualiza)
+      permisosActualizar.forEach(({ id_item, permitido }) => {
+        promises.push(
+          crearPermiso({
+            variables: {
+              id_perfil: idPerfil,
+              id_item,
+              permitido
+            }
+          })
+        );
+      });
+
+      // Eliminar permisos
+      permisosEliminar.forEach(id_item => {
+        promises.push(
+          eliminarPermiso({
+            variables: {
+              id_perfil: idPerfil,
+              id_item
+            }
+          })
+        );
+      });
+
+      // Verificar si hay cambios antes de ejecutar
+      if (nuevosPermisos.length === 0 && permisosActualizar.length === 0 && permisosEliminar.length === 0) {
+        setSuccess('No hay cambios para guardar');
+        setLoading(false);
+        return;
+      }
+
+      console.log('📝 Guardando permisos:', {
+        nuevos: nuevosPermisos.length,
+        actualizar: permisosActualizar.length,
+        eliminar: permisosEliminar.length
+      });
+
+      // Ejecutar todas las mutations
+      const resultados = await Promise.allSettled(promises);
       
-      setSuccess('Permisos guardados exitosamente');
+      // Verificar si hubo errores
+      const errores = resultados.filter(r => r.status === 'rejected');
+      if (errores.length > 0) {
+        const mensajesError = errores.map((e: any) => {
+          const error = e.reason;
+          return error?.response?.data?.errors?.[0]?.message || error?.message || 'Error desconocido';
+        });
+        throw new Error(`Error al guardar algunos permisos: ${mensajesError.join(', ')}`);
+      }
+
+      // Actualizar permisos originales
+      setPermisosOriginales({ ...permisos });
+      
+      const mensaje = `Permisos guardados exitosamente. ${nuevosPermisos.length} nuevos, ${permisosActualizar.length} actualizados, ${permisosEliminar.length} eliminados.`;
+      setSuccess(mensaje);
+      console.log('✅', mensaje);
+      
+      // Refrescar datos después de un breve delay para asegurar que la BD se actualizó
+      setTimeout(() => {
+        refetch();
+      }, 500);
+      
       if (onPermisosChange) {
+        const permisosArray = Object.entries(permisos)
+          .filter(([_, permitido]) => permitido)
+          .map(([id_item, permitido]) => ({ id_item, permitido }));
         onPermisosChange(permisosArray);
       }
     } catch (err: any) {
-      setError(err.message || 'Error al guardar los permisos');
+      const errorMessage = err?.response?.data?.errors?.[0]?.message || 
+                          err?.response?.data?.error || 
+                          err?.message || 
+                          'Error al guardar los permisos';
+      setError(errorMessage);
+      console.error('❌ Error al guardar permisos:', err);
+      console.error('❌ Detalles del error:', {
+        message: err?.message,
+        response: err?.response?.data,
+        stack: err?.stack
+      });
     } finally {
       setLoading(false);
     }
@@ -226,6 +391,14 @@ const PermisosMenu: React.FC<PermisosMenuProps> = ({ idPerfil, onPermisosChange 
             Permisos de Menú
           </CardTitle>
           <div className="d-flex gap-2">
+            <Button 
+              color={mostrarTodasLasSecciones ? "info" : "outline-info"} 
+              size="sm" 
+              onClick={() => setMostrarTodasLasSecciones(!mostrarTodasLasSecciones)}
+            >
+              <i className={`bi bi-${mostrarTodasLasSecciones ? 'eye-slash' : 'eye'} me-2`}></i>
+              {mostrarTodasLasSecciones ? 'Ocultar Sin Permisos' : 'Mostrar Todas las Opciones'}
+            </Button>
             <Button color="outline-primary" size="sm" onClick={handleSelectAll}>
               <i className="bi bi-check-all me-2"></i>
               Seleccionar Todo
@@ -282,8 +455,10 @@ const PermisosMenu: React.FC<PermisosMenuProps> = ({ idPerfil, onPermisosChange 
         )}
 
         {/* Lista de secciones con permisos */}
-        <Accordion open={openAccordion} toggle={(id) => setOpenAccordion(id === openAccordion ? null : id)}>
-          {perfil.secciones.map((seccion) => {
+        <Accordion open={openAccordion} toggle={(id) => setOpenAccordion(id === openAccordion ? '' : id)}>
+          {perfil.secciones
+            .filter(seccion => mostrarTodasLasSecciones || seccion.tienePermisos || seccion.items.some(item => permisos[item.id_item]))
+            .map((seccion) => {
             const itemsConPermisos = seccion.items.filter(item => permisos[item.id_item]);
             const totalItems = seccion.items.length;
             const porcentajePermisos = totalItems > 0 ? Math.round((itemsConPermisos.length / totalItems) * 100) : 0;
@@ -303,31 +478,33 @@ const PermisosMenu: React.FC<PermisosMenuProps> = ({ idPerfil, onPermisosChange 
                       <Badge color={porcentajePermisos === 100 ? 'success' : porcentajePermisos > 0 ? 'warning' : 'secondary'}>
                         {porcentajePermisos}%
                       </Badge>
-                      <Button
-                        color="outline-primary"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSeccionToggle(seccion.id_seccion, true);
-                        }}
-                        title="Seleccionar toda la sección"
-                      >
-                        <i className="bi bi-check"></i>
-                      </Button>
-                      <Button
-                        color="outline-secondary"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSeccionToggle(seccion.id_seccion, false);
-                        }}
-                        title="Deseleccionar toda la sección"
-                      >
-                        <i className="bi bi-x"></i>
-                      </Button>
                     </div>
                   </div>
                 </AccordionHeader>
+                <div className="d-flex justify-content-end gap-2 p-2 bg-light border-bottom">
+                  <Button
+                    color="outline-primary"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSeccionToggle(seccion.id_seccion, true);
+                    }}
+                    title="Seleccionar toda la sección"
+                  >
+                    <i className="bi bi-check"></i> Seleccionar todo
+                  </Button>
+                  <Button
+                    color="outline-secondary"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSeccionToggle(seccion.id_seccion, false);
+                    }}
+                    title="Deseleccionar toda la sección"
+                  >
+                    <i className="bi bi-x"></i> Deseleccionar todo
+                  </Button>
+                </div>
                 <AccordionBody accordionId={seccion.id_seccion}>
                   <Row>
                     {seccion.items.map((item) => (

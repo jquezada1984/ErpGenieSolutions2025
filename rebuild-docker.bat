@@ -38,12 +38,17 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo Esperando 10 segundos para que los servicios inicien...
-timeout /t 10 /nobreak >nul
+echo [5/7] Iniciando servicios con nuevas imágenes...
+docker-compose -f docker-compose.dev.yml up -d
+if %errorlevel% neq 0 (
+    echo ERROR: Fallo al iniciar los servicios
+    pause
+    exit /b 1
+)
 
 echo.
-echo Verificando estado de los servicios...
-docker-compose -f %COMPOSE_FILE% ps
+echo [6/7] Esperando 15 segundos para que los servicios inicien completamente...
+timeout /t 15 /nobreak >nul
 
 echo.
 echo [7/7] Verificando estado de los servicios...
@@ -67,8 +72,8 @@ echo - Inicio Python Service: http://localhost:5000
 echo - Financiero Python: http://localhost:5001
 echo - Contabilidad Python: http://localhost:5002
 echo.
-echo Para ver logs: docker-compose -f %COMPOSE_FILE% logs -f
-echo Para ver logs de un servicio específico: docker-compose -f %COMPOSE_FILE% logs -f [nombre-servicio]
+echo Para ver logs: docker-compose -f docker-compose.dev.yml logs -f
+echo Para ver logs de un servicio específico: docker-compose -f docker-compose.dev.yml logs -f [nombre-servicio]
 echo Para detener servicios: stop-docker.bat
 echo.
 pause

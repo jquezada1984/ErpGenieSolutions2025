@@ -2,7 +2,7 @@ import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
 import { PerfilMenuPermiso } from '../entities/perfil-menu-permiso.entity';
 import { PerfilMenuPermisoDto, PerfilMenuPermisoListDto, PermisosPorPerfilDto, PermisosPorMenuItemDto } from '../dto/perfil-menu-permiso.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 
 @Resolver(() => PerfilMenuPermiso)
@@ -211,12 +211,15 @@ export class PerfilMenuPermisoResolver {
   ): Promise<PerfilMenuPermiso> {
     try {
       // Verificar si ya existe el permiso
-      const permisoExistente = await this.perfilMenuPermisoRepository.findOne({
+      let permisoExistente = await this.perfilMenuPermisoRepository.findOne({
         where: { id_perfil, id_item }
       });
 
       if (permisoExistente) {
-        throw new Error('El permiso ya existe para este perfil y item de menú');
+        // Si ya existe, actualizarlo en lugar de crear uno nuevo
+        permisoExistente.permitido = permitido;
+        const permisoActualizado = await this.perfilMenuPermisoRepository.save(permisoExistente);
+        return permisoActualizado;
       }
 
       const permiso = this.perfilMenuPermisoRepository.create({
@@ -239,17 +242,24 @@ export class PerfilMenuPermisoResolver {
     @Args('permitido') permitido: boolean,
   ): Promise<PerfilMenuPermiso> {
     try {
-      const permiso = await this.perfilMenuPermisoRepository.findOne({
+      let permiso = await this.perfilMenuPermisoRepository.findOne({
         where: { id_perfil, id_item }
       });
 
       if (!permiso) {
-        throw new NotFoundException('Permiso no encontrado');
+        // Si el permiso no existe, crearlo en lugar de lanzar error
+        permiso = this.perfilMenuPermisoRepository.create({
+          id_perfil,
+          id_item,
+          permitido
+        });
+      } else {
+        // Si existe, actualizarlo
+        permiso.permitido = permitido;
       }
 
-      permiso.permitido = permitido;
-      const permisoActualizado = await this.perfilMenuPermisoRepository.save(permiso);
-      return permisoActualizado;
+      const permisoGuardado = await this.perfilMenuPermisoRepository.save(permiso);
+      return permisoGuardado;
     } catch (error) {
       throw error;
     }
@@ -280,16 +290,49 @@ export class PerfilMenuPermisoResolver {
     @Args('permitido', { defaultValue: true }) permitido: boolean,
   ): Promise<PerfilMenuPermiso[]> {
     try {
-      const permisos = ids_items.map(id_item => 
-        this.perfilMenuPermisoRepository.create({
+      // Obtener permisos existentes para este perfil y estos items
+      const permisosExistentes = await this.perfilMenuPermisoRepository.find({
+        where: {
           id_perfil,
-          id_item,
-          permitido
-        })
+          id_item: In(ids_items)
+        }
+      });
+
+      const mapaExistentes = new Map(
+        permisosExistentes.map(p => [p.id_item, p])
       );
+
+      const permisosParaGuardar: PerfilMenuPermiso[] = [];
+      const permisosParaActualizar: PerfilMenuPermiso[] = [];
+
+      ids_items.forEach(id_item => {
+        const existente = mapaExistentes.get(id_item);
+        if (existente) {
+          // Actualizar permiso existente
+          existente.permitido = permitido;
+          permisosParaActualizar.push(existente);
+        } else {
+          // Crear nuevo permiso
+          permisosParaGuardar.push(
+            this.perfilMenuPermisoRepository.create({
+              id_perfil,
+              id_item,
+              permitido
+            })
+          );
+        }
+      });
+
+      // Guardar nuevos y actualizar existentes
+      const nuevosGuardados = permisosParaGuardar.length > 0 
+        ? await this.perfilMenuPermisoRepository.save(permisosParaGuardar)
+        : [];
       
-      const permisosGuardados = await this.perfilMenuPermisoRepository.save(permisos);
-      return permisosGuardados;
+      const actualizadosGuardados = permisosParaActualizar.length > 0
+        ? await this.perfilMenuPermisoRepository.save(permisosParaActualizar)
+        : [];
+
+      return [...nuevosGuardados, ...actualizadosGuardados];
     } catch (error) {
       throw error;
     }

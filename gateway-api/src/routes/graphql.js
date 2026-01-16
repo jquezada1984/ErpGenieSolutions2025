@@ -15,15 +15,29 @@ const getTargetService = (query, config) => {
     return config.nestjsService;
   }
   
-  // Luego verificar si es una consulta específica de menús y permisos
-  if (query && (
+  // Verificar si es una MUTATION de permisos (debe ir a InicioNestJs)
+  if (query && query.includes('mutation') && (
+    query.includes('crearPermisoMenu') ||
+    query.includes('actualizarPermisoMenu') ||
+    query.includes('eliminarPermisoMenu') ||
+    query.includes('crearPermisosMasivos') ||
+    query.includes('cambiarEstadoPermisosPerfil') ||
+    query.includes('cambiarEstadoPermisosMenuItem')
+  )) {
+    console.log('🔄 Redirigiendo mutación de permisos a InicioNestJs');
+    return config.nestjsService;
+  }
+  
+  // Luego verificar si es una consulta específica de menús y permisos (solo queries, no mutations)
+  if (query && !query.includes('mutation') && (
     query.includes('menu') || 
     query.includes('permiso') || 
     query.includes('autorizacion') ||
     query.includes('opcionesMenuSuperior') ||
     query.includes('permisosPorPerfil') ||
     query.includes('permisosPorModulo') ||
-    query.includes('menuLateralPorPerfil')
+    query.includes('menuLateralPorPerfil') ||
+    query.includes('perfilConPermisos')
   )) {
     console.log('🔄 Redirigiendo consulta de menú a MenuNestJs');
     return config.menuService;
