@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from datetime import datetime
 from models.menu import MenuSeccion, MenuItem
 from schemas.menu_schema import MenuSeccionSchema, MenuItemSchema
 from utils.db import db
@@ -206,7 +207,7 @@ def create_menu_item():
         # Crear el item
         nuevo_item = MenuItem(
             id_seccion=data['id_seccion'],
-            parent_id=data.get('parent_id'),
+            parent_id=data.get('parent_id') if data.get('parent_id') else None,
             etiqueta=data['etiqueta'],
             icono=data.get('icono'),
             ruta=data.get('ruta'),
@@ -264,7 +265,8 @@ def update_menu_item(item_id):
         if 'id_seccion' in data:
             item_existente.id_seccion = data['id_seccion']
         if 'parent_id' in data:
-            item_existente.parent_id = data['parent_id']
+            # Convertir string vacío a None para campos nullable
+            item_existente.parent_id = data['parent_id'] if data['parent_id'] else None
         if 'icono' in data:
             item_existente.icono = data['icono']
         if 'ruta' in data:
@@ -279,6 +281,13 @@ def update_menu_item(item_id):
             item_existente.badge_text = data['badge_text']
         if 'estado' in data:
             item_existente.estado = data['estado']
+        
+        # Actualizar timestamp de modificación
+        item_existente.updated_at = datetime.utcnow()
+        
+        # Actualizar updated_by si viene en el payload
+        if 'updated_by' in data:
+            item_existente.updated_by = data['updated_by']
         
         db.session.commit()
         db.session.refresh(item_existente)

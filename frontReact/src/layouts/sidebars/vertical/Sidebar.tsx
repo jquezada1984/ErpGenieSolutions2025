@@ -39,7 +39,7 @@ const Sidebar = () => {
   } = usePermissions();
 
   // Mapear menú seleccionado a ID de sección
-  const obtenerIdSeccionPorMenu = (menu: string): string => {
+  const obtenerIdSeccionPorMenu = (menu: string): string | null => {
     const mapeoSecciones: { [key: string]: string } = {
       'inicio': '29dea275-b0f7-4fb3-83fa-7c0ea31c3cf1', // Administración
       'terceros': '39dea275-b0f7-4fb3-83fa-7c0ea31c3cf2', // Terceros (ejemplo)
@@ -48,64 +48,52 @@ const Sidebar = () => {
       'comercial': '69dea275-b0f7-4fb3-83fa-7c0ea31c3cf5', // Comercial (ejemplo)
       'financiera': '79dea275-b0f7-4fb3-83fa-7c0ea31c3cf6', // Financiera (ejemplo)
       'bancos': '89dea275-b0f7-4fb3-83fa-7c0ea31c3cf7', // Bancos (ejemplo)
-      'contabilidad': '99dea275-b0f7-4fb3-83fa-7c0ea31c3cf8', // Contabilidad (ejemplo)
+      'contabilidad': '47394bb3-717f-43dd-aebd-46a4acf93b36', // Contabilidad (ID real)
       'rrhh': 'a9dea275-b0f7-4fb3-83fa-7c0ea31c3cf9', // RRHH (ejemplo)
       'documentos': 'b9dea275-b0f7-4fb3-83fa-7c0ea31c3cfa', // Documentos (ejemplo)
       'agenda': 'c9dea275-b0f7-4fb3-83fa-7c0ea31c3cfb', // Agenda (ejemplo)
       'tickets': 'd9dea275-b0f7-4fb3-83fa-7c0ea31c3cfc', // Tickets (ejemplo)
       'utilidades': 'e9dea275-b0f7-4fb3-83fa-7c0ea31c3cfd' // Utilidades (ejemplo)
     };
-    return mapeoSecciones[menu] || '29dea275-b0f7-4fb3-83fa-7c0ea31c3cf1'; // Default a Administración
+    return mapeoSecciones[menu] || null;
   };
 
   // Cargar menú lateral cuando cambie el perfil o el menú seleccionado
   useEffect(() => {
-    // For "inicio" menu, use dynamic menu from database
-    if (selectedMenu === 'inicio' && user?.id_perfil) {
-      const idSeccion = obtenerIdSeccionPorMenu(selectedMenu);
+    // Cargar menú dinámico para secciones que tienen ID configurado
+    const idSeccion = obtenerIdSeccionPorMenu(selectedMenu);
+    if (idSeccion && user?.id_perfil) {
       cargarMenuLateralOrdenado(idSeccion);
     }
   }, [selectedMenu, user?.id_perfil, cargarMenuLateralOrdenado]);
 
 
   // Usar menú lateral ordenado si está disponible, sino usar el estático
-  // Pero siempre priorizar el menú estático que ya tiene la estructura correcta
-  // Use dynamic menu for "inicio" if available, otherwise use static
+  // Use dynamic menu if available, otherwise use static
   let SidebarData;
   
-  if (selectedMenu === 'inicio') {
-    if (menuLateralOrdenado.length > 0) {
-      // Convert menuLateralOrdenado to SidebarData format
-      const menuOrdenado = menuLateralOrdenado[0];
-      SidebarData = [
-        { caption: menuOrdenado.nombre },
-        ...menuOrdenado.items.map(item => ({
-          title: item.etiqueta,
-          icon: item.icono ? <i className={item.icono} /> : <Icon.Home size={16} />,
-          id: item.id_item,
-          children: item.children?.map(child => ({
-            title: child.etiqueta,
-            href: child.ruta,
-            icon: child.icono ? <i className={child.icono} /> : <Icon.List size={14} />
-          })) || []
-        }))
-      ];
-    } else {
-      // Use simplified static menu for inicio (only Empresa)
-      SidebarData = [
-        { caption: "Administración" },
-        {
-          title: "Empresa",
-          icon: <i className="bi bi-building" />,
-          id: 'empresa',
-          children: [
-            { title: "Lista", href: "/empresas", icon: <Icon.List size={14} /> },
-            { title: "Crear", href: "/empresas/nueva", icon: <Icon.Plus size={14} /> },
-          ],
-        }
-      ];
-    }
+  const idSeccion = obtenerIdSeccionPorMenu(selectedMenu);
+  const tieneMenuDinamico = idSeccion !== null;
+  
+  if (tieneMenuDinamico && menuLateralOrdenado.length > 0) {
+    // Convert menuLateralOrdenado to SidebarData format
+    const menuOrdenado = menuLateralOrdenado[0];
+    SidebarData = [
+      { caption: menuOrdenado.nombre },
+      ...menuOrdenado.items.map(item => ({
+        title: item.etiqueta,
+        icon: item.icono ? <i className={item.icono} /> : <Icon.Home size={16} />,
+        id: item.id_item,
+        href: item.ruta || undefined, // Si tiene ruta directa, usarla
+        children: item.children && item.children.length > 0 ? item.children.map(child => ({
+          title: child.etiqueta,
+          href: child.ruta,
+          icon: child.icono ? <i className={child.icono} /> : <Icon.List size={14} />
+        })) : undefined
+      }))
+    ];
   } else {
+    // Use static menu as fallback
     SidebarData = getSidebarData(selectedMenu);
   }
 

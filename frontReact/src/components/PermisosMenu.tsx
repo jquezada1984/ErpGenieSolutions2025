@@ -134,6 +134,14 @@ const PermisosMenu: React.FC<PermisosMenuProps> = ({ idPerfil, onPermisosChange 
   useEffect(() => {
     if (data?.perfilConPermisos) {
       const perfil = data.perfilConPermisos;
+      // Debug: mostrar todas las secciones recibidas
+      console.log('🔍 DEBUG - Secciones recibidas:', perfil.secciones.map((s: SeccionConPermisos) => ({
+        nombre: s.nombre,
+        id_seccion: s.id_seccion,
+        totalItems: s.items.length,
+        tienePermisos: s.tienePermisos
+      })));
+      
       // Inicializar permisos desde los datos
       const permisosIniciales: { [key: string]: boolean } = {};
       perfil.secciones.forEach((seccion: SeccionConPermisos) => {
@@ -457,7 +465,14 @@ const PermisosMenu: React.FC<PermisosMenuProps> = ({ idPerfil, onPermisosChange 
         {/* Lista de secciones con permisos */}
         <Accordion open={openAccordion} toggle={(id) => setOpenAccordion(id === openAccordion ? '' : id)}>
           {perfil.secciones
-            .filter(seccion => mostrarTodasLasSecciones || seccion.tienePermisos || seccion.items.some(item => permisos[item.id_item]))
+            .filter(seccion => {
+              // Si mostrarTodasLasSecciones está activo, mostrar todas las secciones
+              if (mostrarTodasLasSecciones) {
+                return true;
+              }
+              // Si no, mostrar solo las que tienen permisos o items con permisos asignados
+              return seccion.tienePermisos || seccion.items.some(item => permisos[item.id_item]);
+            })
             .map((seccion) => {
             const itemsConPermisos = seccion.items.filter(item => permisos[item.id_item]);
             const totalItems = seccion.items.length;

@@ -195,12 +195,12 @@ export class AutorizacionService {
         throw new Error('Perfil no encontrado');
       }
 
-      // Obtener TODAS las secciones activas con sus items
+      // Obtener TODAS las secciones activas con sus items activos
+      // Usar leftJoin con condición para incluir secciones sin items
       const todasLasSecciones = await this.menuSeccionRepository
         .createQueryBuilder('seccion')
-        .leftJoinAndSelect('seccion.items', 'items')
+        .leftJoinAndSelect('seccion.items', 'items', 'items.estado = :estadoItem', { estadoItem: true })
         .where('seccion.estado = :estado', { estado: true })
-        .andWhere('items.estado = :estadoItem', { estadoItem: true })
         .orderBy('seccion.orden', 'ASC')
         .addOrderBy('items.orden', 'ASC')
         .getMany();

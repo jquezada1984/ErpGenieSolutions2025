@@ -180,12 +180,21 @@ const EditarItem: React.FC = () => {
     setError(null);
 
     try {
-      const response = await actualizarItem(id!, formData);
+      // Normalizar el payload: convertir strings vacíos a null para campos opcionales
+      const payload = {
+        ...formData,
+        parent_id: formData.parent_id || null,
+        icono: formData.icono || null,
+        ruta: formData.ruta || null,
+        badge_text: formData.badge_text || null
+      };
+      
+      const response = await actualizarItem(id!, payload);
       
       if (response.success) {
         setSuccess(true);
         setTimeout(() => {
-          navigate('/menus/estructura');
+          navigate('/menus');
         }, 2000);
       } else {
         setError(response.message || 'Error al actualizar el item');
@@ -198,7 +207,7 @@ const EditarItem: React.FC = () => {
   };
 
   const handleCancel = () => {
-    navigate('/menus/estructura');
+    navigate('/menus');
   };
 
   return (

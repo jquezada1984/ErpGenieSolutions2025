@@ -132,9 +132,14 @@ const NuevoItem: React.FC = () => {
       const maxOrden = itemsSeccion.length > 0 ? Math.max(...itemsSeccion.map(item => item.orden)) : 0;
       const nuevoOrden = maxOrden + 1;
       
+      // Normalizar el payload: convertir strings vacíos a null para campos opcionales
       const itemData = {
         ...formData,
-        orden: nuevoOrden
+        orden: nuevoOrden,
+        parent_id: formData.parent_id || null,
+        icono: formData.icono || null,
+        ruta: formData.ruta || null,
+        badge_text: formData.badge_text || null
       };
       
       const response = await crearItem(itemData);

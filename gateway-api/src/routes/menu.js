@@ -16,9 +16,9 @@ async function crearSeccion(request, reply) {
     const response = await pythonService.post('/api/menu-secciones', request.body);
     
     console.log('✅ Gateway: Sección creada exitosamente');
-    console.log('📝 Respuesta completa del backend Python:', response.data);
-    // Enviar la respuesta completa del backend, no solo response.data
-    reply.status(201).send(response.data);
+    console.log('📝 Respuesta completa del backend Python:', response);
+    // pythonService.post ya devuelve response.data, así que enviamos response directamente
+    reply.status(201).send(response);
   } catch (error) {
     console.error('❌ Gateway: Error al crear sección:', error.response?.data || error.message);
     reply.status(error.response?.status || 500).send(error.response?.data || { 
@@ -37,7 +37,8 @@ async function actualizarSeccion(request, reply) {
     const response = await pythonService.put(`/api/menu-secciones/${id}`, request.body);
     
     console.log('✅ Gateway: Sección actualizada exitosamente');
-    reply.send(response.data);
+    // pythonService.put ya devuelve response.data, así que enviamos response directamente
+    reply.send(response);
   } catch (error) {
     console.error('❌ Gateway: Error al actualizar sección:', error.response?.data || error.message);
     reply.status(error.response?.status || 500).send(error.response?.data || { 
@@ -56,7 +57,8 @@ async function eliminarSeccion(request, reply) {
     const response = await pythonService.delete(`/api/menu-secciones/${id}`);
     
     console.log('✅ Gateway: Sección eliminada exitosamente');
-    reply.send(response.data);
+    // pythonService.delete ya devuelve response.data, así que enviamos response directamente
+    reply.send(response);
   } catch (error) {
     console.error('❌ Gateway: Error al eliminar sección:', error.response?.data || error.message);
     reply.status(error.response?.status || 500).send(error.response?.data || { 
@@ -76,8 +78,9 @@ async function crearItem(request, reply) {
     const response = await pythonService.post('/api/menu-items', request.body);
     
     console.log('✅ Gateway: Item creado exitosamente');
-    console.log('📝 Respuesta completa del backend Python (item):', response.data);
-    reply.status(201).send(response.data);
+    console.log('📝 Respuesta completa del backend Python (item):', response);
+    // pythonService.post ya devuelve response.data, así que enviamos response directamente
+    reply.status(201).send(response);
   } catch (error) {
     console.error('❌ Gateway: Error al crear item:', error.response?.data || error.message);
     reply.status(error.response?.status || 500).send(error.response?.data || { 
@@ -96,7 +99,9 @@ async function actualizarItem(request, reply) {
     const response = await pythonService.put(`/api/menu-items/${id}`, request.body);
     
     console.log('✅ Gateway: Item actualizado exitosamente');
-    reply.send(response.data);
+    console.log('📝 Respuesta completa del backend Python (item):', response);
+    // pythonService.put ya devuelve response.data, así que enviamos response directamente
+    reply.send(response);
   } catch (error) {
     console.error('❌ Gateway: Error al actualizar item:', error.response?.data || error.message);
     reply.status(error.response?.status || 500).send(error.response?.data || { 
@@ -115,7 +120,8 @@ async function eliminarItem(request, reply) {
     const response = await pythonService.delete(`/api/menu-items/${id}`);
     
     console.log('✅ Gateway: Item eliminado exitosamente');
-    reply.send(response.data);
+    // pythonService.delete ya devuelve response.data, así que enviamos response directamente
+    reply.send(response);
   } catch (error) {
     console.error('❌ Gateway: Error al eliminar item:', error.response?.data || error.message);
     reply.status(error.response?.status || 500).send(error.response?.data || { 
