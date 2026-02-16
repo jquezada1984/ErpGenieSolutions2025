@@ -1,0 +1,177 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type CondicionPago {
+  descripcion: String!
+  id_condicion_pago: ID!
+}
+
+input CreateTerceroInput {
+  apodo: String
+  asignado_a: String
+  capital: String
+  categoria_cliente: String
+  categoria_proveedor: String
+  cif_intra: String
+  cliente: Boolean! = false
+  cliente_potencial: Boolean! = false
+  codigo_cliente: String
+  codigo_postal: String
+  codigo_proveedor: String
+  correo: String
+  creado_por: String
+  direccion: String
+  estado: Boolean! = true
+  fax: String
+  id_condicion_pago: String
+  id_empresa: String!
+  id_forma_pago: String
+  id_pais: String
+  id_profesional_1: String
+  id_profesional_2: String
+  id_tipo_tercero: String
+  movil: String
+  nombre: String!
+  poblacion: String
+  proveedor: Boolean! = false
+  provincia: String
+  sede_central: String
+  sujeto_iva: Boolean! = true
+  telefono: String
+  tipo_entidad_comercial: String
+  web: String
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Empresa {
+  direccion: String
+  email: String
+  estado: Boolean!
+  id_empresa: ID!
+  nombre: String!
+  ruc: String!
+  telefono: String
+}
+
+type FormaPago {
+  descripcion: String!
+  id_forma_pago: ID!
+}
+
+type Incoterm {
+  codigo: String!
+  descripcion: String
+  id_incoterm: ID!
+}
+
+type Mutation {
+  createTercero(input: CreateTerceroInput!): Tercero!
+  removeTercero(id_tercero: String!): Boolean!
+  updateTercero(input: UpdateTerceroInput!): Tercero!
+}
+
+type Pais {
+  codigo_iso: String!
+  icono: String!
+  id_pais: ID!
+  nombre: String!
+}
+
+type Query {
+  clientes: [Tercero!]!
+  condicionesPago: [CondicionPago!]!
+  empresas: [Empresa!]!
+  formasPago: [FormaPago!]!
+  incoterms: [Incoterm!]!
+  paises: [Pais!]!
+  tercero(id_tercero: String!): Tercero!
+  terceros: [Tercero!]!
+  tiposTercero: [TipoTercero!]!
+}
+
+type Tercero {
+  apodo: String
+  asignado_a: String
+  capital: String
+  cif_intra: String
+  cliente: Boolean!
+  cliente_potencial: Boolean!
+  codigo_cliente: String
+  codigo_postal: String
+  correo: String
+  creado_por: String
+  direccion: String
+  empresa: Empresa
+  estado: Boolean!
+  fax: String
+  fecha_creacion: DateTime
+  fecha_modificacion: DateTime
+  id_condicion_pago: String
+  id_empresa: String!
+  id_forma_pago: String
+  id_pais: String
+  id_profesional_1: String
+  id_profesional_2: String
+  id_tercero: ID!
+  id_tipo_tercero: String
+  modificado_por: String
+  movil: String
+  nombre: String!
+  poblacion: String
+  proveedor: Boolean!
+  provincia: String
+  sede_central: String
+  sujeto_iva: Boolean!
+  telefono: String
+  tipo_entidad_comercial: String
+  tipo_tercero: TipoTercero
+  web: String
+}
+
+type TipoTercero {
+  id_tipo_tercero: ID!
+  nombre: String!
+}
+
+input UpdateTerceroInput {
+  apodo: String
+  asignado_a: String
+  capital: String
+  categoria_cliente: String
+  categoria_proveedor: String
+  cif_intra: String
+  cliente: Boolean = false
+  cliente_potencial: Boolean = false
+  codigo_cliente: String
+  codigo_postal: String
+  codigo_proveedor: String
+  correo: String
+  creado_por: String
+  direccion: String
+  estado: Boolean = true
+  fax: String
+  id_condicion_pago: String
+  id_empresa: String
+  id_forma_pago: String
+  id_pais: String
+  id_profesional_1: String
+  id_profesional_2: String
+  id_tercero: String!
+  id_tipo_tercero: String
+  modificado_por: String
+  movil: String
+  nombre: String
+  poblacion: String
+  proveedor: Boolean = false
+  provincia: String
+  sede_central: String
+  sujeto_iva: Boolean = true
+  telefono: String
+  tipo_entidad_comercial: String
+  web: String
+}

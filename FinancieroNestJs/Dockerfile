@@ -1,4 +1,4 @@
-# Dockerfile para Backend Contabilidad NestJS - Desarrollo
+# Dockerfile para Backend Financiero NestJS
 FROM node:20-slim
 
 # Instalar dependencias del sistema para compilación nativa
@@ -20,17 +20,23 @@ WORKDIR /app
 COPY package*.json ./
 
 # Remover dependencia problemática msnodesqlv8 temporalmente
-RUN npm pkg delete dependencies.msnodesqlv8
+RUN npm pkg delete dependencies.msnodesqlv8 || true
 
-# Instalar dependencias de desarrollo
+# Instalar TODAS las dependencias (incluyendo devDependencies para el build)
 RUN npm install --legacy-peer-deps
 
+# Copiar código fuente
+COPY . .
+
+# Construir la aplicación
+RUN npm run build
+
 # Exponer puerto
-EXPOSE 3005
+EXPOSE 3007
 
-# Variables de entorno para desarrollo
-ENV NODE_ENV=development
-ENV PORT=3005
+# Variables de entorno por defecto
+ENV NODE_ENV=production
+ENV PORT=3007
 
-# Comando por defecto para desarrollo con watch mode
-CMD ["npm", "run", "start:dev"]
+# Comando por defecto
+CMD ["npm", "run", "start:prod"]

@@ -60,6 +60,133 @@ services:
       - erp-network
     command: ["npm", "run", "start:dev"]
 
+  # TerceroPython - Desarrollo
+  tercero-python-service:
+    build:
+      context: ./TerceroPython
+      dockerfile: Dockerfile
+    container_name: erp-tercero-python-service-dev
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - FLASK_ENV=development
+      - PORT=3004
+      - TZ=America/Guayaquil
+    ports:
+      - "3004:3004"
+    volumes:
+      - ./TerceroPython:/app
+      - tercero_python_dev_data:/app/data
+    networks:
+      - erp-network
+    command: ["python", "app.py"]
+
+  # TerceroNestJs - Desarrollo
+  tercero-nestjs-service:
+    build:
+      context: ./TerceroNestJs
+      dockerfile: Dockerfile.dev
+    container_name: erp-tercero-nestjs-service-dev
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - TZ=America/Guayaquil
+    ports:
+      - "3006:3001"
+    volumes:
+      - ./TerceroNestJs:/app
+      - /app/node_modules
+    networks:
+      - erp-network
+    command: ["npm", "run", "start:dev"]
+
+  # ContabilidadPython - Desarrollo
+  contabilidad-python-service:
+    build:
+      context: ./ContabilidadPython
+      dockerfile: Dockerfile
+    container_name: erp-contabilidad-python-service-dev
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - FLASK_ENV=development
+      - PORT=5002
+      - TZ=America/Guayaquil
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./ContabilidadPython:/app
+      - contabilidad_python_dev_data:/app/data
+    networks:
+      - erp-network
+    command: ["python", "app.py"]
+
+  # ContabilidadNestJs - Desarrollo
+  contabilidad-nestjs-service:
+    build:
+      context: ./ContabilidadNestJs
+      dockerfile: Dockerfile.dev
+    container_name: erp-contabilidad-nestjs-service-dev
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - TZ=America/Guayaquil
+    ports:
+      - "3005:3005"
+    volumes:
+      - ./ContabilidadNestJs:/app
+      - /app/node_modules
+    networks:
+      - erp-network
+    command: ["npm", "run", "start:dev"]
+
+  # FinancieroPython - Desarrollo
+  financiero-python-service:
+    build:
+      context: ./FinancieroPython
+      dockerfile: Dockerfile
+    container_name: erp-financiero-python-service-dev
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - FLASK_ENV=development
+      - PORT=5001
+      - TZ=America/Guayaquil
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./FinancieroPython:/app
+      - financiero_python_dev_data:/app/data
+    networks:
+      - erp-network
+    command: ["python", "app.py"]
+
+  # FinancieroNestJs - Desarrollo
+  financiero-nestjs-service:
+    build:
+      context: ./FinancieroNestJs
+      dockerfile: Dockerfile.dev
+    container_name: erp-financiero-nestjs-service-dev
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - TZ=America/Guayaquil
+    ports:
+      - "3007:3007"
+    volumes:
+      - ./FinancieroNestJs:/app
+      - /app/node_modules
+    networks:
+      - erp-network
+    command: ["npm", "run", "start:dev"]
+
   # Gateway API (Fastify) - Desarrollo
   gateway-api:
     build:
@@ -71,6 +198,12 @@ services:
       - PYTHON_SERVICE_URL=http://python-service:5000
       - NESTJS_SERVICE_URL=http://nestjs-service:3001
       - MENU_SERVICE_URL=http://menu-service:3003
+      - TERCERO_PY_BASE_URL=http://tercero-python-service:3004
+      - TERCERO_NEST_GQL_URL=http://tercero-nestjs-service:3001
+      - CONTABILIDAD_PY_BASE_URL=http://contabilidad-python-service:5002
+      - CONTABILIDAD_NEST_GQL_URL=http://contabilidad-nestjs-service:3005
+      - FINANCIERO_PY_BASE_URL=http://financiero-python-service:5001
+      - FINANCIERO_NEST_GQL_URL=http://financiero-nestjs-service:3007
       - GATEWAY_PORT=3002
       - CORS_ORIGIN=http://localhost:3000,http://localhost:3004,http://localhost:5173
       - TZ=America/Guayaquil
@@ -86,6 +219,12 @@ services:
       - python-service
       - nestjs-service
       - menu-service
+      - tercero-python-service
+      - tercero-nestjs-service
+      - contabilidad-python-service
+      - contabilidad-nestjs-service
+      - financiero-python-service
+      - financiero-nestjs-service
 
   # Frontend React - Desarrollo
   frontend:
@@ -109,6 +248,9 @@ services:
 
 volumes:
   python_dev_data:
+  tercero_python_dev_data:
+  contabilidad_python_dev_data:
+  financiero_python_dev_data:
 
 networks:
   erp-network:
