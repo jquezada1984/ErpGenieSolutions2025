@@ -15,6 +15,21 @@ const getTargetService = (query, config) => {
     return config.nestjsService;
   }
   
+  // Verificar si es una consulta de catálogos de terceros (TerceroNestJs)
+  if (query && (
+    query.includes('incoterms') ||
+    query.includes('tiposTercero') ||
+    query.includes('condicionesPago') ||
+    query.includes('formasPago') ||
+    query.includes('empresas') ||
+    query.includes('terceros') ||
+    query.includes('tercero(') ||
+    query.includes('clientes')
+  )) {
+    console.log('🔄 Redirigiendo consulta de terceros a TerceroNestJs');
+    return config.terceroNestJsService;
+  }
+  
   // Luego verificar si es una consulta específica de menús y permisos
   if (query && (
     query.includes('menu') || 
@@ -80,7 +95,8 @@ async function routes(fastify, options) {
       // Obtener configuración del gateway
       const config = {
         nestjsService: process.env.NESTJS_SERVICE_URL,
-        menuService: process.env.MENU_SERVICE_URL
+        menuService: process.env.MENU_SERVICE_URL,
+        terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || 'http://tercero-nestjs-service:3001'
       };
 
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);
