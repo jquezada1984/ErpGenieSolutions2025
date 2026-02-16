@@ -80,17 +80,21 @@ const Sidebar = () => {
     const menuOrdenado = menuLateralOrdenado[0];
     SidebarData = [
       { caption: menuOrdenado.nombre },
-      ...menuOrdenado.items.map(item => ({
-        title: item.etiqueta,
-        icon: item.icono ? <i className={item.icono} /> : <Icon.Home size={16} />,
-        id: item.id_item,
-        href: item.ruta || undefined, // Si tiene ruta directa, usarla
-        children: item.children && item.children.length > 0 ? item.children.map(child => ({
-          title: child.etiqueta,
-          href: child.ruta,
-          icon: child.icono ? <i className={child.icono} /> : <Icon.List size={14} />
-        })) : undefined
-      }))
+      ...menuOrdenado.items.map(item => {
+        const tieneHijos = item.children && item.children.length > 0;
+        return {
+          title: item.etiqueta,
+          icon: item.icono ? <i className={item.icono} /> : <Icon.Home size={16} />,
+          id: item.id_item,
+          // Si tiene hijos, no asignar href para que se renderice como submenú con flechas
+          href: tieneHijos ? undefined : (item.ruta || undefined),
+          children: tieneHijos ? item.children.map(child => ({
+            title: child.etiqueta,
+            href: child.ruta,
+            icon: child.icono ? <i className={child.icono} /> : <Icon.List size={14} />
+          })) : undefined
+        };
+      })
     ];
   } else {
     // Use static menu as fallback
