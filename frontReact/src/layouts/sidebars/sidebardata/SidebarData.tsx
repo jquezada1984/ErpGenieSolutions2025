@@ -55,50 +55,44 @@ const sidebarMenus = {
   ],
   terceros: [
     { caption: "Dashboard" },
-    { title: "Dashboard", href: "/terceros/dashboard", icon: <Icon.Home size={16} /> },
+    { title: "Dashboard", href: "/dashboard", icon: <Icon.Home size={16} /> },
     { caption: "Tercero" },
     {
       title: "Tercero",
       icon: <FaUserTie size={16} />,
       id: 'tercero',
       children: [
-        { title: "Nuevo tercero", href: "/tercero/nuevo", icon: <Icon.UserPlus size={14} /> },
-        { title: "Listado", href: "/tercero/lista", icon: <Icon.List size={14} /> },
-        {
-          title: "Clientes potenciales",
-          icon: <FaUserFriends size={14} />,
-          children: [
-            { title: "Nuevo cliente potencial", href: "/tercero/clientepotencial/nuevo", icon: <Icon.UserPlus size={14} /> },
-          ],
-        },
-        {
-          title: "Clientes",
-          icon: <FaUserFriends size={14} />,
-          children: [
-            { title: "Nuevo cliente", href: "/tercero/cliente/nuevo", icon: <Icon.UserPlus size={14} /> },
-          ],
-        },
-        {
-          title: "Proveedores",
-          icon: <FaUserFriends size={14} />,
-          children: [
-            { title: "Nuevo proveedor", href: "/tercero/proveedor/nuevo", icon: <Icon.UserPlus size={14} /> },
-          ],
-        },
+        { title: "Nuevo tercero", href: "/terceros/nuevo", icon: <Icon.UserPlus size={14} /> },
+        { title: "Listado tercero", href: "/terceros", icon: <Icon.List size={14} /> },
       ],
     },
-    { caption: "Contactos/Direcciones" },
     {
-      title: "Contactos/Direcciones",
-      icon: <FaAddressBook size={16} />,
-      id: 'contactos',
+      title: "Cliente",
+      icon: <FaUserTie size={16} />,
+      id: 'cliente',
       children: [
-        { title: "Nuevo Contacto/Dirección", href: "/contacto/nuevo", icon: <Icon.UserPlus size={14} /> },
-        { title: "Listado", href: "/contacto/lista", icon: <Icon.List size={14} /> },
-        { title: "Clientes potenciales", href: "/contacto/clientepotencial", icon: <Icon.List size={14} /> },
-        { title: "Clientes", href: "/contacto/cliente", icon: <Icon.List size={14} /> },
-        { title: "Proveedores", href: "/contacto/proveedor", icon: <Icon.List size={14} /> },
-        { title: "Otro", href: "/contacto/otro", icon: <Icon.List size={14} /> },
+        { title: "Nuevo cliente", href: "/clientes/nuevo", icon: <Icon.UserPlus size={14} /> },
+        { title: "Listado cliente", href: "/clientes", icon: <Icon.List size={14} /> },
+      ],
+    },
+    {
+      title: "Cliente Potencial",
+      icon: <FaUserTie size={16} />,
+      id: 'cliente_potencial',
+      children: [
+        { title: "Nuevo cliente potencial", href: "/clientes_potenciales/nuevo", icon: <Icon.UserPlus size={14} /> },
+        { title: "Listado cliente potencial", href: "/clientes_potenciales/lista", icon: <Icon.List size={14} /> },
+      ],
+    },
+    {
+      title: "Contacto/Direccion",
+      icon: <FaAddressBook size={16} />,
+      id: 'contacto_direccion',
+      children: [
+        { title: "Nuevo contacto/dirección", href: "/contactos_direcciones/nuevo", icon: <Icon.UserPlus size={14} /> },
+        { title: "Listado contacto/dirección", href: "/contactos_direcciones/lista", icon: <Icon.List size={14} /> },
+        { title: "Proveedores", href: "/contactos_direcciones/proveedores", icon: <Icon.List size={14} /> },
+        { title: "Otro", href: "/contactos_direcciones/otro", icon: <Icon.List size={14} /> },
       ],
     },
   ],

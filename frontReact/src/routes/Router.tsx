@@ -48,6 +48,13 @@ const Usuarios = Loadable(lazy(() => import('../views/usuarios/Usuarios')));
 const NuevoUsuario = Loadable(lazy(() => import('../views/usuarios/NuevoUsuario')));
 const EditarUsuario = Loadable(lazy(() => import('../views/usuarios/EditarUsuario')));
 
+const NuevoTercero = Loadable(lazy(() => import('../views/terceros/NuevoTercero')));
+const Terceros = Loadable(lazy(() => import('../views/terceros/Terceros')));
+const EditarTercero = Loadable(lazy(() => import('../views/terceros/EditarTercero')));
+
+const Clientes = Loadable(lazy(() => import('../views/terceros/Clientes')));
+const NuevoCliente = Loadable(lazy(() => import('../views/terceros/NuevoCliente')));
+const EditarCliente = Loadable(lazy(() => import('../views/terceros/EditarCliente')));
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
 
@@ -97,6 +104,13 @@ const ThemeRoutes: RouteType[] = [
       { path: 'usuarios/nuevo', element: <NuevoUsuario /> },
       { path: 'usuarios/editar/:id', element: <EditarUsuario /> },
       { path: 'test-flags', element: <FlagTest /> },
+      { path: 'terceros', element: <Terceros /> },
+      { path: 'terceros/nuevo', element: <NuevoTercero /> },
+      { path: 'terceros/editar/:id', element: <EditarTercero /> },
+      { path: 'clientes', element: <Clientes /> },
+      { path: 'clientes/nuevo', element: <NuevoCliente /> },
+      { path: 'clientes/editar/:id', element: <EditarCliente /> },
+
     ],
   },
   {
