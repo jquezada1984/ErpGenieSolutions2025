@@ -1,0 +1,107 @@
+================================================================================
+  VERIFICACIÓN MÓDULO PRODUCTOS - Frontend ERP Genie Solutions 2025
+================================================================================
+Fecha: 2025
+Estado: UI funcional; backend pendiente (sin API de productos).
+
+--------------------------------------------------------------------------------
+1. LO QUE SÍ FUNCIONA (UI / navegación)
+--------------------------------------------------------------------------------
+- Rutas en Router.tsx:
+  - /productos           -> Productos (listado)
+  - /productos/nuevo     -> NuevoProducto (formulario alta)
+  - /productos/editar/:id -> EditarProducto (actualmente redirige a mismo form que nuevo)
+
+- Menú lateral (SidebarData.tsx):
+  - Entrada "Productos" con "Lista" (/productos) y "Crear" (/productos/nuevo).
+
+- Formulario Nuevo Producto:
+  - 6 pestañas: Producto, Dimensiones, Origen/Aduana, Precios/Impuestos, Contabilidad, Notas.
+  - formData único enlazado a todas las secciones (ProductoForm).
+  - Secciones: SeccionProducto, SeccionDimensiones, SeccionOrigenAduana,
+    SeccionPreciosImpuestos, SeccionContabilidad, SeccionNotas.
+  - Botón "Cancelar" navega a /productos.
+  - Botón "Crear Producto" solo muestra alert y console.log (sin backend).
+
+- Navegación SPA:
+  - "Nuevo Producto" en listado usa navigate("/productos/nuevo") (sin recarga).
+  - Rutas de productos usan Loadable para mostrar loader al cargar.
+
+--------------------------------------------------------------------------------
+2. LO QUE FALTA O ESTÁ INCOMPLETO
+--------------------------------------------------------------------------------
+- No existe _apis_/producto.js
+  - No hay llamadas al backend para: listar, crear, actualizar ni eliminar productos.
+
+- Productos.tsx (listado):
+  - Solo muestra mensaje "No rows found" y botón "Nuevo Producto".
+  - No hay tabla, no hay carga de datos, no hay acciones Editar/Eliminar por fila.
+
+- EditarProducto.tsx:
+  - Solo hace: return <NuevoProducto />.
+  - No usa el :id de la ruta, no carga datos del producto a editar.
+
+- NuevoProducto.tsx:
+  - onCrear() no llama a ninguna API ni redirige tras éxito.
+
+- Catálogos en el formulario:
+  - Impuesto (SeccionPreciosImpuestos): select vacío, comentario "luego se cargará desde catálogo".
+
+--------------------------------------------------------------------------------
+3. CORRECCIONES APLICADAS EN ESTA VERIFICACIÓN
+--------------------------------------------------------------------------------
+- Productos.tsx: botón "Nuevo Producto" pasó de href="/productos/nuevo" a
+  onClick={() => navigate("/productos/nuevo")} para navegación SPA sin recarga.
+
+- Router.tsx: Productos, NuevoProducto y EditarProducto envueltos con Loadable()
+  para mostrar loader al cargar la ruta (consistente con Empresas, Usuarios, etc.).
+
+- NuevoProducto.tsx: "Cancelar" ahora navega a /productos en lugar de solo
+  resetear el formulario.
+
+--------------------------------------------------------------------------------
+4. PASOS RECOMENDADOS PARA DEJAR EL MÓDULO 100% FUNCIONAL
+--------------------------------------------------------------------------------
+1) Backend: implementar en Python (o NestJS) endpoints para productos, por ejemplo:
+   - GET    /api/productos         -> listado
+   - GET    /api/productos/:id     -> detalle
+   - POST   /api/productos         -> crear
+   - PUT    /api/productos/:id     -> actualizar
+   - DELETE /api/productos/:id     -> eliminar (o baja lógica)
+
+2) Gateway: exponer rutas /api/productos y reenviar al microservicio correspondiente.
+
+3) Frontend:
+   - Crear _apis_/producto.js con funciones: listarProductos, obtenerProducto(id),
+     crearProducto, actualizarProducto, eliminarProducto (similar a empresa.js).
+   - Productos.tsx: usar API para cargar lista, mostrar tabla con columnas y acciones
+     Editar (navigate a /productos/editar/:id) y Eliminar.
+   - NuevoProducto: en onCrear llamar crearProducto(formData), luego navigate("/productos").
+   - EditarProducto: leer id de useParams(), cargar producto con obtenerProducto(id),
+     pasar datos a un formulario (p. ej. reutilizando NuevoProducto con prop isEdit e initialData)
+     y al guardar llamar actualizarProducto(id, formData).
+
+4) Catálogos: si existen impuestos/otros maestros en backend, cargarlos en
+   SeccionPreciosImpuestos (y demás secciones que usen selects).
+
+--------------------------------------------------------------------------------
+5. ESTRUCTURA DE ARCHIVOS DEL MÓDULO
+--------------------------------------------------------------------------------
+src/views/productos/
+  - Productos.tsx              (listado; actualmente placeholder)
+  - NuevoProducto.tsx         (formulario alta con 6 pestañas)
+  - EditarProducto.tsx        (redirige a NuevoProducto; falta cargar por id)
+  - ConfiguracionProducto.scss
+  - secciones/
+      - SeccionProducto.tsx
+      - SeccionDimensiones.tsx
+      - SeccionOrigenAduana.tsx
+      - SeccionPreciosImpuestos.tsx
+      - SeccionContabilidad.tsx
+      - SeccionNotas.tsx
+
+No existe: src/_apis_/producto.js
+
+================================================================================
+  Fin de la verificación
+================================================================================

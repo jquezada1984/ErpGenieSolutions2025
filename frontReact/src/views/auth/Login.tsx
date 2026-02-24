@@ -18,7 +18,8 @@ import * as Yup from 'yup';
 import AuthLogo from '../../layouts/logo/AuthLogo';
 import { AuthContext } from '../../components/jwt/JwtContext';
 import useMounted from '../../components/authGurad/useMounted';
-import ErrorAlert from '../../components/ErrorAlert';
+import loginBgLeft from '../../assets/images/bg/login-bgleft.svg';
+import loginBgRight from '../../assets/images/bg/login-bg-right.svg';
 
 interface LoginValues {
   email: string;
@@ -96,8 +97,8 @@ const Login = () => {
 
   return (
     <div className="loginBox">
-      <img src="/src/assets/images/bg/login-bgleft.svg" className="position-absolute left bottom-0" alt="Fondo izquierdo" />
-      <img src="/src/assets/images/bg/login-bg-right.svg" className="position-absolute end-0 top" alt="Fondo derecho" />
+      <img src={loginBgLeft} className="position-absolute left bottom-0" alt="Fondo izquierdo" />
+      <img src={loginBgRight} className="position-absolute end-0 top" alt="Fondo derecho" />
       <Container fluid className="h-100">
         <Row className="justify-content-center align-items-center h-100">
           <Col lg="12" className="loginContainer">

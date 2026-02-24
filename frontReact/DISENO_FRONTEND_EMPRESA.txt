@@ -1,0 +1,150 @@
+================================================================================
+  DISEÑO Y ESTRUCTURA DEL FRONTEND - MÓDULO EMPRESA
+  ERP Genie Solutions 2025 (React + Vite + TypeScript)
+================================================================================
+
+1. RESUMEN
+---------
+El módulo Empresa permite listar, crear y editar empresas/organizaciones.
+Usa React con TypeScript, Apollo Client (GraphQL) para consultas y axios (REST)
+vía Gateway para crear/actualizar/eliminar. La interfaz se organiza en pestañas
+para nueva/edición (Empresa, Redes sociales, Horario de apertura, Contable).
+
+
+2. ESTRUCTURA DE CARPETAS Y ARCHIVOS
+------------------------------------
+
+frontReact/src/
+│
+├── _apis_/
+│   └── empresa.js              → Cliente HTTP (axios) al Gateway: crear, actualizar, eliminar
+│
+├── views/
+│   └── empresas/
+│       ├── Empresas.tsx        → Listado de empresas (tabla + acciones)
+│       ├── NuevaEmpresa.tsx    → Formulario de alta con pestañas
+│       ├── EditarEmpresa.tsx   → Formulario de edición con pestañas
+│       ├── ConfiguracionEmpresa.scss  → Estilos del formulario configuración
+│       └── secciones/
+│           ├── SeccionEmpresa.tsx         → Pestaña "Empresa" (datos básicos)
+│           ├── SeccionRedesSociales.tsx   → Pestaña "Redes sociales"
+│           ├── SeccionHorarioApertura.tsx  → Pestaña "Horario de apertura"
+│           ├── SeccionContable.tsx        → Pestaña "Contable" (identificación)
+│           └── SeccionRedesSociales.scss  → Estilos de redes sociales
+│
+├── routes/
+│   └── Router.tsx              → Rutas: /empresas, /empresas/nueva, /empresas/editar/:id
+│
+└── layouts/
+    └── sidebars/
+        └── sidebardata/
+            └── SidebarData.tsx  → Menú: "Empresa" → Lista, Crear
+
+
+3. RUTAS (Router.tsx)
+--------------------
+- /empresas              → Lista de empresas (Empresas.tsx)
+- /empresas/nueva        → Nueva empresa (NuevaEmpresa.tsx)
+- /empresas/editar/:id   → Editar empresa por id (EditarEmpresa.tsx)
+
+Todas están bajo AuthGuard y FullLayout (requieren login y muestran sidebar).
+
+
+4. MENÚ (SidebarData.tsx)
+-------------------------
+Entrada en el menú lateral:
+- Título: "Empresa"
+- Hijos:
+  - "Lista"  → /empresas
+  - "Crear"  → /empresas/nueva
+
+
+5. API Y COMUNICACIÓN CON BACKEND
+---------------------------------
+
+5.1 Gateway REST (_apis_/empresa.js)
+- Base: VITE_GATEWAY_URL + /api/empresas
+- crearEmpresa(empresa)     → POST /
+- actualizarEmpresa(id, empresa) → PUT /:id
+- eliminarEmpresa(id)       → PUT /:id con { estado: false } (baja lógica)
+
+5.2 GraphQL (Apollo Client)
+- Listado (Empresas.tsx): query GetEmpresas → empresas { id_empresa, nombre, ruc, ... }
+- Edición (EditarEmpresa.tsx): query GetEmpresa($id_empresa) → empresa(id_empresa) con
+  datos completos: identificación, redes_sociales, horarios_apertura, etc.
+- SeccionEmpresa usa queries: GetMonedas, GetPaises, GetProvincias para desplegables.
+
+
+6. PANTALLAS Y COMPONENTES
+--------------------------
+
+6.1 Empresas.tsx (Listado)
+- Estado: empresas[], loading, error, success
+- Carga: useLazyQuery(GET_EMPRESAS)
+- Eliminar: eliminarEmpresa(id) vía _apis_/empresa (REST)
+- Tabla: ReactTable con columnas nombre, ruc, direccion, telefono, email, estado, acciones
+- Acciones: "Nueva Empresa" → /empresas/nueva; Editar → /empresas/editar/:id; Eliminar (confirmación)
+
+6.2 NuevaEmpresa.tsx (Alta)
+- Estado: activeTab (1-4), formData (objeto con todos los campos), loading, error, success
+- Pestañas: Empresa | Redes sociales | Horario de apertura | Contable
+- Envío: crearEmpresa(formData) vía _apis_/empresa; luego redirección a /empresas
+- Cada pestaña es un componente de secciones que recibe data y onChange.
+
+6.3 EditarEmpresa.tsx (Edición)
+- Parámetro: id desde useParams (empresas/editar/:id)
+- Carga: useQuery(GET_EMPRESA, { variables: { id_empresa: id } })
+- Estado: formData (incluye identificacion, redes_sociales, horarios_apertura), hasChanges
+- Envío: actualizarEmpresa(id, formData) vía _apis_/empresa; luego refetch y mensaje éxito
+- Mismas 4 pestañas que NuevaEmpresa, con datos precargados.
+
+6.4 Secciones (vistas/empresas/secciones/)
+- SeccionEmpresa: datos básicos (nombre, ruc, dirección, teléfono, email, moneda, país,
+  código postal, población, móvil, fax, web, nota, sujeto_iva, provincia, ejercicio fiscal).
+  Usa GraphQL para monedas, países y provincias.
+- SeccionRedesSociales: lista de redes (Facebook, Instagram, etc.) con identificador/url
+  y marca de principal. Props: data (array), onChange.
+- SeccionHorarioApertura: tabla por día de la semana (Lunes–Domingo) con horarios de
+  apertura/cierre y opcional almuerzo. Props: data (array), onChange.
+- SeccionContable: datos de identificación (administradores, delegado_datos, capital,
+  tipo entidad, objeto_empresa, cif_intra, profesionales 1–10). Props: data (objeto), onChange.
+
+
+7. FLUJO DE DATOS
+-----------------
+- Listado: Apollo GET_EMPRESAS → estado empresas → ReactTable.
+- Nueva: usuario rellena pestañas → formData único → crearEmpresa(formData) → redirect.
+- Editar: Apollo GET_EMPRESA(id) → formData → secciones reciben data + onChange →
+  actualizarEmpresa(id, formData) → refetch.
+- Eliminar: confirmación → eliminarEmpresa(id) → loadEmpresas() de nuevo.
+
+
+8. DEPENDENCIAS RELEVANTES
+--------------------------
+- react, react-router-dom: vistas y rutas
+- @apollo/client, gql: GraphQL (listado y detalle/empresa, monedas, países, provincias)
+- reactstrap: Card, Button, Nav, TabContent, FormGroup, Input, Table, Alert, Badge, etc.
+- react-table (ReactTable): tabla del listado
+- classnames: clases activas en pestañas
+- Componentes propios: ErrorAlert, CountrySelect (en SeccionEmpresa)
+
+
+9. ESTILOS
+----------
+- ConfiguracionEmpresa.scss: contenedor y pestañas del formulario configuración.
+- SeccionRedesSociales.scss: estilos de la sección redes sociales.
+
+
+10. MODELO DE DATOS (RESUMEN)
+-----------------------------
+- Empresa: id_empresa, nombre, ruc, direccion, telefono, email, estado, id_moneda,
+  id_pais, codigo_postal, poblacion, movil, fax, web, nota, sujeto_iva, id_provincia,
+  fiscal_year_start_month/day, identificacion, redes_sociales[], horarios_apertura[].
+- Identificación: administradores, delegado_datos, capital, id_tipo_entidad,
+  objeto_empresa, cif_intra, id_profesional1..10.
+- Horario: id_horario, dia (1–7), valor/horas.
+- Red social: id, id_red_social, identificador, url, es_principal, red_social { nombre, icono }.
+
+================================================================================
+  Fin del documento - Frontend módulo Empresa
+================================================================================

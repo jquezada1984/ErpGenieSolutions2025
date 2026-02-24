@@ -3,6 +3,9 @@ import { Navigate } from 'react-router-dom';
 import Loadable from '../layouts/loader/Loadable';
 import AuthGuard from '../components/authGurad/AuthGuard';
 import Error404 from '../views/auth/Error404';
+import ProductosLista from '../views/productos/ProductosLista';
+
+
 
 /****Layouts*****/
 const FullLayout = Loadable(lazy(() => import('../layouts/FullLayout')));
@@ -51,6 +54,16 @@ const EditarUsuario = Loadable(lazy(() => import('../views/usuarios/EditarUsuari
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
 
+// Productos (usa Loadable como el resto de rutas)
+const Productos = Loadable(lazy(() => import("../views/productos/ProductosLista")));
+const NuevoProducto = Loadable(lazy(() => import("../views/productos/NuevoProducto")));
+const EditarProducto = Loadable(lazy(() => import("../views/productos/EditarProducto")));
+
+
+
+
+
+
 interface RouteType {
   path: string;
   element: ReactNode;
@@ -97,6 +110,10 @@ const ThemeRoutes: RouteType[] = [
       { path: 'usuarios/nuevo', element: <NuevoUsuario /> },
       { path: 'usuarios/editar/:id', element: <EditarUsuario /> },
       { path: 'test-flags', element: <FlagTest /> },
+      /* dentro del children del layout */
+      { path: "productos", element: <ProductosLista /> },
+      { path: "productos/nuevo", element: <NuevoProducto /> },
+      { path: "productos/editar/:id", element: <EditarProducto /> },
     ],
   },
   {

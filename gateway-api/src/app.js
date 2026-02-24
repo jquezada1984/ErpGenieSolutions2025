@@ -45,7 +45,7 @@ if (!config.pythonService) {
   process.exit(1);
 }
 
-if (!config.nestjsService) {
+/*if (!config.nestjsService) {
   console.error('❌ ERROR: NESTJS_SERVICE_URL no está configurado en las variables de entorno');
   console.error('Valor actual:', process.env.NESTJS_SERVICE_URL);
   process.exit(1);
@@ -55,12 +55,12 @@ if (!config.menuService) {
   console.error('❌ ERROR: MENU_SERVICE_URL no está configurado en las variables de entorno');
   console.error('Valor actual:', process.env.MENU_SERVICE_URL);
   process.exit(1);
-}
+}*/
 
 // Registrar plugins
 fastify.register(require('@fastify/cors'), config.cors);
 fastify.register(require('@fastify/helmet'));
-
+fastify.register(require('./services/httpClient'));
 // Registrar rutas
 fastify.register(require('./routes/empresas'), { prefix: '/api' });
 fastify.register(require('./routes/perfil'), { prefix: '/api' });
@@ -68,6 +68,13 @@ fastify.register(require('./routes/sucursal'), { prefix: '/api' });
 fastify.register(require('./routes/menu'), { prefix: '/api' });
 fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/graphql'), { prefix: '' });
+fastify.register(require("./routes/producto"), { prefix: '/api' });
+//fastify.register(require("./routes/producto"), { prefix: "/api" });
+fastify.register(require("./routes/producto_read"), { prefix: '/api' });
+fastify.register(require("./routes/producto_selects"), { prefix: '/api' });
+
+
+
 
 // Serializador personalizado para respuestas consistentes
 fastify.setSerializerCompiler(({ schema, method, url, httpStatus }) => {

@@ -1,0 +1,125 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type ProductoListDTO {
+  id_producto: ID!
+  producto_ref: String!
+  etiqueta: String
+  precio_venta: Float
+  estado_venta: String
+  impuesto_id: Int
+  id_empresa: ID!
+  actualizado_en: DateTime
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type PaginatedProductosDTO {
+  items: [ProductoListDTO!]!
+  total: Int!
+  page: Int!
+  limit: Int!
+}
+
+type ProductoDetalleDTO {
+  id_producto: ID!
+  producto_ref: String!
+  etiqueta: String
+  estado_venta: String
+  estado_compra: String
+  descripcion: String
+  url_publica: String
+  naturaleza: String
+  peso: Float
+  longitud: Float
+  anchura: Float
+  altura: Float
+  unidad_longitud: String
+  superficie: Float
+  unidad_superficie: String
+  volumen: Float
+  unidad_volumen: String
+  nomenclatura_aduanera: String
+  pais_origen: String
+  provincia_origen: String
+  nota_interna: String
+  precio_venta: Float
+  precio_minimo: Float
+  impuesto_id: Int
+  contabilidad_venta: String
+  contabilidad_exportacion: String
+  contabilidad_compra: String
+  contabilidad_importacion: String
+  creado_en: DateTime
+  actualizado_en: DateTime
+  id_empresa: ID!
+}
+
+type Impuesto {
+  id: ID!
+  nombre: String!
+  tasa: Float!
+  creado_en: DateTime
+  actualizado_en: DateTime
+}
+
+type Provincia {
+  id_provincia: ID!
+  nombre: String!
+  id_pais: ID!
+  pais: Pais
+}
+
+type Pais {
+  id_pais: ID!
+  nombre: String!
+  codigo_iso: String!
+  icono: String!
+  provincias: [Provincia!]
+}
+
+type CuentaContable {
+  id_cuenta_contable: ID!
+  id_plan_contable: String
+  codigo: String!
+  nombre: String!
+  descripcion: String
+  tipo_cuenta: String
+  nivel: Float
+  permite_movimientos: Boolean
+  estado: Boolean
+}
+
+type Empresa {
+  id_empresa: ID!
+  nombre: String
+}
+
+type Query {
+  impuestos: [Impuesto!]!
+  paises: [Pais!]!
+  provincias(id_pais: ID): [Provincia!]!
+  cuentasContables(solo_movimiento: Boolean, solo_activas: Boolean): [CuentaContable!]!
+  productos(filter: ProductoFilterInput!): PaginatedProductosDTO!
+  productoById(id_producto: ID!, id_empresa: ID!): ProductoDetalleDTO!
+  empresas: [Empresa!]!
+  empresaById(id_empresa: ID!): Empresa
+}
+
+input ProductoFilterInput {
+  id_empresa: ID!
+  page: Int
+  limit: Int
+  search: String
+  estado_venta: String
+  estado_compra: String
+  impuesto_id: Int
+  pais_origen: String
+  provincia_origen: String
+  sortBy: String
+  sortDir: String
+}

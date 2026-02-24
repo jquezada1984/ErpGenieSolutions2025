@@ -17,6 +17,43 @@ services:
     volumes:
       - python_data:/app/data
 
+
+
+
+#agregando productoPython
+  # ✅ ProductoPython (Escrituras Productos)
+  producto-python:
+    build:
+      context: ./ProductoPython
+      dockerfile: Dockerfile
+    container_name: erp-producto-python
+    environment:
+      # Fallback a DATABASE_URL si PRODUCTO_DATABASE_URL no está en .env
+      - DATABASE_URL=${PRODUCTO_DATABASE_URL:-${DATABASE_URL}}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
+      - FLASK_ENV=production
+    ports:
+      - "3005:3005"
+    networks:
+      - erp-network
+
+
+
+
+#fin productoPython 
+
+
+
+
+
+
+
+
+
+
+
+
+
   # Backend NestJS (GraphQL)
   nestjs-service:
     build:
@@ -25,7 +62,12 @@ services:
     container_name: erp-nestjs-service
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - DATABASE_URL=${DATABASE_URL}
+      - DB_HOST=${DB_HOST:-aws-0-sa-east-1.pooler.supabase.com}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USERNAME=${DB_USERNAME:-postgres.xfeycgctysoumclptgoh}
+      - DB_PASSWORD=${DB_PASSWORD:-XeCWl8Dam9CNUS1m}
+      - DB_DATABASE=${DB_DATABASE:-postgres}
       - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
     ports:
       - "3001:3001"
@@ -40,7 +82,11 @@ services:
     container_name: erp-menu-service
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - DB_HOST=${DB_HOST:-aws-0-sa-east-1.pooler.supabase.com}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USERNAME=${DB_USERNAME:-postgres.xfeycgctysoumclptgoh}
+      - DB_PASSWORD=${DB_PASSWORD:-XeCWl8Dam9CNUS1m}
+      - DB_DATABASE=${DB_DATABASE:-postgres}
       - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
     ports:
       - "3003:3003"
@@ -60,23 +106,62 @@ services:
       - MENU_SERVICE_URL=http://menu-service:3003
       - GATEWAY_PORT=3002
       - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+      - PRODUCTO_NESTJS_URL=http://producto-nestjs:3006/graphql #seagrego para que el gateway pueda acceder al producto-nestjs
+      - PRODUCTO_PYTHON_URL=http://producto-python:3005
+
+
     ports:
       - "3002:3002"
     depends_on:
       - python-service
       - nestjs-service
       - menu-service
+      - producto-nestjs #se agregó para que el gateway pueda acceder al producto-nestjs
+      - producto-python #se agregó para que el gateway pueda acceder al producto-python
+
+
     networks:
       - erp-network
-
-  # Frontend React (Nginx)
-  frontend:
+   # ProductoNestJs (GraphQL Lecturas Productos)
+  producto-nestjs:
     build:
-      context: ./frontReact
+      context: ./ProductoNestJs
       dockerfile: Dockerfile
-    container_name: erp-frontend
+    container_name: erp-producto-nestjs
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=${DB_HOST:-aws-0-sa-east-1.pooler.supabase.com}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USERNAME=${DB_USERNAME:-postgres.xfeycgctysoumclptgoh}
+      - DB_PASSWORD=${DB_PASSWORD:-XeCWl8Dam9CNUS1m}
+      - DB_DATABASE=${DB_DATABASE:-postgres}
     ports:
-      - "3000:80"
+      - "3006:3006"
+    networks:
+      - erp-network
+#fin ProductoNestJs
+
+
+
+
+
+
+
+
+  # Frontend React (DEV - hot reload)  ✅ PUERTO 3000 SE MANTIENE
+  frontend:
+    image: node:20-alpine
+    container_name: erp-frontend
+    working_dir: /app
+    environment:
+      - VITE_GATEWAY_URL=http://localhost:3002
+      - VITE_PYTHON_URL=http://localhost:5000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontReact:/app
+      - /app/node_modules
+    command: sh -c "npm install && npx vite --host 0.0.0.0 --port 3000"
     depends_on:
       - gateway-api
     networks:

@@ -1,6 +1,7 @@
 import React from 'react';
 import * as Icon from "react-feather";
-import { FaBuilding, FaUsers, FaUserTie, FaSitemap, FaUser, FaUserFriends, FaAddressBook } from 'react-icons/fa';
+import { FaBuilding, FaUsers, FaUserTie, FaSitemap, FaUser, FaUserFriends, FaAddressBook, FaBoxOpen } from 'react-icons/fa';
+ 
 
 const sidebarMenus = {
   inicio: [
@@ -14,6 +15,12 @@ const sidebarMenus = {
         { title: "Crear", href: "/empresas/nueva", icon: <Icon.Plus size={14} /> },
       ],
     },
+
+
+    
+
+    
+
     // Temporalmente comentado para mostrar solo Empresa según la consulta SQL
     // {
     //   title: "Sucursal",
@@ -102,6 +109,25 @@ const sidebarMenus = {
       ],
     },
   ],
+
+  productos: [
+    { caption: "Productos" },
+    {
+      title: "Productos",
+      icon: <FaBoxOpen size={16} />,
+      id: "productos",
+      children: [
+        { title: "Lista", href: "/productos", icon: <Icon.List size={14} /> },
+        { title: "Crear", href: "/productos/nuevo", icon: <Icon.Plus size={14} /> },
+      ],
+    },
+  ],
+  
+
+
+
+
+
   servicios: [
     { caption: "Servicios" },
     { title: "Próximamente", icon: <Icon.Info size={16} /> },

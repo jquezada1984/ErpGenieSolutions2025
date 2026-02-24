@@ -61,16 +61,18 @@ const Sidebar = () => {
   // Cargar menú lateral cuando cambie el perfil o el menú seleccionado
   useEffect(() => {
     // For "inicio" menu, use dynamic menu from database
+    // For "productos" and other menus, use static menu
     if (selectedMenu === 'inicio' && user?.id_perfil) {
       const idSeccion = obtenerIdSeccionPorMenu(selectedMenu);
       cargarMenuLateralOrdenado(idSeccion);
     }
+    // For productos, use static menu (no dynamic menu needed)
   }, [selectedMenu, user?.id_perfil, cargarMenuLateralOrdenado]);
 
 
-  // Usar menú lateral ordenado si está disponible, sino usar el estático
-  // Pero siempre priorizar el menú estático que ya tiene la estructura correcta
-  // Use dynamic menu for "inicio" if available, otherwise use static
+  // Usar menú lateral ordenado si está disponible, sino usar el estático completo
+  // Use dynamic menu for "inicio" if available, otherwise use static menu with all items
+  // For "productos" and other menus, always use static menu
   let SidebarData;
   
   if (selectedMenu === 'inicio') {
@@ -91,21 +93,11 @@ const Sidebar = () => {
         }))
       ];
     } else {
-      // Use simplified static menu for inicio (only Empresa)
-      SidebarData = [
-        { caption: "Administración" },
-        {
-          title: "Empresa",
-          icon: <i className="bi bi-building" />,
-          id: 'empresa',
-          children: [
-            { title: "Lista", href: "/empresas", icon: <Icon.List size={14} /> },
-            { title: "Crear", href: "/empresas/nueva", icon: <Icon.Plus size={14} /> },
-          ],
-        }
-      ];
+      // Use complete static menu for inicio (includes Empresa, Productos, etc.)
+      SidebarData = getSidebarData('inicio');
     }
   } else {
+    // For productos, terceros, and other menus, use static menu
     SidebarData = getSidebarData(selectedMenu);
   }
 

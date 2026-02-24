@@ -2,11 +2,12 @@ const { empresaSchema, empresaUpdateSchema } = require('../schemas/empresa');
 const { pythonService, nestjsService } = require('../services');
 
 async function routes(fastify, options) {
-  
-  // GET /gateway/empresas - Obtener todas las empresas (NestJS GraphQL)
+  const nestjsBaseUrl = process.env.NESTJS_SERVICE_URL || 'http://nestjs-service:3001';
+
+  // GET /api/empresas - Listar empresas (READ ONLY, NestJS InicioNestJs GraphQL)
   fastify.get('/empresas', {
     schema: {
-      description: 'Obtener todas las empresas',
+      description: 'Listar empresas (id_empresa, nombre, ...) desde NestJS (InicioNestJs)',
       tags: ['Empresas'],
       response: {
         200: {
@@ -19,30 +20,38 @@ async function routes(fastify, options) {
                 type: 'object',
                 properties: {
                   id_empresa: { type: 'string' },
-                  nombre: { type: 'string' },
-                  ruc: { type: 'string' },
-                  direccion: { type: 'string' },
-                  telefono: { type: 'string' },
-                  email: { type: 'string' },
-                  estado: { type: 'boolean' }
+                  nombre: { type: 'string' }
                 }
               }
-            },
-            timestamp: { type: 'string' }
+            }
+          }
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'string' }
           }
         }
       }
     }
   }, async (request, reply) => {
     try {
-      fastify.log.info('GET /empresas - Obteniendo empresas desde NestJS');
-      
+      const graphqlUrl = `${nestjsBaseUrl.replace(/\/$/, '')}/graphql`;
+      fastify.log.info(`GET /empresas - Obteniendo empresas desde NestJS (InicioNestJs). URL: ${graphqlUrl}`);
       const response = await nestjsService.getEmpresas();
-      return response.data?.empresas || [];
-      
+      const list = response?.data?.empresas ?? [];
+      return reply.send({ success: true, data: list });
     } catch (error) {
-      fastify.log.error('Error obteniendo empresas:', error);
-      throw new Error(`Error al obtener empresas: ${error.message}`);
+      const status = error?.response?.status;
+      const body = error?.response?.data;
+      const safeBody = body && typeof body === 'object' ? { errors: body.errors, message: body.message } : body;
+      fastify.log.error('Error obteniendo empresas. Status: %s, body: %o', status, safeBody);
+      const msg = body?.errors?.[0]?.message
+        || body?.message
+        || error.message
+        || 'Error al listar empresas';
+      return reply.status(500).send({ success: false, error: msg });
     }
   });
 

@@ -1,7 +1,21 @@
 import axios from 'axios';
 
-// URL base del Gateway API
-const API_URL = `${import.meta.env.VITE_GATEWAY_URL}/api/empresas`;
+// Mismo patrón que producto.js: baseURL = gateway
+const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002';
+const gatewayClient = axios.create({
+  baseURL: GATEWAY_URL,
+  timeout: 15000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+/** GET /api/empresas → retorna el JSON del gateway { success, data: [ { id_empresa, nombre } ] } */
+export async function listarEmpresas() {
+  const { data } = await gatewayClient.get('/api/empresas');
+  return data;
+}
+
+// URL base del Gateway API (mutaciones)
+const API_URL = `${import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002'}/api/empresas`;
 
 // Configurar axios para el microservicio Python
 const apiClient = axios.create({

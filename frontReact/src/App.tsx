@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import Themeroutes from './routes/Router';
 import ThemeSelector from './layouts/theme/ThemeSelector';
 import Loader from './layouts/loader/Loader';
+import ErrorBoundary from './components/ErrorBoundary';
 
 interface RootState {
   customizer: {
@@ -17,15 +18,17 @@ function App() {
   const direction = useSelector((state: RootState) => state.customizer.isRTL);
   const isMode = useSelector((state: RootState) => state.customizer.isDark);
   return (
-    <Suspense fallback={<Loader />}>
-      <div
-        className={`${direction ? 'rtl' : 'ltr'} ${isMode ? 'dark' : ''}`}
-        dir={direction ? 'rtl' : 'ltr'}
-      >
-        <ThemeSelector />
-        {routing}
-      </div>
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<Loader />}>
+        <div
+          className={`${direction ? 'rtl' : 'ltr'} ${isMode ? 'dark' : ''}`}
+          dir={direction ? 'rtl' : 'ltr'}
+        >
+          <ThemeSelector />
+          {routing}
+        </div>
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 

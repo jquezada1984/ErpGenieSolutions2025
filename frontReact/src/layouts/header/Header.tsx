@@ -27,12 +27,13 @@ import { setMainMenu } from '../../store/MainMenuSlice';
 import { usePermissions } from '../../components/authGurad/usePermissions';
 import { useEffect } from 'react';
 // Iconos
-import { Home, Users, Box, Briefcase, ShoppingCart, DollarSign, BookOpen, Search, User, FileText, Calendar, Tag, Tool, Globe } from 'react-feather';
-import { FaBuilding, FaProjectDiagram, FaMoneyCheckAlt, FaUserCog, FaFileInvoice, FaUserFriends, FaRegFolderOpen, FaRegCalendarAlt, FaTicketAlt, FaTools, FaGlobe, FaUniversity } from 'react-icons/fa';
+import { Home, Users, Box, Briefcase, ShoppingCart, DollarSign, BookOpen, Search, User, FileText, Calendar, Tag, Tool, Globe, Package } from 'react-feather';
+import { FaBuilding, FaProjectDiagram, FaMoneyCheckAlt, FaUserCog, FaFileInvoice, FaUserFriends, FaRegFolderOpen, FaRegCalendarAlt, FaTicketAlt, FaTools, FaGlobe, FaUniversity, FaBoxOpen } from 'react-icons/fa';
 import './HeaderMenu.css';
 
 const mainMenuOptions: { key: string; label: string; icon: React.ReactNode }[] = [
   { key: 'inicio', label: 'Inicio', icon: <Home size={18} /> },
+  { key: 'productos', label: 'Productos', icon: <FaBoxOpen size={18} /> },
   { key: 'terceros', label: 'Terceros', icon: <FaBuilding size={18} /> },
   { key: 'servicios', label: 'Servicios', icon: <Box size={18} /> },
   { key: 'proyectos', label: 'Proyectos', icon: <FaProjectDiagram size={18} /> },
@@ -46,6 +47,8 @@ const mainMenuOptions: { key: string; label: string; icon: React.ReactNode }[] =
   { key: 'tickets', label: 'Tickets', icon: <FaTicketAlt size={18} /> },
   { key: 'utilidades', label: 'Utilidades', icon: <Tool size={18} /> },
 ];
+const fallbackMenuKeys = ['inicio', 'terceros', 'productos', 'contabilidad'];
+
 
 type RootState = ReturnType<typeof store.getState>;
 
@@ -85,6 +88,7 @@ const Header = () => {
   const mapearSeccionAClave = (nombreSeccion: string): string => {
     const mapeo: { [key: string]: string } = {
       'Inicio': 'inicio',
+      'Productos': 'productos',
       'Terceros': 'terceros',
       'Servicios': 'servicios',
       'Proyectos': 'proyectos',
@@ -102,9 +106,19 @@ const Header = () => {
   };
 
   // Filtrar opciones del menú según permisos
-  const opcionesPermitidas = mainMenuOptions.filter(option => {
-    return opcionesMenuSuperior.some(seccion => mapearSeccionAClave(seccion) === option.key);
-  });
+  //const opcionesPermitidas = mainMenuOptions.filter(option => {
+   // return opcionesMenuSuperior.some(seccion => mapearSeccionAClave(seccion) === option.key);
+  //});
+  // Filtrar opciones del menú según permisos
+// - Core (inicio/terceros/productos/contabilidad) siempre visible
+// - El resto depende de permisos
+const opcionesPermitidas = mainMenuOptions.filter((option) => {
+  if (fallbackMenuKeys.includes(option.key)) return true;
+
+  return opcionesMenuSuperior.some(
+    (seccion) => mapearSeccionAClave(seccion) === option.key
+  );
+ });
 
 
 

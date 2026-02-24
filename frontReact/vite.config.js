@@ -5,6 +5,13 @@ import { resolve } from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        loadPaths: [resolve(__dirname, 'node_modules')],
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -16,7 +23,8 @@ export default defineConfig({
       'react-dom',
       'react-router-dom',
       'reactstrap',
-      'bootstrap'
+      'bootstrap',
+      'sass'
     ]
   },
   build: {
@@ -55,7 +63,7 @@ export default defineConfig({
   // Optimizaciones de desarrollo
   server: {
     port: 3000,
-    open: true,
+    open: false, // Deshabilitado para Docker
     hmr: {
       overlay: false // Deshabilitar overlay de errores para evitar problemas con múltiples raíces
     }

@@ -1,0 +1,42 @@
+.producto-page {
+    padding: 16px 18px;
+  }
+  
+  .producto-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+  
+    .producto-title {
+      margin: 0;
+      font-weight: 600;
+    }
+  
+    .producto-subtitle {
+      margin: 6px 0 0 0;
+      opacity: 0.75;
+      font-size: 13px;
+    }
+  
+    .producto-actions {
+      display: flex;
+      gap: 10px;
+    }
+  }
+  
+  .producto-card {
+    border-radius: 10px;
+  }
+  
+  .producto-tabs {
+    background: #fff;
+  }
+  
+  .producto-empty {
+    text-align: center;
+    padding: 50px 10px;
+    opacity: 0.7;
+  }
+  
