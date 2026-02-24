@@ -156,6 +156,7 @@ export default function ProductosLista() {
 
   const handleNuevo = () => navigate("/productos/nuevo");
   const handleEdit = (p: Producto) => {
+    if (!p.estado) return; // Producto inactivo: no permitir edición
     if (!idEmpresaActiva) {
       setError("Seleccione una empresa antes de editar un producto.");
       return;
@@ -238,7 +239,8 @@ export default function ProductosLista() {
           onClick={() => handleEdit(p)}
           color="info"
           size="sm"
-          title="Editar"
+          disabled={!activo}
+          title={activo ? "Editar" : "Producto inactivo: no se puede editar"}
         >
           <i className="bi bi-pencil-fill"></i>
         </Button>
