@@ -7,7 +7,6 @@ import ReactTable from 'react-table';
 import 'react-table/react-table.css';
 import { actualizarTercero } from '../../_apis_/tercero';
 
-// GraphQL query para obtener terceros
 const GET_TERCEROS = gql`
   query GetTerceros {
     terceros {
@@ -32,7 +31,7 @@ const GET_TERCEROS = gql`
   }
 `;
 
-interface Tercero {
+interface ClientePotencial {
   id_tercero: string;
   nombre: string;
   apodo?: string;
@@ -52,10 +51,10 @@ interface Tercero {
   asignado_a?: string;
 }
 
-const Terceros: React.FC = () => {
+const ClientesPotenciales: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [terceros, setTerceros] = useState<Tercero[]>([]);
+  const [lista, setLista] = useState<ClientePotencial[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,16 +64,16 @@ const Terceros: React.FC = () => {
   });
 
   useEffect(() => {
-    loadTerceros();
+    loadClientesPotenciales();
   }, []);
 
   useEffect(() => {
-    if (location.pathname === '/terceros') {
-      loadTerceros();
+    if (location.pathname === '/terceros/clientes-potenciales' || location.pathname === '/clientes_potenciales') {
+      loadClientesPotenciales();
     }
   }, [location.pathname]);
 
-  const loadTerceros = async () => {
+  const loadClientesPotenciales = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -82,56 +81,45 @@ const Terceros: React.FC = () => {
       const { data } = await getTerceros();
 
       if (data && data.terceros) {
-        setTerceros(data.terceros);
+        const filtrados = data.terceros.filter((t: ClientePotencial) => t.cliente_potencial === true);
+        setLista(filtrados);
       } else {
-        setTerceros([]);
+        setLista([]);
       }
-    } catch (error: any) {
-      console.error('❌ Error cargando terceros:', error);
-      setTerceros([]);
-      setError('Error al cargar los terceros: ' + (error.message || 'Error desconocido'));
+    } catch (err: any) {
+      console.error('❌ Error cargando clientes potenciales:', err);
+      setLista([]);
+      setError('Error al cargar los clientes potenciales: ' + (err.message || 'Error desconocido'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleNuevoTercero = () => {
-    navigate('/terceros/nuevo');
+  const handleNuevo = () => {
+    navigate('/clientes_potenciales/nuevo');
   };
 
-  const handleEdit = (id: string) => {
-    navigate(`/terceros/editar/${id}`);
+  const handleEdit = (id_tercero: string) => {
+    navigate(`/clientes_potenciales/editar/${id_tercero}`);
   };
 
-  const handleContactos = (id: string) => {
-    navigate(`/terceros/${id}/contactos`);
-  };
-
-  const handleToggleEstado = async (tercero: Tercero) => {
+  const handleToggleEstado = async (item: ClientePotencial) => {
     try {
-      await actualizarTercero(tercero.id_tercero, { estado: !tercero.estado });
-      await loadTerceros();
+      await actualizarTercero(item.id_tercero, { estado: !item.estado });
+      await loadClientesPotenciales();
     } catch (err: any) {
       console.error('Error actualizando estado:', err);
       setError(err?.message || 'Error al actualizar el estado');
     }
   };
 
-  const tableData = terceros.map((tercero) => {
-    let tipo = '';
-    if (tercero.cliente && tercero.proveedor) tipo = 'Cliente/Proveedor';
-    else if (tercero.cliente) tipo = 'Cliente';
-    else if (tercero.proveedor) tipo = 'Proveedor';
-    else if (tercero.cliente_potencial) tipo = 'Cliente Potencial';
-    else tipo = 'N/A';
-
-    return {
-      ...tercero,
-      identificacion: tercero.codigo_cliente || tercero.apodo || 'N/A',
-      tipo: tercero.tipo_tercero?.nombre || tipo,
-      empresa_nombre: tercero.empresa?.nombre || 'N/A',
-    };
-  });
+  const tableData = lista.map((item) => ({
+    ...item,
+    identificacion: item.codigo_cliente || item.apodo || 'N/A',
+    tipo: item.tipo_tercero?.nombre || 'Cliente Potencial',
+    empresa_nombre: item.empresa?.nombre || 'N/A',
+    representante: item.asignado_a || 'N/A',
+  }));
 
   const columns = [
     {
@@ -145,13 +133,18 @@ const Terceros: React.FC = () => {
       filterable: true,
     },
     {
-      Header: 'Tipo de Tercero',
+      Header: 'Tipo',
       accessor: 'tipo',
       filterable: true,
     },
     {
       Header: 'Empresa',
       accessor: 'empresa_nombre',
+      filterable: true,
+    },
+    {
+      Header: 'Representante',
+      accessor: 'representante',
       filterable: true,
     },
     {
@@ -171,24 +164,15 @@ const Terceros: React.FC = () => {
       filterable: false,
       width: 120,
       Cell: ({ original }: any) => (
-        <div className="d-flex align-items-center justify-content-center gap-1">
+        <div className="d-flex align-items-center justify-content-center gap-2">
           <Button
             onClick={() => handleEdit(original.id_tercero)}
             color="info"
             size="sm"
-            className="me-1"
+            className="me-2"
             title="Editar"
           >
             <i className="bi bi-pencil-fill"></i>
-          </Button>
-          <Button
-            onClick={() => handleContactos(original.id_tercero)}
-            color="info"
-            size="sm"
-            className="me-1"
-            title="Contactos"
-          >
-            <i className="bi bi-journal-text"></i>
           </Button>
           <div className="form-check form-switch">
             <input
@@ -211,16 +195,16 @@ const Terceros: React.FC = () => {
             <CardBody>
               <div className="grid-header">
                 <CardTitle tag="h4" className="grid-title">
-                  Terceros
+                  Clientes Potenciales
                 </CardTitle>
                 <div className="grid-actions">
                   <Button
                     color="primary"
                     className="grid-primary-button"
-                    onClick={handleNuevoTercero}
+                    onClick={handleNuevo}
                   >
                     <i className="bi bi-plus-circle me-2"></i>
-                    Nuevo Tercero
+                    Nuevo Cliente Potencial
                   </Button>
                 </div>
               </div>
@@ -255,4 +239,4 @@ const Terceros: React.FC = () => {
   );
 };
 
-export default Terceros;
+export default ClientesPotenciales;

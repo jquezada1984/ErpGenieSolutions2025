@@ -5,6 +5,7 @@ from flask_jwt_extended import JWTManager
 from config.config import Config
 from utils.db import db
 from api.tercero_routes import tercero_bp
+from api.contacto_routes import contacto_bp
 
 # Importar modelos para que SQLAlchemy los registre
 import models  # Esto importa todos los modelos definidos en __init__.py
@@ -24,6 +25,7 @@ jwt = JWTManager(app)
 
 # Blueprints
 app.register_blueprint(tercero_bp, url_prefix='/api')
+app.register_blueprint(contacto_bp, url_prefix='/api')
 
 @app.route('/health', methods=['GET'])
 def health():

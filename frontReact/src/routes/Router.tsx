@@ -55,6 +55,22 @@ const EditarTercero = Loadable(lazy(() => import('../views/terceros/EditarTercer
 const Clientes = Loadable(lazy(() => import('../views/terceros/Clientes')));
 const NuevoCliente = Loadable(lazy(() => import('../views/terceros/NuevoCliente')));
 const EditarCliente = Loadable(lazy(() => import('../views/terceros/EditarCliente')));
+
+const ClientesPotenciales = Loadable(lazy(() => import('../views/terceros/ClientesPotenciales')));
+const NuevoClientePotencial = Loadable(lazy(() => import('../views/terceros/NuevoClientePotencial')));
+const EditarClientePotencial = Loadable(lazy(() => import('../views/terceros/EditarClientePotencial')));
+
+const Proveedores = Loadable(lazy(() => import('../views/terceros/Proveedores')));
+const NuevoProveedor = Loadable(lazy(() => import('../views/terceros/NuevoProveedor')));
+const EditarProveedor = Loadable(lazy(() => import('../views/terceros/EditarProveedor')));
+
+const Contactos = Loadable(lazy(() => import('../views/terceros/contactos/Contactos')));
+
+const NuevoContacto = Loadable(lazy(() => import('../views/terceros/contactos/NuevoContacto')));
+
+const EditarContacto = Loadable(lazy(() => import('../views/terceros/contactos/EditarContacto')));
+
+
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
 
@@ -110,6 +126,15 @@ const ThemeRoutes: RouteType[] = [
       { path: 'clientes', element: <Clientes /> },
       { path: 'clientes/nuevo', element: <NuevoCliente /> },
       { path: 'clientes/editar/:id', element: <EditarCliente /> },
+      { path: 'clientes_potenciales', element: <ClientesPotenciales /> },
+      { path: 'clientes_potenciales/nuevo', element: <NuevoClientePotencial /> },
+      { path: 'clientes_potenciales/editar/:id', element: <EditarClientePotencial /> },
+      { path: 'proveedores', element: <Proveedores /> },
+      { path: 'proveedores/nuevo', element: <NuevoProveedor /> },
+      { path: 'proveedores/editar/:id', element: <EditarProveedor /> },
+      { path: 'terceros/:id/contactos', element: <Contactos /> },
+      { path: 'terceros/:id/contactos/nuevo', element: <NuevoContacto /> },
+      { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
 
     ],
   },

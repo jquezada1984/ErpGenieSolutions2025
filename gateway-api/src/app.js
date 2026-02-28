@@ -60,15 +60,18 @@ if (!config.menuService) {
 // Registrar plugins
 fastify.register(require('@fastify/cors'), config.cors);
 fastify.register(require('@fastify/helmet'));
+fastify.register(require('@fastify/multipart'));
 
 // Registrar rutas
 fastify.register(require('./routes/empresas'), { prefix: '/api' });
 fastify.register(require('./routes/perfil'), { prefix: '/api' });
 fastify.register(require('./routes/sucursal'), { prefix: '/api' });
 fastify.register(require('./routes/tercero'), { prefix: '/api' });
+fastify.register(require('./routes/contacto'), { prefix: '/api' });
 fastify.register(require('./routes/menu'), { prefix: '/api' });
 fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/graphql'), { prefix: '' });
+fastify.register(require('./routes/media'), { prefix: '/api' });
 
 // Serializador personalizado para respuestas consistentes
 fastify.setSerializerCompiler(({ schema, method, url, httpStatus }) => {

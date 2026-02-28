@@ -3,6 +3,7 @@ import { Card, CardBody, Row, Col, FormGroup, Label, Input } from 'reactstrap';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import CountrySelect from '../../../components/CountrySelect';
+import ImageUpload from '../../../components/common/ImageUpload';
 
 type Props = { data:any; onChange:(d:any)=>void };
 
@@ -131,10 +132,15 @@ const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) =>
 
         <Row>
           <Col md={12}>
-            <FormGroup>
-              <Label htmlFor="logo">Logo (URL o path)</Label>
-              <Input id="logo" name="logo" value={f.logo || ''} onChange={chg}/>
-            </FormGroup>
+            <ImageUpload
+              value={f.logo}
+              onChange={(url) => {
+                const u = { ...f, logo: url };
+                setF(u);
+                onChange(u);
+              }}
+              label="Subir Logo"
+            />
           </Col>
         </Row>
       </CardBody>

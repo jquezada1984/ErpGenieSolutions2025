@@ -108,6 +108,27 @@ services:
     volumes:
       - contabilidad_python_data:/app/data
 
+
+# =========================
+  # NUEVO: MediaServiceNestJs (Servicio de contenido multimedia)
+  # =========================
+  media-service:
+    build:
+      context: ./MediaServiceNestJs
+      dockerfile: Dockerfile
+    container_name: erp-media-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3010
+      - PUBLIC_BASE_URL=http://localhost:3010
+    ports:
+      - "3010:3010"
+    networks:
+      - erp-network
+    volumes:
+      - media_uploads:/app/uploads
+
+
   # =========================
   # ContabilidadNestJs (GraphQL)
   # =========================
@@ -194,6 +215,8 @@ services:
       - FINANCIERO_PY_BASE_URL=http://financiero-python-service:5001
       - FINANCIERO_NEST_GQL_URL=http://financiero-nestjs-service:3007
 
+      # ✅ Canales específicos Media
+      - MEDIA_SERVICE_BASE_URL=http://media-service:3010
       # Gateway
       - GATEWAY_PORT=3002
       - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
@@ -230,6 +253,7 @@ volumes:
   python_data:
   contabilidad_python_data:
   financiero_python_data:
+  media_uploads:
 
 networks:
   erp-network:

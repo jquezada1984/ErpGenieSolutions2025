@@ -15,7 +15,7 @@ const getTargetService = (query, config) => {
     return config.nestjsService;
   }
   
-  // Verificar si es una consulta de catálogos de terceros (TerceroNestJs)
+  // Verificar si es una consulta de catálogos de terceros o contactos (TerceroNestJs)
   if (query && (
     query.includes('incoterms') ||
     query.includes('tiposTercero') ||
@@ -24,9 +24,11 @@ const getTargetService = (query, config) => {
     query.includes('empresas') ||
     query.includes('terceros') ||
     query.includes('tercero(') ||
-    query.includes('clientes')
+    query.includes('clientes') ||
+    query.includes('contactosByTercero') ||
+    query.includes('contacto(')
   )) {
-    console.log('🔄 Redirigiendo consulta de terceros a TerceroNestJs');
+    console.log('🔄 Redirigiendo consulta de terceros/contactos a TerceroNestJs');
     return config.terceroNestJsService;
   }
   

@@ -45,8 +45,42 @@ async function eliminarTercero(idTercero, req) {
   return res.data;
 }
 
+// ----- Contactos (TerceroPython mismo servicio) -----
+async function crearContacto(body, req) {
+  const headers = ctxHeaders(req, body);
+  console.log('📤 Gateway -> TerceroPython: POST /contactos', { id_tercero: body?.id_tercero });
+  const res = await http.post('/api/contactos', body, { headers });
+  console.log('✅ Gateway <- TerceroPython: Contacto creado', res.data?.id_contacto);
+  return res.data;
+}
+
+async function listarContactosByTercero(idTercero, req) {
+  const res = await http.get(`/api/contactos/tercero/${idTercero}`, { headers: ctxHeaders(req) });
+  return res.data;
+}
+
+async function obtenerContacto(idContacto, req) {
+  const res = await http.get(`/api/contactos/${idContacto}`, { headers: ctxHeaders(req) });
+  return res.data;
+}
+
+async function actualizarContacto(idContacto, body, req) {
+  const res = await http.put(`/api/contactos/${idContacto}`, body, { headers: ctxHeaders(req) });
+  return res.data;
+}
+
+async function toggleContactoEstado(idContacto, req) {
+  const res = await http.patch(`/api/contactos/${idContacto}/estado`, {}, { headers: ctxHeaders(req) });
+  return res.data;
+}
+
 module.exports = {
   crearTercero,
   actualizarTercero,
   eliminarTercero,
+  crearContacto,
+  listarContactosByTercero,
+  obtenerContacto,
+  actualizarContacto,
+  toggleContactoEstado,
 };

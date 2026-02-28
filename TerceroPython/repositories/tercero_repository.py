@@ -1,7 +1,9 @@
 from typing import Optional, Dict, Any
+from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from utils.db import db
 from models.tercero import Tercero
+from models.media import Media
 
 def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[str]) -> Tercero:
     tercero = Tercero(
@@ -44,6 +46,15 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
         modificado_por=user_id,
     )
     db.session.add(tercero)
+    db.session.flush()
+    if payload.get("logo"):
+        media = Media(
+            module="tercero",
+            module_id=tercero.id_tercero,
+            url=payload.get("logo"),
+            updated_at=None
+        )
+        db.session.add(media)
     try:
         db.session.commit()
     except IntegrityError:
@@ -70,6 +81,23 @@ def update_tercero(id_tercero: str, id_empresa: str, payload: Dict[str, Any], us
             if isinstance(v,str): v=v.strip()
             setattr(tercero,k,v)
     tercero.modificado_por = user_id
+
+    if "logo" in payload:
+        existing_media = Media.query.filter_by(
+            module="tercero",
+            module_id=tercero.id_tercero
+        ).first()
+        if existing_media:
+            existing_media.url = payload.get("logo")
+            existing_media.updated_at = datetime.utcnow()
+        else:
+            new_media = Media(
+                module="tercero",
+                module_id=tercero.id_tercero,
+                url=payload.get("logo")
+            )
+            db.session.add(new_media)
+
     try:
         db.session.commit()
     except IntegrityError:
