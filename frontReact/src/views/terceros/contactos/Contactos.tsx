@@ -5,6 +5,7 @@ import { useLazyQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
+import { toggleContactoEstado } from '../../../_apis_/contacto';
 
 const GET_CONTACTOS_BY_TERCERO = gql`
   query GetContactosByTercero($id_tercero: String!) {
@@ -80,9 +81,14 @@ const Contactos: React.FC = () => {
     navigate(`/terceros/${id}/contactos/editar/${id_contacto}`);
   };
 
-  const handleToggleEstado = (contacto: Contacto) => {
-    // Placeholder - sin lógica aún
-    console.log('Toggle estado:', contacto);
+  const handleToggleEstado = async (contacto: Contacto) => {
+    try {
+      await toggleContactoEstado(contacto.id_contacto);
+      await loadContactos();
+    } catch (err: any) {
+      console.error('Error actualizando estado del contacto:', err);
+      setError(err?.message || 'Error al actualizar el estado');
+    }
   };
 
   const tableData = contactos.map((item) => ({
@@ -129,14 +135,17 @@ const Contactos: React.FC = () => {
       sortable: false,
       filterable: false,
       width: 120,
-      Cell: ({ original }: any) => (
+      Cell: ({ original }: any) => {
+        const activo = !!original.estado;
+        return (
         <div className="d-flex align-items-center justify-content-center gap-2">
           <Button
-            onClick={() => handleEdit(original.id_contacto)}
-            color="info"
+            onClick={() => activo && handleEdit(original.id_contacto)}
+            color={activo ? 'info' : 'secondary'}
             size="sm"
             className="me-2"
-            title="Editar"
+            title={activo ? 'Editar' : 'Contacto inactivo: no se puede editar'}
+            disabled={!activo}
           >
             <i className="bi bi-pencil-fill"></i>
           </Button>
@@ -149,7 +158,8 @@ const Contactos: React.FC = () => {
             />
           </div>
         </div>
-      ),
+        );
+      },
     },
   ];
 

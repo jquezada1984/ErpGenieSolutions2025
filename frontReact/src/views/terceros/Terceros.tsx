@@ -170,23 +170,27 @@ const Terceros: React.FC = () => {
       sortable: false,
       filterable: false,
       width: 120,
-      Cell: ({ original }: any) => (
+      Cell: ({ original }: any) => {
+        const activo = !!original.estado;
+        return (
         <div className="d-flex align-items-center justify-content-center gap-1">
           <Button
-            onClick={() => handleEdit(original.id_tercero)}
-            color="info"
+            onClick={() => activo && handleEdit(original.id_tercero)}
+            color={activo ? 'info' : 'secondary'}
             size="sm"
             className="me-1"
-            title="Editar"
+            title={activo ? 'Editar' : 'Tercero inactivo: no se puede editar'}
+            disabled={!activo}
           >
             <i className="bi bi-pencil-fill"></i>
           </Button>
           <Button
-            onClick={() => handleContactos(original.id_tercero)}
-            color="info"
+            onClick={() => activo && handleContactos(original.id_tercero)}
+            color={activo ? 'info' : 'secondary'}
             size="sm"
             className="me-1"
-            title="Contactos"
+            title={activo ? 'Contactos' : 'Tercero inactivo: no se puede acceder a contactos'}
+            disabled={!activo}
           >
             <i className="bi bi-journal-text"></i>
           </Button>
@@ -199,7 +203,8 @@ const Terceros: React.FC = () => {
             />
           </div>
         </div>
-      ),
+        );
+      },
     },
   ];
 

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import {
   Card, CardBody, CardTitle, Button,
   Nav, NavItem, NavLink, TabContent, TabPane,
@@ -14,6 +16,28 @@ import SeccionContactoGeneral from './secciones/SeccionContactoGeneral';
 import SeccionContactoDireccion from './secciones/SeccionContactoDireccion';
 import SeccionContactoContacto from './secciones/SeccionContactoContacto';
 import { actualizarContacto } from '../../../_apis_/contacto';
+import { NuevoContactoSchema, type NuevoContactoFormValues } from './schemas/NuevoContactoSchema';
+
+const initialForm: NuevoContactoFormValues = {
+  apellidos: '',
+  nombre: '',
+  titulo: '',
+  puesto_trabajo: '',
+  fecha_nacimiento: '',
+  alerta_cumpleanos: false,
+  visibilidad: '',
+  direccion: '',
+  codigo_postal: '',
+  poblacion: '',
+  provincia: '',
+  id_pais: '',
+  telefono_trabajo: '',
+  telefono_particular: '',
+  movil: '',
+  fax: '',
+  correo: '',
+  estado: true,
+};
 
 const GET_CONTACTO = gql`
   query GetContacto($id_contacto: String!) {
@@ -53,26 +77,19 @@ const EditarContacto: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const [formData, setFormData] = useState<any>({
-    apellidos: '',
-    nombre: '',
-    titulo: '',
-    puesto_trabajo: '',
-    fecha_nacimiento: '',
-    alerta_cumpleanos: false,
-    visibilidad: '',
-    direccion: '',
-    codigo_postal: '',
-    poblacion: '',
-    provincia: '',
-    id_pais: '',
-    telefono_trabajo: '',
-    telefono_particular: '',
-    movil: '',
-    fax: '',
-    correo: '',
-    estado: true,
+  const {
+    watch,
+    setValue,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<NuevoContactoFormValues>({
+    resolver: yupResolver(NuevoContactoSchema),
+    mode: 'onSubmit',
+    defaultValues: initialForm,
   });
+
+  const formData = watch();
 
   const { data, loading: loadingQuery, error: errorQuery } = useQuery(GET_CONTACTO, {
     variables: { id_contacto: contactoId ?? '' },
@@ -90,7 +107,7 @@ const EditarContacto: React.FC = () => {
           ? c.fecha_nacimiento.slice(0, 10)
           : (c.fecha_nacimiento as Date).toISOString?.().slice(0, 10) ?? '')
       : '';
-    setFormData({
+    reset({
       apellidos: c.apellidos_etiqueta ?? '',
       nombre: c.nombre ?? '',
       titulo: c.titulo_cortesia ?? '',
@@ -111,50 +128,62 @@ const EditarContacto: React.FC = () => {
       estado: !!c.estado,
     });
     setHasChanges(false);
-  }, [contacto]);
+  }, [contacto, reset]);
 
   const toggle = (t: '1'|'2'|'3') => activeTab !== t && setActiveTab(t);
 
   const onGeneral = useCallback((d: any) => {
-    setFormData((prev: any) => ({ ...prev, ...d }));
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoContactoFormValues, value);
+    });
     setHasChanges(true);
-  }, []);
+  }, [setValue]);
 
   const onDireccion = useCallback((d: any) => {
-    setFormData((prev: any) => ({ ...prev, ...d }));
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoContactoFormValues, value);
+    });
     setHasChanges(true);
-  }, []);
+  }, [setValue]);
 
   const onContacto = useCallback((d: any) => {
-    setFormData((prev: any) => ({ ...prev, ...d }));
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoContactoFormValues, value);
+    });
     setHasChanges(true);
-  }, []);
+  }, [setValue]);
 
-  const handleSubmit = useCallback(async () => {
+  const onSubmitRHF = useCallback(async (values: NuevoContactoFormValues) => {
     if (!contactoId) return;
     setLoading(true);
     setError(null);
     try {
-      const payload = {
-        apellidos_etiqueta: formData.apellidos || '',
-        nombre: formData.nombre || '',
-        titulo_cortesia: formData.titulo || '',
-        puesto_trabajo: formData.puesto_trabajo || '',
-        direccion: formData.direccion || '',
-        codigo_postal: formData.codigo_postal || '',
-        poblacion: formData.poblacion || '',
-        id_pais: formData.id_pais || '',
-        provincia: formData.provincia || '',
-        telefono_trabajo: formData.telefono_trabajo || '',
-        telefono_particular: formData.telefono_particular || '',
-        movil: formData.movil || '',
-        fax: formData.fax || '',
-        correo: formData.correo || '',
-        visibilidad: formData.visibilidad || '',
-        fecha_nacimiento: formData.fecha_nacimiento || null,
-        alerta_cumpleanos: !!formData.alerta_cumpleanos,
-        estado: !!formData.estado,
+      const payload: Record<string, unknown> = {
+        apellidos_etiqueta: values.apellidos || '',
+        nombre: values.nombre || '',
+        titulo_cortesia: values.titulo || '',
+        puesto_trabajo: values.puesto_trabajo || '',
+        direccion: values.direccion || '',
+        codigo_postal: values.codigo_postal || '',
+        poblacion: values.poblacion || '',
+        id_pais: values.id_pais || '',
+        provincia: values.provincia || '',
+        telefono_trabajo: values.telefono_trabajo || '',
+        telefono_particular: values.telefono_particular || '',
+        movil: values.movil || '',
+        fax: values.fax || '',
+        correo: values.correo || '',
+        visibilidad: values.visibilidad || '',
+        fecha_nacimiento: values.fecha_nacimiento || null,
+        alerta_cumpleanos: !!values.alerta_cumpleanos,
+        estado: !!values.estado,
       };
+      Object.keys(payload).forEach((key) => {
+        const v = payload[key];
+        if (v === '' || v === null || v === undefined) {
+          delete payload[key];
+        }
+      });
       await actualizarContacto(contactoId, payload);
       setSuccess(true);
       setHasChanges(false);
@@ -164,7 +193,17 @@ const EditarContacto: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [contactoId, formData]);
+  }, [contactoId]);
+
+  const onInvalid = useCallback((formErrors: any) => {
+    const collectMessages = (obj: any): string[] => {
+      if (!obj || typeof obj !== 'object') return [];
+      if (obj.message && typeof obj.message === 'string') return [obj.message];
+      return Object.values(obj).flatMap(collectMessages);
+    };
+    const messages = collectMessages(formErrors);
+    setError(messages.length > 0 ? messages.join(' | ') : 'Revisa los campos del formulario');
+  }, []);
 
   const handleCancel = () => {
     navigate(`/terceros/${id}/contactos`);
@@ -185,7 +224,7 @@ const EditarContacto: React.FC = () => {
               </Button>
               <Button
                 color="primary"
-                onClick={handleSubmit}
+                onClick={handleSubmit(onSubmitRHF, onInvalid)}
                 disabled={loading || !hasChanges || loadingQuery || !contacto}
               >
                 {loading ? (

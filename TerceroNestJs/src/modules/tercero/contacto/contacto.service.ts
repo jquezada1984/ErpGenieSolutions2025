@@ -25,7 +25,7 @@ export class ContactoService {
 
   async findByTercero(id_tercero: string): Promise<Contacto[]> {
     return this.contactoRepo.find({
-      where: { id_tercero, estado: true },
+      where: { id_tercero },
       relations: ['tercero'],
       order: { created_at: 'DESC' },
     });

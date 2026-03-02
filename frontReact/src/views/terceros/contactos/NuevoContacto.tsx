@@ -1,4 +1,6 @@
 import React, { useState, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import {
   Card, CardBody, CardTitle, Button,
   Nav, NavItem, NavLink, TabContent, TabPane,
@@ -8,10 +10,32 @@ import { useNavigate, useParams } from 'react-router-dom';
 import classnames from 'classnames';
 import '../ConfiguracionTercero.scss';
 import { crearContacto } from '../../../_apis_/contacto';
+import { NuevoContactoSchema, type NuevoContactoFormValues } from './schemas/NuevoContactoSchema';
 
 import SeccionContactoGeneral from './secciones/SeccionContactoGeneral';
 import SeccionContactoDireccion from './secciones/SeccionContactoDireccion';
 import SeccionContactoContacto from './secciones/SeccionContactoContacto';
+
+const initialForm: NuevoContactoFormValues = {
+  apellidos: '',
+  nombre: '',
+  titulo: '',
+  puesto_trabajo: '',
+  fecha_nacimiento: '',
+  alerta_cumpleanos: false,
+  visibilidad: '',
+  direccion: '',
+  codigo_postal: '',
+  poblacion: '',
+  provincia: '',
+  id_pais: '',
+  telefono_trabajo: '',
+  telefono_particular: '',
+  movil: '',
+  fax: '',
+  correo: '',
+  estado: true,
+};
 
 const NuevoContacto: React.FC = () => {
   const navigate = useNavigate();
@@ -21,34 +45,41 @@ const NuevoContacto: React.FC = () => {
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState<any>({
-    apellidos: '',
-    nombre: '',
-    titulo: '',
-    puesto_trabajo: '',
-    fecha_nacimiento: '',
-    alerta_cumpleanos: false,
-    visibilidad: '',
-    direccion: '',
-    codigo_postal: '',
-    poblacion: '',
-    provincia: '',
-    id_pais: '',
-    telefono_trabajo: '',
-    telefono_particular: '',
-    movil: '',
-    fax: '',
-    correo: '',
-    estado: true,
+  const {
+    watch,
+    setValue,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<NuevoContactoFormValues>({
+    resolver: yupResolver(NuevoContactoSchema),
+    mode: 'onSubmit',
+    defaultValues: initialForm,
   });
+
+  const formData = watch();
 
   const toggle = (t: '1'|'2'|'3') => activeTab !== t && setActiveTab(t);
 
-  const onGeneral = useCallback((d: any) => setFormData((p: any) => ({ ...p, ...d })), []);
-  const onDireccion = useCallback((d: any) => setFormData((p: any) => ({ ...p, ...d })), []);
-  const onContacto = useCallback((d: any) => setFormData((p: any) => ({ ...p, ...d })), []);
+  const onGeneral = useCallback((d: any) => {
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoContactoFormValues, value);
+    });
+  }, [setValue]);
 
-  const submit = useCallback(async () => {
+  const onDireccion = useCallback((d: any) => {
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoContactoFormValues, value);
+    });
+  }, [setValue]);
+
+  const onContacto = useCallback((d: any) => {
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoContactoFormValues, value);
+    });
+  }, [setValue]);
+
+  const onSubmitRHF = useCallback(async (values: NuevoContactoFormValues) => {
     if (!id) {
       setErr('Falta id del tercero');
       return;
@@ -59,42 +90,54 @@ const NuevoContacto: React.FC = () => {
     try {
       const payload = {
         id_tercero: id,
-        apellidos_etiqueta: formData.apellidos || '',
-        nombre: formData.nombre || '',
-        titulo_cortesia: formData.titulo || '',
-        puesto_trabajo: formData.puesto_trabajo || '',
-        direccion: formData.direccion || '',
-        codigo_postal: formData.codigo_postal || '',
-        poblacion: formData.poblacion || '',
-        id_pais: formData.id_pais || '',
-        provincia: formData.provincia || '',
-        telefono_trabajo: formData.telefono_trabajo || '',
-        telefono_particular: formData.telefono_particular || '',
-        movil: formData.movil || '',
-        fax: formData.fax || '',
-        correo: formData.correo || '',
-        visibilidad: formData.visibilidad || '',
-        fecha_nacimiento: formData.fecha_nacimiento || null,
-        alerta_cumpleanos: !!formData.alerta_cumpleanos,
-        estado: !!formData.estado,
+        apellidos_etiqueta: values.apellidos || '',
+        nombre: values.nombre || '',
+        titulo_cortesia: values.titulo || '',
+        puesto_trabajo: values.puesto_trabajo || '',
+        direccion: values.direccion || '',
+        codigo_postal: values.codigo_postal || '',
+        poblacion: values.poblacion || '',
+        id_pais: values.id_pais || '',
+        provincia: values.provincia || '',
+        telefono_trabajo: values.telefono_trabajo || '',
+        telefono_particular: values.telefono_particular || '',
+        movil: values.movil || '',
+        fax: values.fax || '',
+        correo: values.correo || '',
+        visibilidad: values.visibilidad || '',
+        fecha_nacimiento: values.fecha_nacimiento || null,
+        alerta_cumpleanos: !!values.alerta_cumpleanos,
+        estado: !!values.estado,
       };
+      Object.keys(payload).forEach((key) => {
+        const v = payload[key];
+        if (v === '' || v === null || v === undefined) {
+          delete payload[key];
+        }
+      });
       await crearContacto(payload);
       setOk(true);
       setTimeout(() => {
+        reset(initialForm);
         setOk(false);
         setActiveTab('1');
-        setFormData({
-          apellidos: '', nombre: '', titulo: '', puesto_trabajo: '', fecha_nacimiento: '',
-          alerta_cumpleanos: false, visibilidad: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', id_pais: '',
-          telefono_trabajo: '', telefono_particular: '', movil: '', fax: '', correo: '', estado: true,
-        });
       }, 2000);
     } catch (e: any) {
       setErr(e?.message || 'Error al crear el contacto');
     } finally {
       setLoading(false);
     }
-  }, [formData, id]);
+  }, [id, reset]);
+
+  const onInvalid = useCallback((formErrors: any) => {
+    const collectMessages = (obj: any): string[] => {
+      if (!obj || typeof obj !== 'object') return [];
+      if (obj.message && typeof obj.message === 'string') return [obj.message];
+      return Object.values(obj).flatMap(collectMessages);
+    };
+    const messages = collectMessages(formErrors);
+    setErr(messages.length > 0 ? messages.join(' | ') : 'Revisa los campos del formulario');
+  }, []);
 
   const handleCancel = () => {
     navigate(`/terceros/${id}/contactos`);
@@ -113,7 +156,7 @@ const NuevoContacto: React.FC = () => {
               <Button color="secondary" outline className="me-2" onClick={handleCancel}>
                 Cancelar
               </Button>
-              <Button color="primary" onClick={submit} disabled={loading}>
+              <Button color="primary" onClick={handleSubmit(onSubmitRHF, onInvalid)} disabled={loading}>
                 {loading ? (<><Spinner size="sm" className="me-2" />Guardando…</>) : 'Crear Contacto'}
               </Button>
             </div>

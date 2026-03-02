@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import {
   Card, CardBody, CardTitle, Button,
   Nav, NavItem, NavLink, TabContent, TabPane,
@@ -9,9 +11,43 @@ import { useNavigate } from 'react-router-dom';
 import classnames from 'classnames';
 import './ConfiguracionTercero.scss';
 import { listarTiposTercero, crearTercero } from '../../_apis_/tercero';
+import { NuevoTerceroSchema, type NuevoTerceroFormValues } from './schemas/NuevoTerceroSchema';
 
 import SeccionTerceroUbicacionContacto from './secciones/SeccionTerceroUbicacionContacto';
 import SeccionTerceroComercialOrganizacion from './secciones/SeccionTerceroComercialOrganizacion';
+
+const initialForm: NuevoTerceroFormValues = {
+  id_empresa: '',
+  cliente_potencial: false,
+  cliente: false,
+  proveedor: true,
+  nombre: '',
+  apodo: '',
+  codigo_cliente: '',
+  estado: true,
+  sujeto_iva: true,
+  id_tipo_tercero: '',
+  tipo_entidad_comercial: '',
+  direccion: '',
+  poblacion: '',
+  codigo_postal: '',
+  id_pais: '',
+  provincia: '',
+  telefono: '',
+  movil: '',
+  fax: '',
+  web: '',
+  correo: '',
+  logo: '',
+  capital: 0,
+  id_condicion_pago: '',
+  id_forma_pago: '',
+  id_profesional_1: '',
+  id_profesional_2: '',
+  cif_intra: '',
+  sede_central: '',
+  asignado_a: '',
+};
 
 const NuevoProveedor: React.FC = () => {
   const navigate = useNavigate();
@@ -23,44 +59,48 @@ const NuevoProveedor: React.FC = () => {
   const [loadingTipos, setLoadingTipos] = useState(false);
   const [errNombre, setErrNombre] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState<any>({
-    id_empresa: '',
-    cliente_potencial: false,
-    cliente: false,
-    proveedor: true,
-    nombre: '',
-    apodo: '',
-    codigo_cliente: '',
-    estado: true,
-    sujeto_iva: true,
-    id_tipo_tercero: '',
-    tipo_entidad_comercial: '',
-    direccion: '',
-    poblacion: '',
-    codigo_postal: '',
-    id_pais: '',
-    provincia: '',
-    telefono: '',
-    movil: '',
-    fax: '',
-    web: '',
-    correo: '',
-    logo: '',
-    capital: 0,
-    id_condicion_pago: '',
-    id_forma_pago: '',
-    id_profesional_1: '',
-    id_profesional_2: '',
-    cif_intra: '',
-    sede_central: '',
-    asignado_a: '',
+  const {
+    watch,
+    setValue,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<NuevoTerceroFormValues>({
+    resolver: yupResolver(NuevoTerceroSchema),
+    mode: 'onSubmit',
+    defaultValues: initialForm,
   });
+
+  const formData = watch();
 
   const toggle = (t: '1'|'2'|'3') => activeTab !== t && setActiveTab(t);
 
-  const onGeneral = useCallback((d: any) => setFormData((p: any) => ({ ...p, ...d })), []);
-  const onUbicacion = useCallback((d: any) => setFormData((p: any) => ({ ...p, ...d })), []);
-  const onComercial = useCallback((d: any) => setFormData((p: any) => ({ ...p, ...d })), []);
+  const onGeneral = useCallback((d: any) => {
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoTerceroFormValues, value);
+    });
+    setValue('proveedor', true);
+    setValue('cliente', false);
+    setValue('cliente_potencial', false);
+  }, [setValue]);
+
+  const onUbicacion = useCallback((d: any) => {
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoTerceroFormValues, value);
+    });
+    setValue('proveedor', true);
+    setValue('cliente', false);
+    setValue('cliente_potencial', false);
+  }, [setValue]);
+
+  const onComercial = useCallback((d: any) => {
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoTerceroFormValues, value);
+    });
+    setValue('proveedor', true);
+    setValue('cliente', false);
+    setValue('cliente_potencial', false);
+  }, [setValue]);
 
   useEffect(() => {
     const cargarTipos = async () => {
@@ -81,78 +121,45 @@ const NuevoProveedor: React.FC = () => {
   const chgGeneral = useCallback((e: any) => {
     const { name, type } = e.target;
     const value = type === 'checkbox' ? e.target.checked : e.target.value;
-    const u = { ...formData, [name]: value };
-    setFormData(u);
+    setValue(name as keyof NuevoTerceroFormValues, value);
     if (name === 'nombre') {
       setErrNombre(!String(value || '').trim() ? 'El nombre es obligatorio' : null);
     }
-    onGeneral(u);
-  }, [formData, onGeneral]);
+  }, [setValue]);
 
-  const submit = useCallback(async () => {
+  const onSubmitRHF = useCallback(async (values: NuevoTerceroFormValues) => {
     setLoading(true);
     setErr(null);
     setOk(false);
     try {
-      if (!formData.id_empresa) {
+      if (!values.id_empresa) {
         setErr('Debe seleccionar una empresa');
         setLoading(false);
         return;
       }
-      if (!formData.nombre || !String(formData.nombre).trim()) {
+      if (!values.nombre || !String(values.nombre).trim()) {
         setErr('El nombre es obligatorio');
         setLoading(false);
         return;
       }
 
-      const cleanedData = { ...formData };
+      const cleanedData = { ...values };
       Object.keys(cleanedData).forEach(key => {
-        if (cleanedData[key] === '' || cleanedData[key] === null) {
-          delete cleanedData[key];
+        if ((cleanedData as any)[key] === '' || (cleanedData as any)[key] === null) {
+          delete (cleanedData as any)[key];
         }
       });
-      cleanedData.id_empresa = formData.id_empresa;
+      cleanedData.id_empresa = values.id_empresa;
 
-      cleanedData.cliente_potencial = false;
-      cleanedData.cliente = false;
       cleanedData.proveedor = true;
+      cleanedData.cliente = false;
+      cleanedData.cliente_potencial = false;
 
       await crearTercero(cleanedData);
       setOk(true);
 
       setTimeout(() => {
-        setFormData({
-          id_empresa: formData.id_empresa,
-          cliente_potencial: false,
-          cliente: false,
-          proveedor: true,
-          nombre: '',
-          apodo: '',
-          codigo_cliente: '',
-          estado: true,
-          sujeto_iva: true,
-          id_tipo_tercero: '',
-          tipo_entidad_comercial: '',
-          direccion: '',
-          poblacion: '',
-          codigo_postal: '',
-          id_pais: '',
-          provincia: '',
-          telefono: '',
-          movil: '',
-          fax: '',
-          web: '',
-          correo: '',
-          logo: '',
-          capital: 0,
-          id_condicion_pago: '',
-          id_forma_pago: '',
-          id_profesional_1: '',
-          id_profesional_2: '',
-          cif_intra: '',
-          sede_central: '',
-          asignado_a: '',
-        });
+        reset({ ...initialForm, id_empresa: values.id_empresa });
         setOk(false);
         setActiveTab('1');
       }, 2000);
@@ -162,7 +169,17 @@ const NuevoProveedor: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [formData]);
+  }, []);
+
+  const onInvalid = useCallback((formErrors: any) => {
+    const collectMessages = (obj: any): string[] => {
+      if (!obj || typeof obj !== 'object') return [];
+      if (obj.message && typeof obj.message === 'string') return [obj.message];
+      return Object.values(obj).flatMap(collectMessages);
+    };
+    const messages = collectMessages(formErrors);
+    setErr(messages.length > 0 ? messages.join(' | ') : 'Revisa los campos del formulario');
+  }, []);
 
   const handleCancel = () => {
     navigate('/proveedores');
@@ -181,7 +198,7 @@ const NuevoProveedor: React.FC = () => {
               <Button color="secondary" outline className="me-2" onClick={handleCancel}>
                 Cancelar
               </Button>
-              <Button color="primary" onClick={submit} disabled={loading}>
+              <Button color="primary" onClick={handleSubmit(onSubmitRHF, onInvalid)} disabled={loading}>
                 {loading ? (<><Spinner size="sm" className="me-2" />Guardando…</>) : 'Crear Proveedor'}
               </Button>
             </div>

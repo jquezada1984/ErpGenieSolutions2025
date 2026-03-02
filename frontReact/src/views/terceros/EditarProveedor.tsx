@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import {
   Card, CardBody, CardTitle, Button,
   Nav, NavItem, NavLink, TabContent, TabPane,
@@ -14,6 +16,40 @@ import SeccionTerceroGeneral from './secciones/SeccionTerceroGeneral';
 import SeccionTerceroUbicacionContacto from './secciones/SeccionTerceroUbicacionContacto';
 import SeccionTerceroComercialOrganizacion from './secciones/SeccionTerceroComercialOrganizacion';
 import { actualizarTercero } from '../../_apis_/tercero';
+import { NuevoTerceroSchema, type NuevoTerceroFormValues } from './schemas/NuevoTerceroSchema';
+
+const initialForm: NuevoTerceroFormValues = {
+  id_empresa: '',
+  cliente_potencial: false,
+  cliente: false,
+  proveedor: true,
+  nombre: '',
+  apodo: '',
+  codigo_cliente: '',
+  estado: true,
+  sujeto_iva: true,
+  id_tipo_tercero: '',
+  tipo_entidad_comercial: '',
+  direccion: '',
+  poblacion: '',
+  codigo_postal: '',
+  id_pais: '',
+  provincia: '',
+  telefono: '',
+  movil: '',
+  fax: '',
+  web: '',
+  correo: '',
+  logo: '',
+  capital: 0,
+  id_condicion_pago: '',
+  id_forma_pago: '',
+  id_profesional_1: '',
+  id_profesional_2: '',
+  cif_intra: '',
+  sede_central: '',
+  asignado_a: '',
+};
 
 const GET_TERCERO = gql`
   query GetTercero($id_tercero: String!) {
@@ -64,38 +100,19 @@ const EditarProveedor: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const [formData, setFormData] = useState<any>({
-    id_empresa: '',
-    cliente_potencial: false,
-    cliente: false,
-    proveedor: true,
-    nombre: '',
-    apodo: '',
-    codigo_cliente: '',
-    estado: true,
-    sujeto_iva: true,
-    id_tipo_tercero: '',
-    tipo_entidad_comercial: '',
-    direccion: '',
-    poblacion: '',
-    codigo_postal: '',
-    id_pais: '',
-    provincia: '',
-    telefono: '',
-    movil: '',
-    fax: '',
-    web: '',
-    correo: '',
-    logo: '',
-    capital: 0,
-    id_condicion_pago: '',
-    id_forma_pago: '',
-    id_profesional_1: '',
-    id_profesional_2: '',
-    cif_intra: '',
-    sede_central: '',
-    asignado_a: '',
+  const {
+    watch,
+    setValue,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<NuevoTerceroFormValues>({
+    resolver: yupResolver(NuevoTerceroSchema),
+    mode: 'onSubmit',
+    defaultValues: initialForm,
   });
+
+  const formData = watch();
 
   const { data, loading: loadingQuery, error: errorQuery } = useQuery(GET_TERCERO, {
     variables: { id_tercero: id ?? '' },
@@ -109,7 +126,7 @@ const EditarProveedor: React.FC = () => {
   useEffect(() => {
     if (!tercero || !isProveedor) return;
     const t = tercero;
-    setFormData({
+    reset({
       id_empresa: t.id_empresa ?? t.empresa?.id_empresa ?? '',
       cliente_potencial: false,
       cliente: false,
@@ -142,73 +159,70 @@ const EditarProveedor: React.FC = () => {
       asignado_a: t.asignado_a ?? '',
     });
     setHasChanges(false);
-  }, [tercero, isProveedor]);
+  }, [tercero, isProveedor, reset]);
 
   const toggle = (t: '1'|'2'|'3') => activeTab !== t && setActiveTab(t);
 
   const onGeneral = useCallback((d: any) => {
-    setFormData((prev: any) => ({
-      ...prev,
-      ...d,
-      cliente_potencial: false,
-      cliente: false,
-      proveedor: true,
-    }));
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoTerceroFormValues, value);
+    });
+    setValue('proveedor', true);
+    setValue('cliente', false);
+    setValue('cliente_potencial', false);
     setHasChanges(true);
-  }, []);
+  }, [setValue]);
 
   const onUbicacion = useCallback((d: any) => {
-    setFormData((prev: any) => ({
-      ...prev,
-      ...d,
-      cliente_potencial: false,
-      cliente: false,
-      proveedor: true,
-    }));
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoTerceroFormValues, value);
+    });
+    setValue('proveedor', true);
+    setValue('cliente', false);
+    setValue('cliente_potencial', false);
     setHasChanges(true);
-  }, []);
+  }, [setValue]);
 
   const onComercial = useCallback((d: any) => {
-    setFormData((prev: any) => ({
-      ...prev,
-      ...d,
-      cliente_potencial: false,
-      cliente: false,
-      proveedor: true,
-    }));
+    Object.entries(d).forEach(([key, value]) => {
+      setValue(key as keyof NuevoTerceroFormValues, value);
+    });
+    setValue('proveedor', true);
+    setValue('cliente', false);
+    setValue('cliente_potencial', false);
     setHasChanges(true);
-  }, []);
+  }, [setValue]);
 
-  const handleSubmit = useCallback(async () => {
+  const onSubmitRHF = useCallback(async (values: NuevoTerceroFormValues) => {
     if (!id) return;
     setLoading(true);
     setError(null);
 
     try {
-      if (!formData.id_empresa) {
+      if (!values.id_empresa) {
         setError('Debe seleccionar una empresa');
         setLoading(false);
         return;
       }
-      if (!formData.nombre || !String(formData.nombre).trim()) {
+      if (!values.nombre || !String(values.nombre).trim()) {
         setError('El nombre es obligatorio');
         setLoading(false);
         return;
       }
 
-      const cleanedData = { ...formData };
-      delete cleanedData.id_tercero;
+      const cleanedData = { ...values };
+      delete (cleanedData as any).id_tercero;
       Object.keys(cleanedData).forEach((key) => {
-        const v = cleanedData[key];
+        const v = cleanedData[key as keyof NuevoTerceroFormValues];
         if (v === '' || v === null || v === undefined) {
-          delete cleanedData[key];
+          delete (cleanedData as any)[key];
         }
       });
-      cleanedData.id_empresa = formData.id_empresa;
+      cleanedData.id_empresa = values.id_empresa;
 
-      cleanedData.cliente_potencial = false;
-      cleanedData.cliente = false;
       cleanedData.proveedor = true;
+      cleanedData.cliente = false;
+      cleanedData.cliente_potencial = false;
 
       await actualizarTercero(id, cleanedData);
       setSuccess(true);
@@ -222,7 +236,17 @@ const EditarProveedor: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, formData]);
+  }, [id]);
+
+  const onInvalid = useCallback((formErrors: any) => {
+    const collectMessages = (obj: any): string[] => {
+      if (!obj || typeof obj !== 'object') return [];
+      if (obj.message && typeof obj.message === 'string') return [obj.message];
+      return Object.values(obj).flatMap(collectMessages);
+    };
+    const messages = collectMessages(formErrors);
+    setError(messages.length > 0 ? messages.join(' | ') : 'Revisa los campos del formulario');
+  }, []);
 
   const handleCancel = () => {
     navigate('/proveedores');
@@ -243,7 +267,7 @@ const EditarProveedor: React.FC = () => {
               </Button>
               <Button
                 color="primary"
-                onClick={handleSubmit}
+                onClick={handleSubmit(onSubmitRHF, onInvalid)}
                 disabled={loading || !hasChanges || loadingQuery || !isProveedor}
               >
                 {loading ? (

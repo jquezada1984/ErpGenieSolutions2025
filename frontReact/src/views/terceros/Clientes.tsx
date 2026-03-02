@@ -162,14 +162,17 @@ const Clientes: React.FC = () => {
       sortable: false,
       filterable: false,
       width: 120,
-      Cell: ({ original }: any) => (
+      Cell: ({ original }: any) => {
+        const activo = !!original.estado;
+        return (
         <div className="d-flex align-items-center justify-content-center gap-2">
           <Button
-            onClick={() => handleEdit(original.id_tercero)}
-            color="info"
+            onClick={() => activo && handleEdit(original.id_tercero)}
+            color={activo ? 'info' : 'secondary'}
             size="sm"
             className="me-2"
-            title="Editar"
+            title={activo ? 'Editar' : 'Cliente inactivo: no se puede editar'}
+            disabled={!activo}
           >
             <i className="bi bi-pencil-fill"></i>
           </Button>
@@ -182,7 +185,8 @@ const Clientes: React.FC = () => {
             />
           </div>
         </div>
-      ),
+        );
+      },
     },
   ];
 
