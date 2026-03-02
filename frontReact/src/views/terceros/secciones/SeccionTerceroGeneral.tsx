@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardBody, Row, Col, FormGroup, Label, Input, FormText, Spinner } from 'reactstrap';
 import { listarTiposTercero } from '../../../_apis_/tercero';
+import SelectTipoTercero from '../../../components/selects/SelectTipoTercero';
 
 type Props = { data: any; onChange: (d:any)=>void };
 
@@ -113,14 +114,18 @@ const SeccionTerceroGeneral: React.FC<Props> = ({ data, onChange }) => {
           <Col md={6}>
             <FormGroup>
               <Label for="id_tipo_tercero">Tipo de tercero</Label>
-              <Input id="id_tipo_tercero" name="id_tipo_tercero" type="select" value={f.id_tipo_tercero || ''} onChange={chg} disabled={loadingTipos}>
-                <option value="">{loadingTipos ? 'Cargando...' : 'Seleccionar'}</option>
-                {tiposTercero.map((tipo) => (
-                  <option key={tipo.id_tipo_tercero} value={tipo.id_tipo_tercero}>
-                    {tipo.nombre}
-                  </option>
-                ))}
-              </Input>
+              <SelectTipoTercero
+                value={f.id_tipo_tercero || ''}
+                onChange={(val) => {
+                  const u = { ...f, id_tipo_tercero: val ?? '' };
+                  setF(u);
+                  onChange(u);
+                }}
+                tipos={tiposTercero}
+                isLoading={loadingTipos}
+                isDisabled={loadingTipos}
+                placeholder="Seleccionar"
+              />
               {loadingTipos && <Spinner size="sm" className="mt-2" />}
             </FormGroup>
           </Col>

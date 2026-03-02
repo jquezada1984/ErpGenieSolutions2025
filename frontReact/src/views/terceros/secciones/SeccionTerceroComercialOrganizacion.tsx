@@ -2,6 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardBody, Row, Col, FormGroup, Label, Input, FormText } from 'reactstrap';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
+import SelectEmpresa from '../../../components/SelectEmpresa';
+import SelectCondicionPago from '../../../components/selects/SelectCondicionPago';
+import SelectFormaPago from '../../../components/selects/SelectFormaPago';
 
 type Props = { data:any; onChange:(d:any)=>void };
 
@@ -81,14 +84,18 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
             )}
             <FormGroup>
               <Label htmlFor="id_empresa">Empresa</Label>
-              <Input id="id_empresa" name="id_empresa" type="select" value={f.id_empresa || ''} onChange={chg} disabled={loadingEmpresas}>
-                <option value="">{loadingEmpresas ? 'Cargando...' : 'Seleccionar'}</option>
-                {empresas.map((emp) => (
-                  <option key={emp.id_empresa} value={emp.id_empresa}>
-                    {emp.nombre}
-                  </option>
-                ))}
-              </Input>
+              <SelectEmpresa
+                value={f.id_empresa || ''}
+                onChange={(val) => {
+                  const u = { ...f, id_empresa: val ?? '' };
+                  setF(u);
+                  onChange(u);
+                }}
+                empresas={empresas}
+                isLoading={loadingEmpresas}
+                isDisabled={loadingEmpresas}
+                placeholder="Seleccionar"
+              />
             </FormGroup>
           </Col>
           <Col md={4}>
@@ -99,14 +106,18 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
             )}
             <FormGroup>
               <Label htmlFor="id_condicion_pago">Condiciones de pago</Label>
-              <Input id="id_condicion_pago" name="id_condicion_pago" type="select" value={f.id_condicion_pago || ''} onChange={chg} disabled={loadingCondiciones}>
-                <option value="">{loadingCondiciones ? 'Cargando...' : 'Seleccionar'}</option>
-                {condicionesPago.map((cond) => (
-                  <option key={cond.id_condicion_pago} value={cond.id_condicion_pago}>
-                    {cond.descripcion}
-                  </option>
-                ))}
-              </Input>
+              <SelectCondicionPago
+                value={f.id_condicion_pago || ''}
+                onChange={(val) => {
+                  const u = { ...f, id_condicion_pago: val ?? '' };
+                  setF(u);
+                  onChange(u);
+                }}
+                condiciones={condicionesPago}
+                isLoading={loadingCondiciones}
+                isDisabled={loadingCondiciones}
+                placeholder="Seleccionar"
+              />
             </FormGroup>
           </Col>
           <Col md={4}>
@@ -117,14 +128,18 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
             )}
             <FormGroup>
               <Label htmlFor="id_forma_pago">Forma de pago</Label>
-              <Input id="id_forma_pago" name="id_forma_pago" type="select" value={f.id_forma_pago || ''} onChange={chg} disabled={loadingFormas}>
-                <option value="">{loadingFormas ? 'Cargando...' : 'Seleccionar'}</option>
-                {formasPago.map((forma) => (
-                  <option key={forma.id_forma_pago} value={forma.id_forma_pago}>
-                    {forma.descripcion}
-                  </option>
-                ))}
-              </Input>
+              <SelectFormaPago
+                value={f.id_forma_pago || ''}
+                onChange={(val) => {
+                  const u = { ...f, id_forma_pago: val ?? '' };
+                  setF(u);
+                  onChange(u);
+                }}
+                formas={formasPago}
+                isLoading={loadingFormas}
+                isDisabled={loadingFormas}
+                placeholder="Seleccionar"
+              />
             </FormGroup>
           </Col>
           <Col md={4}>
