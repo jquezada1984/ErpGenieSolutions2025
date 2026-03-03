@@ -19,9 +19,6 @@ const getTargetService = (query, config) => {
   if (query && (
     query.includes('incoterms') ||
     query.includes('tiposTercero') ||
-    query.includes('condicionesPago') ||
-    query.includes('formasPago') ||
-    query.includes('empresas') ||
     query.includes('terceros') ||
     query.includes('tercero(') ||
     query.includes('clientes') ||

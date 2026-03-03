@@ -69,6 +69,32 @@ const nestjsService = {
     }
   },
 
+  // Obtener todos los países
+  async getPaises() {
+    try {
+      const query = `
+        query {
+          paises {
+            id_pais
+            nombre
+            codigo_iso
+            icono
+          }
+        }
+      `;
+
+      const response = await nestjsClient.post('/graphql', { query });
+
+      if (response.data.errors) {
+        throw new Error(`GraphQL Error: ${response.data.errors[0].message}`);
+      }
+
+      return response.data;
+    } catch (error) {
+      throw new Error(`Error obteniendo paises desde NestJS: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
   // Obtener empresa por ID
   async getEmpresa(id) {
     try {

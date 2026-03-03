@@ -2,6 +2,7 @@
 const { terceroCreateSchema, terceroUpdateSchema } = require('../schemas/tercero');
 const terceroPython = require('../services/terceroPython');
 const terceroNestJs = require('../services/terceroNestJs');
+const { nestjsService } = require('../services');
 
 module.exports = async function (fastify, opts) {
   // ---------------------------
@@ -77,7 +78,8 @@ module.exports = async function (fastify, opts) {
   fastify.get('/tercero/selects/paises', async (request, reply) => {
     try {
       console.log('📥 Gateway: GET /tercero/selects/paises');
-      const data = await terceroNestJs.listarPaises(request);
+      const response = await nestjsService.getPaises();
+      const data = response?.paises || [];
       console.log('✅ Gateway: Países obtenidos:', data?.length || 0);
       return reply.code(200).send(data);
     } catch (err) {
@@ -91,7 +93,8 @@ module.exports = async function (fastify, opts) {
   fastify.get('/tercero/selects/empresas', async (request, reply) => {
     try {
       console.log('📥 Gateway: GET /tercero/selects/empresas');
-      const data = await terceroNestJs.listarEmpresas(request);
+      const response = await nestjsService.getEmpresas();
+      const data = response?.empresas || [];
       console.log('✅ Gateway: Empresas obtenidas:', data?.length || 0);
       return reply.code(200).send(data);
     } catch (err) {

@@ -32,6 +32,8 @@ import { Sucursal } from './entities/sucursal.entity';
 import { Perfil } from './entities/perfil.entity';
 import { MenuSeccion, MenuItem } from './entities/menu.entity';
 import { PerfilMenuPermiso } from './entities/perfil-menu-permiso.entity';
+import { CondicionPago } from './entities/condicion-pago.entity';
+import { FormaPago } from './entities/forma-pago.entity';
 import { AuthModule } from './auth/auth.module';
 // Resolvers
 import { UsuarioResolver } from './resolvers/usuario.resolver';
@@ -44,6 +46,7 @@ import { AutorizacionResolver } from './resolvers/autorizacion.resolver';
 import { PaisResolver } from './resolvers/pais.resolver';
 import { MonedaResolver } from './resolvers/moneda.resolver';
 import { ProvinciaResolver } from './resolvers/provincia.resolver';
+import { CatalogosPagoResolver } from './resolvers/catalogos-pago.resolver';
 import { AuthResolver } from './auth/auth.resolver';
 // Services
 import { PaisService } from './services/pais.service';
@@ -71,7 +74,9 @@ import { AutorizacionService } from './services/autorizacion.service';
         Perfil, 
         MenuSeccion, 
         MenuItem,
-        PerfilMenuPermiso
+        PerfilMenuPermiso,
+        CondicionPago,
+        FormaPago
       ],
       synchronize: false, // Deshabilitado para evitar conflictos con datos existentes
       ssl: {
@@ -93,7 +98,9 @@ import { AutorizacionService } from './services/autorizacion.service';
       Perfil, 
       MenuSeccion, 
       MenuItem,
-      PerfilMenuPermiso
+      PerfilMenuPermiso,
+      CondicionPago,
+      FormaPago
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -119,6 +126,7 @@ import { AutorizacionService } from './services/autorizacion.service';
       PaisResolver,
       MonedaResolver,
       ProvinciaResolver,
+      CatalogosPagoResolver,
       AuthResolver,
       PaisService,
       MonedaService,
