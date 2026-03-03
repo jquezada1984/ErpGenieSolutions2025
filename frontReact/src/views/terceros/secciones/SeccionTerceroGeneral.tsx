@@ -1,15 +1,27 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardBody, Row, Col, FormGroup, Label, Input, FormText, Spinner } from 'reactstrap';
+import { useQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
 import { listarTiposTercero } from '../../../_apis_/tercero';
 import SelectTipoTercero from '../../../components/selects/SelectTipoTercero';
+import SelectTipoEntidadComercial from '../../../components/selects/SelectTipoEntidadComercial';
 
 type Props = { data: any; onChange: (d:any)=>void };
+
+const GET_TIPOS_ENTIDAD = gql`
+  query GetTiposEntidad {
+    tiposEntidadComercial {
+      id_tipo_entidad
+      nombre
+    }
+  }
+`;
 
 const SeccionTerceroGeneral: React.FC<Props> = ({ data, onChange }) => {
   const [f, setF] = useState<any>({
     cliente_potencial: false, cliente: false, proveedor: false,
     nombre: '', apodo: '', codigo_cliente: '', estado: true,
-    sujeto_iva: true, id_tipo_tercero: '', tipo_entidad_comercial: ''
+    sujeto_iva: true, id_tipo_tercero: '', id_tipo_entidad: ''
   });
   const [err, setErr] = useState<{[k:string]:string}>({});
   const [tiposTercero, setTiposTercero] = useState<any[]>([]);
@@ -46,6 +58,18 @@ const SeccionTerceroGeneral: React.FC<Props> = ({ data, onChange }) => {
     }
     onChange(u);
   }, [f, onChange, err]);
+
+  const {
+    data: tiposEntidadData,
+    loading: loadingTiposEntidad
+  } = useQuery(GET_TIPOS_ENTIDAD);
+  const tiposEntidad = tiposEntidadData?.tiposEntidadComercial || [];
+
+  const chgField = useCallback((name: string, value: any) => {
+    const u = { ...f, [name]: value };
+    setF(u);
+    onChange(u);
+  }, [f, onChange]);
 
   return (
     <Card>
@@ -131,13 +155,15 @@ const SeccionTerceroGeneral: React.FC<Props> = ({ data, onChange }) => {
           </Col>
           <Col md={6}>
             <FormGroup>
-              <Label for="tipo_entidad_comercial">Tipo de entidad comercial</Label>
-              <Input id="tipo_entidad_comercial" name="tipo_entidad_comercial" type="select"
-                     value={f.tipo_entidad_comercial || ''} onChange={chg}>
-                <option value="">Seleccionar</option>
-                <option value="Natural">Natural</option>
-                <option value="Jurídica">Jurídica</option>
-              </Input>
+              <Label>Tipo Entidad Comercial</Label>
+              <SelectTipoEntidadComercial
+                value={f.id_tipo_entidad !== '' && f.id_tipo_entidad != null ? Number(f.id_tipo_entidad) : undefined}
+                onChange={(val) => chgField('id_tipo_entidad', val != null ? val : '')}
+                tipos={tiposEntidad}
+                isLoading={loadingTiposEntidad}
+                isDisabled={loadingTiposEntidad}
+                placeholder="Seleccione tipo de entidad"
+              />
             </FormGroup>
           </Col>
         </Row>

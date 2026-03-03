@@ -7,6 +7,7 @@ from .catalogos import (
     CondicionPagoCatalogo, 
     FormaPagoCatalogo, 
     TipoTerceroCatalogo, 
+    TipoEntidadComercial,
     Pais,
     Empresa
 )
@@ -51,7 +52,7 @@ class Tercero(db.Model):
     # Comercial
     sujeto_iva             = db.Column(db.Boolean, nullable=False, default=True)
     id_tipo_tercero        = db.Column(db.String(36), db.ForeignKey('tipo_tercero_catalogo.id_tipo_tercero'), nullable=True)
-    tipo_entidad_comercial = db.Column(db.String(50))
+    id_tipo_entidad        = db.Column(db.SmallInteger, db.ForeignKey('tipo_entidad_comercial.id_tipo_entidad'), nullable=True)
     capital                = db.Column(db.Numeric(18, 2), default=0)
     id_condicion_pago      = db.Column(db.String(36), db.ForeignKey('condicion_pago_catalogo.id_condicion_pago'), nullable=True)
     id_forma_pago          = db.Column(db.String(36), db.ForeignKey('forma_pago_catalogo.id_forma_pago'), nullable=True)

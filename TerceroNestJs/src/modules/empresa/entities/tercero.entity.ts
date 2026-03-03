@@ -113,10 +113,6 @@ import {
     activo: boolean;
   
     @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 50, nullable: true })
-    tipo_entidad_comercial?: string;
-  
-    @Field({ nullable: true })
     @Column({ type: 'boolean', nullable: true })
     personal?: boolean;
   

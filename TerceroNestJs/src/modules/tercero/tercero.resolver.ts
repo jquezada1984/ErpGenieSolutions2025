@@ -1,8 +1,10 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
 import { Tercero } from './entities/tercero.entity';
 import { TerceroService } from './tercero.service';
 import { CreateTerceroInput } from './dto/create-tercero.dto';
 import { UpdateTerceroInput } from './dto/update-tercero.dto';
+
+const TIPO_TERCERO_REPRESENTANTE_ID = 'ab5f5dac-d03c-42b1-92bb-97131765f213';
 
 @Resolver(() => Tercero)
 export class TerceroResolver {
@@ -21,6 +23,13 @@ export class TerceroResolver {
   @Query(() => Tercero, { name: 'tercero' })
   findOne(@Args('id_tercero') id_tercero: string): Promise<Tercero> {
     return this.terceroService.findOne(id_tercero);
+  }
+
+  @Query(() => [Tercero], { name: 'representantesPorEmpresa' })
+  representantesPorEmpresa(
+    @Args('id_empresa', { type: () => ID }) id_empresa: string,
+  ): Promise<Tercero[]> {
+    return this.terceroService.findRepresentantesPorEmpresa(id_empresa);
   }
 
   @Mutation(() => Tercero, { name: 'createTercero' })

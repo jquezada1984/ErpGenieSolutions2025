@@ -39,7 +39,6 @@ input CreateTerceroInput {
   sede_central: String
   sujeto_iva: Boolean! = true
   telefono: String
-  tipo_entidad_comercial: String
   web: String
 }
 
@@ -128,7 +127,6 @@ type Tercero {
   sede_central: String
   sujeto_iva: Boolean!
   telefono: String
-  tipo_entidad_comercial: String
   tipo_tercero: TipoTercero
   web: String
 }
@@ -172,6 +170,5 @@ input UpdateTerceroInput {
   sede_central: String
   sujeto_iva: Boolean = true
   telefono: String
-  tipo_entidad_comercial: String
   web: String
 }

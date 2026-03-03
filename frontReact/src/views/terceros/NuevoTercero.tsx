@@ -26,7 +26,7 @@ const initialForm: NuevoTerceroFormValues = {
   estado: true,
   sujeto_iva: true,
   id_tipo_tercero: '',
-  tipo_entidad_comercial: '',
+  id_tipo_entidad: '',
   direccion: '',
   poblacion: '',
   codigo_postal: '',

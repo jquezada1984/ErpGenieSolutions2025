@@ -19,7 +19,7 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
         estado=bool(payload.get("estado", True)),
         sujeto_iva=bool(payload.get("sujeto_iva", True)),
         id_tipo_tercero=payload.get("id_tipo_tercero"),
-        tipo_entidad_comercial=payload.get("tipo_entidad_comercial"),
+        id_tipo_entidad=payload.get("id_tipo_entidad"),
         # ubicación/contacto
         direccion=payload.get("direccion"),
         poblacion=payload.get("poblacion"),
@@ -69,7 +69,7 @@ def update_tercero(id_tercero: str, id_empresa: str, payload: Dict[str, Any], us
     updatable = {
         "cliente_potencial","cliente","proveedor",
         "nombre","apodo","codigo_cliente","estado","sujeto_iva",
-        "id_tipo_tercero","tipo_entidad_comercial",
+        "id_tipo_tercero","id_tipo_entidad",
         "direccion","poblacion","codigo_postal","id_pais","provincia",
         "telefono","movil","fax","web","correo","logo",
         "id_condicion_pago","id_forma_pago","capital",

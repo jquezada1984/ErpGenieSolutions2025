@@ -16,7 +16,6 @@ export class CreateTerceroInput {
   @Field({ nullable: true }) @IsString() @IsOptional() apodo?: string;
   @Field({ nullable: true }) @IsString() @IsOptional() codigo_cliente?: string;
   @Field({ nullable: true }) @IsString() @IsOptional() codigo_proveedor?: string;
-  @Field({ nullable: true }) @IsString() @IsOptional() tipo_entidad_comercial?: string;
 
   // Contacto
   @Field({ nullable: true }) @IsString() @IsOptional() direccion?: string;

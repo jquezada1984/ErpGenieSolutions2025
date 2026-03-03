@@ -12,6 +12,7 @@ import { Pais } from '../../catalogos/entities/pais.entity';
 import { CondicionPago } from '../../catalogos/entities/condicion-pago.entity';
 import { FormaPago } from '../../catalogos/entities/forma-pago.entity';
 import { TipoTercero } from '../../catalogos/entities/tipo-tercero.entity';
+import { TipoEntidadComercial } from '../../catalogos/entities/tipo-entidad-comercial.entity';
 
 @ObjectType()
 @Entity('tercero')
@@ -63,6 +64,15 @@ export class Tercero {
   @JoinColumn({ name: 'id_tipo_tercero' })
   tipo_tercero?: TipoTercero;
 
+  @Field(() => Number, { nullable: true })
+  @Column({ type: 'smallint', nullable: true })
+  id_tipo_entidad?: number;
+
+  @Field(() => TipoEntidadComercial, { nullable: true })
+  @ManyToOne(() => TipoEntidadComercial, { nullable: true })
+  @JoinColumn({ name: 'id_tipo_entidad' })
+  tipoEntidadComercial?: TipoEntidadComercial;
+
   @Field({ nullable: true })
   @Column({ type: 'uuid', nullable: true })
   sede_central?: string;
@@ -100,10 +110,6 @@ export class Tercero {
   @Field({ defaultValue: true })
   @Column({ type: 'boolean', default: true })
   estado: boolean;
-
-  @Field({ nullable: true })
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  tipo_entidad_comercial?: string;
 
   // ---- Contacto ----
   @Field({ nullable: true })

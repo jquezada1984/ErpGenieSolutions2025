@@ -11,8 +11,7 @@ export interface ITercero {
     codigo_cliente?: string;
     codigo_proveedor?: string;
     estado: boolean;
-    tipo_entidad_comercial?: string;
-  
+
     direccion?: string;
     poblacion?: string;
     codigo_postal?: string;

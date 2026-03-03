@@ -16,6 +16,7 @@ import { CondicionPago } from './modules/catalogos/entities/condicion-pago.entit
 import { FormaPago } from './modules/catalogos/entities/forma-pago.entity';
 import { Incoterm } from './modules/catalogos/entities/incoterm.entity';
 import { Pais } from './modules/catalogos/entities/pais.entity';
+import { TipoEntidadComercial } from './modules/catalogos/entities/tipo-entidad-comercial.entity';
 
 @Module({
   imports: [
@@ -32,7 +33,7 @@ import { Pais } from './modules/catalogos/entities/pais.entity';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL || `postgresql://${process.env.DB_USERNAME || 'postgres'}:${process.env.DB_PASSWORD || ''}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}/${process.env.DB_DATABASE || 'postgres'}`,
-      entities: [Tercero, Contacto, Empresa, TipoTercero, CondicionPago, FormaPago, Incoterm, Pais],
+      entities: [Tercero, Contacto, Empresa, TipoTercero, CondicionPago, FormaPago, Incoterm, Pais, TipoEntidadComercial],
       synchronize: false, // TRUE solo en dev si no usas migraciones
       logging: ['error', 'warn'],
       ssl: {

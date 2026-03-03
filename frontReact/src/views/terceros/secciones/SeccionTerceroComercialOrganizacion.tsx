@@ -5,6 +5,7 @@ import { gql } from '@apollo/client';
 import SelectEmpresa from '../../../components/SelectEmpresa';
 import SelectCondicionPago from '../../../components/selects/SelectCondicionPago';
 import SelectFormaPago from '../../../components/selects/SelectFormaPago';
+import SelectRepresentante from '../../../components/selects/SelectRepresentante';
 
 type Props = { data:any; onChange:(d:any)=>void };
 
@@ -48,21 +49,50 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
     }
   `;
 
+  const GET_REPRESENTANTES = gql`
+    query GetRepresentantes($id_empresa: ID!) {
+      representantesPorEmpresa(id_empresa: $id_empresa) {
+        id_tercero
+        nombre
+      }
+    }
+  `;
+
+  const GET_TIPOS_ENTIDAD = gql`
+    query GetTiposEntidad {
+      tiposEntidadComercial {
+        id_tipo_entidad
+        nombre
+      }
+    }
+  `;
+
   // Obtener datos maestros con manejo de errores
   const { data: condicionesData, loading: loadingCondiciones, error: errorCondiciones } = useQuery(GET_CONDICIONES_PAGO);
   const { data: formasData, loading: loadingFormas, error: errorFormas } = useQuery(GET_FORMAS_PAGO);
   const { data: empresasData, loading: loadingEmpresas, error: errorEmpresas } = useQuery(GET_EMPRESAS);
+  const {
+    data: representantesData,
+    loading: loadingRepresentantes,
+  } = useQuery(GET_REPRESENTANTES, {
+    variables: { id_empresa: f.id_empresa },
+    skip: !f.id_empresa,
+  });
 
   const condicionesPago = condicionesData?.condicionesPago || [];
   const formasPago = formasData?.formasPago || [];
   const empresas = empresasData?.empresas || [];
-  
+  const representantes = representantesData?.representantesPorEmpresa || [];
+
   const loading = loadingCondiciones || loadingFormas || loadingEmpresas;
 
   const chg = useCallback((e:any)=>{
     const {name, value, type} = e.target;
     const v = type==='number' ? (value===''?0:Number(value)) : value;
     const u = {...f, [name]: v};
+    if (name === 'id_empresa') {
+      u.asignado_a = '';
+    }
     setF(u);
     if (name==='capital') {
       const ne={...err}; if (v<0) ne.capital='No puede ser negativo'; else delete ne.capital; setErr(ne);
@@ -87,7 +117,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
               <SelectEmpresa
                 value={f.id_empresa || ''}
                 onChange={(val) => {
-                  const u = { ...f, id_empresa: val ?? '' };
+                  const u = { ...f, id_empresa: val ?? '', asignado_a: '' };
                   setF(u);
                   onChange(u);
                 }}
@@ -182,11 +212,23 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
           </Col>
           <Col md={6}>
             <FormGroup>
-              <Label htmlFor="asignado_a">Asignar a representante</Label>
-              <Input id="asignado_a" name="asignado_a" type="select" value={f.asignado_a || ''} onChange={chg}>
-                <option value="">Seleccionar</option>
-                {/* llena con usuarios */}
-              </Input>
+              <Label htmlFor="asignado_a">Asignar representante</Label>
+              <SelectRepresentante
+                value={f.asignado_a || ''}
+                onChange={(val) => {
+                  const u = { ...f, asignado_a: val ?? '' };
+                  setF(u);
+                  onChange(u);
+                }}
+                representantes={representantes}
+                isLoading={loadingRepresentantes}
+                isDisabled={!f.id_empresa || loadingRepresentantes}
+                placeholder={
+                  !f.id_empresa
+                    ? 'Seleccione empresa primero'
+                    : 'Seleccionar representante'
+                }
+              />
             </FormGroup>
           </Col>
         </Row>

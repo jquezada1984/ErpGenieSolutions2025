@@ -11,7 +11,7 @@ export interface NuevoTerceroFormValues {
   estado: boolean;
   sujeto_iva: boolean;
   id_tipo_tercero: string;
-  tipo_entidad_comercial: string;
+  id_tipo_entidad?: number | string;
   direccion: string;
   poblacion: string;
   codigo_postal: string;
@@ -44,7 +44,7 @@ export const NuevoTerceroSchema = yup.object({
   estado: yup.boolean(),
   sujeto_iva: yup.boolean(),
   id_tipo_tercero: yup.string(),
-  tipo_entidad_comercial: yup.string(),
+  id_tipo_entidad: yup.number().optional().nullable(),
   direccion: yup.string(),
   poblacion: yup.string(),
   codigo_postal: yup.string(),

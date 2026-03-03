@@ -47,6 +47,7 @@ import { PaisResolver } from './resolvers/pais.resolver';
 import { MonedaResolver } from './resolvers/moneda.resolver';
 import { ProvinciaResolver } from './resolvers/provincia.resolver';
 import { CatalogosPagoResolver } from './resolvers/catalogos-pago.resolver';
+import { TipoEntidadComercialResolver } from './resolvers/tipo-entidad-comercial.resolver';
 import { AuthResolver } from './auth/auth.resolver';
 // Services
 import { PaisService } from './services/pais.service';
@@ -127,6 +128,7 @@ import { AutorizacionService } from './services/autorizacion.service';
       MonedaResolver,
       ProvinciaResolver,
       CatalogosPagoResolver,
+      TipoEntidadComercialResolver,
       AuthResolver,
       PaisService,
       MonedaService,

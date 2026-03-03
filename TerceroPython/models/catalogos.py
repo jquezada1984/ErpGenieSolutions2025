@@ -21,6 +21,11 @@ class TipoTerceroCatalogo(db.Model):
     __tablename__ = 'tipo_tercero_catalogo'
     id_tipo_tercero = db.Column(db.String(36), primary_key=True)
 
+class TipoEntidadComercial(db.Model):
+    """Modelo stub para tipo_entidad_comercial"""
+    __tablename__ = 'tipo_entidad_comercial'
+    id_tipo_entidad = db.Column(db.SmallInteger, primary_key=True)
+
 class IncotermCatalogo(db.Model):
     """Modelo stub para incoterm_catalogo"""
     __tablename__ = 'incoterm_catalogo'

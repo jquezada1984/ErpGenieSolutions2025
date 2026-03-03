@@ -6,6 +6,8 @@ import { Tercero } from './entities/tercero.entity';
 import { CreateTerceroInput } from './dto/create-tercero.dto';
 import { UpdateTerceroInput } from './dto/update-tercero.dto';
 
+const TIPO_TERCERO_REPRESENTANTE_ID = 'ab5f5dac-d03c-42b1-92bb-97131765f213';
+
 @Injectable()
 export class TerceroService {
   constructor(
@@ -32,6 +34,16 @@ export class TerceroService {
     const tercero = await this.terceroRepo.findOne({ where: { id_tercero } });
     if (!tercero) throw new NotFoundException('Tercero no encontrado');
     return tercero;
+  }
+
+  async findRepresentantesPorEmpresa(id_empresa: string): Promise<Tercero[]> {
+    return this.terceroRepo.find({
+      where: {
+        id_empresa,
+        id_tipo_tercero: TIPO_TERCERO_REPRESENTANTE_ID
+      },
+      order: { nombre: 'ASC' }
+    });
   }
 
   async create(input: CreateTerceroInput): Promise<Tercero> {
