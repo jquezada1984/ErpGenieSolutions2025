@@ -43,6 +43,10 @@ export class Usuario {
   @Column({ default: true })
   estado: boolean;
 
+  @Field(() => String)
+  @Column({ type: 'varchar', length: 20, default: 'EMPRESA' })
+  scope_acceso: string;
+
   @Field()
   get firstName(): string {
     return this.nombre_completo?.split(' ')[0] || this.username || '';
