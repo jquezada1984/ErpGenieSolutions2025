@@ -6,10 +6,15 @@ import SelectEmpresa from '../../../components/SelectEmpresa';
 import SelectCondicionPago from '../../../components/selects/SelectCondicionPago';
 import SelectFormaPago from '../../../components/selects/SelectFormaPago';
 import SelectRepresentante from '../../../components/selects/SelectRepresentante';
+import useJwtPayload from '../../../hooks/useJwtPayload';
 
 type Props = { data:any; onChange:(d:any)=>void };
 
 const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }) => {
+  const payload = useJwtPayload();
+  const scope = payload?.scope_acceso || 'EMPRESA';
+  const empresaUsuario = payload?.id_empresa;
+
   const [f, setF] = useState<any>({
     capital: 0, id_condicion_pago:'', id_forma_pago:'', id_empresa: '',
     id_profesional_1:'', id_profesional_2:'', cif_intra:'',
@@ -18,6 +23,14 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
   const [err, setErr] = useState<{[k:string]:string}>({});
 
   useEffect(()=> setF((p:any)=>({...p,...data})),[data]);
+
+  // Si scope EMPRESA, asegurar que id_empresa del usuario se envía en el formulario cuando esté vacío
+  useEffect(() => {
+    if (scope === 'EMPRESA' && empresaUsuario && !data.id_empresa) {
+      setF((p: any) => ({ ...p, id_empresa: empresaUsuario }));
+      onChange({ ...data, id_empresa: empresaUsuario });
+    }
+  }, [scope, empresaUsuario, data.id_empresa]);
 
   // Queries GraphQL para obtener catálogos (igual que en SeccionEmpresa)
   const GET_CONDICIONES_PAGO = gql`
@@ -106,6 +119,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
         <h5 className="mb-4"><i className="fas fa-briefcase text-primary me-2" />Comercial y organización</h5>
 
         <Row>
+          {scope === 'GLOBAL' && (
           <Col md={4}>
             {errorEmpresas && (
               <div className="alert alert-danger">
@@ -128,6 +142,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
               />
             </FormGroup>
           </Col>
+          )}
           <Col md={4}>
             {errorCondiciones && (
               <div className="alert alert-danger">

@@ -92,6 +92,7 @@ export class AuthService {
         email: usuario.email,
         id_perfil: usuario.perfil.id_perfil,
         id_empresa: usuario.perfil.id_empresa,
+        scope_acceso: usuario.scope_acceso ?? 'EMPRESA',
       };
 
       const access_token = this.jwtService.sign(payload);

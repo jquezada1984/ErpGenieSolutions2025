@@ -29,7 +29,7 @@ const initialForm: NuevoTerceroFormValues = {
   estado: true,
   sujeto_iva: true,
   id_tipo_tercero: '',
-  tipo_entidad_comercial: '',
+  id_tipo_entidad: '',
   direccion: '',
   poblacion: '',
   codigo_postal: '',
@@ -67,7 +67,7 @@ const GET_TERCERO = gql`
       codigo_cliente
       estado
       sujeto_iva
-      tipo_entidad_comercial
+      id_tipo_entidad
       direccion
       poblacion
       codigo_postal
@@ -137,7 +137,7 @@ const EditarClientePotencial: React.FC = () => {
       estado: !!t.estado,
       sujeto_iva: t.sujeto_iva !== false,
       id_tipo_tercero: t.id_tipo_tercero ?? t.tipo_tercero?.id_tipo_tercero ?? '',
-      tipo_entidad_comercial: t.tipo_entidad_comercial ?? '',
+      id_tipo_entidad: t.id_tipo_entidad ?? '',
       direccion: t.direccion ?? '',
       poblacion: t.poblacion ?? '',
       codigo_postal: t.codigo_postal ?? '',

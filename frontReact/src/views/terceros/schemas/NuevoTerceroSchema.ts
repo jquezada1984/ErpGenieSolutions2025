@@ -44,7 +44,13 @@ export const NuevoTerceroSchema = yup.object({
   estado: yup.boolean(),
   sujeto_iva: yup.boolean(),
   id_tipo_tercero: yup.string(),
-  id_tipo_entidad: yup.number().optional().nullable(),
+  id_tipo_entidad: yup
+    .number()
+    .nullable()
+    .transform((value, originalValue) =>
+      originalValue === '' ? null : value
+    )
+    .notRequired(),
   direccion: yup.string(),
   poblacion: yup.string(),
   codigo_postal: yup.string(),
