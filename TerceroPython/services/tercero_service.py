@@ -48,7 +48,13 @@ def servicio_crear_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Op
     tercero = create_tercero(data, id_empresa=id_empresa, user_id=user_id)
     return TerceroOutSchema().dump(tercero)
 
-def servicio_actualizar_tercero(id_tercero: str, id_empresa: str, payload: Dict[str, Any], user_id: Optional[str]) -> Optional[Dict[str, Any]]:
+def servicio_actualizar_tercero(
+    id_tercero: str,
+    id_empresa: str,
+    payload: Dict[str, Any],
+    user_id: Optional[str],
+    scope_acceso: str = "EMPRESA",
+) -> Optional[Dict[str, Any]]:
     data = TerceroUpdateSchema().load(payload)
     for k in ("id_pais","id_tipo_tercero","id_condicion_pago","id_forma_pago","sede_central","asignado_a"):
         if k in data:
@@ -56,10 +62,15 @@ def servicio_actualizar_tercero(id_tercero: str, id_empresa: str, payload: Dict[
     if "codigo_cliente" in data and data["codigo_cliente"]:
         if exists_codigo_cliente(id_empresa, data["codigo_cliente"], exclude_id=id_tercero):
             raise ValidationError({"codigo_cliente":["Ya existe para esta empresa."]})
-    tercero = repo_update_tercero(id_tercero, id_empresa, data, user_id)
+    tercero = repo_update_tercero(id_tercero, id_empresa, data, user_id, scope_acceso=scope_acceso)
     if not tercero:
         return None
     return TerceroOutSchema().dump(tercero)
 
-def servicio_eliminar_tercero(id_tercero: str, id_empresa: str, user_id: Optional[str]) -> bool:
-    return repo_soft_delete_tercero(id_tercero, id_empresa, user_id)
+def servicio_eliminar_tercero(
+    id_tercero: str,
+    id_empresa: str,
+    user_id: Optional[str],
+    scope_acceso: str = "EMPRESA",
+) -> bool:
+    return repo_soft_delete_tercero(id_tercero, id_empresa, user_id, scope_acceso=scope_acceso)

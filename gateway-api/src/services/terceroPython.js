@@ -77,9 +77,12 @@ async function ctxHeaders(req, body = {}) {
     idEmpresaFinal = req.headers['x-company-id'] || req.headers['X-Company-Id'] || body.id_empresa || '';
   }
 
+  const scopeAcceso = usuario?.scope_acceso || 'EMPRESA';
+
   return {
     'X-Company-Id': idEmpresaFinal,
     'X-User-Id': idUsuario,
+    'X-Scope-Acceso': scopeAcceso,
   };
 }
 

@@ -11,13 +11,17 @@ export class TerceroResolver {
   constructor(private readonly terceroService: TerceroService) {}
 
   @Query(() => [Tercero], { name: 'terceros' })
-  findAll(): Promise<Tercero[]> {
-    return this.terceroService.findAll();
+  findAll(
+    @Args('id_empresa', { type: () => ID, nullable: true }) id_empresa?: string | null,
+  ): Promise<Tercero[]> {
+    return this.terceroService.findAll(id_empresa ?? undefined);
   }
 
   @Query(() => [Tercero], { name: 'clientes' })
-  findClientes(): Promise<Tercero[]> {
-    return this.terceroService.findClientes();
+  findClientes(
+    @Args('id_empresa', { type: () => ID, nullable: true }) id_empresa?: string | null,
+  ): Promise<Tercero[]> {
+    return this.terceroService.findClientes(id_empresa ?? undefined);
   }
 
   @Query(() => Tercero, { name: 'tercero' })

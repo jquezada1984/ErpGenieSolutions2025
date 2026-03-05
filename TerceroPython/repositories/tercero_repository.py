@@ -62,8 +62,17 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
         raise
     return tercero
 
-def update_tercero(id_tercero: str, id_empresa: str, payload: Dict[str, Any], user_id: Optional[str]) -> Optional[Tercero]:
-    tercero = Tercero.query.filter_by(id_tercero=id_tercero, id_empresa=id_empresa).first()
+def update_tercero(
+    id_tercero: str,
+    id_empresa: str,
+    payload: Dict[str, Any],
+    user_id: Optional[str],
+    scope_acceso: str = "EMPRESA",
+) -> Optional[Tercero]:
+    if scope_acceso == "GLOBAL":
+        tercero = Tercero.query.filter_by(id_tercero=id_tercero).first()
+    else:
+        tercero = Tercero.query.filter_by(id_tercero=id_tercero, id_empresa=id_empresa).first()
     if not tercero:
         return None
     updatable = {
@@ -105,8 +114,16 @@ def update_tercero(id_tercero: str, id_empresa: str, payload: Dict[str, Any], us
         raise
     return tercero
 
-def soft_delete_tercero(id_tercero: str, id_empresa: str, user_id: Optional[str]) -> bool:
-    tercero = Tercero.query.filter_by(id_tercero=id_tercero, id_empresa=id_empresa).first()
+def soft_delete_tercero(
+    id_tercero: str,
+    id_empresa: str,
+    user_id: Optional[str],
+    scope_acceso: str = "EMPRESA",
+) -> bool:
+    if scope_acceso == "GLOBAL":
+        tercero = Tercero.query.filter_by(id_tercero=id_tercero).first()
+    else:
+        tercero = Tercero.query.filter_by(id_tercero=id_tercero, id_empresa=id_empresa).first()
     if not tercero:
         return False
     tercero.estado = False

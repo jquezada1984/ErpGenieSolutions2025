@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardBody, CardTitle, Button, Container, Row, Col, Badge, Alert } from 'reactstrap';
+import { Card, CardBody, CardTitle, Button, Container, Row, Col, Badge, Alert, FormGroup, Label } from 'reactstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useLazyQuery } from '@apollo/client';
+import { useLazyQuery, useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
 import { actualizarTercero } from '../../_apis_/tercero';
+import useJwtPayload from '../../hooks/useJwtPayload';
+import SelectEmpresa from '../../components/SelectEmpresa';
 
 const GET_TERCEROS = gql`
-  query GetTerceros {
-    terceros {
+  query GetTerceros($id_empresa: ID) {
+    terceros(id_empresa: $id_empresa) {
       id_tercero
       nombre
       apodo
@@ -27,6 +29,17 @@ const GET_TERCEROS = gql`
         nombre
       }
       asignado_a
+    }
+  }
+`;
+
+const GET_EMPRESAS = gql`
+  query GetEmpresas {
+    empresas {
+      id_empresa
+      nombre
+      ruc
+      estado
     }
   }
 `;
@@ -54,31 +67,51 @@ interface Proveedor {
 const Proveedores: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const payload = useJwtPayload();
+  const scope = payload?.scope_acceso || 'EMPRESA';
+  const idEmpresaUsuario = payload?.id_empresa;
+
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedIdEmpresa, setSelectedIdEmpresa] = useState<string>('');
 
   const [getTerceros, { loading: queryLoading }] = useLazyQuery(GET_TERCEROS, {
     fetchPolicy: 'cache-and-network',
     errorPolicy: 'all',
   });
 
+  const { data: empresasData } = useQuery(GET_EMPRESAS, { skip: scope !== 'GLOBAL' });
+  const empresas = empresasData?.empresas || [];
+
   useEffect(() => {
-    loadProveedores();
-  }, []);
+    if (scope === 'EMPRESA' && idEmpresaUsuario) {
+      loadProveedores(idEmpresaUsuario);
+    } else if (scope === 'GLOBAL') {
+      setProveedores([]);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(false);
+    }
+  }, [scope, idEmpresaUsuario]);
 
   useEffect(() => {
     if (location.pathname === '/terceros/proveedores' || location.pathname === '/proveedores') {
-      loadProveedores();
+      if (scope === 'EMPRESA' && idEmpresaUsuario) {
+        loadProveedores(idEmpresaUsuario);
+      } else if (scope === 'GLOBAL' && selectedIdEmpresa) {
+        loadProveedores(selectedIdEmpresa);
+      }
     }
   }, [location.pathname]);
 
-  const loadProveedores = async () => {
+  const loadProveedores = async (id_empresa: string | null) => {
     try {
       setLoading(true);
       setError(null);
 
-      const { data } = await getTerceros();
+      const { data } = await getTerceros({ variables: { id_empresa } });
 
       if (data && data.terceros) {
         const filtrados = data.terceros.filter((t: Proveedor) => t.proveedor === true);
@@ -106,7 +139,8 @@ const Proveedores: React.FC = () => {
   const handleToggleEstado = async (proveedor: Proveedor) => {
     try {
       await actualizarTercero(proveedor.id_tercero, { estado: !proveedor.estado });
-      await loadProveedores();
+      const idToReload = scope === 'EMPRESA' ? idEmpresaUsuario : selectedIdEmpresa || null;
+      if (idToReload) await loadProveedores(idToReload);
     } catch (err: any) {
       console.error('Error actualizando estado:', err);
       setError(err?.message || 'Error al actualizar el estado');
@@ -212,6 +246,28 @@ const Proveedores: React.FC = () => {
                   </Button>
                 </div>
               </div>
+
+              {scope === 'GLOBAL' && (
+                <FormGroup className="mb-3">
+                  <Label for="id_empresa_listado">Empresa</Label>
+                  <SelectEmpresa
+                    value={selectedIdEmpresa || null}
+                    onChange={(val) => {
+                      setSelectedIdEmpresa(val ?? '');
+                      if (val) loadProveedores(val);
+                      else setProveedores([]);
+                    }}
+                    empresas={empresas}
+                    placeholder="Seleccione una empresa para ver los proveedores"
+                  />
+                </FormGroup>
+              )}
+
+              {scope === 'GLOBAL' && !selectedIdEmpresa && (
+                <Alert color="info" className="mb-3">
+                  Seleccione una empresa para ver los proveedores
+                </Alert>
+              )}
 
               {error && (
                 <Alert color="danger" className="mb-3">

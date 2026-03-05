@@ -15,16 +15,20 @@ export class TerceroService {
     private readonly terceroRepo: Repository<Tercero>,
   ) {}
 
-  async findAll(): Promise<Tercero[]> {
+  async findAll(id_empresa?: string): Promise<Tercero[]> {
+    const where = id_empresa ? { id_empresa } : {};
     return this.terceroRepo.find({
+      where,
       relations: ['empresa', 'tipo_tercero'],
       order: { fecha_creacion: 'DESC' },
     });
   }
 
-  async findClientes(): Promise<Tercero[]> {
+  async findClientes(id_empresa?: string): Promise<Tercero[]> {
+    const where: any = { cliente: true };
+    if (id_empresa) where.id_empresa = id_empresa;
     return this.terceroRepo.find({
-      where: { cliente: true },
+      where,
       relations: ['empresa', 'tipo_tercero'],
       order: { fecha_creacion: 'DESC' },
     });
