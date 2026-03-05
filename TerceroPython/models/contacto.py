@@ -18,7 +18,6 @@ class Contacto(db.Model):
     codigo_postal = db.Column(db.String(20))
     poblacion = db.Column(db.String(100))
     id_pais = db.Column(db.String(36), db.ForeignKey('pais.id_pais'))
-    provincia = db.Column(db.String(100))
     id_provincia = db.Column(
         db.String(36),
         db.ForeignKey("provincia.id_provincia"),

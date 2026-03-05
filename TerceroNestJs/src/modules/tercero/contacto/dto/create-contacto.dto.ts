@@ -45,11 +45,6 @@ export class CreateContactoInput {
   @Field({ nullable: true })
   @IsString()
   @IsOptional()
-  provincia?: string;
-
-  @Field({ nullable: true })
-  @IsString()
-  @IsOptional()
   telefono_trabajo?: string;
 
   @Field({ nullable: true })

@@ -51,7 +51,7 @@ const GET_CONTACTO = gql`
       direccion
       codigo_postal
       poblacion
-      provincia
+      id_provincia
       id_pais
       telefono_trabajo
       telefono_particular
@@ -118,7 +118,8 @@ const EditarContacto: React.FC = () => {
       direccion: c.direccion ?? '',
       codigo_postal: c.codigo_postal ?? '',
       poblacion: c.poblacion ?? '',
-      provincia: c.provincia ?? '',
+      provincia: '',
+      id_provincia: c.id_provincia ?? '',
       id_pais: c.id_pais ?? '',
       telefono_trabajo: c.telefono_trabajo ?? '',
       telefono_particular: c.telefono_particular ?? '',

@@ -54,12 +54,12 @@ export class Contacto {
   poblacion?: string;
 
   @Field({ nullable: true })
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  provincia?: string;
-
-  @Field({ nullable: true })
   @Column({ type: 'varchar', length: 36, nullable: true })
   id_pais?: string;
+
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  id_provincia?: string;
 
   @Field({ nullable: true })
   @Column({ type: 'varchar', length: 30, nullable: true })
