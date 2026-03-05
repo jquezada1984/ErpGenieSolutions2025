@@ -124,9 +124,9 @@ export class Tercero {
   @Column({ type: 'varchar', length: 20, nullable: true })
   codigo_postal?: string;
 
-  @Field({ nullable: true })
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  provincia?: string;
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  id_provincia?: string;
 
   @Field({ nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })

@@ -99,6 +99,7 @@ const NuevoContacto: React.FC = () => {
         poblacion: values.poblacion || '',
         id_pais: values.id_pais || '',
         provincia: values.provincia || '',
+        id_provincia: values.id_provincia || null,
         telefono_trabajo: values.telefono_trabajo || '',
         telefono_particular: values.telefono_particular || '',
         movil: values.movil || '',

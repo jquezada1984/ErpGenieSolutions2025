@@ -40,3 +40,9 @@ class Empresa(db.Model):
     """Modelo stub para empresa"""
     __tablename__ = 'empresa'
     id_empresa = db.Column(db.String(36), primary_key=True)
+
+class Provincia(db.Model):
+    """Modelo stub para provincia (FK desde tercero.id_provincia)"""
+    __tablename__ = 'provincia'
+    id_provincia = db.Column(db.String(36), primary_key=True)
+    nombre = db.Column(db.String(100))

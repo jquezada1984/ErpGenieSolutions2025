@@ -7,7 +7,8 @@ from .catalogos import (
     TipoTerceroCatalogo,
     IncotermCatalogo,
     Pais,
-    Empresa
+    Empresa,
+    Provincia,
 )
 from .media import Media
 
@@ -20,5 +21,6 @@ __all__ = [
     'IncotermCatalogo',
     'Pais',
     'Empresa',
+    'Provincia',
     'Media',
 ]

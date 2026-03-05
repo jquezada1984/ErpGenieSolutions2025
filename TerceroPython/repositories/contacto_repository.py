@@ -30,6 +30,7 @@ def create_contacto(payload: Dict[str, Any], id_tercero: str) -> Contacto:
         poblacion=payload.get("poblacion"),
         id_pais=payload.get("id_pais"),
         provincia=payload.get("provincia"),
+        id_provincia=payload.get("id_provincia"),
         telefono_trabajo=payload.get("telefono_trabajo"),
         telefono_particular=payload.get("telefono_particular"),
         movil=payload.get("movil"),
@@ -69,7 +70,7 @@ def update_contacto(id_contacto: str, payload: Dict[str, Any]) -> Optional[Conta
         return None
     updatable = {
         "apellidos_etiqueta", "nombre", "titulo_cortesia", "puesto_trabajo",
-        "direccion", "codigo_postal", "poblacion", "id_pais", "provincia",
+        "direccion", "codigo_postal", "poblacion", "id_pais", "provincia", "id_provincia",
         "telefono_trabajo", "telefono_particular", "movil", "fax", "correo",
         "visibilidad", "fecha_nacimiento", "alerta_cumpleanos", "estado",
     }

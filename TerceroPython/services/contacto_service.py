@@ -23,6 +23,7 @@ def _contacto_to_dict(c: Contacto) -> Dict[str, Any]:
         "poblacion": c.poblacion,
         "id_pais": c.id_pais,
         "provincia": c.provincia,
+        "id_provincia": c.id_provincia,
         "telefono_trabajo": c.telefono_trabajo,
         "telefono_particular": c.telefono_particular,
         "movil": c.movil,

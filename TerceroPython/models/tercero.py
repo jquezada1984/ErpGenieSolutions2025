@@ -34,7 +34,7 @@ class Tercero(db.Model):
     poblacion     = db.Column(db.String(100))
     codigo_postal = db.Column(db.String(20))
     id_pais       = db.Column(db.String(36), db.ForeignKey('pais.id_pais'))
-    provincia     = db.Column(db.String(100))
+    id_provincia  = db.Column(db.String(36), db.ForeignKey('provincia.id_provincia'), nullable=True)
 
     # Contacto
     telefono = db.Column(db.String(30))

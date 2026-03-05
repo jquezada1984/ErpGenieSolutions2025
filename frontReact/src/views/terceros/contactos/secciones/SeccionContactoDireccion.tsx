@@ -3,6 +3,7 @@ import { Card, CardBody, Row, Col, FormGroup, Label, Input } from 'reactstrap';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import CountrySelect from '../../../../components/CountrySelect';
+import SelectProvincia from '../../../../components/selects/SelectProvincia';
 
 type Props = { data: any; onChange: (d: any) => void };
 
@@ -23,6 +24,7 @@ const SeccionContactoDireccion: React.FC<Props> = ({ data, onChange }) => {
     codigo_postal: '',
     poblacion: '',
     provincia: '',
+    id_provincia: '',
     id_pais: '',
   });
 
@@ -93,8 +95,18 @@ const SeccionContactoDireccion: React.FC<Props> = ({ data, onChange }) => {
         <Row>
           <Col md={6}>
             <FormGroup>
-              <Label htmlFor="provincia">Provincia</Label>
-              <Input id="provincia" name="provincia" value={f.provincia || ''} onChange={chg} />
+              <Label>Provincia</Label>
+              <SelectProvincia
+                value={f.id_provincia || null}
+                onChange={(v) => {
+                  const u = { ...f, id_provincia: v ?? '' };
+                  setF(u);
+                  onChange(u);
+                }}
+                id_pais={f.id_pais || null}
+                isDisabled={!f.id_pais}
+                placeholder="Seleccionar provincia"
+              />
             </FormGroup>
           </Col>
         </Row>

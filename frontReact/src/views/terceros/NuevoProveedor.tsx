@@ -8,13 +8,26 @@ import {
   Row, Col, FormText
 } from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
 import classnames from 'classnames';
 import './ConfiguracionTercero.scss';
 import { listarTiposTercero, crearTercero } from '../../_apis_/tercero';
 import { NuevoTerceroSchema, type NuevoTerceroFormValues } from './schemas/NuevoTerceroSchema';
+import SelectTipoTercero from '../../components/selects/SelectTipoTercero';
+import SelectTipoEntidadComercial from '../../components/selects/SelectTipoEntidadComercial';
 
 import SeccionTerceroUbicacionContacto from './secciones/SeccionTerceroUbicacionContacto';
 import SeccionTerceroComercialOrganizacion from './secciones/SeccionTerceroComercialOrganizacion';
+
+const GET_TIPOS_ENTIDAD = gql`
+  query GetTiposEntidad {
+    tiposEntidadComercial {
+      id_tipo_entidad
+      nombre
+    }
+  }
+`;
 
 const initialForm: NuevoTerceroFormValues = {
   id_empresa: '',
@@ -27,7 +40,7 @@ const initialForm: NuevoTerceroFormValues = {
   estado: true,
   sujeto_iva: true,
   id_tipo_tercero: '',
-  tipo_entidad_comercial: '',
+  id_tipo_entidad: '',
   direccion: '',
   poblacion: '',
   codigo_postal: '',
@@ -117,6 +130,9 @@ const NuevoProveedor: React.FC = () => {
     };
     cargarTipos();
   }, []);
+
+  const { data: tiposEntidadData, loading: loadingTiposEntidad } = useQuery(GET_TIPOS_ENTIDAD);
+  const tiposEntidad = tiposEntidadData?.tiposEntidadComercial || [];
 
   const chgGeneral = useCallback((e: any) => {
     const { name, type } = e.target;
@@ -293,26 +309,28 @@ const NuevoProveedor: React.FC = () => {
                     <Col md={6}>
                       <FormGroup>
                         <Label for="id_tipo_tercero">Tipo de tercero</Label>
-                        <Input id="id_tipo_tercero" name="id_tipo_tercero" type="select" value={formData.id_tipo_tercero || ''} onChange={chgGeneral} disabled={loadingTipos}>
-                          <option value="">{loadingTipos ? 'Cargando...' : 'Seleccionar'}</option>
-                          {tiposTercero.map((tipo) => (
-                            <option key={tipo.id_tipo_tercero} value={tipo.id_tipo_tercero}>
-                              {tipo.nombre}
-                            </option>
-                          ))}
-                        </Input>
+                        <SelectTipoTercero
+                          value={formData.id_tipo_tercero || ''}
+                          onChange={(v) => setValue('id_tipo_tercero', v ?? '')}
+                          tipos={tiposTercero}
+                          isLoading={loadingTipos}
+                          isDisabled={loadingTipos}
+                          placeholder="Seleccionar"
+                        />
                         {loadingTipos && <Spinner size="sm" className="mt-2" />}
                       </FormGroup>
                     </Col>
                     <Col md={6}>
                       <FormGroup>
-                        <Label for="tipo_entidad_comercial">Tipo de entidad comercial</Label>
-                        <Input id="tipo_entidad_comercial" name="tipo_entidad_comercial" type="select"
-                          value={formData.tipo_entidad_comercial || ''} onChange={chgGeneral}>
-                          <option value="">Seleccionar</option>
-                          <option value="Natural">Natural</option>
-                          <option value="Jurídica">Jurídica</option>
-                        </Input>
+                        <Label>Tipo Entidad Comercial</Label>
+                        <SelectTipoEntidadComercial
+                          value={formData.id_tipo_entidad !== '' && formData.id_tipo_entidad != null ? Number(formData.id_tipo_entidad) : undefined}
+                          onChange={(v) => setValue('id_tipo_entidad', v != null ? v : '')}
+                          tipos={tiposEntidad}
+                          isLoading={loadingTiposEntidad}
+                          isDisabled={loadingTiposEntidad}
+                          placeholder="Seleccione tipo de entidad"
+                        />
                       </FormGroup>
                     </Col>
                   </Row>

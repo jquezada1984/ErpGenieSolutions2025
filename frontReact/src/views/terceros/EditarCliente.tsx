@@ -72,7 +72,7 @@ const GET_TERCERO = gql`
       poblacion
       codigo_postal
       id_pais
-      provincia
+      id_provincia
       telefono
       movil
       fax
@@ -142,7 +142,7 @@ const EditarCliente: React.FC = () => {
       poblacion: t.poblacion ?? '',
       codigo_postal: t.codigo_postal ?? '',
       id_pais: t.id_pais ?? '',
-      provincia: t.provincia ?? '',
+      provincia: t.id_provincia ?? '',
       telefono: t.telefono ?? '',
       movil: t.movil ?? '',
       fax: t.fax ?? '',

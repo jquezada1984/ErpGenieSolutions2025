@@ -19,6 +19,11 @@ class Contacto(db.Model):
     poblacion = db.Column(db.String(100))
     id_pais = db.Column(db.String(36), db.ForeignKey('pais.id_pais'))
     provincia = db.Column(db.String(100))
+    id_provincia = db.Column(
+        db.String(36),
+        db.ForeignKey("provincia.id_provincia"),
+        nullable=True
+    )
     telefono_trabajo = db.Column(db.String(30))
     telefono_particular = db.Column(db.String(30))
     movil = db.Column(db.String(30))

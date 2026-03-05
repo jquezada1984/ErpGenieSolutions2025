@@ -4,12 +4,13 @@ import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import CountrySelect from '../../../components/CountrySelect';
 import ImageUpload from '../../../components/common/ImageUpload';
+import SelectProvincia from '../../../components/selects/SelectProvincia';
 
 type Props = { data:any; onChange:(d:any)=>void };
 
 const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) => {
   const [f, setF] = useState<any>({
-    direccion:'', poblacion:'', codigo_postal:'', id_pais:'', provincia:'',
+    direccion:'', poblacion:'', codigo_postal:'', id_pais:'', provincia:'', id_provincia:'',
     telefono:'', movil:'', fax:'', web:'', correo:'', logo:''
   });
 
@@ -91,8 +92,18 @@ const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) =>
         <Row>
           <Col md={4}>
             <FormGroup>
-              <Label htmlFor="provincia">Provincia</Label>
-              <Input id="provincia" name="provincia" value={f.provincia || ''} onChange={chg}/>
+              <Label>Provincia</Label>
+              <SelectProvincia
+                value={f.id_provincia || null}
+                onChange={(v) => {
+                  const u = { ...f, id_provincia: v ?? '' };
+                  setF(u);
+                  onChange(u);
+                }}
+                id_pais={f.id_pais || null}
+                isDisabled={!f.id_pais}
+                placeholder="Seleccionar provincia"
+              />
             </FormGroup>
           </Col>
           <Col md={4}>
