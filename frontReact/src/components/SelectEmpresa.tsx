@@ -27,7 +27,7 @@ const SelectEmpresa: React.FC<SelectEmpresaProps> = ({
 }) => {
   const options = empresas.map((emp) => ({
     value: emp.id_empresa,
-    label: emp.nombre,
+    label: emp.ruc ? `${emp.ruc} - ${emp.nombre}` : emp.nombre,
   }));
 
   return (
