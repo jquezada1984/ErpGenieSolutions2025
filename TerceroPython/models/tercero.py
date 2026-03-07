@@ -62,7 +62,7 @@ class Tercero(db.Model):
     asignado_a   = db.Column(db.String(36), db.ForeignKey('tercero.id_tercero'), nullable=True)  # Sin foreign key - campo simple
 
     # Auditoría
-    creado_por     = db.Column(db.String(36), nullable=True)  # Sin foreign key - campo simple
-    modificado_por = db.Column(db.String(36), nullable=True)  # Sin foreign key - campo simple
+    created_by     = db.Column(db.String(36), nullable=True)  # Sin foreign key - campo simple
+    updated_by = db.Column(db.String(36), nullable=True)  # Sin foreign key - campo simple
     created_at     = db.Column(db.DateTime, nullable=False, server_default=func.now())
     updated_at     = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

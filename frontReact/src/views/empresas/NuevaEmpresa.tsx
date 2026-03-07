@@ -1,21 +1,23 @@
 import React, { useState, useCallback } from 'react';
-import { 
-  Card, 
-  CardBody, 
-  CardTitle, 
-  Button, 
-  Nav, 
-  NavItem, 
-  NavLink, 
-  TabContent, 
-  TabPane, 
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import {
+  Card,
+  CardBody,
+  CardTitle,
+  Button,
+  Nav,
+  NavItem,
+  NavLink,
+  TabContent,
+  TabPane,
   Alert,
   Spinner
 } from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
 import classnames from 'classnames';
 import { crearEmpresa } from '../../_apis_/empresa';
-import ErrorAlert from '../../components/ErrorAlert';
+import { NuevaEmpresaSchema, type NuevaEmpresaFormValues } from './schemas/NuevaEmpresaSchema';
 import './ConfiguracionEmpresa.scss';
 
 // Componentes de las secciones
@@ -24,32 +26,46 @@ import SeccionRedesSociales from './secciones/SeccionRedesSociales';
 import SeccionHorarioApertura from './secciones/SeccionHorarioApertura';
 import SeccionContable from './secciones/SeccionContable';
 
+const initialForm: NuevaEmpresaFormValues = {
+  nombre: '',
+  ruc: '',
+  direccion: '',
+  telefono: '',
+  email: '',
+  estado: true,
+  id_moneda: '',
+  id_pais: '',
+  codigo_postal: '',
+  poblacion: '',
+  movil: '',
+  fax: '',
+  web: '',
+  nota: '',
+  sujeto_iva: true,
+  id_provincia: '',
+  fiscal_year_start_month: 1,
+  fiscal_year_start_day: 1,
+};
+
 const NuevaEmpresa: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('1');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [formData, setFormData] = useState({
-    nombre: '',
-    ruc: '',
-    direccion: '',
-    telefono: '',
-    email: '',
-    estado: true,
-    id_moneda: '',
-    id_pais: '',
-    codigo_postal: '',
-    poblacion: '',
-    movil: '',
-    fax: '',
-    web: '',
-    nota: '',
-    sujeto_iva: true,
-    id_provincia: '',
-    fiscal_year_start_month: 1,
-    fiscal_year_start_day: 1
+
+  const {
+    watch,
+    setValue,
+    handleSubmit: rhfHandleSubmit,
+    formState: { errors },
+  } = useForm<NuevaEmpresaFormValues>({
+    resolver: yupResolver(NuevaEmpresaSchema),
+    mode: 'onSubmit',
+    defaultValues: initialForm,
   });
+
+  const formData = watch();
 
   const toggleTab = useCallback((tab: string) => {
     if (activeTab !== tab) {
@@ -59,13 +75,20 @@ const NuevaEmpresa: React.FC = () => {
 
   const handleDataChange = useCallback((section: string, data: any) => {
     if (section === 'empresa') {
-      setFormData(prev => ({ ...prev, ...data }));
+      Object.entries(data).forEach(([key, value]) => {
+        setValue(key as keyof NuevaEmpresaFormValues, value as NuevaEmpresaFormValues[keyof NuevaEmpresaFormValues]);
+      });
     }
-  }, []);
+  }, [setValue]);
 
-  const handleEmpresaChange = useCallback((data: any) => {
-    setFormData(prev => ({ ...prev, ...data }));
-  }, []);
+  const handleEmpresaChange = useCallback(
+    (data: any) => {
+      Object.entries(data).forEach(([key, value]) => {
+        setValue(key as keyof NuevaEmpresaFormValues, value as NuevaEmpresaFormValues[keyof NuevaEmpresaFormValues]);
+      });
+    },
+    [setValue]
+  );
 
   const handleRedesSocialesChange = useCallback((data: any) => {
     // TODO: Implementar cuando se complete la sección
@@ -79,24 +102,36 @@ const NuevaEmpresa: React.FC = () => {
     // TODO: Implementar cuando se complete la sección
   }, []);
 
-  const handleSubmit = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      await crearEmpresa(formData);
-      setSuccess(true);
-      
-      setTimeout(() => {
-        navigate('/empresas');
-      }, 2000);
-      
-    } catch (err: any) {
-      setError(err.message || 'Error al crear la empresa');
-    } finally {
-      setLoading(false);
-    }
-  }, [formData, navigate]);
+  const onInvalid = useCallback((formErrors: any) => {
+    const collectMessages = (obj: any): string[] => {
+      if (!obj || typeof obj !== 'object') return [];
+      if (obj.message && typeof obj.message === 'string') return [obj.message];
+      return Object.values(obj).flatMap(collectMessages);
+    };
+    const messages = collectMessages(formErrors);
+    setError(messages.length ? messages.join(' | ') : 'Revisa los campos del formulario');
+  }, []);
+
+  const onSubmit = useCallback(
+    async (values: NuevaEmpresaFormValues) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        await crearEmpresa(values);
+        setSuccess(true);
+
+        setTimeout(() => {
+          navigate('/empresas');
+        }, 2000);
+      } catch (err: any) {
+        setError(err.message || 'Error al crear la empresa');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [navigate]
+  );
 
   const handleCancel = useCallback(() => {
     navigate('/empresas');
@@ -120,9 +155,9 @@ const NuevaEmpresa: React.FC = () => {
               >
                 Cancelar
               </Button>
-              <Button 
-                color="primary" 
-                onClick={handleSubmit}
+              <Button
+                color="primary"
+                onClick={rhfHandleSubmit(onSubmit, onInvalid)}
                 disabled={loading}
               >
                 {loading ? (
@@ -137,7 +172,7 @@ const NuevaEmpresa: React.FC = () => {
             </div>
           </div>
 
-          {error && <ErrorAlert error={error} />}
+          {error && <Alert color="danger">{error}</Alert>}
           
           {success && (
             <Alert color="success" className="mb-3">
@@ -194,9 +229,10 @@ const NuevaEmpresa: React.FC = () => {
 
           <TabContent activeTab={activeTab} className="mt-4">
             <TabPane tabId="1">
-              <SeccionEmpresa 
-                data={formData} 
+              <SeccionEmpresa
+                data={formData}
                 onChange={handleEmpresaChange}
+                fieldErrors={errors}
               />
             </TabPane>
             <TabPane tabId="2">

@@ -179,11 +179,11 @@ export class Tercero {
   // ---- Auditoría ----
   @Field({ nullable: true })
   @Column({ type: 'uuid', nullable: true })
-  creado_por?: string;
+  created_by?: string;
 
   @Field({ nullable: true })
   @Column({ type: 'uuid', nullable: true })
-  modificado_por?: string;
+  updated_by?: string;
 
   @Field(() => GraphQLISODateTime, { nullable: true })
   @Column({ type: 'timestamp', name: 'created_at', default: () => 'CURRENT_TIMESTAMP' })

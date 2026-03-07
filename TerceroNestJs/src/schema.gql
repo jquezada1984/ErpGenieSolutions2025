@@ -20,7 +20,7 @@ input CreateTerceroInput {
   codigo_postal: String
   codigo_proveedor: String
   correo: String
-  creado_por: String
+  created_by: String
   direccion: String
   estado: Boolean! = true
   fax: String
@@ -103,7 +103,7 @@ type Tercero {
   codigo_cliente: String
   codigo_postal: String
   correo: String
-  creado_por: String
+  created_by: String
   direccion: String
   empresa: Empresa
   estado: Boolean!
@@ -118,7 +118,7 @@ type Tercero {
   id_profesional_2: String
   id_tercero: ID!
   id_tipo_tercero: String
-  modificado_por: String
+  updated_by: String
   movil: String
   nombre: String!
   poblacion: String
@@ -149,7 +149,7 @@ input UpdateTerceroInput {
   codigo_postal: String
   codigo_proveedor: String
   correo: String
-  creado_por: String
+  created_by: String
   direccion: String
   estado: Boolean = true
   fax: String
@@ -161,7 +161,7 @@ input UpdateTerceroInput {
   id_profesional_2: String
   id_tercero: String!
   id_tipo_tercero: String
-  modificado_por: String
+  updated_by: String
   movil: String
   nombre: String
   poblacion: String

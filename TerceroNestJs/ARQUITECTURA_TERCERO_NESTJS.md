@@ -144,7 +144,7 @@ Para **ProductoNestJs**: añadir en `forRoot` la entidad Producto (y catálogos 
   - Decoradores de validación: `@IsUUID()`, `@IsString()`, `@Length()`, `@IsBoolean()`, `@IsOptional()`, `@IsEmail()`, etc.
 
 - **`dto/update-tercero.dto.ts`**
-  - `@InputType()` y `UpdateTerceroInput extends PartialType(CreateTerceroInput)` más campo obligatorio `id_tercero` y opcional `modificado_por`.
+  - `@InputType()` y `UpdateTerceroInput extends PartialType(CreateTerceroInput)` más campo obligatorio `id_tercero` y opcional `updated_by`.
 
 - **`interfaces/tercero.interface.ts`**
   - Interface TypeScript con la forma del tercero (opcional; útil para tipado en servicios o tests).

@@ -39,8 +39,8 @@ export interface ITercero {
     asignado_a?: string;
     id_tipo_tercero?: string;
   
-    creado_por?: string;
-    modificado_por?: string;
+    created_by?: string;
+    updated_by?: string;
     fecha_creacion?: Date;
     fecha_modificacion?: Date;
   }

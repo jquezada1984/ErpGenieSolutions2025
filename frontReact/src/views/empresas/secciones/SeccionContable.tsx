@@ -11,6 +11,9 @@ import {
   InputGroup,
   InputGroupText
 } from 'reactstrap';
+import { useQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
+import SelectTipoEntidadComercial from '../../../components/selects/SelectTipoEntidadComercial';
 
 interface IdentificacionEmpresa {
   id_identificacion?: string;
@@ -60,17 +63,16 @@ const SeccionContable: React.FC<SeccionContableProps> = ({ data, onChange }) => 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Datos maestros (mock por ahora)
-  const tiposEntidad = [
-    { id_tipo_entidad: 1, nombre: 'Sociedad Anónima' },
-    { id_tipo_entidad: 2, nombre: 'Sociedad Limitada' },
-    { id_tipo_entidad: 3, nombre: 'Autónomo' },
-    { id_tipo_entidad: 4, nombre: 'Sociedad Cooperativa' },
-    { id_tipo_entidad: 5, nombre: 'Asociación' },
-    { id_tipo_entidad: 6, nombre: 'Fundación' },
-    { id_tipo_entidad: 7, nombre: 'Sociedad Civil' },
-    { id_tipo_entidad: 8, nombre: 'Comunidad de Bienes' }
-  ];
+  const GET_TIPOS_ENTIDAD = gql`
+    query GetTiposEntidad {
+      tiposEntidadComercial {
+        id_tipo_entidad
+        nombre
+      }
+    }
+  `;
+  const { data: tiposEntidadData, loading: loadingTiposEntidad } = useQuery(GET_TIPOS_ENTIDAD);
+  const tiposEntidad = tiposEntidadData?.tiposEntidadComercial || [];
 
   // Inicializar datos cuando estén disponibles
   useEffect(() => {
@@ -219,20 +221,21 @@ const SeccionContable: React.FC<SeccionContableProps> = ({ data, onChange }) => 
                   Tipo de entidad comercial
                   <i className="fas fa-info-circle ms-1 text-muted"></i>
                 </Label>
-                <Input
-                  id="id_tipo_entidad"
-                  name="id_tipo_entidad"
-                  type="select"
-                  value={formData.id_tipo_entidad || ''}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Seleccionar tipo de entidad</option>
-                  {tiposEntidad.map(tipo => (
-                    <option key={tipo.id_tipo_entidad} value={tipo.id_tipo_entidad}>
-                      {tipo.nombre}
-                    </option>
-                  ))}
-                </Input>
+                <SelectTipoEntidadComercial
+                  value={formData.id_tipo_entidad ?? undefined}
+                  onChange={(value: number | null | undefined) => {
+                    const newFormData = {
+                      ...formData,
+                      id_tipo_entidad: value ?? undefined,
+                    };
+                    setFormData(newFormData);
+                    onChange(newFormData);
+                  }}
+                  tipos={tiposEntidad}
+                  isLoading={loadingTiposEntidad}
+                  isDisabled={loadingTiposEntidad}
+                  placeholder="Seleccionar tipo de entidad"
+                />
               </FormGroup>
             </Col>
           </Row>

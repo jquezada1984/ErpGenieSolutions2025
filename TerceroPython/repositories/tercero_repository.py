@@ -42,8 +42,8 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
         sede_central=payload.get("sede_central"),
         asignado_a=payload.get("asignado_a"),
         # auditoría
-        creado_por=user_id,
-        modificado_por=user_id,
+        created_by=user_id,
+        updated_by=user_id,
     )
     db.session.add(tercero)
     db.session.flush()
@@ -89,7 +89,7 @@ def update_tercero(
         if k in updatable:
             if isinstance(v,str): v=v.strip()
             setattr(tercero,k,v)
-    tercero.modificado_por = user_id
+    tercero.updated_by = user_id
 
     if "logo" in payload:
         existing_media = Media.query.filter_by(
@@ -127,7 +127,7 @@ def soft_delete_tercero(
     if not tercero:
         return False
     tercero.estado = False
-    tercero.modificado_por = user_id
+    tercero.updated_by = user_id
     try:
         db.session.commit()
     except IntegrityError:

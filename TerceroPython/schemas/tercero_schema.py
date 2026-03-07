@@ -126,7 +126,7 @@ class TerceroOutSchema(Schema):
     sede_central      = fields.UUID(allow_none=True)
     asignado_a        = fields.UUID(allow_none=True)
 
-    creado_por     = fields.UUID(allow_none=True)
-    modificado_por = fields.UUID(allow_none=True)
+    created_by     = fields.UUID(allow_none=True)
+    updated_by = fields.UUID(allow_none=True)
     created_at     = fields.DateTime()
     updated_at     = fields.DateTime()

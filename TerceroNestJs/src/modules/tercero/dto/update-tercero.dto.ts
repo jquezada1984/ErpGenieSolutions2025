@@ -5,5 +5,5 @@ import { IsUUID, IsOptional } from 'class-validator';
 @InputType()
 export class UpdateTerceroInput extends PartialType(CreateTerceroInput) {
   @Field() @IsUUID() id_tercero: string;
-  @Field({ nullable: true }) @IsUUID() @IsOptional() modificado_por?: string;
+  @Field({ nullable: true }) @IsUUID() @IsOptional() updated_by?: string;
 }

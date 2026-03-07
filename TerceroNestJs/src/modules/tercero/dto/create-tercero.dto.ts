@@ -52,5 +52,5 @@ export class CreateTerceroInput {
   @Field({ nullable: true }) @IsUUID() @IsOptional() id_tipo_tercero?: string;
 
   // Auditoría
-  @Field({ nullable: true }) @IsUUID() @IsOptional() creado_por?: string;
+  @Field({ nullable: true }) @IsUUID() @IsOptional() created_by?: string;
 }

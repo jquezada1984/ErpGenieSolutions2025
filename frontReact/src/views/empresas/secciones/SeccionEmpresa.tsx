@@ -3,13 +3,20 @@ import { Card, CardBody, Row, Col, FormGroup, Label, Input, FormText } from 'rea
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import CountrySelect from '../../../components/CountrySelect';
+import SelectProvincia from '../../../components/selects/SelectProvincia';
+
+interface FieldErrorShape {
+  message?: string;
+}
 
 interface SeccionEmpresaProps {
   data: any;
   onChange: (data: any) => void;
+  /** Errores de React Hook Form (nombre, ruc). Si se pasan, se usan para invalid y mensaje. */
+  fieldErrors?: { nombre?: FieldErrorShape; ruc?: FieldErrorShape };
 }
 
-const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
+const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange, fieldErrors }) => {
   const [formData, setFormData] = useState(() => ({
     nombre: data?.nombre || '',
     ruc: data?.ruc || '',
@@ -54,24 +61,12 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
     }
   `;
 
-  const GET_PROVINCIAS = gql`
-    query GetProvincias {
-      provincias {
-        id_provincia
-        nombre
-        id_pais
-      }
-    }
-  `;
-
   // Obtener datos maestros con manejo de errores
   const { data: monedasData, loading: loadingMonedas, error: errorMonedas } = useQuery(GET_MONEDAS);
   const { data: paisesData, loading: loadingPaises, error: errorPaises } = useQuery(GET_PAISES);
-  const { data: provinciasData, loading: loadingProvincias, error: errorProvincias } = useQuery(GET_PROVINCIAS);
 
   const monedas = monedasData?.monedas || [];
   const paises = paisesData?.paises || [];
-  const provincias = provinciasData?.provincias || [];
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -186,10 +181,6 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
        data?.fax, data?.web, data?.nota, data?.sujeto_iva, data?.id_provincia, 
        data?.fiscal_year_start_month, data?.fiscal_year_start_day]);
 
-  const getProvinciasByPais = (idPais: string) => {
-    return provincias.filter((p: any) => p.id_pais === idPais);
-  };
-
   return (
     <div className="seccion-empresa">
       <Card>
@@ -218,9 +209,11 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
                   type="text"
                   value={formData.nombre}
                   onChange={handleInputChange}
-                  invalid={!!errors.nombre}
+                  invalid={!!(fieldErrors?.nombre ?? errors.nombre)}
                 />
-                {errors.nombre && <FormText color="danger">{errors.nombre}</FormText>}
+                {(fieldErrors?.nombre?.message ?? errors.nombre) && (
+                  <FormText color="danger">{fieldErrors?.nombre?.message ?? errors.nombre}</FormText>
+                )}
               </FormGroup>
             </Col>
             
@@ -235,10 +228,12 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
                   type="text"
                   value={formData.ruc}
                   onChange={handleInputChange}
-                  invalid={!!errors.ruc}
+                  invalid={!!(fieldErrors?.ruc ?? errors.ruc)}
                   maxLength={11}
                 />
-                {errors.ruc && <FormText color="danger">{errors.ruc}</FormText>}
+                {(fieldErrors?.ruc?.message ?? errors.ruc) && (
+                  <FormText color="danger">{fieldErrors?.ruc?.message ?? errors.ruc}</FormText>
+                )}
               </FormGroup>
             </Col>
           </Row>
@@ -344,24 +339,17 @@ const SeccionEmpresa: React.FC<SeccionEmpresaProps> = ({ data, onChange }) => {
                   Provincia
                   <i className="fas fa-info-circle ms-1 text-muted" title="Provincia/Estado"></i>
                 </Label>
-                <Input
-                  id="id_provincia"
-                  name="id_provincia"
-                  type="select"
-                  value={formData.id_provincia}
-                  onChange={handleInputChange}
-                  disabled={!formData.id_pais || loadingProvincias}
-                >
-                  <option value="">
-                    {!formData.id_pais ? 'Seleccione un país primero' : 
-                     loadingProvincias ? 'Cargando provincias...' : 'Seleccionar provincia'}
-                  </option>
-                  {getProvinciasByPais(formData.id_pais).map((provincia: any) => (
-                    <option key={provincia.id_provincia} value={provincia.id_provincia}>
-                      {provincia.nombre}
-                    </option>
-                  ))}
-                </Input>
+                <SelectProvincia
+                  value={formData.id_provincia || null}
+                  onChange={(v) => {
+                    const newFormData = { ...formData, id_provincia: v ?? '' };
+                    setFormData(newFormData);
+                    onChange(newFormData);
+                  }}
+                  id_pais={formData.id_pais || null}
+                  isDisabled={!formData.id_pais}
+                  placeholder={!formData.id_pais ? 'Seleccione un país primero' : 'Seleccionar provincia'}
+                />
               </FormGroup>
             </Col>
           </Row>
