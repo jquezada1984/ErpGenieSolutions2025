@@ -32,8 +32,11 @@ def crear_tercero():
     except ValidationError as ve:
         return jsonify(ve.messages), 400
     except IntegrityError as e:
-        if "codigo_cliente" in str(e).lower() and "unique" in str(e).lower():
+        err_lower = str(e).lower()
+        if "codigo_cliente" in err_lower and "unique" in err_lower:
             return jsonify({'error': 'Código cliente duplicado', 'field': 'codigo_cliente', 'type': 'duplicate'}), 409
+        if "codigo_proveedor" in err_lower and "unique" in err_lower:
+            return jsonify({'error': 'Código proveedor duplicado', 'field': 'codigo_proveedor', 'type': 'duplicate'}), 409
         return jsonify({'error': 'Error de duplicidad'}), 409
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -55,8 +58,11 @@ def actualizar_tercero(id_tercero):
     except ValidationError as ve:
         return jsonify(ve.messages), 400
     except IntegrityError as e:
-        if "codigo_cliente" in str(e).lower() and "unique" in str(e).lower():
+        err_lower = str(e).lower()
+        if "codigo_cliente" in err_lower and "unique" in err_lower:
             return jsonify({'error': 'Código cliente duplicado', 'field': 'codigo_cliente', 'type': 'duplicate'}), 409
+        if "codigo_proveedor" in err_lower and "unique" in err_lower:
+            return jsonify({'error': 'Código proveedor duplicado', 'field': 'codigo_proveedor', 'type': 'duplicate'}), 409
         return jsonify({'error': 'Error de duplicidad'}), 409
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -27,6 +27,7 @@ class Tercero(db.Model):
     nombre                 = db.Column(db.String(150), nullable=False)
     apodo                  = db.Column(db.String(150))
     codigo_cliente         = db.Column(db.String(30))  # usa unique parcial en BD si lo prefieres
+    codigo_proveedor        = db.Column(db.String(20))
     estado                 = db.Column(db.Boolean, nullable=False, default=True)
 
     # Ubicación

@@ -16,6 +16,7 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
         nombre=(payload.get("nombre") or "").strip(),
         apodo=payload.get("apodo"),
         codigo_cliente=payload.get("codigo_cliente"),
+        codigo_proveedor=payload.get("codigo_proveedor"),
         estado=bool(payload.get("estado", True)),
         sujeto_iva=bool(payload.get("sujeto_iva", True)),
         id_tipo_tercero=payload.get("id_tipo_tercero"),
@@ -77,7 +78,7 @@ def update_tercero(
         return None
     updatable = {
         "cliente_potencial","cliente","proveedor",
-        "nombre","apodo","codigo_cliente","estado","sujeto_iva",
+        "nombre","apodo","codigo_cliente","codigo_proveedor","estado","sujeto_iva",
         "id_tipo_tercero","id_tipo_entidad",
         "direccion","poblacion","codigo_postal","id_pais","provincia","id_provincia",
         "telefono","movil","fax","web","correo","logo",
@@ -141,6 +142,18 @@ def exists_codigo_cliente(id_empresa: str, codigo_cliente: str, exclude_id: Opti
     q = Tercero.query.filter(
         Tercero.id_empresa == id_empresa,
         db.func.lower(Tercero.codigo_cliente) == codigo_cliente.lower()
+    )
+    if exclude_id:
+        q = q.filter(Tercero.id_tercero != exclude_id)
+    return db.session.query(q.exists()).scalar()
+
+
+def exists_codigo_proveedor(id_empresa: str, codigo_proveedor: str, exclude_id: Optional[str] = None) -> bool:
+    if not codigo_proveedor:
+        return False
+    q = Tercero.query.filter(
+        Tercero.id_empresa == id_empresa,
+        db.func.lower(Tercero.codigo_proveedor) == codigo_proveedor.lower()
     )
     if exclude_id:
         q = q.filter(Tercero.id_tercero != exclude_id)
