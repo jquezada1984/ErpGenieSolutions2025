@@ -273,6 +273,23 @@ export class AutorizacionService {
   }
 
   /**
+   * Obtiene el id_seccion por nombre de sección (p. ej. "Contabilidad").
+   * Útil cuando el frontend necesita cargar el menú de una sección sin depender de menuLateralPorPerfil.
+   */
+  async obtenerIdSeccionPorNombre(nombre: string): Promise<string | null> {
+    try {
+      const seccion = await this.menuSeccionRepository.findOne({
+        where: { nombre, estado: true },
+        select: ['id_seccion'],
+      });
+      return seccion?.id_seccion ?? null;
+    } catch (error) {
+      console.error('Error al obtener id_seccion por nombre:', error);
+      return null;
+    }
+  }
+
+  /**
    * Obtiene el menú principal ordenado (items sin parent_id) para una sección específica
    * Implementa la consulta exacta: SELECT id_item, id_seccion, parent_id, etiqueta, icono, ruta, es_clickable, orden, muestra_badge, badge_text, estado, created_by, created_at, updated_by, updated_at FROM public.menu_item WHERE id_seccion='29dea275-b0f7-4fb3-83fa-7c0ea31c3cf1' and parent_id is null and estado=true ORDER BY orden ASC
    */

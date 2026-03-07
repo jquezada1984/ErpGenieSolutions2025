@@ -33,79 +33,110 @@ const Sidebar = () => {
   const { 
     menuLateral, 
     menuLateralOrdenado,
-    cargarMenuLateral, 
     cargarMenuLateralOrdenado,
+    getIdSeccionPorNombre,
     loading: loadingPermisos 
   } = usePermissions();
 
-  // Mapear menú seleccionado a ID de sección
-  const obtenerIdSeccionPorMenu = (menu: string): string => {
-    const mapeoSecciones: { [key: string]: string } = {
-      'inicio': '29dea275-b0f7-4fb3-83fa-7c0ea31c3cf1', // Administración
-      'terceros': '39dea275-b0f7-4fb3-83fa-7c0ea31c3cf2', // Terceros (ejemplo)
-      'servicios': '49dea275-b0f7-4fb3-83fa-7c0ea31c3cf3', // Servicios (ejemplo)
-      'proyectos': '59dea275-b0f7-4fb3-83fa-7c0ea31c3cf4', // Proyectos (ejemplo)
-      'comercial': '69dea275-b0f7-4fb3-83fa-7c0ea31c3cf5', // Comercial (ejemplo)
-      'financiera': '79dea275-b0f7-4fb3-83fa-7c0ea31c3cf6', // Financiera (ejemplo)
-      'bancos': '89dea275-b0f7-4fb3-83fa-7c0ea31c3cf7', // Bancos (ejemplo)
-      'contabilidad': '99dea275-b0f7-4fb3-83fa-7c0ea31c3cf8', // Contabilidad (ejemplo)
-      'rrhh': 'a9dea275-b0f7-4fb3-83fa-7c0ea31c3cf9', // RRHH (ejemplo)
-      'documentos': 'b9dea275-b0f7-4fb3-83fa-7c0ea31c3cfa', // Documentos (ejemplo)
-      'agenda': 'c9dea275-b0f7-4fb3-83fa-7c0ea31c3cfb', // Agenda (ejemplo)
-      'tickets': 'd9dea275-b0f7-4fb3-83fa-7c0ea31c3cfc', // Tickets (ejemplo)
-      'utilidades': 'e9dea275-b0f7-4fb3-83fa-7c0ea31c3cfd' // Utilidades (ejemplo)
+  // ID de sección por menú: Inicio usa ID fijo; Contabilidad y demás usan menuLateral o consulta por nombre
+  const obtenerIdSeccionPorMenu = (menu: string): string | undefined => {
+    if (menu === 'inicio') {
+      return '29dea275-b0f7-4fb3-83fa-7c0ea31c3cf1'; // Administración
+    }
+    const nombreSeccion: { [key: string]: string } = {
+      'terceros': 'Terceros',
+      'contabilidad': 'Contabilidad',
+      'financiera': 'Financiera',
+      'bancos': 'Bancos',
+      'rrhh': 'RRHH',
+      'documentos': 'Documentos',
+      'agenda': 'Agenda',
+      'tickets': 'Tickets',
+      'utilidades': 'Utilidades',
+      'servicios': 'Servicios',
+      'proyectos': 'Proyectos',
+      'comercial': 'Comercial',
     };
-    return mapeoSecciones[menu] || '29dea275-b0f7-4fb3-83fa-7c0ea31c3cf1'; // Default a Administración
+    const nombre = nombreSeccion[menu];
+    return nombre ? menuLateral.find(s => s.nombre === nombre)?.id_seccion : undefined;
   };
 
-  // Cargar menú lateral cuando cambie el perfil o el menú seleccionado
+  // Cargar menú lateral ordenado cuando cambie el menú seleccionado
   useEffect(() => {
-    // For "inicio" menu, use dynamic menu from database
-    if (selectedMenu === 'inicio' && user?.id_perfil) {
-      const idSeccion = obtenerIdSeccionPorMenu(selectedMenu);
+    if (!user?.id_perfil) return;
+    let idSeccion = obtenerIdSeccionPorMenu(selectedMenu);
+    if (idSeccion) {
       cargarMenuLateralOrdenado(idSeccion);
+      return;
     }
-  }, [selectedMenu, user?.id_perfil, cargarMenuLateralOrdenado]);
+    // Respaldo: si la sección no está en menuLateral, obtener id por nombre
+    if (selectedMenu === 'contabilidad') {
+      getIdSeccionPorNombre('Contabilidad').then((id) => { if (id) cargarMenuLateralOrdenado(id); });
+    } else if (selectedMenu === 'terceros') {
+      getIdSeccionPorNombre('Terceros').then((id) => { if (id) cargarMenuLateralOrdenado(id); });
+    }
+  }, [selectedMenu, user?.id_perfil, menuLateral, cargarMenuLateralOrdenado, getIdSeccionPorNombre]);
 
+  // Construir datos del sidebar: dinámico (BD) o estático
+  // Solo usar menuOrdenadoActual si corresponde a la sección actual (mismo id_seccion)
+  const idSeccionActual = obtenerIdSeccionPorMenu(selectedMenu);
+  const menuOrdenadoActual = menuLateralOrdenado[0];
+  const esMenuDinamicoActual = menuOrdenadoActual && idSeccionActual && menuOrdenadoActual.id_seccion === idSeccionActual;
 
-  // Usar menú lateral ordenado si está disponible, sino usar el estático
-  // Pero siempre priorizar el menú estático que ya tiene la estructura correcta
-  // Use dynamic menu for "inicio" if available, otherwise use static
+  // Título del sidebar por clave de menú (cuando el contenido viene de BD)
+  const captionPorMenu: { [key: string]: string } = {
+    inicio: 'Administración',
+    contabilidad: 'Contabilidad',
+    terceros: 'Terceros',
+    financiera: 'Financiera',
+    bancos: 'Bancos | Cajas',
+    rrhh: 'RRHH',
+    documentos: 'Documentos',
+    agenda: 'Agenda',
+    tickets: 'Tickets',
+    utilidades: 'Utilidades',
+    servicios: 'Servicios',
+    proyectos: 'Proyectos',
+    comercial: 'Comercial',
+  };
+
+  const convertirItemsADatosSidebar = (items: typeof menuOrdenadoActual.items, iconoDefault: React.ReactNode) =>
+    items.map(item => ({
+      title: item.etiqueta,
+      icon: item.icono ? <i className={item.icono} /> : iconoDefault,
+      id: item.id_item,
+      children: item.children?.map(child => ({
+        title: child.etiqueta,
+        href: child.ruta,
+        icon: child.icono ? <i className={child.icono} /> : <Icon.List size={14} />
+      })) || []
+    }));
+
   let SidebarData;
-  
-  if (selectedMenu === 'inicio') {
-    if (menuLateralOrdenado.length > 0) {
-      // Convert menuLateralOrdenado to SidebarData format
-      const menuOrdenado = menuLateralOrdenado[0];
-      SidebarData = [
-        { caption: menuOrdenado.nombre },
-        ...menuOrdenado.items.map(item => ({
-          title: item.etiqueta,
-          icon: item.icono ? <i className={item.icono} /> : <Icon.Home size={16} />,
-          id: item.id_item,
-          children: item.children?.map(child => ({
-            title: child.etiqueta,
-            href: child.ruta,
-            icon: child.icono ? <i className={child.icono} /> : <Icon.List size={14} />
-          })) || []
-        }))
-      ];
-    } else {
-      // Use simplified static menu for inicio (only Empresa)
-      SidebarData = [
-        { caption: "Administración" },
-        {
-          title: "Empresa",
-          icon: <i className="bi bi-building" />,
-          id: 'empresa',
-          children: [
-            { title: "Lista", href: "/empresas", icon: <Icon.List size={14} /> },
-            { title: "Crear", href: "/empresas/nueva", icon: <Icon.Plus size={14} /> },
-          ],
-        }
-      ];
-    }
+
+  if (esMenuDinamicoActual && menuOrdenadoActual.items?.length) {
+    // Menú dinámico desde BD: mismo id_seccion que la sección seleccionada
+    const caption = captionPorMenu[selectedMenu] || menuOrdenadoActual.nombre;
+    SidebarData = [
+      { caption },
+      ...convertirItemsADatosSidebar(menuOrdenadoActual.items, <Icon.Home size={16} />)
+    ];
+  } else if (selectedMenu === 'inicio') {
+    // Fallback estático solo para Inicio cuando no hay datos dinámicos
+    SidebarData = [
+      { caption: 'Administración' },
+      {
+        title: 'Empresa',
+        icon: <i className="bi bi-building" />,
+        id: 'empresa',
+        children: [
+          { title: 'Lista', href: '/empresas', icon: <Icon.List size={14} /> },
+          { title: 'Crear', href: '/empresas/nueva', icon: <Icon.Plus size={14} /> },
+        ],
+      }
+    ];
   } else {
+    // Resto: datos estáticos (terceros, contabilidad "Próximamente", etc.)
     SidebarData = getSidebarData(selectedMenu);
   }
 

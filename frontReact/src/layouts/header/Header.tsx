@@ -61,18 +61,20 @@ const Header = () => {
   const { 
     opcionesMenuSuperior, 
     cargarOpcionesMenuSuperior, 
+    cargarMenuLateral,
     loading: loadingPermisos 
   } = usePermissions();
 
-  // Cargar permisos cuando el usuario esté autenticado
+  // Cargar permisos y menú lateral (secciones con permisos) cuando el usuario esté autenticado
   useEffect(() => {
     if (user?.id_perfil) {
       cargarOpcionesMenuSuperior(user.id_perfil);
+      cargarMenuLateral(user.id_perfil);
     } else {
       // Mostrar menú por defecto si no hay perfil
       dispatch(setMainMenu('inicio'));
     }
-  }, [user?.id_perfil, cargarOpcionesMenuSuperior, dispatch]);
+  }, [user?.id_perfil, cargarOpcionesMenuSuperior, cargarMenuLateral, dispatch]);
 
   // Asegurar que el estado inicial se mantenga
   useEffect(() => {

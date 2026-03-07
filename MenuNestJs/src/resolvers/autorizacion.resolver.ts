@@ -94,6 +94,17 @@ export class AutorizacionResolver {
     }
   }
 
+  @Query(() => String, { nullable: true })
+  async idSeccionPorNombre(
+    @Args('nombre', { type: () => String }) nombre: string,
+  ): Promise<string | null> {
+    try {
+      return await this.autorizacionService.obtenerIdSeccionPorNombre(nombre);
+    } catch (error) {
+      return null;
+    }
+  }
+
   // Nuevos resolvers para el menú ordenado jerárquico
 
   @Query(() => [MenuItemOrdenado])

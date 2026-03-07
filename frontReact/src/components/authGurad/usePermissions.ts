@@ -96,6 +96,12 @@ const GET_OPCIONES_MENU_SUPERIOR = gql`
   }
 `;
 
+const GET_ID_SECCION_POR_NOMBRE = gql`
+  query GetIdSeccionPorNombre($nombre: String!) {
+    idSeccionPorNombre(nombre: $nombre)
+  }
+`;
+
 const GET_PERFIL_CON_PERMISOS = gql`
   query GetPerfilConPermisos($id_perfil: ID!) {
     perfilConPermisos(id_perfil: $id_perfil) {
@@ -230,6 +236,7 @@ export const usePermissions = (): UsePermissionsReturn => {
   const [getSubmenusOrdenados, { loading: loadingSubmenus }] = useLazyQuery(GET_SUBMENUS_ORDENADOS, { client: menuClient });
   const [getOpcionesMenuSuperior, { loading: loadingOpciones }] = useLazyQuery(GET_OPCIONES_MENU_SUPERIOR, { client: menuClient });
   const [getPerfilConPermisos, { loading: loadingPerfil }] = useLazyQuery(GET_PERFIL_CON_PERMISOS, { client: menuClient });
+  const [getIdSeccionPorNombreQuery] = useLazyQuery(GET_ID_SECCION_POR_NOMBRE, { client: menuClient });
 
   // Actualizar loading general
   useEffect(() => {
@@ -265,6 +272,17 @@ export const usePermissions = (): UsePermissionsReturn => {
       console.error('❌ ERROR en cargarMenuLateral:', err);
     }
   }, [getMenuLateralPorPerfil]);
+
+  // Obtener id_seccion por nombre de sección (respaldo cuando menuLateral no incluye la sección)
+  const getIdSeccionPorNombre = useCallback(async (nombre: string): Promise<string | null> => {
+    try {
+      const { data } = await getIdSeccionPorNombreQuery({ variables: { nombre } });
+      return data?.idSeccionPorNombre ?? null;
+    } catch (err) {
+      console.error('Error al obtener id_seccion por nombre:', err);
+      return null;
+    }
+  }, [getIdSeccionPorNombreQuery]);
 
   // Cargar menú lateral ordenado jerárquicamente
   const cargarMenuLateralOrdenado = useCallback(async (id_seccion: string) => {
@@ -399,6 +417,7 @@ export const usePermissions = (): UsePermissionsReturn => {
     // Funciones
     cargarPermisos,
     cargarMenuLateral,
+    getIdSeccionPorNombre,
     cargarMenuLateralOrdenado,
     cargarOpcionesMenuSuperior,
     cargarPerfilCompleto,

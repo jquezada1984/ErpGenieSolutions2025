@@ -38,7 +38,8 @@ const getTargetService = (query, config) => {
     query.includes('opcionesMenuSuperior') ||
     query.includes('permisosPorPerfil') ||
     query.includes('permisosPorModulo') ||
-    query.includes('menuLateralPorPerfil')
+    query.includes('menuLateralPorPerfil') ||
+    query.includes('idSeccionPorNombre')
   )) {
     console.log('🔄 Redirigiendo consulta de menú a MenuNestJs');
     return config.menuService;

@@ -20,7 +20,7 @@ export class AsientoContable {
   @Column({ type: 'decimal', precision: 15, scale: 2 })
   total_haber: number;
 
-  @Column({ type: 'enum', enum: ['BORRADOR', 'APROBADO', 'ANULADO'] })
+  @Column({ type: 'enum', enum: ['BORRADOR', 'APROBADO', 'ANULADO', 'REVERSED'] })
   estado: string;
 
   @Column({ nullable: true })
@@ -28,6 +28,9 @@ export class AsientoContable {
 
   @Column({ nullable: true })
   empresa_id: number;
+
+  @Column({ nullable: true })
+  reversed_entry_id: number | null;
 
   @CreateDateColumn()
   created_at: Date;
