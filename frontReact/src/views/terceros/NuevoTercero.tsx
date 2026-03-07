@@ -23,6 +23,7 @@ const initialForm: NuevoTerceroFormValues = {
   nombre: '',
   apodo: '',
   codigo_cliente: '',
+  codigo_proveedor: '',
   estado: true,
   sujeto_iva: true,
   id_tipo_tercero: '',

@@ -34,6 +34,7 @@ const initialForm: NuevoTerceroFormValues = {
   nombre: '',
   apodo: '',
   codigo_cliente: '',
+  codigo_proveedor: '',
   estado: true,
   sujeto_iva: true,
   id_tipo_tercero: '',
@@ -79,6 +80,7 @@ const GET_TERCERO = gql`
       nombre
       apodo
       codigo_cliente
+      codigo_proveedor
       estado
       sujeto_iva
       id_tipo_entidad
@@ -145,6 +147,7 @@ const EditarTercero: React.FC = () => {
       nombre: t.nombre ?? '',
       apodo: t.apodo ?? '',
       codigo_cliente: t.codigo_cliente ?? '',
+      codigo_proveedor: t.codigo_proveedor ?? '',
       estado: !!t.estado,
       sujeto_iva: t.sujeto_iva !== false,
       id_tipo_tercero: t.id_tipo_tercero ?? t.tipo_tercero?.id_tipo_tercero ?? '',
@@ -354,7 +357,7 @@ const EditarTercero: React.FC = () => {
 
           <TabContent activeTab={activeTab} className="mt-4">
             <TabPane tabId="1">
-              <SeccionTerceroGeneral data={formData} onChange={onGeneral} />
+              <SeccionTerceroGeneral data={formData} onChange={onGeneral} isEdit />
             </TabPane>
             <TabPane tabId="2">
               <SeccionTerceroUbicacionContacto data={formData} onChange={onUbicacion} />

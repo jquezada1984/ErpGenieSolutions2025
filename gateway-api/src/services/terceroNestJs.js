@@ -61,6 +61,7 @@ async function listarTerceros(req) {
         cliente_potencial
         estado
         codigo_cliente
+        codigo_proveedor
         empresa {
           id_empresa
           nombre
@@ -94,6 +95,7 @@ async function listarClientes(req) {
         cliente_potencial
         estado
         codigo_cliente
+        codigo_proveedor
         empresa { id_empresa nombre }
         tipo_tercero { id_tipo_tercero nombre }
         asignado_a
@@ -120,6 +122,8 @@ async function obtenerTercero(id_tercero, req) {
         proveedor
         cliente_potencial
         estado
+        codigo_cliente
+        codigo_proveedor
         direccion
         poblacion
         codigo_postal

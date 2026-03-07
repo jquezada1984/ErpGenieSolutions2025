@@ -101,6 +101,7 @@ type Tercero {
   cliente: Boolean!
   cliente_potencial: Boolean!
   codigo_cliente: String
+  codigo_proveedor: String
   codigo_postal: String
   correo: String
   created_by: String

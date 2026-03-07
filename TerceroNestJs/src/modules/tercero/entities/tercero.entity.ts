@@ -107,6 +107,10 @@ export class Tercero {
   @Column({ type: 'varchar', length: 20, nullable: true })
   codigo_cliente?: string;
 
+  @Field({ nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  codigo_proveedor?: string;
+
   @Field({ defaultValue: true })
   @Column({ type: 'boolean', default: true })
   estado: boolean;

@@ -8,6 +8,7 @@ export interface NuevoTerceroFormValues {
   nombre: string;
   apodo: string;
   codigo_cliente: string;
+  codigo_proveedor: string;
   estado: boolean;
   sujeto_iva: boolean;
   id_tipo_tercero: string;
@@ -41,6 +42,7 @@ export const NuevoTerceroSchema = yup.object({
   nombre: yup.string().required('El nombre es obligatorio'),
   apodo: yup.string(),
   codigo_cliente: yup.string(),
+  codigo_proveedor: yup.string(),
   estado: yup.boolean(),
   sujeto_iva: yup.boolean(),
   id_tipo_tercero: yup.string(),

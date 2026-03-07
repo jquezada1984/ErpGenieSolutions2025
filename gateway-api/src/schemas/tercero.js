@@ -20,6 +20,7 @@ const terceroCreateSchema = {
     nombre: { type: 'string', minLength: 1 },
     apodo: stringOpt,
     codigo_cliente: stringOpt,
+    codigo_proveedor: stringOpt,
     estado: booleanish,
     sujeto_iva: booleanish,
     id_tipo_tercero: uuid,

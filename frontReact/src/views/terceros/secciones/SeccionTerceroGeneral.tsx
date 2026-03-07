@@ -6,7 +6,7 @@ import { listarTiposTercero } from '../../../_apis_/tercero';
 import SelectTipoTercero from '../../../components/selects/SelectTipoTercero';
 import SelectTipoEntidadComercial from '../../../components/selects/SelectTipoEntidadComercial';
 
-type Props = { data: any; onChange: (d:any)=>void };
+type Props = { data: any; onChange: (d:any)=>void; isEdit?: boolean };
 
 const GET_TIPOS_ENTIDAD = gql`
   query GetTiposEntidad {
@@ -17,10 +17,10 @@ const GET_TIPOS_ENTIDAD = gql`
   }
 `;
 
-const SeccionTerceroGeneral: React.FC<Props> = ({ data, onChange }) => {
+const SeccionTerceroGeneral: React.FC<Props> = ({ data, onChange, isEdit = false }) => {
   const [f, setF] = useState<any>({
     cliente_potencial: false, cliente: false, proveedor: false,
-    nombre: '', apodo: '', codigo_cliente: '', estado: true,
+    nombre: '', apodo: '', codigo_cliente: '', codigo_proveedor: '', estado: true,
     sujeto_iva: true, id_tipo_tercero: '', id_tipo_entidad: ''
   });
   const [err, setErr] = useState<{[k:string]:string}>({});
@@ -113,13 +113,23 @@ const SeccionTerceroGeneral: React.FC<Props> = ({ data, onChange }) => {
           </Col>
         </Row>
 
+        {isEdit && (
         <Row className="mt-2">
           <Col md={4}>
             <FormGroup>
               <Label for="codigo_cliente">Código cliente</Label>
-              <Input id="codigo_cliente" name="codigo_cliente" value={f.codigo_cliente || ''} onChange={chg}/>
+              <Input id="codigo_cliente" name="codigo_cliente" value={f.codigo_cliente || ''} onChange={chg} disabled />
             </FormGroup>
           </Col>
+          <Col md={4}>
+            <FormGroup>
+              <Label for="codigo_proveedor">Código proveedor</Label>
+              <Input id="codigo_proveedor" name="codigo_proveedor" value={f.codigo_proveedor || ''} onChange={chg} disabled />
+            </FormGroup>
+          </Col>
+        </Row>
+      )}
+        <Row className="mt-2">
           <Col md={4}>
             <FormGroup check className="mt-4">
               <Input id="estado" name="estado" type="checkbox" checked={!!f.estado} onChange={chg}/>

@@ -37,6 +37,7 @@ const initialForm: NuevoTerceroFormValues = {
   nombre: '',
   apodo: '',
   codigo_cliente: '',
+    codigo_proveedor: '',
   estado: true,
   sujeto_iva: true,
   id_tipo_tercero: '',
@@ -285,12 +286,14 @@ const NuevoProveedor: React.FC = () => {
                   </Row>
 
                   <Row className="mt-2">
+                    {false && (
                     <Col md={4}>
                       <FormGroup>
                         <Label for="codigo_cliente">Código cliente</Label>
                         <Input id="codigo_cliente" name="codigo_cliente" value={formData.codigo_cliente || ''} onChange={chgGeneral}/>
                       </FormGroup>
                     </Col>
+                    )}
                     <Col md={4}>
                       <FormGroup check className="mt-4">
                         <Input id="estado" name="estado" type="checkbox" checked={!!formData.estado} onChange={chgGeneral}/>
