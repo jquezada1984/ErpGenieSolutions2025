@@ -81,7 +81,7 @@ TerceroNestJs/
 ├── .prettierrc
 ├── Dockerfile                 # Multi-stage: node:20-alpine, build + runtime, EXPOSE 3001
 ├── README.md
-└── ARQUITECTURA_TERCERO_NESTJS.md   # Este documento
+└── docs/ARQUITECTURA_TERCERO_NESTJS.md   # Este documento
 ```
 
 **Nota:** En la raíz de `src/` puede existir una carpeta `catalogos/` antigua; el `app.module` usa **solo** `src/modules/catalogos/` y `src/modules/empresa/` y `src/modules/tercero/`. Para replicar en productos, basta con seguir la estructura bajo `src/modules/`.

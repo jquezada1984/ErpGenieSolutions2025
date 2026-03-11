@@ -26,26 +26,10 @@ import store from '../../store/Store';
 import { setMainMenu } from '../../store/MainMenuSlice';
 import { usePermissions } from '../../components/authGurad/usePermissions';
 import { useEffect } from 'react';
-// Iconos
-import { Home, Users, Box, Briefcase, ShoppingCart, DollarSign, BookOpen, Search, User, FileText, Calendar, Tag, Tool, Globe } from 'react-feather';
-import { FaBuilding, FaProjectDiagram, FaMoneyCheckAlt, FaUserCog, FaFileInvoice, FaUserFriends, FaRegFolderOpen, FaRegCalendarAlt, FaTicketAlt, FaTools, FaGlobe, FaUniversity } from 'react-icons/fa';
 import './HeaderMenu.css';
 
-const mainMenuOptions: { key: string; label: string; icon: React.ReactNode }[] = [
-  { key: 'inicio', label: 'Inicio', icon: <Home size={18} /> },
-  { key: 'terceros', label: 'Terceros', icon: <FaBuilding size={18} /> },
-  { key: 'servicios', label: 'Servicios', icon: <Box size={18} /> },
-  { key: 'proyectos', label: 'Proyectos', icon: <FaProjectDiagram size={18} /> },
-  { key: 'comercial', label: 'Comercial', icon: <ShoppingCart size={18} /> },
-  { key: 'financiera', label: 'Financiera', icon: <DollarSign size={18} /> },
-  { key: 'bancos', label: 'Bancos | Cajas', icon: <FaUniversity size={18} /> },
-  { key: 'contabilidad', label: 'Contabilidad', icon: <BookOpen size={18} /> },
-  { key: 'rrhh', label: 'RRHH', icon: <User size={18} /> },
-  { key: 'documentos', label: 'Documentos', icon: <FileText size={18} /> },
-  { key: 'agenda', label: 'Agenda', icon: <Calendar size={18} /> },
-  { key: 'tickets', label: 'Tickets', icon: <FaTicketAlt size={18} /> },
-  { key: 'utilidades', label: 'Utilidades', icon: <Tool size={18} /> },
-];
+// Icono por defecto cuando la sección no tiene icono en BD
+const DEFAULT_SECTION_ICON = 'bi bi-menu-button-wide';
 
 type RootState = ReturnType<typeof store.getState>;
 
@@ -57,54 +41,32 @@ const Header = () => {
   const navigate = useNavigate();
   const selectedMenu = useSelector((state: RootState) => state.mainMenu.selected);
   
-  // Hook de permisos
+  // Hook de permisos: menuLateral = secciones con permisos (100% desde BD)
   const { 
-    opcionesMenuSuperior, 
+    menuLateral, 
     cargarOpcionesMenuSuperior, 
+    cargarMenuLateral,
     loading: loadingPermisos 
   } = usePermissions();
 
-  // Cargar permisos cuando el usuario esté autenticado
+  // Cargar secciones y opciones cuando el usuario esté autenticado
   useEffect(() => {
     if (user?.id_perfil) {
       cargarOpcionesMenuSuperior(user.id_perfil);
+      cargarMenuLateral(user.id_perfil);
     } else {
-      // Mostrar menú por defecto si no hay perfil
-      dispatch(setMainMenu('inicio'));
+      dispatch(setMainMenu(''));
     }
-  }, [user?.id_perfil, cargarOpcionesMenuSuperior, dispatch]);
+  }, [user?.id_perfil, cargarOpcionesMenuSuperior, cargarMenuLateral, dispatch]);
 
-  // Asegurar que el estado inicial se mantenga
+  // Seleccionar primera sección cuando menuLateral cargue o la selección actual no exista
   useEffect(() => {
-    if (selectedMenu === '' || selectedMenu === null || selectedMenu === undefined) {
-      dispatch(setMainMenu('inicio'));
+    if (menuLateral.length === 0) return;
+    const seleccionValida = selectedMenu && menuLateral.some(s => s.id_seccion === selectedMenu);
+    if (!seleccionValida) {
+      dispatch(setMainMenu(menuLateral[0].id_seccion));
     }
-  }, [selectedMenu, dispatch, opcionesMenuSuperior]);
-
-  // Mapear nombres de secciones a claves del menú
-  const mapearSeccionAClave = (nombreSeccion: string): string => {
-    const mapeo: { [key: string]: string } = {
-      'Inicio': 'inicio',
-      'Terceros': 'terceros',
-      'Servicios': 'servicios',
-      'Proyectos': 'proyectos',
-      'Comercial': 'comercial',
-      'Financiera': 'financiera',
-      'Bancos': 'bancos',
-      'Contabilidad': 'contabilidad',
-      'RRHH': 'rrhh',
-      'Documentos': 'documentos',
-      'Agenda': 'agenda',
-      'Tickets': 'tickets',
-      'Utilidades': 'utilidades'
-    };
-    return mapeo[nombreSeccion] || nombreSeccion.toLowerCase();
-  };
-
-  // Filtrar opciones del menú según permisos
-  const opcionesPermitidas = mainMenuOptions.filter(option => {
-    return opcionesMenuSuperior.some(seccion => mapearSeccionAClave(seccion) === option.key);
-  });
+  }, [menuLateral, selectedMenu, dispatch]);
 
 
 
@@ -161,43 +123,26 @@ const Header = () => {
             </div>
             <span className="text-light">Cargando permisos...</span>
           </div>
-        ) : opcionesPermitidas.length > 0 ? (
-          // Mostrar opciones filtradas por permisos
-          opcionesPermitidas.map((item) => {
-            const isActive = selectedMenu === item.key;
+        ) : menuLateral.length > 0 ? (
+          // Opciones 100% desde BD (menu_seccion + permisos por perfil)
+          menuLateral.map((seccion) => {
+            const isActive = selectedMenu === seccion.id_seccion;
+            const iconoClase = seccion.icono || DEFAULT_SECTION_ICON;
             return (
-              <NavItem key={item.key}>
+              <NavItem key={seccion.id_seccion}>
                 <Button
                   color="link"
                   className={`nav-link d-flex flex-column align-items-center justify-content-center${isActive ? ' main-menu-active' : ''}`}
-                  onClick={() => dispatch(setMainMenu(item.key))}
+                  onClick={() => dispatch(setMainMenu(seccion.id_seccion))}
                   style={{ minWidth: 70, padding: 0 }}
                 >
-                  {item.icon}
-                  <span className="mt-1 text-center" style={{ fontSize: 12, lineHeight: 1.1 }}>{item.label}</span>
+                  <i className={iconoClase} style={{ fontSize: 18 }} />
+                  <span className="mt-1 text-center" style={{ fontSize: 12, lineHeight: 1.1 }}>{seccion.nombre}</span>
                 </Button>
               </NavItem>
             );
           })
-        ) : (
-          // Mostrar menú por defecto si no hay permisos cargados
-          mainMenuOptions.slice(0, 5).map((item) => {
-            const isActive = selectedMenu === item.key;
-            return (
-              <NavItem key={item.key}>
-                <Button
-                  color="link"
-                  className={`nav-link d-flex flex-column align-items-center justify-content-center${isActive ? ' main-menu-active' : ''}`}
-                  onClick={() => dispatch(setMainMenu(item.key))}
-                  style={{ minWidth: 70, padding: 0 }}
-                >
-                  {item.icon}
-                  <span className="mt-1 text-center" style={{ fontSize: 12, lineHeight: 1.1 }}>{item.label}</span>
-                </Button>
-              </NavItem>
-            );
-          })
-        )}
+        ) : null}
       </Nav>
       {/******************************/}
       {/**********Notification DD**********/}

@@ -16,11 +16,15 @@ const NavSubMenu = ({ icon, title, items, isUrl, suffixColor, suffix }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Icon puede ser string (clase CSS) o React node
+  const renderIcon = (iconProp) =>
+    iconProp && (typeof iconProp === 'string' ? <i className={iconProp} /> : iconProp);
+
   return (
     <NavItem>
       <NavLink className="cursor-pointer gap-3" onClick={toggle}>
         <span className="sidebarIcon">
-          {icon && <i className={icon} />}
+          {renderIcon(icon)}
         </span>
         <span className="hide-mini w-100">
           <div className="d-flex align-items-center">
@@ -37,11 +41,11 @@ const NavSubMenu = ({ icon, title, items, isUrl, suffixColor, suffix }) => {
         {items.map((item, index) => (
           <NavItem
             key={item.id || item.href || `${item.title}-${index}`}
-            className={`hide-mini ${location.pathname === item.href ? 'activeLink' : ''}`}
+            className={`hide-mini ${location.pathname === (item.href || '') ? 'activeLink' : ''}`}
           >
-            <NavLink tag={Link} to={item.href} className="gap-3">
+            <NavLink tag={Link} to={item.href || '#'} className="gap-3">
               <span className="sidebarIcon">
-                {item.icon && <i className={item.icon} />}
+                {renderIcon(item.icon)}
               </span>
               <span className="hide-mini">
                 <span>{item.title}</span>

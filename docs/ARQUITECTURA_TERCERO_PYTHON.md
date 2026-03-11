@@ -29,7 +29,7 @@ TerceroPython/
 ├── requirements.txt            # Dependencias Python
 ├── Dockerfile                  # Imagen Docker (Python 3.12, puerto 3004)
 ├── README.md
-├── ARQUITECTURA_TERCERO_PYTHON.md   # Este documento
+├── docs/ARQUITECTURA_TERCERO_PYTHON.md   # Este documento
 │
 ├── api/                        # Capa de rutas HTTP
 │   ├── __init__.py

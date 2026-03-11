@@ -43,4 +43,17 @@ export class AsientoContableResolver {
       usuario_id: usuarioId,
     });
   }
+
+  @Mutation(() => AsientoContable)
+  async publicarAsiento(@Args('id', { type: () => Int }) id: number): Promise<AsientoContable> {
+    return this.asientoContableService.publicarAsiento(id);
+  }
+
+  @Mutation(() => AsientoContable)
+  async reversarAsiento(
+    @Args('id', { type: () => Int }) id: number,
+    @Args('usuarioId', { type: () => Int, nullable: true }) usuarioId?: number,
+  ): Promise<AsientoContable> {
+    return this.asientoContableService.reversarAsiento(id, usuarioId);
+  }
 }

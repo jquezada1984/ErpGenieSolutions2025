@@ -19,18 +19,11 @@ const Grid = Loadable(lazy(() => import('../views/ui/Grid')));
 const Tables = Loadable(lazy(() => import('../views/ui/Tables')));
 const Forms = Loadable(lazy(() => import('../views/ui/Forms')));
 const Breadcrumbs = Loadable(lazy(() => import('../views/ui/Breadcrumbs')));
-
-// Auth pages
 const Login = Loadable(lazy(() => import('../views/auth/Login')));
-
-// Dashboard pages
 const Comercio = Loadable(lazy(() => import('../views/dashboards/Comercio')));
-
-// Mantenimiento pages
 const Empresas = Loadable(lazy(() => import('../views/empresas/Empresas')));
 const NuevaEmpresa = Loadable(lazy(() => import('../views/empresas/NuevaEmpresa')));
 const EditarEmpresa = Loadable(lazy(() => import('../views/empresas/EditarEmpresa')));
-
 const NuevaSucursal = Loadable(lazy(() => import('../views/sucursales/NuevaSucursal')));
 const Sucursales = Loadable(lazy(() => import('../views/sucursales/Sucursales')));
 const EditarSucursal = Loadable(lazy(() => import('../views/sucursales/EditarSucursal')));
@@ -47,29 +40,23 @@ const EditarItem = Loadable(lazy(() => import('../views/menus/EditarItem')));
 const Usuarios = Loadable(lazy(() => import('../views/usuarios/Usuarios')));
 const NuevoUsuario = Loadable(lazy(() => import('../views/usuarios/NuevoUsuario')));
 const EditarUsuario = Loadable(lazy(() => import('../views/usuarios/EditarUsuario')));
-
 const NuevoTercero = Loadable(lazy(() => import('../views/terceros/NuevoTercero')));
 const Terceros = Loadable(lazy(() => import('../views/terceros/Terceros')));
 const EditarTercero = Loadable(lazy(() => import('../views/terceros/EditarTercero')));
-
 const Clientes = Loadable(lazy(() => import('../views/terceros/Clientes')));
 const NuevoCliente = Loadable(lazy(() => import('../views/terceros/NuevoCliente')));
 const EditarCliente = Loadable(lazy(() => import('../views/terceros/EditarCliente')));
-
 const ClientesPotenciales = Loadable(lazy(() => import('../views/terceros/ClientesPotenciales')));
 const NuevoClientePotencial = Loadable(lazy(() => import('../views/terceros/NuevoClientePotencial')));
 const EditarClientePotencial = Loadable(lazy(() => import('../views/terceros/EditarClientePotencial')));
-
 const Proveedores = Loadable(lazy(() => import('../views/terceros/Proveedores')));
 const NuevoProveedor = Loadable(lazy(() => import('../views/terceros/NuevoProveedor')));
 const EditarProveedor = Loadable(lazy(() => import('../views/terceros/EditarProveedor')));
-
 const Contactos = Loadable(lazy(() => import('../views/terceros/contactos/Contactos')));
-
 const NuevoContacto = Loadable(lazy(() => import('../views/terceros/contactos/NuevoContacto')));
-
 const EditarContacto = Loadable(lazy(() => import('../views/terceros/contactos/EditarContacto')));
-
+const ContabilidadGeneral = Loadable(lazy(() => import('../views/contabilidad/ContabilidadGeneral')));
+const ContabilidadConfiguracion = Loadable(lazy(() => import('../views/contabilidad/ContabilidadConfiguracion')));
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
@@ -116,9 +103,9 @@ const ThemeRoutes: RouteType[] = [
       { path: 'menus/seccion/editar/:id', element: <NuevaSeccion /> },
       { path: 'menus/item/nuevo', element: <NuevoItem /> },
       { path: 'menus/item/editar/:id', element: <EditarItem /> },
-      { path: 'usuarios', element: <Usuarios /> },
-      { path: 'usuarios/nuevo', element: <NuevoUsuario /> },
-      { path: 'usuarios/editar/:id', element: <EditarUsuario /> },
+      { path: 'usuario', element: <Usuarios /> },
+      { path: 'usuario/nuevo', element: <NuevoUsuario /> },
+      { path: 'usuario/editar/:id', element: <EditarUsuario /> },
       { path: 'test-flags', element: <FlagTest /> },
       { path: 'terceros', element: <Terceros /> },
       { path: 'terceros/nuevo', element: <NuevoTercero /> },
@@ -135,6 +122,9 @@ const ThemeRoutes: RouteType[] = [
       { path: 'terceros/:id/contactos', element: <Contactos /> },
       { path: 'terceros/:id/contactos/nuevo', element: <NuevoContacto /> },
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
+
+      { path: 'contabilidad/general', element: <ContabilidadGeneral /> },
+      { path: 'contabilidad/configuracion/general', element: <ContabilidadConfiguracion /> },
 
     ],
   },

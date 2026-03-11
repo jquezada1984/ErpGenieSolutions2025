@@ -27,7 +27,8 @@ export class UsuarioResolver {
   @UseGuards(GqlAuthGuard)
   async usuarios(): Promise<UsuarioListDto[]> {
     return this.usuarioRepository.find({
-      select: ['id_usuario', 'username', 'nombre_completo', 'email', 'estado']
+      relations: ['empresa', 'perfil'],
+      order: { created_at: 'DESC' }
     });
   }
 

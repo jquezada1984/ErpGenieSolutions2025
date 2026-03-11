@@ -27,10 +27,12 @@ import { BalanceGeneral } from './entities/balance-general.entity';
 // Resolvers
 import { CuentaContableResolver } from './resolvers/cuenta-contable.resolver';
 import { AsientoContableResolver } from './resolvers/asiento-contable.resolver';
+import { ReporteContableResolver } from './resolvers/reporte-contable.resolver';
 
 // Services
 import { CuentaContableService } from './services/cuenta-contable.service';
 import { AsientoContableService } from './services/asiento-contable.service';
+import { ReporteContableService } from './services/reporte-contable.service';
 
 @Module({
   imports: [
@@ -68,8 +70,10 @@ import { AsientoContableService } from './services/asiento-contable.service';
     AppService,
     CuentaContableResolver,
     AsientoContableResolver,
+    ReporteContableResolver,
     CuentaContableService,
     AsientoContableService,
+    ReporteContableService,
   ],
 })
 export class AppModule {}

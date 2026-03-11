@@ -75,6 +75,24 @@ export const menuClient = new ApolloClient({
               return incoming;
             },
           },
+          menuLateralOrdenado: {
+            keyArgs: ['id_seccion'],
+            merge(existing, incoming) {
+              return incoming;
+            },
+          },
+          menuPrincipalOrdenado: {
+            keyArgs: ['id_seccion'],
+            merge(existing = [], incoming) {
+              return incoming;
+            },
+          },
+          submenusOrdenados: {
+            keyArgs: ['parent_id'],
+            merge(existing = [], incoming) {
+              return incoming;
+            },
+          },
         },
       },
     },
@@ -82,9 +100,11 @@ export const menuClient = new ApolloClient({
   defaultOptions: {
     watchQuery: {
       errorPolicy: 'all',
+      fetchPolicy: 'cache-first',
     },
     query: {
       errorPolicy: 'all',
+      fetchPolicy: 'cache-first',
     },
   },
 });
