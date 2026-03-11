@@ -186,7 +186,7 @@ const EditarItem: React.FC = () => {
       if (ok) {
         setSuccess(true);
         setTimeout(() => {
-          navigate('/menus/estructura');
+          navigate('/menus');
         }, 2000);
       } else {
         setError((response && response.message) || (response && response.error) || 'Error al actualizar el item');
@@ -199,7 +199,7 @@ const EditarItem: React.FC = () => {
   };
 
   const handleCancel = () => {
-    navigate('/menus/estructura');
+    navigate('/menus');
   };
 
   return (

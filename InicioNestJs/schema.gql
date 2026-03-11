@@ -361,6 +361,7 @@ type TipoEntidadComercial {
 }
 
 type Usuario {
+  created_at: DateTime
   email: String
   empresa: Empresa
   estado: Boolean!
@@ -373,14 +374,19 @@ type Usuario {
   nombre_completo: String
   password_hash: String!
   perfil: Perfil
+  updated_at: DateTime
   username: String!
 }
 
 type UsuarioListDto {
+  created_at: DateTime
   email: String
+  empresa: Empresa
   estado: Boolean!
   id_usuario: ID!
   nombre_completo: String
+  perfil: Perfil
+  updated_at: DateTime
   username: String!
 }
 

@@ -89,11 +89,13 @@ export class MenuItemResolver {
 
   @Query(() => [MenuItem])
   async itemsPorSeccion(@Args('id_seccion', { type: () => ID }) id_seccion: string): Promise<MenuItem[]> {
-    return this.menuItemRepository.find({
-      where: { id_seccion, parent_id: IsNull() },
-      relations: ['subitems'],
-      order: { orden: 'ASC' }
-    });
+    return this.menuItemRepository
+      .createQueryBuilder('item')
+      .leftJoinAndSelect('item.subitems', 'subitems')
+      .where('item.id_seccion = :id_seccion', { id_seccion })
+      .orderBy('item.parent_id', 'ASC', 'NULLS FIRST')
+      .addOrderBy('item.orden', 'ASC')
+      .getMany();
   }
 
   @Mutation(() => MenuItem)

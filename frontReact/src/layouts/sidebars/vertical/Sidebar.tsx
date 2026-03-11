@@ -49,6 +49,7 @@ const Sidebar = () => {
           icon: item.icono ? <i className={item.icono} /> : iconoDefault,
           id: item.id_item,
           children: item.children!.map(child => ({
+            id: child.id_item,
             title: child.etiqueta,
             href: child.ruta || '#',
             icon: child.icono ? <i className={child.icono} /> : <Icon.List size={14} />

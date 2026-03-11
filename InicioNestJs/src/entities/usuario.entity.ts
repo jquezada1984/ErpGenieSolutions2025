@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { ObjectType, Field, Int, ID } from '@nestjs/graphql';
 import { Empresa } from './empresa.entity';
 import { Perfil } from './perfil.entity';
@@ -42,6 +42,14 @@ export class Usuario {
   @Field()
   @Column({ default: true })
   estado: boolean;
+
+  @Field({ nullable: true })
+  @CreateDateColumn({ type: 'timestamp', nullable: true })
+  created_at?: Date;
+
+  @Field({ nullable: true })
+  @UpdateDateColumn({ type: 'timestamp', nullable: true })
+  updated_at?: Date;
 
   @Field()
   get firstName(): string {
