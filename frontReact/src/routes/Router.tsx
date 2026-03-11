@@ -55,6 +55,11 @@ const EditarTercero = Loadable(lazy(() => import('../views/terceros/EditarTercer
 const Clientes = Loadable(lazy(() => import('../views/terceros/Clientes')));
 const NuevoCliente = Loadable(lazy(() => import('../views/terceros/NuevoCliente')));
 const EditarCliente = Loadable(lazy(() => import('../views/terceros/EditarCliente')));
+
+// Contabilidad
+const ContabilidadGeneral = Loadable(lazy(() => import('../views/contabilidad/ContabilidadGeneral')));
+const ContabilidadConfiguracion = Loadable(lazy(() => import('../views/contabilidad/ContabilidadConfiguracion')));
+
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
 
@@ -100,9 +105,9 @@ const ThemeRoutes: RouteType[] = [
       { path: 'menus/seccion/editar/:id', element: <NuevaSeccion /> },
       { path: 'menus/item/nuevo', element: <NuevoItem /> },
       { path: 'menus/item/editar/:id', element: <EditarItem /> },
-      { path: 'usuarios', element: <Usuarios /> },
-      { path: 'usuarios/nuevo', element: <NuevoUsuario /> },
-      { path: 'usuarios/editar/:id', element: <EditarUsuario /> },
+      { path: 'usuario', element: <Usuarios /> },
+      { path: 'usuario/nuevo', element: <NuevoUsuario /> },
+      { path: 'usuario/editar/:id', element: <EditarUsuario /> },
       { path: 'test-flags', element: <FlagTest /> },
       { path: 'terceros', element: <Terceros /> },
       { path: 'terceros/nuevo', element: <NuevoTercero /> },
@@ -110,6 +115,9 @@ const ThemeRoutes: RouteType[] = [
       { path: 'clientes', element: <Clientes /> },
       { path: 'clientes/nuevo', element: <NuevoCliente /> },
       { path: 'clientes/editar/:id', element: <EditarCliente /> },
+
+      { path: 'contabilidad/general', element: <ContabilidadGeneral /> },
+      { path: 'contabilidad/configuracion/general', element: <ContabilidadConfiguracion /> },
 
     ],
   },

@@ -44,48 +44,40 @@ const GET_MENU_LATERAL_POR_PERFIL = gql`
   }
 `;
 
-// Nueva consulta para obtener menú principal ordenado (sin parent_id)
-const GET_MENU_PRINCIPAL_ORDENADO = gql`
-  query GetMenuPrincipalOrdenado($id_seccion: ID!) {
-    menuPrincipalOrdenado(id_seccion: $id_seccion) {
-      id_item
+// Una sola consulta: menú lateral completo (sección + ítems con hijos) en una ida al servidor
+const GET_MENU_LATERAL_ORDENADO = gql`
+  query GetMenuLateralOrdenado($id_seccion: ID!) {
+    menuLateralOrdenado(id_seccion: $id_seccion) {
       id_seccion
-      parent_id
-      etiqueta
-      icono
-      ruta
-      es_clickable
+      nombre
       orden
-      muestra_badge
-      badge_text
-      estado
-      created_by
-      created_at
-      updated_by
-      updated_at
-    }
-  }
-`;
-
-// Nueva consulta para obtener submenús de un item específico
-const GET_SUBMENUS_ORDENADOS = gql`
-  query GetSubmenusOrdenados($parent_id: ID!) {
-    submenusOrdenados(parent_id: $parent_id) {
-      id_item
-      id_seccion
-      parent_id
-      etiqueta
       icono
-      ruta
-      es_clickable
-      orden
-      muestra_badge
-      badge_text
-      estado
-      created_by
-      created_at
-      updated_by
-      updated_at
+      items {
+        id_item
+        id_seccion
+        parent_id
+        etiqueta
+        icono
+        ruta
+        es_clickable
+        orden
+        muestra_badge
+        badge_text
+        estado
+        children {
+          id_item
+          id_seccion
+          parent_id
+          etiqueta
+          icono
+          ruta
+          es_clickable
+          orden
+          muestra_badge
+          badge_text
+          estado
+        }
+      }
     }
   }
 `;
@@ -232,16 +224,15 @@ export const usePermissions = (): UsePermissionsReturn => {
   // Queries GraphQL usando el cliente específico para permisos (MenuNestJs)
   const [getPermisosPorPerfil, { loading: loadingPermisos }] = useLazyQuery(GET_PERMISOS_POR_PERFIL, { client: menuClient });
   const [getMenuLateralPorPerfil, { loading: loadingMenuLateral }] = useLazyQuery(GET_MENU_LATERAL_POR_PERFIL, { client: menuClient });
-  const [getMenuPrincipalOrdenado, { loading: loadingMenuPrincipal }] = useLazyQuery(GET_MENU_PRINCIPAL_ORDENADO, { client: menuClient });
-  const [getSubmenusOrdenados, { loading: loadingSubmenus }] = useLazyQuery(GET_SUBMENUS_ORDENADOS, { client: menuClient });
+  const [getMenuLateralOrdenadoQuery, { loading: loadingMenuLateralOrdenado }] = useLazyQuery(GET_MENU_LATERAL_ORDENADO, { client: menuClient });
   const [getOpcionesMenuSuperior, { loading: loadingOpciones }] = useLazyQuery(GET_OPCIONES_MENU_SUPERIOR, { client: menuClient });
   const [getPerfilConPermisos, { loading: loadingPerfil }] = useLazyQuery(GET_PERFIL_CON_PERMISOS, { client: menuClient });
   const [getIdSeccionPorNombreQuery] = useLazyQuery(GET_ID_SECCION_POR_NOMBRE, { client: menuClient });
 
   // Actualizar loading general
   useEffect(() => {
-    setLoading(loadingPermisos || loadingMenuLateral || loadingMenuPrincipal || loadingSubmenus || loadingOpciones || loadingPerfil);
-  }, [loadingPermisos, loadingMenuLateral, loadingMenuPrincipal, loadingSubmenus, loadingOpciones, loadingPerfil]);
+    setLoading(loadingPermisos || loadingMenuLateral || loadingMenuLateralOrdenado || loadingOpciones || loadingPerfil);
+  }, [loadingPermisos, loadingMenuLateral, loadingMenuLateralOrdenado, loadingOpciones, loadingPerfil]);
 
   // Cargar permisos por perfil
   const cargarPermisos = useCallback(async (id_perfil: string) => {
@@ -258,11 +249,11 @@ export const usePermissions = (): UsePermissionsReturn => {
     }
   }, [getPermisosPorPerfil]);
 
-  // Cargar menú lateral por perfil
+  // Cargar menú lateral por perfil (usa caché si está disponible)
   const cargarMenuLateral = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      const { data, error } = await getMenuLateralPorPerfil({ variables: { id_perfil } });
+      const { data, error } = await getMenuLateralPorPerfil({ variables: { id_perfil }, fetchPolicy: 'cache-first' });
       
       if (data?.menuLateralPorPerfil) {
         setMenuLateral(data.menuLateralPorPerfil);
@@ -284,69 +275,28 @@ export const usePermissions = (): UsePermissionsReturn => {
     }
   }, [getIdSeccionPorNombreQuery]);
 
-  // Cargar menú lateral ordenado jerárquicamente
+  // Cargar menú lateral ordenado: una sola petición al backend (que hace una sola consulta a la BD)
   const cargarMenuLateralOrdenado = useCallback(async (id_seccion: string) => {
     try {
       setError(null);
-      
-      // Obtener menú principal (items sin parent_id)
-      const { data: menuPrincipal, error: errorPrincipal } = await getMenuPrincipalOrdenado({ 
-        variables: { id_seccion } 
+      const { data, error } = await getMenuLateralOrdenadoQuery({
+        variables: { id_seccion },
+        fetchPolicy: 'cache-first'
       });
-      
-      if (errorPrincipal) {
-        throw new Error(`Error al cargar menú principal: ${errorPrincipal.message}`);
-      }
-      
-      if (!menuPrincipal?.menuPrincipalOrdenado) {
-        return;
-      }
-      
-      const itemsPrincipales = menuPrincipal.menuPrincipalOrdenado;
-      
-      // Para cada item principal, obtener sus submenús
-      const menuCompleto: MenuItemOrdenado[] = [];
-      
-      for (const item of itemsPrincipales) {
-        // Obtener submenús de este item
-        const { data: submenus, error: errorSubmenus } = await getSubmenusOrdenados({ 
-          variables: { parent_id: item.id_item } 
-        });
-        
-        if (errorSubmenus) {
-          console.error('❌ ERROR al cargar submenús para', item.etiqueta, ':', errorSubmenus);
-        }
-        
-        const itemConSubmenus: MenuItemOrdenado = {
-          ...item,
-          children: submenus?.submenusOrdenados || []
-        };
-        
-        menuCompleto.push(itemConSubmenus);
-      }
-      
-      // Crear estructura del menú lateral ordenado
-      const menuLateralOrdenado: MenuLateralOrdenado = {
-        id_seccion,
-        nombre: 'Administración', // Nombre de la sección
-        orden: 1,
-        icono: 'bi bi-gear',
-        items: menuCompleto
-      };
-      
-      setMenuLateralOrdenado([menuLateralOrdenado]);
-      
+      if (error) throw new Error(error.message);
+      const menu = data?.menuLateralOrdenado;
+      if (menu) setMenuLateralOrdenado([menu]);
     } catch (err: any) {
       setError(err.message || 'Error al cargar menú lateral ordenado');
       console.error('❌ ERROR en cargarMenuLateralOrdenado:', err);
     }
-  }, [getMenuPrincipalOrdenado, getSubmenusOrdenados]);
+  }, [getMenuLateralOrdenadoQuery]);
 
-  // Cargar opciones del menú superior
+  // Cargar opciones del menú superior (usa caché si está disponible)
   const cargarOpcionesMenuSuperior = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      const { data, error } = await getOpcionesMenuSuperior({ variables: { id_perfil } });
+      const { data, error } = await getOpcionesMenuSuperior({ variables: { id_perfil }, fetchPolicy: 'cache-first' });
       
       if (data?.opcionesMenuSuperior) {
         setOpcionesMenuSuperior(data.opcionesMenuSuperior);

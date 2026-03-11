@@ -67,6 +67,7 @@ fastify.register(require('./routes/perfil'), { prefix: '/api' });
 fastify.register(require('./routes/sucursal'), { prefix: '/api' });
 fastify.register(require('./routes/tercero'), { prefix: '/api' });
 fastify.register(require('./routes/menu'), { prefix: '/api' });
+fastify.register(require('./routes/usuarios'), { prefix: '/api' });
 fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/graphql'), { prefix: '' });
 

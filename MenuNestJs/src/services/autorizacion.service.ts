@@ -134,24 +134,13 @@ export class AutorizacionService {
    */
   async obtenerOpcionesMenuSuperior(id_perfil: string): Promise<string[]> {
     try {
-      console.log('🔍 DEBUG - obtenerOpcionesMenuSuperior - id_perfil:', id_perfil);
-      
-      // Obtener las secciones únicas que tiene acceso el perfil
       const permisos = await this.obtenerPermisosPorPerfil(id_perfil);
-      console.log('🔍 DEBUG - permisos obtenidos:', permisos);
-      
-      // Extraer nombres únicos de secciones
       const seccionesUnicas = [...new Set(permisos.map(p => p.seccion.nombre))];
-      console.log('🔍 DEBUG - secciones únicas:', seccionesUnicas);
-      
-      // Ordenar por el orden de la sección
       const seccionesOrdenadas = seccionesUnicas.sort((a, b) => {
         const seccionA = permisos.find(p => p.seccion.nombre === a);
         const seccionB = permisos.find(p => p.seccion.nombre === b);
         return (seccionA?.seccion.orden || 0) - (seccionB?.seccion.orden || 0);
       });
-      
-      console.log('🔍 DEBUG - secciones ordenadas (menú superior):', seccionesOrdenadas);
       return seccionesOrdenadas;
     } catch (error) {
       console.error('❌ ERROR en obtenerOpcionesMenuSuperior:', error);
@@ -295,9 +284,6 @@ export class AutorizacionService {
    */
   async obtenerMenuPrincipalOrdenado(id_seccion: string): Promise<MenuItemOrdenado[]> {
     try {
-      console.log('🔍 DEBUG - obtenerMenuPrincipalOrdenado - id_seccion:', id_seccion);
-      console.log('🔍 DEBUG - Ejecutando consulta SQL exacta para items principales');
-      
       const items = await this.menuItemRepository
         .createQueryBuilder('item')
         .select([
@@ -324,13 +310,6 @@ export class AutorizacionService {
         .cache('menu_principal_' + id_seccion, 300000) // Cache por 5 minutos
         .getMany();
 
-      console.log('🔍 DEBUG - Items principales encontrados:', items.length);
-      console.log('🔍 DEBUG - Items principales:', items.map(item => ({
-        etiqueta: item.etiqueta,
-        orden: item.orden,
-        es_clickable: item.es_clickable
-      })));
-      
       return items.map(item => ({
         id_item: item.id_item,
         id_seccion: item.id_seccion,
@@ -361,8 +340,6 @@ export class AutorizacionService {
    */
   async obtenerSubmenusOrdenados(parent_id: string): Promise<MenuItemOrdenado[]> {
     try {
-      console.log('🔍 DEBUG - obtenerSubmenusOrdenados - parent_id:', parent_id);
-      
       const submenus = await this.menuItemRepository
         .createQueryBuilder('item')
         .where('item.parent_id = :parent_id', { parent_id })
@@ -371,8 +348,6 @@ export class AutorizacionService {
         .cache('submenus_' + parent_id, 300000) // Cache por 5 minutos
         .getMany();
 
-      console.log('🔍 DEBUG - Submenús encontrados:', submenus.length);
-      
       return submenus.map(item => ({
         id_item: item.id_item,
         id_seccion: item.id_seccion,
@@ -398,14 +373,11 @@ export class AutorizacionService {
   }
 
   /**
-   * Obtiene el menú lateral completo ordenado jerárquicamente para una sección
-   * Combina menú principal y submenús en una estructura jerárquica
+   * Obtiene el menú lateral completo ordenado jerárquicamente para una sección.
+   * Una sola consulta a la BD: trae todos los ítems de la sección y arma el árbol en memoria.
    */
   async obtenerMenuLateralOrdenado(id_seccion: string): Promise<MenuLateralOrdenado> {
     try {
-      console.log('🔍 DEBUG - obtenerMenuLateralOrdenado - id_seccion:', id_seccion);
-      
-      // Obtener información de la sección
       const seccion = await this.menuSeccionRepository.findOne({
         where: { id_seccion, estado: true }
       });
@@ -414,46 +386,75 @@ export class AutorizacionService {
         throw new Error('Sección no encontrada');
       }
 
-      // Obtener items principales
-      const itemsPrincipales = await this.obtenerMenuPrincipalOrdenado(id_seccion);
-      
-      // Para cada item principal, obtener sus submenús
-      const itemsCompletos: MenuItemOrdenado[] = [];
-      
-      for (const item of itemsPrincipales) {
-        console.log('🔍 DEBUG - Procesando item principal:', item.etiqueta);
-        
-        // Obtener submenús de este item
-        const submenus = await this.obtenerSubmenusOrdenados(item.id_item);
-        
-        const itemCompleto: MenuItemOrdenado = {
-          ...item,
-          children: submenus
-        };
-        
-        console.log('🔍 DEBUG - Item con submenús:', {
-          etiqueta: item.etiqueta,
-          submenus: submenus.length
-        });
-        
-        itemsCompletos.push(itemCompleto);
-      }
+      // Una sola query: todos los ítems de la sección (padres e hijos), ordenados
+      const todosLosItems = await this.menuItemRepository
+        .createQueryBuilder('item')
+        .select([
+          'item.id_item',
+          'item.id_seccion',
+          'item.parent_id',
+          'item.etiqueta',
+          'item.icono',
+          'item.ruta',
+          'item.es_clickable',
+          'item.orden',
+          'item.muestra_badge',
+          'item.badge_text',
+          'item.estado'
+        ])
+        .where('item.id_seccion = :id_seccion', { id_seccion })
+        .andWhere('item.estado = :estado', { estado: true })
+        .orderBy('item.parent_id', 'ASC', 'NULLS FIRST')
+        .addOrderBy('item.orden', 'ASC')
+        .getMany();
 
-      const menuLateralOrdenado: MenuLateralOrdenado = {
+      const mapItem = (row: MenuItem): MenuItemOrdenado => ({
+        id_item: row.id_item,
+        id_seccion: row.id_seccion,
+        parent_id: row.parent_id ?? undefined,
+        etiqueta: row.etiqueta,
+        icono: row.icono ?? undefined,
+        ruta: row.ruta ?? undefined,
+        es_clickable: !!row.ruta,
+        orden: row.orden,
+        muestra_badge: row.muestra_badge ?? false,
+        badge_text: row.badge_text ?? undefined,
+        estado: row.estado,
+        created_by: undefined,
+        created_at: undefined,
+        updated_by: undefined,
+        updated_at: undefined,
+        children: []
+      });
+
+      const byId = new Map<string, MenuItemOrdenado>();
+      todosLosItems.forEach(row => {
+        byId.set(row.id_item, mapItem(row));
+      });
+
+      const raices: MenuItemOrdenado[] = [];
+      byId.forEach(item => {
+        if (!item.parent_id) {
+          raices.push(item);
+        } else {
+          const padre = byId.get(item.parent_id);
+          if (padre) {
+            if (!padre.children) padre.children = [];
+            padre.children.push(item);
+          } else {
+            raices.push(item);
+          }
+        }
+      });
+      raices.sort((a, b) => a.orden - b.orden);
+
+      return {
         id_seccion: seccion.id_seccion,
         nombre: seccion.nombre,
         orden: seccion.orden,
-        icono: seccion.icono,
-        items: itemsCompletos
+        icono: seccion.icono ?? undefined,
+        items: raices
       };
-
-      console.log('🔍 DEBUG - Menú lateral ordenado creado:', {
-        seccion: seccion.nombre,
-        itemsPrincipales: itemsPrincipales.length,
-        totalItems: itemsCompletos.length
-      });
-
-      return menuLateralOrdenado;
     } catch (error) {
       console.error('❌ ERROR en obtenerMenuLateralOrdenado:', error);
       throw new Error(`Error al obtener menú lateral ordenado: ${error.message}`);

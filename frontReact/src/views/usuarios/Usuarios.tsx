@@ -66,7 +66,7 @@ const Usuarios: React.FC = () => {
   });
 
   useEffect(() => {
-    if (location.pathname === '/usuarios') {
+    if (location.pathname === '/usuario') {
       refetch();
     }
   }, [location.pathname, refetch]);
@@ -83,11 +83,11 @@ const Usuarios: React.FC = () => {
   }, [queryLoading]);
 
   const handleNuevoUsuario = () => {
-    navigate('/usuarios/nuevo');
+    navigate('/usuario/nuevo');
   };
 
   const handleEdit = (usuario: Usuario) => {
-    navigate(`/usuarios/editar/${usuario.id_usuario}`);
+    navigate(`/usuario/editar/${usuario.id_usuario}`);
   };
 
   const handleDelete = async (id: string) => {

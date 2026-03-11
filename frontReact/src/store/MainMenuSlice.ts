@@ -5,7 +5,7 @@ interface MainMenuState {
 }
 
 const initialState: MainMenuState = {
-  selected: 'inicio', // Por defecto 'inicio'
+  selected: '', // Se asigna al cargar menuLateral (primera sección con permisos)
 };
 
 const mainMenuSlice = createSlice({

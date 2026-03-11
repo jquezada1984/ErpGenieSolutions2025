@@ -186,7 +186,7 @@ const EditarUsuario: React.FC = () => {
       
       // Redirigir después de un breve delay para mostrar el mensaje de éxito
       setTimeout(() => {
-        navigate('/usuarios');
+        navigate('/usuario');
       }, 2000);
     } catch (err: any) {
       setError(err.message || 'Error al actualizar el usuario');
@@ -231,7 +231,7 @@ const EditarUsuario: React.FC = () => {
   };
 
   const handleCancel = () => {
-    navigate('/usuarios');
+    navigate('/usuario');
   };
 
   // Mostrar loading mientras carga el usuario

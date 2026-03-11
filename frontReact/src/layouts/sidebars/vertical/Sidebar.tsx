@@ -7,11 +7,11 @@ import Logo from '../../logo/Logo';
 import { ToggleMobileSidebar } from '../../../store/customizer/CustomizerSlice';
 import NavItemContainer from './NavItemContainer';
 import NavSubMenu from './NavSubMenu';
-import getSidebarData from '../sidebardata/SidebarData';
 import store from '../../../store/Store';
 import { usePermissions } from '../../../components/authGurad/usePermissions';
 import useAuth from '../../../components/authGurad/useAuth';
 import * as Icon from "react-feather";
+
 type RootState = ReturnType<typeof store.getState>;
 
 const Sidebar = () => {
@@ -19,125 +19,68 @@ const Sidebar = () => {
   const currentURL = location.pathname.split('/').slice(0, -1).join('/');
   const { user } = useAuth();
 
-  //const [collapsed, setCollapsed] = useState(null);
-  // const toggle = (index) => {
-  //   setCollapsed(collapsed === index ? null : index);
-  // };
-
   const activeBg = useSelector((state: RootState) => state.customizer.sidebarBg);
   const isFixed = useSelector((state: RootState) => state.customizer.isSidebarFixed);
   const dispatch = useDispatch();
   const selectedMenu = useSelector((state: RootState) => state.mainMenu.selected);
-  
-  // Hook de permisos
-  const { 
-    menuLateral, 
+
+  // selectedMenu = id_seccion (UUID). Todo el contenido viene de BD.
+  const {
     menuLateralOrdenado,
     cargarMenuLateralOrdenado,
-    getIdSeccionPorNombre,
-    loading: loadingPermisos 
+    loading: loadingPermisos
   } = usePermissions();
 
-  // ID de sección por menú: Inicio usa ID fijo; Contabilidad y demás usan menuLateral o consulta por nombre
-  const obtenerIdSeccionPorMenu = (menu: string): string | undefined => {
-    if (menu === 'inicio') {
-      return '29dea275-b0f7-4fb3-83fa-7c0ea31c3cf1'; // Administración
-    }
-    const nombreSeccion: { [key: string]: string } = {
-      'terceros': 'Terceros',
-      'contabilidad': 'Contabilidad',
-      'financiera': 'Financiera',
-      'bancos': 'Bancos',
-      'rrhh': 'RRHH',
-      'documentos': 'Documentos',
-      'agenda': 'Agenda',
-      'tickets': 'Tickets',
-      'utilidades': 'Utilidades',
-      'servicios': 'Servicios',
-      'proyectos': 'Proyectos',
-      'comercial': 'Comercial',
-    };
-    const nombre = nombreSeccion[menu];
-    return nombre ? menuLateral.find(s => s.nombre === nombre)?.id_seccion : undefined;
-  };
-
-  // Cargar menú lateral ordenado cuando cambie el menú seleccionado
+  // Cargar ítems y submenús de la sección seleccionada (100% desde BD)
   useEffect(() => {
-    if (!user?.id_perfil) return;
-    let idSeccion = obtenerIdSeccionPorMenu(selectedMenu);
-    if (idSeccion) {
-      cargarMenuLateralOrdenado(idSeccion);
-      return;
-    }
-    // Respaldo: si la sección no está en menuLateral, obtener id por nombre
-    if (selectedMenu === 'contabilidad') {
-      getIdSeccionPorNombre('Contabilidad').then((id) => { if (id) cargarMenuLateralOrdenado(id); });
-    } else if (selectedMenu === 'terceros') {
-      getIdSeccionPorNombre('Terceros').then((id) => { if (id) cargarMenuLateralOrdenado(id); });
-    }
-  }, [selectedMenu, user?.id_perfil, menuLateral, cargarMenuLateralOrdenado, getIdSeccionPorNombre]);
+    if (!user?.id_perfil || !selectedMenu) return;
+    cargarMenuLateralOrdenado(selectedMenu);
+  }, [selectedMenu, user?.id_perfil, cargarMenuLateralOrdenado]);
 
-  // Construir datos del sidebar: dinámico (BD) o estático
-  // Solo usar menuOrdenadoActual si corresponde a la sección actual (mismo id_seccion)
-  const idSeccionActual = obtenerIdSeccionPorMenu(selectedMenu);
   const menuOrdenadoActual = menuLateralOrdenado[0];
-  const esMenuDinamicoActual = menuOrdenadoActual && idSeccionActual && menuOrdenadoActual.id_seccion === idSeccionActual;
-
-  // Título del sidebar por clave de menú (cuando el contenido viene de BD)
-  const captionPorMenu: { [key: string]: string } = {
-    inicio: 'Administración',
-    contabilidad: 'Contabilidad',
-    terceros: 'Terceros',
-    financiera: 'Financiera',
-    bancos: 'Bancos | Cajas',
-    rrhh: 'RRHH',
-    documentos: 'Documentos',
-    agenda: 'Agenda',
-    tickets: 'Tickets',
-    utilidades: 'Utilidades',
-    servicios: 'Servicios',
-    proyectos: 'Proyectos',
-    comercial: 'Comercial',
-  };
+  const esMenuDeSeccionActual = menuOrdenadoActual && menuOrdenadoActual.id_seccion === selectedMenu;
 
   const convertirItemsADatosSidebar = (items: typeof menuOrdenadoActual.items, iconoDefault: React.ReactNode) =>
-    items.map(item => ({
-      title: item.etiqueta,
-      icon: item.icono ? <i className={item.icono} /> : iconoDefault,
-      id: item.id_item,
-      children: item.children?.map(child => ({
-        title: child.etiqueta,
-        href: child.ruta,
-        icon: child.icono ? <i className={child.icono} /> : <Icon.List size={14} />
-      })) || []
-    }));
-
-  let SidebarData;
-
-  if (esMenuDinamicoActual && menuOrdenadoActual.items?.length) {
-    // Menú dinámico desde BD: mismo id_seccion que la sección seleccionada
-    const caption = captionPorMenu[selectedMenu] || menuOrdenadoActual.nombre;
-    SidebarData = [
-      { caption },
-      ...convertirItemsADatosSidebar(menuOrdenadoActual.items, <Icon.Home size={16} />)
-    ];
-  } else if (selectedMenu === 'inicio') {
-    // Fallback estático solo para Inicio cuando no hay datos dinámicos
-    SidebarData = [
-      { caption: 'Administración' },
-      {
-        title: 'Empresa',
-        icon: <i className="bi bi-building" />,
-        id: 'empresa',
-        children: [
-          { title: 'Lista', href: '/empresas', icon: <Icon.List size={14} /> },
-          { title: 'Crear', href: '/empresas/nueva', icon: <Icon.Plus size={14} /> },
-        ],
+    items.map(item => {
+      const hasChildren = item.children && item.children.length > 0;
+      if (hasChildren) {
+        return {
+          title: item.etiqueta,
+          icon: item.icono ? <i className={item.icono} /> : iconoDefault,
+          id: item.id_item,
+          children: item.children!.map(child => ({
+            title: child.etiqueta,
+            href: child.ruta || '#',
+            icon: child.icono ? <i className={child.icono} /> : <Icon.List size={14} />
+          }))
+        };
       }
-    ];
-  } else {
-    // Resto: datos estáticos (terceros, contabilidad "Próximamente", etc.)
-    SidebarData = getSidebarData(selectedMenu);
+      if (item.ruta) {
+        return {
+          title: item.etiqueta,
+          icon: item.icono ? <i className={item.icono} /> : iconoDefault,
+          id: item.id_item,
+          href: item.ruta,
+          children: undefined
+        };
+      }
+      return {
+        title: item.etiqueta,
+        icon: item.icono ? <i className={item.icono} /> : iconoDefault,
+        id: item.id_item,
+        children: []
+      };
+    });
+
+  // Contenido 100% desde BD: caption = nombre de la sección; ítems = menu_item + hijos
+  let SidebarData: Array<{ caption?: string; title?: string; icon?: React.ReactNode; id?: string; href?: string; children?: Array<{ title: string; href: string; icon: React.ReactNode }> }> = [];
+
+  if (esMenuDeSeccionActual && menuOrdenadoActual) {
+    const caption = menuOrdenadoActual.nombre;
+    SidebarData = [{ caption }];
+    if (menuOrdenadoActual.items?.length) {
+      SidebarData.push(...convertirItemsADatosSidebar(menuOrdenadoActual.items, <Icon.Menu size={16} />));
+    }
   }
 
   return (

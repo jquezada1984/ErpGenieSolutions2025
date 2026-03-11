@@ -137,6 +137,28 @@ const pythonService = {
     }
   },
 
+  // Usuario: crear (InicioPython guarda)
+  async createUsuario(usuarioData) {
+    try {
+      const response = await pythonClient.post('/api/usuario', usuarioData);
+      return response.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
+      throw new Error(`Error creando usuario en Python: ${errorMessage}`);
+    }
+  },
+
+  // Usuario: actualizar
+  async updateUsuario(id, usuarioData) {
+    try {
+      const response = await pythonClient.put(`/api/usuario/${id}`, usuarioData);
+      return response.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
+      throw new Error(`Error actualizando usuario en Python: ${errorMessage}`);
+    }
+  },
+
   // Health check
   async healthCheck() {
     try {

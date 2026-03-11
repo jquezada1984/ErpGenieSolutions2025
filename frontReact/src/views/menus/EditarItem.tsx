@@ -181,14 +181,15 @@ const EditarItem: React.FC = () => {
 
     try {
       const response = await actualizarItem(id!, formData);
-      
-      if (response.success) {
+      // El backend puede devolver { success: true } o directamente el item actualizado (id_item, etiqueta, etc.)
+      const ok = response && (response.success === true || response.id_item != null || response.etiqueta != null);
+      if (ok) {
         setSuccess(true);
         setTimeout(() => {
           navigate('/menus/estructura');
         }, 2000);
       } else {
-        setError(response.message || 'Error al actualizar el item');
+        setError((response && response.message) || (response && response.error) || 'Error al actualizar el item');
       }
     } catch (err: any) {
       setError(err.message || 'Error al actualizar el item');
@@ -270,7 +271,7 @@ const EditarItem: React.FC = () => {
                         value={formData.ruta}
                         onChange={handleInputChange}
                         disabled={loadingData}
-                        placeholder="Ej: /dashboard, /usuarios, etc."
+                        placeholder="Ej: /dashboard, /usuario, etc."
                       />
                     </FormGroup>
                   </Col>

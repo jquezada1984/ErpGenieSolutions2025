@@ -138,13 +138,15 @@ const NuevoItem: React.FC = () => {
       };
       
       const response = await crearItem(itemData);
-      if (response.success) {
+      // El backend puede devolver { success: true } o directamente el item creado (id_item, etiqueta, etc.)
+      const ok = response && (response.success === true || response.id_item != null || response.etiqueta != null);
+      if (ok) {
         setSuccess(true);
         setTimeout(() => {
           navigate('/menus');
         }, 2000);
       } else {
-        setError(response.message || 'Error al crear el item');
+        setError((response && response.message) || (response && response.error) || 'Error al crear el item');
       }
     } catch (err: any) {
       setError(err.message || 'Error al crear el item');
