@@ -6,9 +6,8 @@ import 'react-table/react-table.css';
 import { useLazyQuery, gql } from '@apollo/client';
 import { eliminarUsuario, cambiarEstadoUsuario } from '../../_apis_/usuario';
 
-// Consultas GraphQL para InicioNestJS (solo lectura)
 const GET_USUARIOS = gql`
-  query {
+  query GetUsuarios {
     usuarios {
       id_usuario
       username
@@ -31,13 +30,26 @@ const GET_USUARIOS = gql`
   }
 `;
 
+// Respaldo cuando el backend no expone created_at/empresa/perfil (ej. tras git pull sin recompilar InicioNestJs)
+const GET_USUARIOS_MINIMAL = gql`
+  query GetUsuariosMinimal {
+    usuarios {
+      id_usuario
+      username
+      nombre_completo
+      email
+      estado
+    }
+  }
+`;
+
 interface Usuario {
   id_usuario: string;
   username: string;
   nombre_completo?: string;
   email?: string;
   estado: boolean;
-  created_at: string;
+  created_at?: string;
   updated_at?: string;
   empresa?: {
     id_empresa: string;
@@ -59,28 +71,46 @@ const Usuarios: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // GraphQL hooks para InicioNestJS (solo lectura)
-  const [getUsuarios, { loading: queryLoading, data, refetch }] = useLazyQuery(GET_USUARIOS, {
-    fetchPolicy: 'cache-and-network', // Siempre consultar red y caché
+  const [getUsuarios, { loading: queryLoading, data }] = useLazyQuery(GET_USUARIOS, {
+    fetchPolicy: 'cache-and-network',
     errorPolicy: 'all',
+    onCompleted: (d) => {
+      if (d?.usuarios) setUsuarios(d.usuarios);
+    },
+  });
+  const [getUsuariosMinimal, { loading: loadingMinimal, data: dataMinimal }] = useLazyQuery(GET_USUARIOS_MINIMAL, {
+    fetchPolicy: 'cache-and-network',
+    onCompleted: (d) => {
+      if (d?.usuarios) {
+        setUsuarios(d.usuarios);
+        setError(null);
+      }
+    },
   });
 
+  // Cargar: primero mínima (siempre válida), luego completa (si el backend la soporta)
   useEffect(() => {
     if (location.pathname === '/usuario') {
-      refetch();
+      getUsuariosMinimal();
+      getUsuarios();
     }
-  }, [location.pathname, refetch]);
+  }, [location.pathname, getUsuariosMinimal, getUsuarios]);
 
   useEffect(() => {
-    if (data) {
-      setUsuarios(data.usuarios || []);
+    if (data?.usuarios) {
+      setUsuarios(data.usuarios);
     }
   }, [data]);
 
-  // Actualizar loading cuando cambia queryLoading
   useEffect(() => {
-    setLoading(queryLoading);
-  }, [queryLoading]);
+    if (dataMinimal?.usuarios && !data?.usuarios) {
+      setUsuarios(dataMinimal.usuarios);
+    }
+  }, [dataMinimal, data]);
+
+  useEffect(() => {
+    setLoading(queryLoading || loadingMinimal);
+  }, [queryLoading, loadingMinimal]);
 
   const handleNuevoUsuario = () => {
     navigate('/usuario/nuevo');
@@ -99,7 +129,7 @@ const Usuarios: React.FC = () => {
         await eliminarUsuario(id);
         
         // Recargar datos después de eliminar
-        refetch();
+        getUsuarios();
         setSuccess('Usuario eliminado exitosamente');
       } catch (error: any) {
         setError('Error al eliminar el usuario: ' + (error.message || 'Error desconocido'));
@@ -117,7 +147,7 @@ const Usuarios: React.FC = () => {
       await cambiarEstadoUsuario(id, nuevoEstado);
       
       // Recargar datos después de cambiar estado
-      refetch();
+      getUsuarios();
       setSuccess(`Usuario ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`);
     } catch (error: any) {
       setError('Error al cambiar el estado del usuario: ' + (error.message || 'Error desconocido'));
@@ -142,7 +172,7 @@ const Usuarios: React.FC = () => {
         {usuario.estado ? 'Activo' : 'Inactivo'}
       </Badge>
     ),
-    created_at: new Date(usuario.created_at).toLocaleDateString('es-ES'),
+    created_at: usuario.created_at ? new Date(usuario.created_at).toLocaleDateString('es-ES') : '-',
     actions: (
       <div className="grid-action-buttons text-center">
         <Button
@@ -201,7 +231,7 @@ const Usuarios: React.FC = () => {
                     <i className="bi bi-plus-circle me-2"></i>
                     Nuevo Usuario
                   </Button>
-                  <Button color="secondary" className="ms-2" onClick={refetch}>
+                  <Button color="secondary" className="ms-2" onClick={() => getUsuarios()}>
                     <i className="bi bi-arrow-clockwise me-2"></i>
                     Actualizar
                   </Button>

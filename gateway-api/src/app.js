@@ -16,9 +16,9 @@ const fastify = require('fastify')({
   trustProxy: true
 });
 
-// Configuración
+// Configuración (puerto 3002 para coincidir con el frontend y Docker)
 const config = {
-  port: process.env.GATEWAY_PORT || 3000,
+  port: process.env.GATEWAY_PORT || 3002,
   pythonService: process.env.PYTHON_SERVICE_URL,
   nestjsService: process.env.NESTJS_SERVICE_URL,
   menuService: process.env.MENU_SERVICE_URL, // Agregar servicio de menú

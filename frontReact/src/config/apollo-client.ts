@@ -2,9 +2,12 @@ import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/clien
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 
-// Configuración para Gateway (todos los servicios)
+// URL del gateway: si no está definida en .env, usar localhost:3002 (login y GraphQL pasan por aquí)
+const GATEWAY_GRAPHQL_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002').replace(/\/$/, '') + '/graphql';
+
+// Configuración para Gateway (autenticación, usuarios, etc.)
 const mainHttpLink = createHttpLink({
-  uri: import.meta.env.VITE_GATEWAY_URL + '/graphql' || 'http://localhost:3002/graphql',
+  uri: GATEWAY_GRAPHQL_URL,
 });
 
 // Configuración para MenuNestJs (permisos de menú)

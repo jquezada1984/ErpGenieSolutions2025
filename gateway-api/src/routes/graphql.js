@@ -82,8 +82,14 @@ async function executeGraphQLQuery(query, variables, operationName, context, con
 async function routes(fastify, options) {
   // Endpoint GraphQL
   fastify.post('/graphql', async (request, reply) => {
+    const config = {
+      nestjsService: process.env.NESTJS_SERVICE_URL,
+      menuService: process.env.MENU_SERVICE_URL,
+      terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || process.env.TERCERO_NESTJS_SERVICE_URL || 'http://localhost:3001'
+    };
+
     try {
-      const { query, variables, operationName } = request.body;
+      const { query, variables, operationName } = request.body || {};
       
       if (!query) {
         return reply.status(400).send({
@@ -93,22 +99,26 @@ async function routes(fastify, options) {
         });
       }
 
-      // Obtener configuración del gateway
-      const config = {
-        nestjsService: process.env.NESTJS_SERVICE_URL,
-        menuService: process.env.MENU_SERVICE_URL,
-        terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || 'http://tercero-nestjs-service:3001'
-      };
+      const targetUrl = getTargetService(query, config);
+      if (!targetUrl) {
+        return reply.status(503).send({
+          success: false,
+          error: 'Servicio GraphQL no configurado (NESTJS_SERVICE_URL o MENU_SERVICE_URL)',
+          timestamp: new Date().toISOString()
+        });
+      }
 
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);
-      
       return reply.send(result);
     } catch (error) {
       fastify.log.error('Error en endpoint GraphQL:', error);
-      
-      return reply.status(500).send({
+      const message = error.response?.data?.errors?.[0]?.message
+        || error.response?.data?.error
+        || error.message
+        || 'Error interno del servidor';
+      return reply.status(error.response?.status === 401 ? 401 : 500).send({
         success: false,
-        error: error.response?.data?.errors?.[0]?.message || error.message || 'Error interno del servidor',
+        error: message,
         timestamp: new Date().toISOString()
       });
     }
@@ -135,11 +145,10 @@ async function routes(fastify, options) {
 
   // Endpoint para verificar conectividad con NestJS GraphQL
   fastify.get('/graphql/health', async (request, reply) => {
+    const baseUrl = process.env.NESTJS_SERVICE_URL || 'http://localhost:3001';
+    const healthUrl = baseUrl.replace(/\/graphql\/?$/, '') + '/';
     try {
-      const response = await axios.get(NESTJS_GRAPHQL_URL.replace('/graphql', '/health'), {
-        timeout: 3000
-      });
-      
+      await axios.get(healthUrl, { timeout: 3000 });
       return reply.send({
         success: true,
         service: 'NestJS GraphQL',

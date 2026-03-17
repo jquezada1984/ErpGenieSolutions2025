@@ -2,6 +2,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type CondicionPago {
+  descripcion: String!
+  id_condicion_pago: ID!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -107,6 +112,11 @@ type EmpresaRedSocial {
   updated_at: DateTime
   updated_by: String
   url: String
+}
+
+type FormaPago {
+  descripcion: String!
+  id_forma_pago: ID!
 }
 
 type LoginResponse {
@@ -287,8 +297,10 @@ type Provincia {
 }
 
 type Query {
+  condicionesPago: [CondicionPago!]!
   empresa(id_empresa: ID!): Empresa
   empresas: [EmpresaListDto!]!
+  formasPago: [FormaPago!]!
   getUserProfile: LoginResponse
   item(id_item: ID!): MenuItem
   items: [MenuItem!]!
@@ -317,6 +329,7 @@ type Query {
   sucursales: [SucursalListDto!]!
   sucursalesPorEmpresa(id_empresa: ID!): [SucursalListDto!]!
   test: String!
+  tiposEntidadComercial: [TipoEntidadComercial!]!
   usuario(id_usuario: ID!): Usuario
   usuarios: [UsuarioListDto!]!
   validateToken: Boolean!

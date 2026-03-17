@@ -26,6 +26,8 @@ services:
       context: ./InicioNestJs
       dockerfile: Dockerfile.dev
     container_name: erp-nestjs-service-dev
+    env_file:
+      - ./InicioNestJs/.env
     environment:
       - NODE_ENV=development
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}

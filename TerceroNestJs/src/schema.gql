@@ -2,9 +2,52 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-type CondicionPago {
-  descripcion: String!
-  id_condicion_pago: ID!
+type Contacto {
+  alerta_cumpleanos: Boolean!
+  apellidos_etiqueta: String
+  codigo_postal: String
+  correo: String
+  created_at: DateTime
+  direccion: String
+  estado: Boolean!
+  fax: String
+
+  """Fecha de nacimiento (YYYY-MM-DD)"""
+  fecha_nacimiento: String
+  id_contacto: ID!
+  id_pais: String
+  id_provincia: String
+  id_tercero: String!
+  movil: String
+  nombre: String
+  poblacion: String
+  puesto_trabajo: String
+  telefono_particular: String
+  telefono_trabajo: String
+  tercero: Tercero
+  titulo_cortesia: String
+  updated_at: DateTime
+  visibilidad: String
+}
+
+input CreateContactoInput {
+  alerta_cumpleanos: Boolean! = false
+  apellidos_etiqueta: String
+  codigo_postal: String
+  correo: String
+  direccion: String
+  estado: Boolean! = true
+  fax: String
+  fecha_nacimiento: DateTime
+  id_tercero: String!
+  movil: String
+  nombre: String
+  poblacion: String
+  puesto_trabajo: String
+  telefono_particular: String
+  telefono_trabajo: String
+  titulo_cortesia: String
+  visibilidad: String
 }
 
 input CreateTerceroInput {
@@ -57,11 +100,6 @@ type Empresa {
   telefono: String
 }
 
-type FormaPago {
-  descripcion: String!
-  id_forma_pago: ID!
-}
-
 type Incoterm {
   codigo: String!
   descripcion: String
@@ -69,27 +107,22 @@ type Incoterm {
 }
 
 type Mutation {
+  createContacto(input: CreateContactoInput!): Contacto!
   createTercero(input: CreateTerceroInput!): Tercero!
+  removeContacto(id_contacto: String!): Boolean!
   removeTercero(id_tercero: String!): Boolean!
+  updateContacto(input: UpdateContactoInput!): Contacto!
   updateTercero(input: UpdateTerceroInput!): Tercero!
 }
 
-type Pais {
-  codigo_iso: String!
-  icono: String!
-  id_pais: ID!
-  nombre: String!
-}
-
 type Query {
-  clientes: [Tercero!]!
-  condicionesPago: [CondicionPago!]!
-  empresas: [Empresa!]!
-  formasPago: [FormaPago!]!
+  clientes(id_empresa: ID): [Tercero!]!
+  contacto(id_contacto: String!): Contacto!
+  contactosByTercero(id_tercero: String!): [Contacto!]!
   incoterms: [Incoterm!]!
-  paises: [Pais!]!
+  representantesPorEmpresa(id_empresa: ID!): [Tercero!]!
   tercero(id_tercero: String!): Tercero!
-  terceros: [Tercero!]!
+  terceros(id_empresa: ID): [Tercero!]!
   tiposTercero: [TipoTercero!]!
 }
 
@@ -101,8 +134,8 @@ type Tercero {
   cliente: Boolean!
   cliente_potencial: Boolean!
   codigo_cliente: String
-  codigo_proveedor: String
   codigo_postal: String
+  codigo_proveedor: String
   correo: String
   created_by: String
   direccion: String
@@ -117,24 +150,53 @@ type Tercero {
   id_pais: String
   id_profesional_1: String
   id_profesional_2: String
+  id_provincia: String
   id_tercero: ID!
+  id_tipo_entidad: Float
   id_tipo_tercero: String
-  updated_by: String
   movil: String
   nombre: String!
   poblacion: String
   proveedor: Boolean!
-  provincia: String
   sede_central: String
   sujeto_iva: Boolean!
   telefono: String
+  tipoEntidadComercial: TipoEntidadComercial
   tipo_tercero: TipoTercero
+  updated_by: String
   web: String
+}
+
+type TipoEntidadComercial {
+  descripcion: String
+  id_tipo_entidad: Float!
+  nombre: String!
 }
 
 type TipoTercero {
   id_tipo_tercero: ID!
   nombre: String!
+}
+
+input UpdateContactoInput {
+  alerta_cumpleanos: Boolean = false
+  apellidos_etiqueta: String
+  codigo_postal: String
+  correo: String
+  direccion: String
+  estado: Boolean = true
+  fax: String
+  fecha_nacimiento: DateTime
+  id_contacto: String!
+  id_tercero: String
+  movil: String
+  nombre: String
+  poblacion: String
+  puesto_trabajo: String
+  telefono_particular: String
+  telefono_trabajo: String
+  titulo_cortesia: String
+  visibilidad: String
 }
 
 input UpdateTerceroInput {
@@ -162,7 +224,6 @@ input UpdateTerceroInput {
   id_profesional_2: String
   id_tercero: String!
   id_tipo_tercero: String
-  updated_by: String
   movil: String
   nombre: String
   poblacion: String
@@ -171,5 +232,6 @@ input UpdateTerceroInput {
   sede_central: String
   sujeto_iva: Boolean = true
   telefono: String
+  updated_by: String
   web: String
 }

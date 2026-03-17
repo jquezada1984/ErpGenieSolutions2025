@@ -26,10 +26,19 @@ export class UsuarioResolver {
   @Query(() => [UsuarioListDto])
   @UseGuards(GqlAuthGuard)
   async usuarios(): Promise<UsuarioListDto[]> {
-    return this.usuarioRepository.find({
-      relations: ['empresa', 'perfil'],
-      order: { created_at: 'DESC' }
-    });
+    try {
+      return await this.usuarioRepository.find({
+        relations: ['empresa', 'perfil'],
+        order: { created_at: 'DESC' }
+      });
+    } catch (err) {
+      // Si la tabla no tiene created_at, intentar sin orden o por id
+      console.warn('usuarios: order by created_at failed, retrying without', err?.message);
+      return this.usuarioRepository.find({
+        relations: ['empresa', 'perfil'],
+        order: { username: 'ASC' }
+      });
+    }
   }
 
   @Query(() => Usuario, { nullable: true })
