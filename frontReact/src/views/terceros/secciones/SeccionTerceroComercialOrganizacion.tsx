@@ -6,6 +6,7 @@ import SelectEmpresa from '../../../components/SelectEmpresa';
 import SelectCondicionPago from '../../../components/selects/SelectCondicionPago';
 import SelectFormaPago from '../../../components/selects/SelectFormaPago';
 import SelectRepresentante from '../../../components/selects/SelectRepresentante';
+import SelectTamanoEmpresa from '../../../components/selects/SelectTamanoEmpresa';
 import useJwtPayload from '../../../hooks/useJwtPayload';
 
 type Props = { data:any; onChange:(d:any)=>void };
@@ -17,7 +18,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
 
   const [f, setF] = useState<any>({
     capital: 0, id_condicion_pago:'', id_forma_pago:'', id_empresa: '',
-    id_profesional_1:'', id_profesional_2:'', cif_intra:'',
+    id_tamano_empresa:'', id_profesional_1:'', id_profesional_2:'', cif_intra:'',
     sede_central:'', asignado_a:''
   });
   const [err, setErr] = useState<{[k:string]:string}>({});
@@ -80,10 +81,20 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
     }
   `;
 
+  const GET_TAMANOS_EMPRESA = gql`
+    query GetTamanosEmpresa {
+      tamanosEmpresa {
+        id_tamano_empresa
+        nombre
+      }
+    }
+  `;
+
   // Obtener datos maestros con manejo de errores
   const { data: condicionesData, loading: loadingCondiciones, error: errorCondiciones } = useQuery(GET_CONDICIONES_PAGO);
   const { data: formasData, loading: loadingFormas, error: errorFormas } = useQuery(GET_FORMAS_PAGO);
   const { data: empresasData, loading: loadingEmpresas, error: errorEmpresas } = useQuery(GET_EMPRESAS);
+  const { data: tamanosEmpresaData } = useQuery(GET_TAMANOS_EMPRESA);
   const {
     data: representantesData,
     loading: loadingRepresentantes,
@@ -95,6 +106,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
   const condicionesPago = condicionesData?.condicionesPago || [];
   const formasPago = formasData?.formasPago || [];
   const empresas = empresasData?.empresas || [];
+  const tamanosEmpresa = tamanosEmpresaData?.tamanosEmpresa || [];
   const representantes = representantesData?.representantesPorEmpresa || [];
 
   const loading = loadingCondiciones || loadingFormas || loadingEmpresas;
@@ -193,6 +205,21 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
               <Input id="capital" name="capital" type="number" step="0.01" min="0"
                      value={f.capital} onChange={chg} invalid={!!err.capital}/>
               {err.capital && <FormText color="danger">{err.capital}</FormText>}
+            </FormGroup>
+          </Col>
+          <Col md={4}>
+            <FormGroup>
+              <Label htmlFor="id_tamano_empresa">Tamaño de empresa</Label>
+              <SelectTamanoEmpresa
+                value={f.id_tamano_empresa || ''}
+                onChange={(val) => {
+                  const u = { ...f, id_tamano_empresa: val ?? '' };
+                  setF(u);
+                  onChange(u);
+                }}
+                tamanos={tamanosEmpresa}
+                placeholder="Seleccionar"
+              />
             </FormGroup>
           </Col>
         </Row>

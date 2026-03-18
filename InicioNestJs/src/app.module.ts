@@ -34,6 +34,7 @@ import { MenuSeccion, MenuItem } from './entities/menu.entity';
 import { PerfilMenuPermiso } from './entities/perfil-menu-permiso.entity';
 import { CondicionPago } from './entities/condicion-pago.entity';
 import { FormaPago } from './entities/forma-pago.entity';
+import { TamanoEmpresa } from './entities/tamano-empresa.entity';
 import { AuthModule } from './auth/auth.module';
 // Resolvers
 import { UsuarioResolver } from './resolvers/usuario.resolver';
@@ -48,11 +49,13 @@ import { MonedaResolver } from './resolvers/moneda.resolver';
 import { ProvinciaResolver } from './resolvers/provincia.resolver';
 import { CatalogosPagoResolver } from './resolvers/catalogos-pago.resolver';
 import { TipoEntidadComercialResolver } from './resolvers/tipo-entidad-comercial.resolver';
+import { TamanoEmpresaResolver } from './resolvers/tamano-empresa.resolver';
 import { AuthResolver } from './auth/auth.resolver';
 // Services
 import { PaisService } from './services/pais.service';
 import { MonedaService } from './services/moneda.service';
 import { ProvinciaService } from './services/provincia.service';
+import { TamanoEmpresaService } from './services/tamano-empresa.service';
 import { AutorizacionService } from './services/autorizacion.service';
 
 @Module({
@@ -77,7 +80,8 @@ import { AutorizacionService } from './services/autorizacion.service';
         MenuItem,
         PerfilMenuPermiso,
         CondicionPago,
-        FormaPago
+        FormaPago,
+        TamanoEmpresa
       ],
       synchronize: false, // Deshabilitado para evitar conflictos con datos existentes
       ssl: {
@@ -101,7 +105,8 @@ import { AutorizacionService } from './services/autorizacion.service';
       MenuItem,
       PerfilMenuPermiso,
       CondicionPago,
-      FormaPago
+      FormaPago,
+      TamanoEmpresa
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -129,10 +134,12 @@ import { AutorizacionService } from './services/autorizacion.service';
       ProvinciaResolver,
       CatalogosPagoResolver,
       TipoEntidadComercialResolver,
+      TamanoEmpresaResolver,
       AuthResolver,
       PaisService,
       MonedaService,
       ProvinciaService,
+      TamanoEmpresaService,
       AutorizacionService,
     ],
 })

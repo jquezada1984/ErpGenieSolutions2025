@@ -36,6 +36,7 @@ class TerceroCreateSchema(Schema):
     # Comercial/Org
     id_condicion_pago = fields.UUID(allow_none=True)
     id_forma_pago     = fields.UUID(allow_none=True)
+    id_tamano_empresa = fields.UUID(allow_none=True)
     capital           = fields.Decimal(places=2, allow_none=True)
     id_profesional_1  = fields.Str(allow_none=True)
     id_profesional_2  = fields.Str(allow_none=True)
@@ -84,6 +85,7 @@ class TerceroUpdateSchema(Schema):
 
     id_condicion_pago = fields.UUID(allow_none=True)
     id_forma_pago     = fields.UUID(allow_none=True)
+    id_tamano_empresa = fields.UUID(allow_none=True)
     capital           = fields.Decimal(places=2, allow_none=True)
     id_profesional_1  = fields.Str(allow_none=True)
     id_profesional_2  = fields.Str(allow_none=True)
@@ -122,6 +124,7 @@ class TerceroOutSchema(Schema):
 
     id_condicion_pago = fields.UUID(allow_none=True)
     id_forma_pago     = fields.UUID(allow_none=True)
+    id_tamano_empresa = fields.UUID(allow_none=True)
     capital           = fields.Decimal(places=2, allow_none=True)
     id_profesional_1  = fields.Str(allow_none=True)
     id_profesional_2  = fields.Str(allow_none=True)

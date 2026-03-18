@@ -57,6 +57,10 @@ export class Tercero {
 
   @Field({ nullable: true })
   @Column({ type: 'uuid', nullable: true })
+  id_tamano_empresa?: string;
+
+  @Field({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   id_tipo_tercero?: string;
 
   @Field(() => TipoTercero, { nullable: true })

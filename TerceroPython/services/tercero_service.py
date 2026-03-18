@@ -46,7 +46,7 @@ def servicio_crear_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Op
     data = TerceroCreateSchema().load(payload)
 
     # normalizaciones UUID
-    for k in ("id_pais","id_tipo_tercero","id_condicion_pago","id_forma_pago","sede_central","asignado_a"):
+    for k in ("id_pais","id_tipo_tercero","id_condicion_pago","id_forma_pago","id_tamano_empresa","sede_central","asignado_a"):
         data[k] = _safe_uuid(data.get(k))
 
     # autogenerar código si viene vacío
@@ -74,7 +74,7 @@ def servicio_actualizar_tercero(
     scope_acceso: str = "EMPRESA",
 ) -> Optional[Dict[str, Any]]:
     data = TerceroUpdateSchema().load(payload)
-    for k in ("id_pais","id_tipo_tercero","id_condicion_pago","id_forma_pago","sede_central","asignado_a"):
+    for k in ("id_pais","id_tipo_tercero","id_condicion_pago","id_forma_pago","id_tamano_empresa","sede_central","asignado_a"):
         if k in data:
             data[k] = _safe_uuid(data.get(k))
     if "codigo_cliente" in data and data["codigo_cliente"]:

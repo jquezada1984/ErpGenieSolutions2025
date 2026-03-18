@@ -36,6 +36,7 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
         # comercial/org
         id_condicion_pago=payload.get("id_condicion_pago"),
         id_forma_pago=payload.get("id_forma_pago"),
+        id_tamano_empresa=payload.get("id_tamano_empresa"),
         capital=payload.get("capital"),
         id_profesional_1=payload.get("id_profesional_1"),
         id_profesional_2=payload.get("id_profesional_2"),
@@ -82,7 +83,7 @@ def update_tercero(
         "id_tipo_tercero","id_tipo_entidad",
         "direccion","poblacion","codigo_postal","id_pais","provincia","id_provincia",
         "telefono","movil","fax","web","correo","logo",
-        "id_condicion_pago","id_forma_pago","capital",
+        "id_condicion_pago","id_forma_pago","id_tamano_empresa","capital",
         "id_profesional_1","id_profesional_2","cif_intra",
         "sede_central","asignado_a",
     }

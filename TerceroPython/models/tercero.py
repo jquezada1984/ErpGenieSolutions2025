@@ -57,6 +57,7 @@ class Tercero(db.Model):
     capital                = db.Column(db.Numeric(18, 2), default=0)
     id_condicion_pago      = db.Column(db.String(36), db.ForeignKey('condicion_pago_catalogo.id_condicion_pago'), nullable=True)
     id_forma_pago          = db.Column(db.String(36), db.ForeignKey('forma_pago_catalogo.id_forma_pago'), nullable=True)
+    id_tamano_empresa      = db.Column(db.String(36), nullable=True)
 
     # Organización
     sede_central = db.Column(db.String(36), db.ForeignKey('tercero.id_tercero'), nullable=True)
