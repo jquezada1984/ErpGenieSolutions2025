@@ -22,6 +22,10 @@ def _ctx_empresa_user():
 def crear_tercero():
     if request.method == 'OPTIONS':
         return '', 204
+    print("🔥🔥🔥 RUTA REAL EJECUTADA")
+    print("🔥 CONTROLLER RECIBIÓ REQUEST")
+    print("🔥🔥🔥 ENTRO A LA RUTA REAL")
+    print("🔥 BODY:", request.json)
     id_empresa, user_id, _ = _ctx_empresa_user()
     if not id_empresa:
         return jsonify({'error': 'Falta X-Company-Id en headers'}), 400

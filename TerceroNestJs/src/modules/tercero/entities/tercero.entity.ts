@@ -182,7 +182,8 @@ export class Tercero {
   @Column({ type: 'uuid', nullable: true })
   asignado_a?: string;
 
-  // logo BYTEA -> no lo exponemos en GQL, se recomienda URL pública
+  @Field(() => String, { nullable: true })
+  logo?: string;
 
   // ---- Auditoría ----
   @Field({ nullable: true })

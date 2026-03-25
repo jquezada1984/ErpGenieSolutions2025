@@ -35,4 +35,4 @@ if __name__ == '__main__':
     # No crear tablas aquí
     import os
     port = int(os.environ.get('PORT', 3004))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)

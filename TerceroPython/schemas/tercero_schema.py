@@ -31,7 +31,7 @@ class TerceroCreateSchema(Schema):
     fax           = fields.Str(allow_none=True)
     web           = fields.Str(allow_none=True)
     correo        = fields.Email(allow_none=True)
-    logo          = fields.Str(allow_none=True)
+    logo          = fields.String(required=False, allow_none=True)
 
     # Comercial/Org
     id_condicion_pago = fields.UUID(allow_none=True)
@@ -81,7 +81,6 @@ class TerceroUpdateSchema(Schema):
     fax           = fields.Str(allow_none=True)
     web           = fields.Str(allow_none=True)
     correo        = fields.Email(allow_none=True)
-    logo          = fields.Str(allow_none=True)
 
     id_condicion_pago = fields.UUID(allow_none=True)
     id_forma_pago     = fields.UUID(allow_none=True)
@@ -120,7 +119,6 @@ class TerceroOutSchema(Schema):
     fax           = fields.Str(allow_none=True)
     web           = fields.Str(allow_none=True)
     correo        = fields.Str(allow_none=True)
-    logo          = fields.Str(allow_none=True)
 
     id_condicion_pago = fields.UUID(allow_none=True)
     id_forma_pago     = fields.UUID(allow_none=True)

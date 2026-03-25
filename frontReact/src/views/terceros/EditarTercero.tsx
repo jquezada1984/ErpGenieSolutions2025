@@ -94,6 +94,7 @@ const GET_TERCERO = gql`
       fax
       correo
       web
+      logo
       id_profesional_1
       id_profesional_2
       cif_intra
@@ -163,7 +164,7 @@ const EditarTercero: React.FC = () => {
       fax: t.fax ?? '',
       web: t.web ?? '',
       correo: t.correo ?? '',
-      logo: '',
+      logo: data?.tercero?.logo ?? '',
       capital: t.capital != null ? Number(t.capital) : 0,
       id_condicion_pago: t.id_condicion_pago ?? '',
       id_forma_pago: t.id_forma_pago ?? '',

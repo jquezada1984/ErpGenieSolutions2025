@@ -1,11 +1,12 @@
 from typing import Optional, Dict, Any
-from datetime import datetime
+import requests
 from sqlalchemy.exc import IntegrityError
 from utils.db import db
 from models.tercero import Tercero
-from models.media import Media
 
 def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[str]) -> Tercero:
+    print("🔥 PAYLOAD RAW:", payload)
+    print("ENTRO AL CREATE REAL")
     tercero = Tercero(
         id_empresa=id_empresa,
         # roles
@@ -32,7 +33,6 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
         fax=payload.get("fax"),
         web=payload.get("web"),
         correo=payload.get("correo"),
-        logo=payload.get("logo"),
         # comercial/org
         id_condicion_pago=payload.get("id_condicion_pago"),
         id_forma_pago=payload.get("id_forma_pago"),
@@ -49,19 +49,48 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
     )
     db.session.add(tercero)
     db.session.flush()
-    if payload.get("logo"):
-        media = Media(
-            module="tercero",
-            module_id=tercero.id_tercero,
-            url=payload.get("logo"),
-            updated_at=None
-        )
-        db.session.add(media)
     try:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
         raise
+
+    print("PAYLOAD COMPLETO:", payload)
+    print("TIPO DE PAYLOAD:", type(payload))
+    print("CLAVES DEL PAYLOAD:", payload.keys())
+    logo_url = payload.get("logo")
+    print("LOGO EXTRAIDO:", logo_url)
+    print("ENTRA AL IF?", bool(logo_url))
+    if logo_url:
+
+        try:
+            print("🚀 LLAMANDO A MEDIA SERVICE CON:", {
+                "module": "tercero",
+                "module_id": str(tercero.id_tercero),
+                "url": logo_url,
+            })
+            response = requests.post(
+                "http://erp-media-service:3010/media/metadata",
+                json={
+                    "module": "tercero",
+                    "module_id": str(tercero.id_tercero),
+                    "url": logo_url,
+                    "filename": None,
+                    "mimetype": None,
+                    "size": None,
+                    "tipo": "imagen",
+                    "es_principal": True,
+                    "estado_archivo": "ACTIVO",
+                    "id_directorio_documento": None,
+                },
+                timeout=15,
+            )
+            print("MEDIA STATUS:", response.status_code)
+            print("MEDIA RESPONSE:", response.text)
+
+        except Exception as e:
+            print("ERROR MEDIA:", str(e))
+
     return tercero
 
 def update_tercero(
@@ -82,7 +111,7 @@ def update_tercero(
         "nombre","apodo","codigo_cliente","codigo_proveedor","estado","sujeto_iva",
         "id_tipo_tercero","id_tipo_entidad",
         "direccion","poblacion","codigo_postal","id_pais","provincia","id_provincia",
-        "telefono","movil","fax","web","correo","logo",
+        "telefono","movil","fax","web","correo",
         "id_condicion_pago","id_forma_pago","id_tamano_empresa","capital",
         "id_profesional_1","id_profesional_2","cif_intra",
         "sede_central","asignado_a",
@@ -93,27 +122,38 @@ def update_tercero(
             setattr(tercero,k,v)
     tercero.updated_by = user_id
 
-    if "logo" in payload:
-        existing_media = Media.query.filter_by(
-            module="tercero",
-            module_id=tercero.id_tercero
-        ).first()
-        if existing_media:
-            existing_media.url = payload.get("logo")
-            existing_media.updated_at = datetime.utcnow()
-        else:
-            new_media = Media(
-                module="tercero",
-                module_id=tercero.id_tercero,
-                url=payload.get("logo")
-            )
-            db.session.add(new_media)
-
     try:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
         raise
+
+    print("PAYLOAD COMPLETO:", payload)
+    logo_url = payload.get("logo")
+    print("LOGO URL:", logo_url)
+    if logo_url:
+        try:
+            response = requests.post(
+                "http://erp-media-service:3010/media/metadata",
+                json={
+                    "module": "tercero",
+                    "module_id": str(tercero.id_tercero),
+                    "url": logo_url,
+                    "filename": None,
+                    "mimetype": None,
+                    "size": None,
+                    "tipo": "imagen",
+                    "es_principal": True,
+                    "estado_archivo": "ACTIVO",
+                    "id_directorio_documento": None,
+                },
+                timeout=15,
+            )
+            print("MEDIA STATUS:", response.status_code)
+            print("MEDIA RESPONSE:", response.text)
+        except Exception as e:
+            print("ERROR MEDIA:", str(e))
+
     return tercero
 
 def soft_delete_tercero(
