@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Container,
   Row,
@@ -18,8 +19,9 @@ import {
 import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
 import { getMediaByModule, deleteMedia } from '../../_apis_/media';
 
-/** UUID de tercero de prueba: sustituir por un `id_tercero` real (p. ej. desde el listado). */
-const TERCERO_PRUEBA_MODULE_ID = '51e6bbe1-a1ad-4766-ba07-65cddcc7b58a';
+const useQuery = () => {
+  return new URLSearchParams(useLocation().search);
+};
 
 interface MediaItem {
   id_media: string;
@@ -31,6 +33,10 @@ interface MediaItem {
 }
 
 const Documentos: React.FC = () => {
+  const query = useQuery();
+  const module = query.get('module') || 'tercero';
+  const module_id = query.get('module_id');
+
   const [documentos, setDocumentos] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,10 +44,17 @@ const Documentos: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const loadMedia = useCallback(async () => {
+    if (!module_id) {
+      setError('No se proporcionó module_id');
+      setDocumentos([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const list = await getMediaByModule('tercero', TERCERO_PRUEBA_MODULE_ID);
+      const list = await getMediaByModule(module, module_id);
       setDocumentos(Array.isArray(list) ? list : []);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Error al cargar documentos';
@@ -50,7 +63,7 @@ const Documentos: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [module, module_id]);
 
   useEffect(() => {
     loadMedia();
