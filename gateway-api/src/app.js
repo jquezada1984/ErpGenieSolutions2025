@@ -74,6 +74,7 @@ fastify.register(require('./routes/usuarios'), { prefix: '/api' });
 fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/graphql'), { prefix: '' });
 fastify.register(require('./routes/media'), { prefix: '/api' });
+fastify.register(require('./routes/directorio'), { prefix: '/api' });
 
 fastify.post('/api/terceros', async (request, reply) => {
   return terceroPython.crearTercero(request.body, request);

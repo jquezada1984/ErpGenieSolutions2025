@@ -49,9 +49,13 @@ export const uploadMedia = async (file) => {
   return response.data;
 };
 
-export const getMediaByModule = async (module, module_id) => {
+export const getMediaByModule = async (module, module_id, directorio_id) => {
   const response = await apiClient.get('/api/media', {
-    params: { module, module_id },
+    params: {
+      module,
+      module_id,
+      ...(directorio_id && { directorio_id }),
+    },
   });
   const body = response.data;
   if (Array.isArray(body)) return body;
@@ -63,3 +67,5 @@ export const deleteMedia = async (id_media) => {
   const response = await apiClient.delete(`/api/media/${id_media}`);
   return response.data;
 };
+
+export default apiClient;

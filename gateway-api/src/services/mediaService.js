@@ -27,12 +27,17 @@ async function uploadMedia(formData, headers = {}) {
  * Lista medios por módulo y id de entidad.
  * @param {string} module
  * @param {string} module_id
+ * @param {string} [directorio_id]
  * @param {object} [headers={}]
  * @returns {Promise<object>}
  */
-async function getMediaByModule(module, module_id, headers = {}) {
+async function getMediaByModule(module, module_id, directorio_id, headers = {}) {
   const res = await http.get('/media', {
-    params: { module, module_id },
+    params: {
+      module,
+      module_id,
+      ...(directorio_id && { directorio_id }),
+    },
     headers,
   });
   return res.data;

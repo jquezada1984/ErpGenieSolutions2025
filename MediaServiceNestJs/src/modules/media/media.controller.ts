@@ -54,13 +54,15 @@ export class MediaController {
   async listarPorModulo(
     @Query('module') module: string,
     @Query('module_id') module_id: string,
+    @Query('directorio_id') directorio_id?: string,
   ) {
     const m = typeof module === 'string' ? module.trim() : '';
     const mid = typeof module_id === 'string' ? module_id.trim() : '';
+    const did = typeof directorio_id === 'string' ? directorio_id.trim() : undefined;
     if (!m || !mid) {
       throw new BadRequestException('module y module_id son obligatorios');
     }
-    return this.mediaDbService.obtenerMediaPorModulo(m, mid);
+    return this.mediaDbService.obtenerMediaPorModulo(m, mid, did);
   }
 
   @Get('principal/:module/:module_id')

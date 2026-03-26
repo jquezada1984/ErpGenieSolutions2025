@@ -37,14 +37,20 @@ module.exports = async function (fastify, opts) {
 
   fastify.get('/media', async (request, reply) => {
     try {
-      const { module, module_id } = request.query || {};
+      const { module, module_id, directorio_id } = request.query || {};
       const moduleVal = typeof module === 'string' ? module.trim() : '';
       const moduleIdVal = typeof module_id === 'string' ? module_id.trim() : '';
+      const directorioIdVal = typeof directorio_id === 'string' ? directorio_id.trim() : '';
       if (!moduleVal || !moduleIdVal) {
         return reply.code(400).send({ error: 'module y module_id son obligatorios' });
       }
       const headers = forwardMediaHeaders(request);
-      const data = await mediaService.getMediaByModule(moduleVal, moduleIdVal, headers);
+      const data = await mediaService.getMediaByModule(
+        moduleVal,
+        moduleIdVal,
+        directorioIdVal,
+        headers,
+      );
       return reply.code(200).send(data);
     } catch (err) {
       const status = err.response?.status || 500;

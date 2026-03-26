@@ -50,9 +50,23 @@ export class MediaDbService {
     return this.mediaRepository.save(media);
   }
 
-  async obtenerMediaPorModulo(module: string, module_id: string): Promise<Media[]> {
+  async obtenerMediaPorModulo(
+    module: string,
+    module_id: string,
+    directorio_id?: string,
+  ): Promise<Media[]> {
+    const where: any = {
+      module,
+      module_id,
+      estado: true,
+    };
+
+    if (directorio_id) {
+      where.id_directorio_documento = directorio_id;
+    }
+
     return this.mediaRepository.find({
-      where: { module, module_id, estado: true },
+      where,
       order: { es_principal: 'DESC', created_at: 'DESC' },
     });
   }

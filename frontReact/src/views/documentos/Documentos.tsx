@@ -18,6 +18,7 @@ import {
 } from 'reactstrap';
 import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
 import { getMediaByModule, deleteMedia } from '../../_apis_/media';
+import { getDirectorios } from '../../_apis_/directorio';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -32,6 +33,11 @@ interface MediaItem {
   file?: { url?: string };
 }
 
+interface DirectorioItem {
+  id_directorio_documento: string;
+  nombre: string;
+}
+
 const Documentos: React.FC = () => {
   const query = useQuery();
   const module = query.get('module') || 'tercero';
@@ -42,6 +48,8 @@ const Documentos: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [directorios, setDirectorios] = useState<DirectorioItem[]>([]);
+  const [directorioSeleccionado, setDirectorioSeleccionado] = useState<string | null>(null);
 
   const loadMedia = useCallback(async () => {
     if (!module_id) {
@@ -54,7 +62,7 @@ const Documentos: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const list = await getMediaByModule(module, module_id);
+      const list = await getMediaByModule(module, module_id, directorioSeleccionado || undefined);
       setDocumentos(Array.isArray(list) ? list : []);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Error al cargar documentos';
@@ -63,11 +71,24 @@ const Documentos: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [module, module_id]);
+  }, [module, module_id, directorioSeleccionado]);
 
   useEffect(() => {
     loadMedia();
   }, [loadMedia]);
+
+  const loadDirectorios = useCallback(async () => {
+    try {
+      const data = await getDirectorios(module);
+      setDirectorios(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error cargando directorios', error);
+    }
+  }, [module]);
+
+  useEffect(() => {
+    loadDirectorios();
+  }, [loadDirectorios]);
 
   const resolveUrl = (doc: MediaItem) => doc.file?.url ?? doc.url ?? '';
 
@@ -110,7 +131,21 @@ const Documentos: React.FC = () => {
                 <Col md={3} className="mb-3 mb-md-0">
                   <Card>
                     <CardBody>
-                      <h6 className="mb-0">Directorios</h6>
+                      <h6 className="mb-3">Directorios</h6>
+                      <ul className="list-group">
+                        {directorios.map((dir) => (
+                          <li
+                            key={dir.id_directorio_documento}
+                            className={`list-group-item ${
+                              directorioSeleccionado === dir.id_directorio_documento ? 'active' : ''
+                            }`}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setDirectorioSeleccionado(dir.id_directorio_documento)}
+                          >
+                            📁 {dir.nombre}
+                          </li>
+                        ))}
+                      </ul>
                     </CardBody>
                   </Card>
                 </Col>
