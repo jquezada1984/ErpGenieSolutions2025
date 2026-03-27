@@ -1,17 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Card, CardBody, Row, Col, FormGroup, Label, Input } from 'reactstrap';
+import { Card, CardBody, Row, Col, FormGroup, Label, Input, FormText } from 'reactstrap';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import CountrySelect from '../../../components/CountrySelect';
 import ImageUpload from '../../../components/common/ImageUpload';
 import SelectProvincia from '../../../components/selects/SelectProvincia';
+import SelectDirectorioDocumento from '../../../components/selects/SelectDirectorioDocumento';
 
 type Props = { data:any; onChange:(d:any)=>void };
 
 const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) => {
   const [f, setF] = useState<any>({
     direccion:'', poblacion:'', codigo_postal:'', id_pais:'', provincia:'', id_provincia:'',
-    telefono:'', movil:'', fax:'', web:'', correo:'', logo:''
+    telefono:'', movil:'', fax:'', web:'', correo:'', logo:'', id_directorio_documento:''
   });
 
   useEffect(()=> setF((p:any)=>({...p,...data})),[data]);
@@ -152,6 +153,24 @@ const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) =>
               }}
               label="Subir Logo"
             />
+          </Col>
+        </Row>
+
+        <Row>
+          <Col md={12}>
+            <FormGroup>
+              <Label>Carpeta de documentos</Label>
+              <SelectDirectorioDocumento
+                module="tercero"
+                value={f.id_directorio_documento || ''}
+                onChange={(val) => {
+                  const updated = { ...f, id_directorio_documento: val || '' };
+                  setF(updated);
+                  onChange(updated);
+                }}
+              />
+              <FormText>Opcional: selecciona una carpeta para organizar el archivo</FormText>
+            </FormGroup>
           </Col>
         </Row>
       </CardBody>

@@ -59,6 +59,8 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
     print("TIPO DE PAYLOAD:", type(payload))
     print("CLAVES DEL PAYLOAD:", payload.keys())
     logo_url = payload.get("logo")
+    id_directorio_documento = payload.get("id_directorio_documento")
+    id_directorio_documento = str(id_directorio_documento) if id_directorio_documento else None
     print("LOGO EXTRAIDO:", logo_url)
     print("ENTRA AL IF?", bool(logo_url))
     if logo_url:
@@ -81,7 +83,7 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
                     "tipo": "imagen",
                     "es_principal": True,
                     "estado_archivo": "ACTIVO",
-                    "id_directorio_documento": None,
+                    "id_directorio_documento": id_directorio_documento,
                 },
                 timeout=15,
             )
@@ -130,6 +132,8 @@ def update_tercero(
 
     print("PAYLOAD COMPLETO:", payload)
     logo_url = payload.get("logo")
+    id_directorio_documento = payload.get("id_directorio_documento")
+    id_directorio_documento = str(id_directorio_documento) if id_directorio_documento else None
     print("LOGO URL:", logo_url)
     if logo_url:
         try:
@@ -145,7 +149,7 @@ def update_tercero(
                     "tipo": "imagen",
                     "es_principal": True,
                     "estado_archivo": "ACTIVO",
-                    "id_directorio_documento": None,
+                    "id_directorio_documento": id_directorio_documento,
                 },
                 timeout=15,
             )
