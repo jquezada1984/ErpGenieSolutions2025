@@ -17,7 +17,11 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.id_empresa) config.headers['X-Company-Id'] = payload.id_empresa;
+        const companyHeader =
+          config.headers['X-Company-Id'] ?? config.headers['x-company-id'];
+        if (!companyHeader && payload.id_empresa) {
+          config.headers['X-Company-Id'] = payload.id_empresa;
+        }
         if (payload.sub || payload.id) config.headers['X-User-Id'] = payload.sub || payload.id;
       } catch (e) {
         console.warn('No se pudo extraer headers del token:', e);
@@ -42,10 +46,16 @@ apiClient.interceptors.response.use(
   }
 );
 
-export const uploadMedia = async (file) => {
+export const uploadMedia = async (file, empresaId) => {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await apiClient.post('/api/media/upload', formData);
+  const headers = {};
+  if (empresaId) {
+    headers['X-Company-Id'] = empresaId;
+  }
+  const response = await apiClient.post('/api/media/upload', formData, {
+    headers,
+  });
   return response.data;
 };
 

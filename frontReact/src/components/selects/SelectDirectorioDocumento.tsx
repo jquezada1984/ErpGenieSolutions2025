@@ -7,6 +7,7 @@ interface Props {
   value?: string;
   onChange: (value: string | null) => void;
   isDisabled?: boolean;
+  empresaId?: string;
 }
 
 const SelectDirectorioDocumento: React.FC<Props> = ({
@@ -14,17 +15,21 @@ const SelectDirectorioDocumento: React.FC<Props> = ({
   value,
   onChange,
   isDisabled = false,
+  empresaId,
 }) => {
   const [options, setOptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
-      if (!module) return;
+      if (!module || !empresaId) {
+        setOptions([]);
+        return;
+      }
 
       setLoading(true);
       try {
-        const data = await getDirectorios(module);
+        const data = await getDirectorios(module, empresaId);
 
         const mapped = (data || []).map((d: any) => ({
           value: d.id_directorio_documento,
@@ -41,7 +46,7 @@ const SelectDirectorioDocumento: React.FC<Props> = ({
     };
 
     load();
-  }, [module]);
+  }, [module, empresaId]);
 
   return (
     <SearchableSelect
@@ -49,8 +54,12 @@ const SelectDirectorioDocumento: React.FC<Props> = ({
       value={value}
       onChange={onChange}
       isLoading={loading}
-      isDisabled={isDisabled || loading}
-      placeholder="Seleccionar carpeta (opcional)"
+      isDisabled={isDisabled || loading || !empresaId}
+      placeholder={
+        !empresaId
+          ? 'Seleccione empresa primero'
+          : 'Seleccionar carpeta (opcional)'
+      }
     />
   );
 };

@@ -6,16 +6,23 @@ import CountrySelect from '../../../components/CountrySelect';
 import ImageUpload from '../../../components/common/ImageUpload';
 import SelectProvincia from '../../../components/selects/SelectProvincia';
 import SelectDirectorioDocumento from '../../../components/selects/SelectDirectorioDocumento';
+import useJwtPayload from '../../../hooks/useJwtPayload';
 
 type Props = { data:any; onChange:(d:any)=>void };
 
 const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) => {
+  const usuario = useJwtPayload();
+  const scope = usuario?.scope_acceso || 'EMPRESA';
+
   const [f, setF] = useState<any>({
     direccion:'', poblacion:'', codigo_postal:'', id_pais:'', provincia:'', id_provincia:'',
     telefono:'', movil:'', fax:'', web:'', correo:'', logo:'', id_directorio_documento:''
   });
 
   useEffect(()=> setF((p:any)=>({...p,...data})),[data]);
+
+  const empresaId =
+    scope === 'GLOBAL' ? f.id_empresa : usuario?.id_empresa;
 
   // Query GraphQL para obtener países (igual que en SeccionEmpresa)
   const GET_PAISES = gql`
@@ -146,6 +153,7 @@ const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) =>
           <Col md={12}>
             <ImageUpload
               value={f.logo}
+              empresaId={empresaId}
               onChange={(url) => {
                 const u = { ...f, logo: url };
                 setF(u);
@@ -162,7 +170,9 @@ const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) =>
               <Label>Carpeta de documentos</Label>
               <SelectDirectorioDocumento
                 module="tercero"
+                empresaId={empresaId}
                 value={f.id_directorio_documento || ''}
+                isDisabled={scope === 'GLOBAL' && !f.id_empresa}
                 onChange={(val) => {
                   const updated = { ...f, id_directorio_documento: val || '' };
                   setF(updated);

@@ -5,9 +5,11 @@ export interface ImageUploadProps {
   value?: string;
   onChange: (url: string) => void;
   label?: string;
+  /** Si se indica, fuerza X-Company-Id en el upload (p. ej. GLOBAL con empresa del formulario). */
+  empresaId?: string;
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label }) => {
+const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label, empresaId }) => {
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(value);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +28,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label }) => 
     setLoading(true);
 
     try {
-      const response = await uploadMedia(file);
+      const response = await uploadMedia(file, empresaId);
       const url = typeof response === 'object' && response !== null && 'url' in response
         ? (response as { url: string }).url
         : String(response);
