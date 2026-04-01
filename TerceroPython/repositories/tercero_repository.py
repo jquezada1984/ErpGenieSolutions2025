@@ -84,6 +84,7 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
                     "es_principal": True,
                     "estado_archivo": "ACTIVO",
                     "id_directorio_documento": id_directorio_documento,
+                    "id_empresa": str(tercero.id_empresa) if tercero.id_empresa else None,
                 },
                 timeout=15,
             )
@@ -150,6 +151,7 @@ def update_tercero(
                     "es_principal": True,
                     "estado_archivo": "ACTIVO",
                     "id_directorio_documento": id_directorio_documento,
+                    "id_empresa": str(tercero.id_empresa) if tercero.id_empresa else None,
                 },
                 timeout=15,
             )

@@ -12,6 +12,9 @@ export class Media {
   @Column({ type: 'uuid', nullable: false, name: 'module_id' })
   module_id: string;
 
+  @Column({ type: 'uuid', nullable: true, name: 'id_empresa' })
+  id_empresa?: string | null;
+
   @Column({ type: 'varchar', nullable: false })
   url: string;
 

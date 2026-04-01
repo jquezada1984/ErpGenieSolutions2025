@@ -18,7 +18,7 @@ import {
 } from 'reactstrap';
 import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
 import { getMediaByModule, deleteMedia } from '../../_apis_/media';
-import { getDirectorios } from '../../_apis_/directorio';
+import { getDirectorios, createDirectorio } from '../../_apis_/directorio';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -50,6 +50,8 @@ const Documentos: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [directorios, setDirectorios] = useState<DirectorioItem[]>([]);
   const [directorioSeleccionado, setDirectorioSeleccionado] = useState<string | null>(null);
+  const [nuevoNombre, setNuevoNombre] = useState('');
+  const [loadingCreate, setLoadingCreate] = useState(false);
 
   const loadMedia = useCallback(async () => {
     if (!module_id) {
@@ -89,6 +91,26 @@ const Documentos: React.FC = () => {
   useEffect(() => {
     loadDirectorios();
   }, [loadDirectorios]);
+
+  const handleCrearDirectorio = async () => {
+    if (!nuevoNombre.trim()) return;
+
+    setLoadingCreate(true);
+
+    try {
+      await createDirectorio({
+        nombre: nuevoNombre,
+        modulo: module,
+      });
+
+      setNuevoNombre('');
+      await loadDirectorios();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingCreate(false);
+    }
+  };
 
   const resolveUrl = (doc: MediaItem) => doc.file?.url ?? doc.url ?? '';
 
@@ -132,6 +154,22 @@ const Documentos: React.FC = () => {
                   <Card>
                     <CardBody>
                       <h6 className="mb-3">Directorios</h6>
+                      <div className="mb-2">
+                        <input
+                          className="form-control"
+                          placeholder="Nueva carpeta"
+                          value={nuevoNombre}
+                          onChange={(e) => setNuevoNombre(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-primary mt-1 w-100"
+                          onClick={handleCrearDirectorio}
+                          disabled={loadingCreate}
+                        >
+                          {loadingCreate ? 'Creando...' : 'Crear'}
+                        </button>
+                      </div>
                       <ul className="list-group">
                         {directorios.map((dir) => (
                           <li

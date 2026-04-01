@@ -6,10 +6,12 @@ import {
   Body,
   Param,
   Query,
+  Req,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from './media.service';
 import { MediaDbService } from './services/media-db.service';
@@ -33,7 +35,7 @@ export class MediaController {
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile() file: Express.Multer.File) {
+  async upload(@UploadedFile() file: Express.Multer.File, @Req() request: Request) {
     if (!file) {
       throw new BadRequestException('Campo "file" obligatorio');
     }
@@ -42,7 +44,17 @@ export class MediaController {
     if (!isImage) {
       throw new BadRequestException('Solo se aceptan archivos de tipo imagen (image/*)');
     }
-    return this.mediaService.saveUpload(file);
+    const raw =
+      request.headers['x-company-id'] ?? request.headers['X-Company-Id'];
+    const fromHeader = Array.isArray(raw) ? raw[0] : raw;
+    const companyId =
+      typeof fromHeader === 'string' && fromHeader.trim()
+        ? fromHeader.trim()
+        : 'default';
+
+    return this.mediaService.saveUpload(file, {
+      company_id: companyId,
+    });
   }
 
   @Post('metadata')
@@ -54,6 +66,7 @@ export class MediaController {
   async listarPorModulo(
     @Query('module') module: string,
     @Query('module_id') module_id: string,
+    @Req() request: Request,
     @Query('directorio_id') directorio_id?: string,
   ) {
     const m = typeof module === 'string' ? module.trim() : '';
@@ -62,7 +75,15 @@ export class MediaController {
     if (!m || !mid) {
       throw new BadRequestException('module y module_id son obligatorios');
     }
-    return this.mediaDbService.obtenerMediaPorModulo(m, mid, did);
+    const raw =
+      request.headers['x-company-id'] ?? request.headers['X-Company-Id'];
+    const fromHeader = Array.isArray(raw) ? raw[0] : raw;
+    const companyId =
+      typeof fromHeader === 'string' && fromHeader.trim()
+        ? fromHeader.trim()
+        : undefined;
+
+    return this.mediaDbService.obtenerMediaPorModulo(m, mid, did, companyId);
   }
 
   @Get('principal/:module/:module_id')

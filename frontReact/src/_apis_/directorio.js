@@ -7,3 +7,8 @@ export const getDirectorios = async (module) => {
 
   return res?.data || [];
 };
+
+export const createDirectorio = async (data) => {
+  const res = await apiClient.post('/api/directorio', data);
+  return res?.data;
+};

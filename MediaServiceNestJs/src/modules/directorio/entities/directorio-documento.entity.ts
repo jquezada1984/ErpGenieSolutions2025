@@ -19,6 +19,9 @@ export class DirectorioDocumento {
   @Column({ type: 'varchar', nullable: false })
   modulo: string;
 
+  @Column({ type: 'uuid', nullable: true, name: 'id_empresa' })
+  id_empresa?: string | null;
+
   @Column({ type: 'integer', nullable: false })
   orden: number;
 
