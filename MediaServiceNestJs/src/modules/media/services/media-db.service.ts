@@ -131,9 +131,11 @@ export class MediaDbService {
     const media = await this.mediaRepository.findOne({ where: { id_media } });
     if (!media) return;
 
-    media.estado = false;
-    media.updated_at = new Date();
-    await this.mediaRepository.save(media);
+    await this.mediaRepository.update(id_media, {
+      estado: false,
+      estado_archivo: 'INACTIVO',
+      updated_at: new Date(),
+    });
   }
 }
 

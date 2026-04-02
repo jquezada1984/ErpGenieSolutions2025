@@ -17,6 +17,8 @@ import {
   ModalBody,
 } from 'reactstrap';
 import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 import { getMediaByModule, deleteMedia } from '../../_apis_/media';
 import { getDirectorios, createDirectorio } from '../../_apis_/directorio';
 
@@ -115,16 +117,43 @@ const Documentos: React.FC = () => {
   const resolveUrl = (doc: MediaItem) => doc.file?.url ?? doc.url ?? '';
 
   const handleDelete = async (id_media: string) => {
-    const confirmado = window.confirm('¿Seguro que deseas eliminar este documento?');
-    if (!confirmado) return;
+    const result = await Swal.fire({
+      title: '¿Eliminar documento?',
+      text: 'Esta acción lo marcará como inactivo',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+
+    if (!result.isConfirmed) return;
 
     setDeletingId(id_media);
     setError(null);
     try {
       await deleteMedia(id_media);
+
+      await Swal.fire({
+        title: 'Eliminado',
+        text: 'El documento ha sido eliminado correctamente',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
       await loadMedia();
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Error al eliminar';
+    } catch (error) {
+      console.error(error);
+
+      Swal.fire({
+        title: 'Error',
+        text: 'No se pudo eliminar el documento',
+        icon: 'error',
+      });
+
+      const msg = error instanceof Error ? error.message : 'Error al eliminar';
       setError(msg);
     } finally {
       setDeletingId(null);
