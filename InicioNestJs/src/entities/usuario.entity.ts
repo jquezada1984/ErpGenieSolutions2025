@@ -61,6 +61,10 @@ export class Usuario {
     return this.nombre_completo?.split(' ').slice(1).join(' ') || '';
   }
 
+  @Field(() => String)
+  @Column({ type: 'varchar', length: 20, default: 'EMPRESA' })
+  scope_acceso: string;
+
   @Field(() => Empresa, { nullable: true })
   @ManyToOne(() => Empresa)
   @JoinColumn({ name: 'id_empresa' })

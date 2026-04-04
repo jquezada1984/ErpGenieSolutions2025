@@ -1,14 +1,18 @@
-import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID, ResolveField, Parent } from '@nestjs/graphql';
 import { Tercero } from './entities/tercero.entity';
 import { TerceroService } from './tercero.service';
 import { CreateTerceroInput } from './dto/create-tercero.dto';
 import { UpdateTerceroInput } from './dto/update-tercero.dto';
+import { MediaService } from '../media/media.service';
 
 const TIPO_TERCERO_REPRESENTANTE_ID = 'ab5f5dac-d03c-42b1-92bb-97131765f213';
 
 @Resolver(() => Tercero)
 export class TerceroResolver {
-  constructor(private readonly terceroService: TerceroService) {}
+  constructor(
+    private readonly terceroService: TerceroService,
+    private readonly mediaService: MediaService,
+  ) {}
 
   @Query(() => [Tercero], { name: 'terceros' })
   findAll(
@@ -49,5 +53,13 @@ export class TerceroResolver {
   @Mutation(() => Boolean, { name: 'removeTercero' })
   remove(@Args('id_tercero') id_tercero: string): Promise<boolean> {
     return this.terceroService.remove(id_tercero);
+  }
+
+  @ResolveField(() => String, { nullable: true })
+  async logo(@Parent() tercero: Tercero): Promise<string | null> {
+    return await this.mediaService.obtenerLogoPrincipal(
+      'tercero',
+      tercero.id_tercero,
+    );
   }
 }

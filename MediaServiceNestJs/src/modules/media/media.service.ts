@@ -4,11 +4,6 @@ import * as path from 'path';
 
 @Injectable()
 export class MediaService {
-  private getUploadDir(): string {
-    const base = process.env.UPLOAD_DIR || './uploads';
-    return path.resolve(path.join(base, 'terceros'));
-  }
-
   private getPublicBaseUrl(): string {
     const base = process.env.PUBLIC_BASE_URL;
     if (base) return base.replace(/\/$/, '');
@@ -35,8 +30,25 @@ export class MediaService {
     return 'jpg';
   }
 
-  async saveUpload(file: Express.Multer.File): Promise<{ url: string; filename: string; mimetype: string; size: number }> {
-    const dir = this.getUploadDir();
+  async saveUpload(
+    file: Express.Multer.File,
+    metadata?: {
+      module?: string;
+      module_id?: string;
+      company_id?: string;
+    },
+  ): Promise<{ url: string; filename: string; mimetype: string; size: number }> {
+    const module = metadata?.module || 'general';
+    const module_id = metadata?.module_id || 'global';
+    const company_id = metadata?.company_id || 'default';
+
+    const dir = path.resolve(
+      process.env.UPLOAD_DIR || './uploads',
+      company_id,
+      module,
+      module_id,
+    );
+
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
@@ -48,7 +60,8 @@ export class MediaService {
     fs.writeFileSync(filepath, file.buffer);
 
     const publicBase = this.getPublicBaseUrl();
-    const url = `${publicBase}/uploads/terceros/${filename}`;
+    const relativePath = `${company_id}/${module}/${module_id}/${filename}`;
+    const url = `${publicBase}/uploads/${relativePath}`;
 
     return {
       url,

@@ -15,6 +15,7 @@ const fastify = require('fastify')({
   },
   trustProxy: true
 });
+const terceroPython = require('./services/terceroPython');
 
 // Configuración (puerto 3002 para coincidir con el frontend y Docker)
 const config = {
@@ -73,6 +74,11 @@ fastify.register(require('./routes/usuarios'), { prefix: '/api' });
 fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/graphql'), { prefix: '' });
 fastify.register(require('./routes/media'), { prefix: '/api' });
+fastify.register(require('./routes/directorio'), { prefix: '/api' });
+
+fastify.post('/api/terceros', async (request, reply) => {
+  return terceroPython.crearTercero(request.body, request);
+});
 
 // Serializador personalizado para respuestas consistentes
 fastify.setSerializerCompiler(({ schema, method, url, httpStatus }) => {

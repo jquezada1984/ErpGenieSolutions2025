@@ -65,7 +65,7 @@ apiClient.interceptors.response.use(
 // Listar todos los terceros
 export const listarTerceros = async () => {
   try {
-    const response = await apiClient.get('/api/tercero');
+    const response = await apiClient.get('/api/terceros');
     return response.data || [];
   } catch (error) {
     console.error('❌ Error al listar terceros:', error);
@@ -76,7 +76,7 @@ export const listarTerceros = async () => {
 // Obtener un tercero por ID
 export const obtenerTercero = async (id) => {
   try {
-    const response = await apiClient.get(`/api/tercero/${id}`);
+    const response = await apiClient.get(`/api/terceros/${id}`);
     return response.data;
   } catch (error) {
     console.error('❌ Error al obtener tercero:', error);
@@ -90,7 +90,11 @@ export const obtenerTercero = async (id) => {
 export const listarTiposTercero = async () => {
   try {
     const response = await apiClient.get('/api/tercero/selects/tipo-tercero');
-    return response.data || [];
+    const body = response.data;
+    // Gateway puede envolver la respuesta en { success, data, timestamp }
+    if (Array.isArray(body)) return body;
+    if (body && Array.isArray(body.data)) return body.data;
+    return [];
   } catch (error) {
     console.error('❌ Error al listar tipos de tercero:', error);
     throw error;
@@ -100,7 +104,7 @@ export const listarTiposTercero = async () => {
 // Listar condiciones de pago
 export const listarCondicionesPago = async () => {
   try {
-    const response = await apiClient.get('/api/tercero/selects/condicion-pago');
+    const response = await apiClient.get('/api/terceros/selects/condicion-pago');
     return response.data || [];
   } catch (error) {
     console.error('❌ Error al listar condiciones de pago:', error);
@@ -111,7 +115,7 @@ export const listarCondicionesPago = async () => {
 // Listar formas de pago
 export const listarFormasPago = async () => {
   try {
-    const response = await apiClient.get('/api/tercero/selects/forma-pago');
+    const response = await apiClient.get('/api/terceros/selects/forma-pago');
     return response.data || [];
   } catch (error) {
     console.error('❌ Error al listar formas de pago:', error);
@@ -122,7 +126,7 @@ export const listarFormasPago = async () => {
 // Listar incoterms
 export const listarIncoterms = async () => {
   try {
-    const response = await apiClient.get('/api/tercero/selects/incoterms');
+    const response = await apiClient.get('/api/terceros/selects/incoterms');
     return response.data || [];
   } catch (error) {
     console.error('❌ Error al listar incoterms:', error);
@@ -133,7 +137,7 @@ export const listarIncoterms = async () => {
 // Listar países
 export const listarPaises = async () => {
   try {
-    const response = await apiClient.get('/api/tercero/selects/paises');
+    const response = await apiClient.get('/api/terceros/selects/paises');
     console.log('📦 Respuesta de países:', response.data);
     return response.data || [];
   } catch (error) {
@@ -148,7 +152,7 @@ export const listarPaises = async () => {
 // Crear tercero
 export const crearTercero = async (terceroData) => {
   try {
-    const response = await apiClient.post('/api/tercero', terceroData);
+    const response = await apiClient.post('/api/terceros', terceroData);
     return response.data;
   } catch (error) {
     console.error('❌ Error al crear tercero:', error);
@@ -170,7 +174,7 @@ export const actualizarTercero = async (id, terceroData) => {
 // Eliminar tercero
 export const eliminarTercero = async (id) => {
   try {
-    const response = await apiClient.delete(`/api/tercero/${id}`);
+    const response = await apiClient.delete(`/api/terceros/${id}`);
     return response.data;
   } catch (error) {
     console.error('❌ Error al eliminar tercero:', error);

@@ -43,10 +43,14 @@ def _gen_codigo_proveedor(id_empresa: str, when: Optional[datetime]=None) -> str
 
 
 def servicio_crear_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[str]) -> Dict[str, Any]:
+    print("🔥 SERVICE EJECUTADO")
+    print("🔥 ENTRO AL SERVICE CREAR TERCERO")
     data = TerceroCreateSchema().load(payload)
+    print("DATA DESPUÉS DEL SCHEMA:", data)
+    print("LOGO EN DATA:", data.get("logo"))
 
     # normalizaciones UUID
-    for k in ("id_pais","id_tipo_tercero","id_condicion_pago","id_forma_pago","sede_central","asignado_a"):
+    for k in ("id_pais","id_tipo_tercero","id_condicion_pago","id_forma_pago","id_tamano_empresa","sede_central","asignado_a"):
         data[k] = _safe_uuid(data.get(k))
 
     # autogenerar código si viene vacío
@@ -63,6 +67,7 @@ def servicio_crear_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Op
     if data.get("codigo_proveedor") and exists_codigo_proveedor(id_empresa, data["codigo_proveedor"]):
         raise ValidationError({"codigo_proveedor":["Ya existe para esta empresa."]})
 
+    print("🔥 LLAMANDO A REPOSITORY create_tercero")
     tercero = create_tercero(data, id_empresa=id_empresa, user_id=user_id)
     return TerceroOutSchema().dump(tercero)
 
@@ -74,7 +79,7 @@ def servicio_actualizar_tercero(
     scope_acceso: str = "EMPRESA",
 ) -> Optional[Dict[str, Any]]:
     data = TerceroUpdateSchema().load(payload)
-    for k in ("id_pais","id_tipo_tercero","id_condicion_pago","id_forma_pago","sede_central","asignado_a"):
+    for k in ("id_pais","id_tipo_tercero","id_condicion_pago","id_forma_pago","id_tamano_empresa","sede_central","asignado_a"):
         if k in data:
             data[k] = _safe_uuid(data.get(k))
     if "codigo_cliente" in data and data["codigo_cliente"]:
