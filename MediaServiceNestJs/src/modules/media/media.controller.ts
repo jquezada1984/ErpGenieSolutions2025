@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Delete,
+  Patch,
   Body,
   Param,
   Query,
@@ -111,5 +112,17 @@ export class MediaController {
     }
     await this.mediaDbService.eliminarLogico(id);
     return { success: true };
+  }
+
+  @Patch(':id_media')
+  async actualizar(
+    @Param('id_media') id_media: string,
+    @Body() body: { estado_archivo?: string },
+  ) {
+    const id = typeof id_media === 'string' ? id_media.trim() : '';
+    if (!id) {
+      throw new BadRequestException('id_media es obligatorio');
+    }
+    return this.mediaDbService.actualizarMedia(id, body);
   }
 }

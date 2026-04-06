@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
@@ -136,6 +136,31 @@ export class MediaDbService {
       estado_archivo: 'INACTIVO',
       updated_at: new Date(),
     });
+  }
+
+  async actualizarMedia(
+    id_media: string,
+    data: { estado_archivo?: string },
+  ): Promise<{ success: boolean }> {
+    const media = await this.mediaRepository.findOne({ where: { id_media } });
+    if (!media) {
+      throw new NotFoundException('Media no encontrado');
+    }
+
+    const allowedEstados = ['ACTIVO', 'INACTIVO', 'EN_PROCESO', 'CANCELADO', 'ACEPTADO', 'COMPLETADO'];
+    const raw =
+      typeof data?.estado_archivo === 'string' ? data.estado_archivo.trim() : '';
+    if (!raw || !allowedEstados.includes(raw)) {
+      throw new BadRequestException(
+        `estado_archivo debe ser uno de: ${allowedEstados.join(', ')}`,
+      );
+    }
+
+    await this.mediaRepository.update(id_media, {
+      estado_archivo: raw,
+      updated_at: new Date(),
+    });
+    return { success: true };
   }
 }
 

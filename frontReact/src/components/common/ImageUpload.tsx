@@ -7,9 +7,16 @@ export interface ImageUploadProps {
   label?: string;
   /** Si se indica, fuerza X-Company-Id en el upload (p. ej. GLOBAL con empresa del formulario). */
   empresaId?: string;
+  disabled?: boolean;
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label, empresaId }) => {
+const ImageUpload: React.FC<ImageUploadProps> = ({
+  value,
+  onChange,
+  label,
+  empresaId,
+  disabled = false,
+}) => {
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(value);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +28,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label, empre
   const displayUrl = previewUrl ?? value;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -51,7 +59,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label, empre
           type="file"
           accept="image/*"
           onChange={handleFileChange}
-          disabled={loading}
+          disabled={loading || disabled}
           className="form-control form-control-sm"
         />
         {loading && <span className="text-muted small">Subiendo...</span>}

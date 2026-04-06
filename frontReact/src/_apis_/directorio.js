@@ -1,12 +1,21 @@
 import apiClient from './media';
 
 export const getDirectorios = async (module, empresaId) => {
+  const params = { module };
+
+  if (empresaId) {
+    params.empresa_id = empresaId;
+  }
+
+  const headers = {};
+
+  if (empresaId) {
+    headers['X-Company-Id'] = empresaId;
+  }
+
   const res = await apiClient.get('/api/directorio', {
-    params: {
-      module,
-      ...(empresaId && { empresa_id: empresaId }),
-    },
-    ...(empresaId ? { headers: { 'X-Company-Id': empresaId } } : {}),
+    params,
+    ...(Object.keys(headers).length ? { headers } : {}),
   });
 
   const body = res?.data;

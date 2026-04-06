@@ -230,7 +230,9 @@ const Terceros: React.FC = () => {
           </Button>
           <Button
             onClick={() =>
-              navigate(`/documentos?module=tercero&module_id=${original.id_tercero}`)
+              navigate(
+                `/documentos?module=tercero&module_id=${original.id_tercero}&empresa_id=${original.empresa?.id_empresa}`,
+              )
             }
             color="info"
             size="sm"

@@ -13,6 +13,7 @@ type Props = { data:any; onChange:(d:any)=>void };
 const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) => {
   const usuario = useJwtPayload();
   const scope = usuario?.scope_acceso || 'EMPRESA';
+  const isGlobal = scope === 'GLOBAL';
 
   const [f, setF] = useState<any>({
     direccion:'', poblacion:'', codigo_postal:'', id_pais:'', provincia:'', id_provincia:'',
@@ -154,6 +155,7 @@ const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) =>
             <ImageUpload
               value={f.logo}
               empresaId={empresaId}
+              disabled={isGlobal && !empresaId}
               onChange={(url) => {
                 const u = { ...f, logo: url };
                 setF(u);
@@ -161,6 +163,9 @@ const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) =>
               }}
               label="Subir Logo"
             />
+            {isGlobal && !empresaId && (
+              <FormText>Debe seleccionar una empresa antes de subir imagen</FormText>
+            )}
           </Col>
         </Row>
 

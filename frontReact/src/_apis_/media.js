@@ -59,13 +59,23 @@ export const uploadMedia = async (file, empresaId) => {
   return response.data;
 };
 
-export const getMediaByModule = async (module, module_id, directorio_id) => {
+export const getMediaByModule = async (module, module_id, directorio_id, empresaId) => {
+  const params = {
+    module,
+    module_id,
+  };
+  if (directorio_id) {
+    params.directorio_id = directorio_id;
+  }
+
+  const headers = {};
+  if (empresaId) {
+    headers['X-Company-Id'] = empresaId;
+  }
+
   const response = await apiClient.get('/api/media', {
-    params: {
-      module,
-      module_id,
-      ...(directorio_id && { directorio_id }),
-    },
+    params,
+    ...(Object.keys(headers).length ? { headers } : {}),
   });
   const body = response.data;
   if (Array.isArray(body)) return body;
@@ -76,6 +86,11 @@ export const getMediaByModule = async (module, module_id, directorio_id) => {
 export const deleteMedia = async (id_media) => {
   const response = await apiClient.delete(`/api/media/${id_media}`);
   return response.data;
+};
+
+export const updateMedia = async (id_media, data) => {
+  const res = await apiClient.patch(`/api/media/${id_media}`, data);
+  return res?.data;
 };
 
 export default apiClient;

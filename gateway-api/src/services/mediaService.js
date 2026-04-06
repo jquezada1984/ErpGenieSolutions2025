@@ -55,6 +55,18 @@ async function deleteMedia(id_media, headers = {}) {
 }
 
 /**
+ * Actualiza campos puntuales de un medio (ej. estado_archivo).
+ * @param {string} id_media
+ * @param {object} body
+ * @param {object} [headers={}]
+ * @returns {Promise<object>}
+ */
+async function updateMedia(id_media, body, headers = {}) {
+  const res = await http.patch(`/media/${id_media}`, body, { headers });
+  return res.data;
+}
+
+/**
  * Registra o actualiza metadata en media-service.
  * @param {object} data - Cuerpo JSON tal cual lo envía el cliente.
  * @param {object} [headers={}]
@@ -69,5 +81,6 @@ module.exports = {
   uploadMedia,
   getMediaByModule,
   deleteMedia,
+  updateMedia,
   saveMetadata,
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import {
   Container,
   Row,
@@ -15,11 +15,15 @@ import {
   Modal,
   ModalHeader,
   ModalBody,
+  ModalFooter,
+  FormGroup,
+  Label,
+  Input,
 } from 'reactstrap';
 import BreadCrumbs from '../../layouts/breadcrumbs/BreadCrumbs';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
-import { getMediaByModule, deleteMedia } from '../../_apis_/media';
+import { getMediaByModule, deleteMedia, updateMedia } from '../../_apis_/media';
 import { getDirectorios, createDirectorio } from '../../_apis_/directorio';
 
 const useQuery = () => {
@@ -42,6 +46,12 @@ interface DirectorioItem {
 
 const Documentos: React.FC = () => {
   const query = useQuery();
+  const [searchParams] = useSearchParams();
+  const empresaIdFromUrlRaw = searchParams.get('empresa_id');
+  const empresaIdFromUrl =
+    empresaIdFromUrlRaw && empresaIdFromUrlRaw !== 'undefined'
+      ? empresaIdFromUrlRaw
+      : undefined;
   const module = query.get('module') || 'tercero';
   const module_id = query.get('module_id');
 
@@ -54,6 +64,10 @@ const Documentos: React.FC = () => {
   const [directorioSeleccionado, setDirectorioSeleccionado] = useState<string | null>(null);
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [loadingCreate, setLoadingCreate] = useState(false);
+  const [modalEditar, setModalEditar] = useState(false);
+  const [mediaEditando, setMediaEditando] = useState<MediaItem | null>(null);
+  const [estadoArchivo, setEstadoArchivo] = useState('');
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   const loadMedia = useCallback(async () => {
     if (!module_id) {
@@ -66,7 +80,12 @@ const Documentos: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const list = await getMediaByModule(module, module_id, directorioSeleccionado || undefined);
+      const list = await getMediaByModule(
+        module,
+        module_id,
+        directorioSeleccionado || undefined,
+        empresaIdFromUrl,
+      );
       setDocumentos(Array.isArray(list) ? list : []);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Error al cargar documentos';
@@ -75,7 +94,7 @@ const Documentos: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [module, module_id, directorioSeleccionado]);
+  }, [module, module_id, directorioSeleccionado, empresaIdFromUrl]);
 
   useEffect(() => {
     loadMedia();
@@ -83,12 +102,12 @@ const Documentos: React.FC = () => {
 
   const loadDirectorios = useCallback(async () => {
     try {
-      const data = await getDirectorios(module);
+      const data = await getDirectorios(module, empresaIdFromUrl);
       setDirectorios(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error cargando directorios', error);
     }
-  }, [module]);
+  }, [module, empresaIdFromUrl]);
 
   useEffect(() => {
     loadDirectorios();
@@ -262,7 +281,19 @@ const Documentos: React.FC = () => {
                                     <Badge color="primary">Principal</Badge>
                                   )}
                                 </div>
-                                <div className="mt-auto">
+                                <div className="mt-auto d-flex flex-wrap gap-2">
+                                  <Button
+                                    color="primary"
+                                    size="sm"
+                                    disabled={guardandoEdicion || deletingId === doc.id_media}
+                                    onClick={() => {
+                                      setMediaEditando(doc);
+                                      setEstadoArchivo(doc.estado_archivo || 'ACTIVO');
+                                      setModalEditar(true);
+                                    }}
+                                  >
+                                    Editar
+                                  </Button>
                                   <Button
                                     color="danger"
                                     size="sm"
@@ -308,6 +339,102 @@ const Documentos: React.FC = () => {
             />
           )}
         </ModalBody>
+      </Modal>
+
+      <Modal
+        isOpen={modalEditar}
+        toggle={() => {
+          if (!guardandoEdicion) {
+            setModalEditar(false);
+            setMediaEditando(null);
+          }
+        }}
+      >
+        <ModalHeader
+          toggle={() => {
+            if (!guardandoEdicion) {
+              setModalEditar(false);
+              setMediaEditando(null);
+            }
+          }}
+        >
+          Editar documento
+        </ModalHeader>
+        <ModalBody>
+          <FormGroup>
+            <Label>Estado del archivo</Label>
+            <Input
+              type="select"
+              value={estadoArchivo}
+              onChange={(e) => setEstadoArchivo(e.target.value)}
+              disabled={guardandoEdicion}
+            >
+              <option value="ACTIVO">ACTIVO</option>
+              <option value="INACTIVO">INACTIVO</option>
+              <option value="EN_PROCESO">EN PROCESO</option>
+              <option value="CANCELADO">CANCELADO</option>
+              <option value="ACEPTADO">ACEPTADO</option>
+              <option value="COMPLETADO">COMPLETADO</option>
+            </Input>
+          </FormGroup>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="secondary"
+            disabled={guardandoEdicion}
+            onClick={() => {
+              setModalEditar(false);
+              setMediaEditando(null);
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            color="primary"
+            disabled={guardandoEdicion}
+            onClick={async () => {
+              if (!mediaEditando) return;
+
+              setGuardandoEdicion(true);
+              try {
+                await updateMedia(mediaEditando.id_media, {
+                  estado_archivo: estadoArchivo,
+                });
+
+                await Swal.fire({
+                  icon: 'success',
+                  title: 'Actualizado',
+                  text: 'Documento actualizado correctamente',
+                  timer: 1500,
+                  showConfirmButton: false,
+                });
+
+                setModalEditar(false);
+                setMediaEditando(null);
+                await loadMedia();
+              } catch (e) {
+                console.error(e);
+
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: 'No se pudo actualizar el documento',
+                });
+              } finally {
+                setGuardandoEdicion(false);
+              }
+            }}
+          >
+            {guardandoEdicion ? (
+              <>
+                <Spinner size="sm" className="me-1" />
+                Guardando…
+              </>
+            ) : (
+              'Guardar'
+            )}
+          </Button>
+        </ModalFooter>
       </Modal>
     </Container>
   );

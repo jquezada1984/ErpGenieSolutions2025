@@ -76,6 +76,23 @@ module.exports = async function (fastify, opts) {
     }
   });
 
+  fastify.patch('/media/:id_media', async (request, reply) => {
+    try {
+      const { id_media } = request.params || {};
+      const idVal = typeof id_media === 'string' ? id_media.trim() : '';
+      if (!idVal) {
+        return reply.code(400).send({ error: 'id_media es obligatorio' });
+      }
+      const headers = forwardMediaHeaders(request);
+      const data = await mediaService.updateMedia(idVal, request.body || {}, headers);
+      return reply.code(200).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      const payload = err.response?.data || { error: err.message };
+      return reply.code(status).send(payload);
+    }
+  });
+
   fastify.post('/media/metadata', async (request, reply) => {
     try {
       const headers = forwardMediaHeaders(request);
