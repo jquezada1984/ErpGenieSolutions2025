@@ -119,10 +119,13 @@ const Documentos: React.FC = () => {
     setLoadingCreate(true);
 
     try {
-      await createDirectorio({
-        nombre: nuevoNombre,
-        modulo: module,
-      });
+      await createDirectorio(
+        {
+          nombre: nuevoNombre,
+          modulo: module,
+        },
+        empresaIdFromUrl || undefined,
+      );
 
       setNuevoNombre('');
       await loadDirectorios();
@@ -219,6 +222,12 @@ const Documentos: React.FC = () => {
                         </button>
                       </div>
                       <ul className="list-group">
+                        <li
+                          className={`list-group-item ${!directorioSeleccionado ? 'active' : ''}`}
+                          onClick={() => setDirectorioSeleccionado(null)}
+                        >
+                          📁 Todas
+                        </li>
                         {directorios.map((dir) => (
                           <li
                             key={dir.id_directorio_documento}

@@ -1,29 +1,19 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Card, CardBody, Row, Col, FormGroup, Label, Input, FormText } from 'reactstrap';
+import { Card, CardBody, Row, Col, FormGroup, Label, Input } from 'reactstrap';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import CountrySelect from '../../../components/CountrySelect';
-import ImageUpload from '../../../components/common/ImageUpload';
 import SelectProvincia from '../../../components/selects/SelectProvincia';
-import SelectDirectorioDocumento from '../../../components/selects/SelectDirectorioDocumento';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 
 type Props = { data:any; onChange:(d:any)=>void };
 
 const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) => {
-  const usuario = useJwtPayload();
-  const scope = usuario?.scope_acceso || 'EMPRESA';
-  const isGlobal = scope === 'GLOBAL';
-
   const [f, setF] = useState<any>({
     direccion:'', poblacion:'', codigo_postal:'', id_pais:'', provincia:'', id_provincia:'',
     telefono:'', movil:'', fax:'', web:'', correo:'', logo:'', id_directorio_documento:''
   });
 
   useEffect(()=> setF((p:any)=>({...p,...data})),[data]);
-
-  const empresaId =
-    scope === 'GLOBAL' ? f.id_empresa : usuario?.id_empresa;
 
   // Query GraphQL para obtener países (igual que en SeccionEmpresa)
   const GET_PAISES = gql`
@@ -146,45 +136,6 @@ const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) =>
             <FormGroup>
               <Label htmlFor="web">Web</Label>
               <Input id="web" name="web" type="url" value={f.web || ''} onChange={chg}/>
-            </FormGroup>
-          </Col>
-        </Row>
-
-        <Row>
-          <Col md={12}>
-            <ImageUpload
-              value={f.logo}
-              empresaId={empresaId}
-              disabled={isGlobal && !empresaId}
-              onChange={(url) => {
-                const u = { ...f, logo: url };
-                setF(u);
-                onChange(u);
-              }}
-              label="Subir Logo"
-            />
-            {isGlobal && !empresaId && (
-              <FormText>Debe seleccionar una empresa antes de subir imagen</FormText>
-            )}
-          </Col>
-        </Row>
-
-        <Row>
-          <Col md={12}>
-            <FormGroup>
-              <Label>Carpeta de documentos</Label>
-              <SelectDirectorioDocumento
-                module="tercero"
-                empresaId={empresaId}
-                value={f.id_directorio_documento || ''}
-                isDisabled={scope === 'GLOBAL' && !f.id_empresa}
-                onChange={(val) => {
-                  const updated = { ...f, id_directorio_documento: val || '' };
-                  setF(updated);
-                  onChange(updated);
-                }}
-              />
-              <FormText>Opcional: selecciona una carpeta para organizar el archivo</FormText>
             </FormGroup>
           </Col>
         </Row>

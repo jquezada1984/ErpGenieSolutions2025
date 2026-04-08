@@ -24,7 +24,16 @@ export const getDirectorios = async (module, empresaId) => {
   return [];
 };
 
-export const createDirectorio = async (data) => {
-  const res = await apiClient.post('/api/directorio', data);
+export const createDirectorio = async (data, empresaId) => {
+  const headers = {};
+
+  if (empresaId) {
+    headers['X-Company-Id'] = empresaId;
+  }
+
+  const res = await apiClient.post('/api/directorio', data, {
+    headers,
+  });
+
   return res?.data;
 };

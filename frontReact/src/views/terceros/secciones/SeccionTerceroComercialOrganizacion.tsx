@@ -7,6 +7,8 @@ import SelectCondicionPago from '../../../components/selects/SelectCondicionPago
 import SelectFormaPago from '../../../components/selects/SelectFormaPago';
 import SelectRepresentante from '../../../components/selects/SelectRepresentante';
 import SelectTamanoEmpresa from '../../../components/selects/SelectTamanoEmpresa';
+import SelectDirectorioDocumento from '../../../components/selects/SelectDirectorioDocumento';
+import ImageUpload from '../../../components/common/ImageUpload';
 import useJwtPayload from '../../../hooks/useJwtPayload';
 
 type Props = { data:any; onChange:(d:any)=>void };
@@ -19,7 +21,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
   const [f, setF] = useState<any>({
     capital: 0, id_condicion_pago:'', id_forma_pago:'', id_empresa: '',
     id_tamano_empresa:'', id_profesional_1:'', id_profesional_2:'', cif_intra:'',
-    sede_central:'', asignado_a:''
+    sede_central:'', asignado_a:'', logo:'', id_directorio_documento:'',
   });
   const [err, setErr] = useState<{[k:string]:string}>({});
 
@@ -219,6 +221,53 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
                 }}
                 tamanos={tamanosEmpresa}
                 placeholder="Seleccionar"
+              />
+            </FormGroup>
+          </Col>
+        </Row>
+
+        <Row>
+          <Col md={12}>
+            <FormGroup>
+              <Label>Carpeta de documentos</Label>
+              <SelectDirectorioDocumento
+                module="tercero"
+                empresaId={f.id_empresa}
+                value={f.id_directorio_documento || ''}
+                isDisabled={!f.id_empresa}
+                onChange={(val) => {
+                  const updated = {
+                    ...f,
+                    id_directorio_documento: val || '',
+                  };
+                  setF(updated);
+                  onChange(updated);
+                }}
+              />
+              {!f.id_empresa && (
+                <FormText>
+                  Debe seleccionar una empresa primero
+                </FormText>
+              )}
+            </FormGroup>
+          </Col>
+        </Row>
+        <Row>
+          <Col md={12}>
+            <FormGroup>
+              <Label>Subir Logo</Label>
+              <ImageUpload
+                value={f.logo}
+                empresaId={f.id_empresa}
+                disabled={!f.id_empresa}
+                onChange={(url) => {
+                  const updated = {
+                    ...f,
+                    logo: url,
+                  };
+                  setF(updated);
+                  onChange(updated);
+                }}
               />
             </FormGroup>
           </Col>
