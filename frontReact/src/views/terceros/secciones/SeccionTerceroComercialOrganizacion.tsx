@@ -226,32 +226,34 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
           </Col>
         </Row>
 
-        <Row>
-          <Col md={12}>
-            <FormGroup>
-              <Label>Carpeta de documentos</Label>
-              <SelectDirectorioDocumento
-                module="tercero"
-                empresaId={f.id_empresa}
-                value={f.id_directorio_documento || ''}
-                isDisabled={!f.id_empresa}
-                onChange={(val) => {
-                  const updated = {
-                    ...f,
-                    id_directorio_documento: val || '',
-                  };
-                  setF(updated);
-                  onChange(updated);
-                }}
-              />
-              {!f.id_empresa && (
-                <FormText>
-                  Debe seleccionar una empresa primero
-                </FormText>
-              )}
-            </FormGroup>
-          </Col>
-        </Row>
+        {false && (
+          <Row>
+            <Col md={12}>
+              <FormGroup>
+                <Label>Carpeta de documentos</Label>
+                <SelectDirectorioDocumento
+                  module="tercero"
+                  empresaId={f.id_empresa}
+                  value={f.id_directorio_documento || ''}
+                  isDisabled={!f.id_empresa}
+                  onChange={(val) => {
+                    const updated = {
+                      ...f,
+                      id_directorio_documento: val || '',
+                    };
+                    setF(updated);
+                    onChange(updated);
+                  }}
+                />
+                {!f.id_empresa && (
+                  <FormText>
+                    Debe seleccionar una empresa primero
+                  </FormText>
+                )}
+              </FormGroup>
+            </Col>
+          </Row>
+        )}
         <Row>
           <Col md={12}>
             <FormGroup>
