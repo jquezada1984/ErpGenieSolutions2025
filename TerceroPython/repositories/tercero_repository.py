@@ -1,8 +1,54 @@
 from typing import Optional, Dict, Any
+import os
 import requests
 from sqlalchemy.exc import IntegrityError
 from utils.db import db
 from models.tercero import Tercero
+
+def get_or_create_directorio(nombre, empresa_id):
+    try:
+        base_url = os.environ.get("MEDIA_SERVICE_BASE_URL", "http://erp-media-service:3010")
+
+        headers = {
+            "Content-Type": "application/json",
+            "X-Company-Id": str(empresa_id)
+        }
+
+        # 1. Buscar directorios existentes
+        response = requests.get(
+            f"{base_url}/directorio?module=tercero",
+            headers=headers,
+            timeout=10
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+
+            directorios = data.get("data") if isinstance(data, dict) else data
+
+            for d in directorios:
+                if d.get("nombre") == nombre:
+                    return d.get("id_directorio_documento")
+
+        # 2. Si no existe, crearlo
+        create_resp = requests.post(
+            f"{base_url}/directorio",
+            json={
+                "nombre": nombre,
+                "modulo": "tercero"
+            },
+            headers=headers,
+            timeout=10
+        )
+
+        if create_resp.status_code in (200, 201):
+            data = create_resp.json()
+            return data.get("id_directorio_documento")
+
+    except Exception as e:
+        print("ERROR get_or_create_directorio:", str(e))
+
+    return None
 
 def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[str]) -> Tercero:
     print("🔥 PAYLOAD RAW:", payload)
@@ -59,8 +105,7 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
     print("TIPO DE PAYLOAD:", type(payload))
     print("CLAVES DEL PAYLOAD:", payload.keys())
     logo_url = payload.get("logo")
-    id_directorio_documento = payload.get("id_directorio_documento")
-    id_directorio_documento = str(id_directorio_documento) if id_directorio_documento else None
+    directorio_id = get_or_create_directorio("logo_tercero", str(tercero.id_empresa))
     print("LOGO EXTRAIDO:", logo_url)
     print("ENTRA AL IF?", bool(logo_url))
     if logo_url:
@@ -83,7 +128,7 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
                     "tipo": "imagen",
                     "es_principal": True,
                     "estado_archivo": "ACTIVO",
-                    "id_directorio_documento": id_directorio_documento,
+                    "id_directorio_documento": directorio_id,
                     "id_empresa": str(tercero.id_empresa) if tercero.id_empresa else None,
                 },
                 timeout=15,
@@ -133,8 +178,7 @@ def update_tercero(
 
     print("PAYLOAD COMPLETO:", payload)
     logo_url = payload.get("logo")
-    id_directorio_documento = payload.get("id_directorio_documento")
-    id_directorio_documento = str(id_directorio_documento) if id_directorio_documento else None
+    directorio_id = get_or_create_directorio("logo_tercero", str(tercero.id_empresa))
     print("LOGO URL:", logo_url)
     if logo_url:
         try:
@@ -150,7 +194,7 @@ def update_tercero(
                     "tipo": "imagen",
                     "es_principal": True,
                     "estado_archivo": "ACTIVO",
-                    "id_directorio_documento": id_directorio_documento,
+                    "id_directorio_documento": directorio_id,
                     "id_empresa": str(tercero.id_empresa) if tercero.id_empresa else None,
                 },
                 timeout=15,
