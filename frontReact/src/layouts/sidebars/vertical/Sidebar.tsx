@@ -43,6 +43,7 @@ const Sidebar = () => {
     const mapeoSecciones: { [key: string]: string } = {
       'inicio': '29dea275-b0f7-4fb3-83fa-7c0ea31c3cf1', // Administración
       'terceros': '39dea275-b0f7-4fb3-83fa-7c0ea31c3cf2', // Terceros (ejemplo)
+      'items': '39dea275-b0f7-4fb3-83fa-7c0ea31c3cf2-item', // Productos | Servicios (módulo item)
       'servicios': '49dea275-b0f7-4fb3-83fa-7c0ea31c3cf3', // Servicios (ejemplo)
       'proyectos': '59dea275-b0f7-4fb3-83fa-7c0ea31c3cf4', // Proyectos (ejemplo)
       'comercial': '69dea275-b0f7-4fb3-83fa-7c0ea31c3cf5', // Comercial (ejemplo)

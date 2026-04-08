@@ -1,0 +1,205 @@
+// Estilos para el módulo Item (productos y servicios) — mismo patrón visual que NuevoTercero (contenedor principal a ancho completo como NuevoTercero)
+.configuracion-item {
+
+  // Card principal (contenedor del formulario)
+  > .card {
+    border: 1px solid #e9ecef;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+
+    > .card-body {
+      padding: 1.5rem;
+    }
+  }
+
+  .nav-tabs-custom {
+    border-bottom: 2px solid #e9ecef;
+
+    .nav-item {
+      .nav-link {
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #6c757d;
+        font-weight: 500;
+        padding: 1rem 1.5rem;
+        transition: all 0.3s ease;
+
+        &:hover {
+          border-color: #007bff;
+          color: #007bff;
+          background-color: transparent;
+        }
+
+        &.active {
+          border-color: #007bff;
+          color: #007bff;
+          background-color: transparent;
+          font-weight: 600;
+        }
+
+        i {
+          margin-right: 0.5rem;
+        }
+      }
+    }
+  }
+
+  // Cards internas de cada tab (secciones) — mismo aspecto que secciones de NuevoTercero
+  .tab-content .card {
+    border: 1px solid #e9ecef;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+
+    .card-body {
+      padding: 1.5rem;
+    }
+  }
+
+  h5 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 1rem;
+
+    i {
+      color: #007bff;
+    }
+  }
+
+  // Formularios: mismo patrón que Terceros (label cerca del control, jerarquía clara)
+  .form-group {
+    margin-bottom: 1.25rem;
+
+    label {
+      font-weight: 500;
+      color: #495057;
+      margin-bottom: 0.375rem;
+      display: block;
+
+      .text-danger {
+        color: #dc3545 !important;
+      }
+    }
+
+    .form-control {
+      border: 1px solid #ced4da;
+      border-radius: 0.375rem;
+      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      max-width: 100%;
+
+      &:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      }
+
+      &.is-invalid {
+        border-color: #dc3545;
+
+        &:focus {
+          box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+        }
+      }
+    }
+
+    // Evitar textareas desproporcionados
+    textarea.form-control {
+      min-height: 4.5rem;
+      max-height: 10rem;
+      resize: vertical;
+    }
+  }
+
+  // Filas dentro de secciones: separación consistente
+  .tab-content .card .row {
+    margin-bottom: 0;
+  }
+
+  .tab-content .card .row + .row {
+    margin-top: 0;
+  }
+
+  .form-text {
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+
+  .btn {
+    border-radius: 0.375rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.15s ease-in-out;
+
+    &.btn-primary {
+      background-color: #007bff;
+      border-color: #007bff;
+
+      &:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+      }
+
+      &:disabled {
+        background-color: #6c757d;
+        border-color: #6c757d;
+      }
+    }
+
+    &.btn-secondary {
+      background-color: #6c757d;
+      border-color: #6c757d;
+
+      &:hover {
+        background-color: #545b62;
+        border-color: #4e555b;
+      }
+    }
+  }
+
+  .alert {
+    border-radius: 0.375rem;
+    border: none;
+
+    &.alert-success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    &.alert-danger {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    &.alert-info {
+      background-color: #cce5ff;
+      color: #004085;
+    }
+  }
+
+  .spinner-border {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .fas {
+    &.text-primary {
+      color: #007bff !important;
+    }
+
+    &.text-muted {
+      color: #6c757d !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+    .nav-tabs-custom .nav-item .nav-link {
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+
+      i {
+        margin-right: 0.25rem;
+      }
+    }
+
+    .card-body {
+      padding: 1rem;
+    }
+  }
+}

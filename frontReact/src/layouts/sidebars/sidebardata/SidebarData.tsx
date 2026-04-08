@@ -1,6 +1,6 @@
 import React from 'react';
 import * as Icon from "react-feather";
-import { FaBuilding, FaUsers, FaUserTie, FaSitemap, FaUser, FaUserFriends, FaAddressBook } from 'react-icons/fa';
+import { FaBuilding, FaUsers, FaUserTie, FaSitemap, FaUser, FaUserFriends, FaAddressBook, FaBox, FaWarehouse, FaTruck, FaClipboardList } from 'react-icons/fa';
 
 const sidebarMenus = {
   inicio: [
@@ -91,6 +91,76 @@ const sidebarMenus = {
       children: [
         { title: "Nuevo proveedor", href: "/proveedores/nuevo", icon: <Icon.UserPlus size={14} /> },
         { title: "Listado proveedor", href: "/proveedores", icon: <Icon.List size={14} /> },
+      ],
+    },
+  ],
+  // Módulo item: mismo patrón que terceros — solo bloques con title + children, sin caption duplicado por sección
+  items: [
+    {
+      title: "Productos",
+      icon: <FaBox size={16} />,
+      id: 'productos',
+      children: [
+        { title: "Nuevo producto", href: "/items/productos/nuevo", icon: <Icon.Plus size={14} /> },
+        { title: "Listado", href: "/items/productos", icon: <Icon.List size={14} /> },
+        { title: "Stocks", href: "/items/productos/stocks", icon: <Icon.Package size={14} /> },
+        { title: "Stocks por lotes/serie", href: "/items/productos/stocks-lotes", icon: <Icon.Layers size={14} /> },
+        { title: "Lotes/Series", href: "/items/productos/lotes", icon: <Icon.Hash size={14} /> },
+        { title: "Atributos de variantes", href: "/items/productos/atributos", icon: <Icon.Sliders size={14} /> },
+        { title: "Estadísticas", href: "/items/productos/estadisticas", icon: <Icon.BarChart2 size={14} /> },
+      ],
+    },
+    {
+      title: "Servicios",
+      icon: <Icon.Settings size={16} />,
+      id: 'servicios',
+      children: [
+        { title: "Nuevo servicio", href: "/items/servicios/nuevo", icon: <Icon.Plus size={14} /> },
+        { title: "Listado", href: "/items/servicios", icon: <Icon.List size={14} /> },
+        { title: "Atributos de variantes", href: "/items/servicios/atributos", icon: <Icon.Sliders size={14} /> },
+        { title: "Estadísticas", href: "/items/servicios/estadisticas", icon: <Icon.BarChart2 size={14} /> },
+      ],
+    },
+    {
+      title: "Almacenes",
+      icon: <FaWarehouse size={16} />,
+      id: 'almacenes',
+      children: [
+        { title: "Nuevo almacén", href: "/items/almacenes/nuevo", icon: <Icon.Plus size={14} /> },
+        { title: "Listado", href: "/items/almacenes", icon: <Icon.List size={14} /> },
+        { title: "Movimientos", href: "/items/almacenes/movimientos", icon: <Icon.Repeat size={14} /> },
+        { title: "Cambio de existencias a granel", href: "/items/almacenes/cambio-granel", icon: <Icon.RefreshCw size={14} /> },
+        { title: "Reaprovisionamiento", href: "/items/almacenes/reaprovisionamiento", icon: <Icon.TrendingUp size={14} /> },
+        { title: "Stock a fecha", href: "/items/almacenes/stock-fecha", icon: <Icon.Calendar size={14} /> },
+      ],
+    },
+    {
+      title: "Inventarios",
+      icon: <FaClipboardList size={16} />,
+      id: 'inventarios',
+      children: [
+        { title: "Nuevo inventario", href: "/items/inventarios/nuevo", icon: <Icon.Plus size={14} /> },
+        { title: "Listado", href: "/items/inventarios", icon: <Icon.List size={14} /> },
+      ],
+    },
+    {
+      title: "Envíos",
+      icon: <FaTruck size={16} />,
+      id: 'envios',
+      children: [
+        { title: "Nuevo envío", href: "/items/envios/nuevo", icon: <Icon.Plus size={14} /> },
+        { title: "Listado", href: "/items/envios", icon: <Icon.List size={14} /> },
+        { title: "Estadísticas", href: "/items/envios/estadisticas", icon: <Icon.BarChart2 size={14} /> },
+      ],
+    },
+    {
+      title: "Recepciones",
+      icon: <Icon.Inbox size={16} />,
+      id: 'recepciones',
+      children: [
+        { title: "Nueva recepción", href: "/items/recepciones/nuevo", icon: <Icon.Plus size={14} /> },
+        { title: "Listado", href: "/items/recepciones", icon: <Icon.List size={14} /> },
+        { title: "Estadísticas", href: "/items/recepciones/estadisticas", icon: <Icon.BarChart2 size={14} /> },
       ],
     },
   ],

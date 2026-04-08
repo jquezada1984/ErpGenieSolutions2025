@@ -274,7 +274,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         const graphQLError = error.graphQLErrors[0];
         errorMessage = graphQLError.message || 'Error de GraphQL';
       } else if (error.networkError) {
-        errorMessage = 'Error de conexión. Verifique su conexión a internet.';
+        errorMessage =
+          'No se pudo conectar con el servidor GraphQL. Compruebe que el API Gateway esté en ejecución (puerto 3002) y que InicioNestJs esté arriba (puerto 3001). Si desarrolla sin gateway, defina VITE_GRAPHQL_URL=http://localhost:3001/graphql en un archivo .env del front.';
       } else if (error.message) {
         errorMessage = error.message;
       }

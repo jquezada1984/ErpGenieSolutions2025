@@ -1,0 +1,171 @@
+/**
+ * API del módulo Item vía Gateway.
+ * Lectura (catálogos) → Gateway → ItemNestJs.
+ * Escritura (crear ítem) → Gateway → ItemPython POST /api/item.
+ * Actualizar ítem → Gateway → ItemPython PUT /api/item/:id_item.
+ * Mismo patrón que _apis_/tercero.js.
+ */
+import axios from 'axios';
+
+const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002';
+
+const apiClient = axios.create({
+  baseURL: GATEWAY_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.id_empresa) config.headers['X-Company-Id'] = payload.id_empresa;
+        if (payload.sub || payload.id) config.headers['X-User-Id'] = payload.sub || payload.id;
+      } catch (e) {
+        console.warn('No se pudo extraer headers del token:', e);
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const data = error.response?.data;
+    const msg =
+      (typeof data?.error === 'string' && data.error) ||
+      (typeof data?.message === 'string' && data.message) ||
+      error.message ||
+      'Error en la petición';
+    const err = new Error(msg);
+    if (error.response) {
+      err.status = error.response.status;
+      err.data = data;
+    }
+    return Promise.reject(err);
+  }
+);
+
+// ===== CATÁLOGOS / SELECTS (GET) - ItemNestJs a través del Gateway =====
+
+/**
+ * Lista estados de venta (catálogo estado_venta_item) para combo "Estado venta" en NuevoProducto.
+ * Devuelve array con { id_estado_venta, codigo, nombre, descripcion, orden }.
+ * Gateway envía el array envuelto en { success, data, timestamp }; usar response.data.data (mismo patrón que _apis_/gateway.js).
+ */
+export const listarEstadosVentaItem = async () => {
+  try {
+    const response = await apiClient.get('/api/item/selects/estado-venta');
+    const raw = response.data;
+    if (raw && typeof raw === 'object' && Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw)) return raw;
+    return [];
+  } catch (error) {
+    console.error('❌ Error al listar estados venta item:', error);
+    return [];
+  }
+};
+
+/**
+ * Lista estados de compra (catálogo estado_compra_item) para combo "Estado compra" en NuevoProducto.
+ * Devuelve array con { id_estado_compra, codigo, nombre, descripcion, orden }.
+ * Gateway envía el array envuelto en { success, data, timestamp }; usar response.data.data.
+ */
+export const listarEstadosCompraItem = async () => {
+  try {
+    const response = await apiClient.get('/api/item/selects/estado-compra');
+    const raw = response.data;
+    if (raw && typeof raw === 'object' && Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw)) return raw;
+    return [];
+  } catch (error) {
+    console.error('❌ Error al listar estados compra item:', error);
+    return [];
+  }
+};
+
+/**
+ * Lista naturalezas de ítem (catálogo naturaleza_item_catalogo) para combo "Naturaleza producto" en NuevoProducto.
+ * Devuelve array con { id_naturaleza_item, codigo, nombre, descripcion, orden }.
+ */
+export const listarNaturalezasItem = async () => {
+  try {
+    const response = await apiClient.get('/api/item/selects/naturaleza');
+    const raw = response.data;
+    if (raw && typeof raw === 'object' && Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw)) return raw;
+    return [];
+  } catch (error) {
+    console.error('❌ Error al listar naturalezas item:', error);
+    return [];
+  }
+};
+
+/**
+ * Catálogo tipo_control_inventario_item (combo Control de inventario).
+ */
+export const listarTiposControlInventarioItem = async () => {
+  try {
+    const response = await apiClient.get('/api/item/selects/control-inventario');
+    const raw = response.data;
+    if (raw && typeof raw === 'object' && Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw)) return raw;
+    return [];
+  } catch (error) {
+    console.error('❌ Error al listar tipos control inventario item:', error);
+    return [];
+  }
+};
+
+/**
+ * Catálogo tipo_control_caducidad_item (combo Control de fechas).
+ */
+export const listarTiposControlCaducidadItem = async () => {
+  try {
+    const response = await apiClient.get('/api/item/selects/control-caducidad');
+    const raw = response.data;
+    if (raw && typeof raw === 'object' && Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw)) return raw;
+    return [];
+  } catch (error) {
+    console.error('❌ Error al listar tipos control caducidad item:', error);
+    return [];
+  }
+};
+
+/**
+ * Catálogo tipo_comportamiento_item (SIMPLE, INVENTARIABLE, SERVICIO, etc.).
+ */
+export const listarTiposComportamientoItem = async () => {
+  try {
+    const response = await apiClient.get('/api/item/selects/comportamiento-item');
+    const raw = response.data;
+    if (raw && typeof raw === 'object' && Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw)) return raw;
+    return [];
+  } catch (error) {
+    console.error('❌ Error al listar tipos comportamiento item:', error);
+    return [];
+  }
+};
+
+/**
+ * Crear ítem (tabla item) → Gateway → ItemPython POST /api/item.
+ * Headers X-Company-Id / X-User-Id los añade el interceptor desde el JWT.
+ */
+export const crearItemProducto = async (body) => {
+  const response = await apiClient.post('/api/item', body);
+  return response.data;
+};
+
+/**
+ * Actualizar ítem existente (tabla item) → Gateway → ItemPython PUT /api/item/:id_item.
+ */
+export const actualizarItemProducto = async (id_item, body) => {
+  const response = await apiClient.put(`/api/item/${encodeURIComponent(id_item)}`, body);
+  return response.data;
+};

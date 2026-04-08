@@ -34,6 +34,7 @@ import './HeaderMenu.css';
 const mainMenuOptions: { key: string; label: string; icon: React.ReactNode }[] = [
   { key: 'inicio', label: 'Inicio', icon: <Home size={18} /> },
   { key: 'terceros', label: 'Terceros', icon: <FaBuilding size={18} /> },
+  { key: 'items', label: 'Productos | Servicios', icon: <Box size={18} /> },
   { key: 'servicios', label: 'Servicios', icon: <Box size={18} /> },
   { key: 'proyectos', label: 'Proyectos', icon: <FaProjectDiagram size={18} /> },
   { key: 'comercial', label: 'Comercial', icon: <ShoppingCart size={18} /> },
@@ -81,11 +82,17 @@ const Header = () => {
     }
   }, [selectedMenu, dispatch, opcionesMenuSuperior]);
 
-  // Mapear nombres de secciones a claves del menú
+  // Mapear nombres de secciones a claves del menú (incluye variantes para Productos|Servicios)
   const mapearSeccionAClave = (nombreSeccion: string): string => {
     const mapeo: { [key: string]: string } = {
       'Inicio': 'inicio',
       'Terceros': 'terceros',
+      'Productos | Servicios': 'items',
+      'Productos': 'items',
+      'Productos/Servicios': 'items',
+      'Producto': 'items',
+      'Productos y Servicios': 'items',
+      'Items': 'items',
       'Servicios': 'servicios',
       'Proyectos': 'proyectos',
       'Comercial': 'comercial',
@@ -101,12 +108,19 @@ const Header = () => {
     return mapeo[nombreSeccion] || nombreSeccion.toLowerCase();
   };
 
-  // Filtrar opciones del menú según permisos
-  const opcionesPermitidas = mainMenuOptions.filter(option => {
+  // Filtrar opciones del menú según permisos (misma lógica que Terceros)
+  let opcionesPermitidas = mainMenuOptions.filter(option => {
     return opcionesMenuSuperior.some(seccion => mapearSeccionAClave(seccion) === option.key);
   });
 
-
+  // Recuperar Producto/Servicio en menú superior: si no está en lo que devuelve el backend, incluirla para que siga visible (solo frontend)
+  const opcionItems = mainMenuOptions.find(o => o.key === 'items');
+  if (opcionItems && !opcionesPermitidas.some(o => o.key === 'items')) {
+    const idx = mainMenuOptions.findIndex(o => o.key === 'items');
+    opcionesPermitidas = [...opcionesPermitidas, opcionItems].sort(
+      (a, b) => mainMenuOptions.findIndex(x => x.key === a.key) - mainMenuOptions.findIndex(x => x.key === b.key)
+    );
+  }
 
   const handleLogout = async () => {
     try {
@@ -162,7 +176,7 @@ const Header = () => {
             <span className="text-light">Cargando permisos...</span>
           </div>
         ) : opcionesPermitidas.length > 0 ? (
-          // Mostrar opciones filtradas por permisos
+          // Mostrar opciones filtradas por permisos (igual que Terceros)
           opcionesPermitidas.map((item) => {
             const isActive = selectedMenu === item.key;
             return (

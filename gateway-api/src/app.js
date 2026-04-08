@@ -18,7 +18,7 @@ const fastify = require('fastify')({
 
 // Configuración
 const config = {
-  port: process.env.GATEWAY_PORT || 3000,
+  port: process.env.GATEWAY_PORT || 3002,
   pythonService: process.env.PYTHON_SERVICE_URL,
   nestjsService: process.env.NESTJS_SERVICE_URL,
   menuService: process.env.MENU_SERVICE_URL, // Agregar servicio de menú
@@ -68,6 +68,7 @@ fastify.register(require('./routes/perfil'), { prefix: '/api' });
 fastify.register(require('./routes/sucursal'), { prefix: '/api' });
 fastify.register(require('./routes/tercero'), { prefix: '/api' });
 fastify.register(require('./routes/contacto'), { prefix: '/api' });
+fastify.register(require('./routes/item'), { prefix: '/api' });
 fastify.register(require('./routes/menu'), { prefix: '/api' });
 fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/graphql'), { prefix: '' });

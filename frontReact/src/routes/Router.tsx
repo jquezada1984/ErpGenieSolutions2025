@@ -70,6 +70,18 @@ const NuevoContacto = Loadable(lazy(() => import('../views/terceros/contactos/Nu
 
 const EditarContacto = Loadable(lazy(() => import('../views/terceros/contactos/EditarContacto')));
 
+// Módulo Item (productos y servicios)
+const Productos = Loadable(lazy(() => import('../views/items/productos/Productos')));
+const ProductosStocks = Loadable(lazy(() => import('../views/items/productos/ProductosStocks')));
+const ProductosStocksLotes = Loadable(lazy(() => import('../views/items/productos/ProductosStocksLotes')));
+const ProductosLotes = Loadable(lazy(() => import('../views/items/productos/ProductosLotes')));
+const ProductosAtributos = Loadable(lazy(() => import('../views/items/productos/ProductosAtributos')));
+const ProductosEstadisticas = Loadable(lazy(() => import('../views/items/productos/ProductosEstadisticas')));
+const NuevoProducto = Loadable(lazy(() => import('../views/items/productos/NuevoProducto')));
+const EditarProducto = Loadable(lazy(() => import('../views/items/productos/EditarProducto')));
+const Servicios = Loadable(lazy(() => import('../views/items/servicios/Servicios')));
+const NuevoServicio = Loadable(lazy(() => import('../views/items/servicios/NuevoServicio')));
+const EditarServicio = Loadable(lazy(() => import('../views/items/servicios/EditarServicio')));
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
@@ -136,6 +148,17 @@ const ThemeRoutes: RouteType[] = [
       { path: 'terceros/:id/contactos/nuevo', element: <NuevoContacto /> },
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
 
+      { path: 'items/productos', element: <Productos /> },
+      { path: 'items/productos/stocks', element: <ProductosStocks /> },
+      { path: 'items/productos/stocks-lotes', element: <ProductosStocksLotes /> },
+      { path: 'items/productos/lotes', element: <ProductosLotes /> },
+      { path: 'items/productos/atributos', element: <ProductosAtributos /> },
+      { path: 'items/productos/estadisticas', element: <ProductosEstadisticas /> },
+      { path: 'items/productos/nuevo', element: <NuevoProducto /> },
+      { path: 'items/productos/editar/:id', element: <EditarProducto /> },
+      { path: 'items/servicios', element: <Servicios /> },
+      { path: 'items/servicios/nuevo', element: <NuevoServicio /> },
+      { path: 'items/servicios/editar/:id', element: <EditarServicio /> },
     ],
   },
   {

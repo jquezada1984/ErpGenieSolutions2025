@@ -2,9 +2,19 @@ import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/clien
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 
-// Configuración para Gateway (todos los servicios)
+/**
+ * GraphQL del cliente principal (login, catálogos vía gateway).
+ * Por defecto: {VITE_GATEWAY_URL o http://localhost:3002}/graphql
+ * Si trabajas sin gateway, en .env define por ejemplo:
+ *   VITE_GRAPHQL_URL=http://localhost:3001/graphql
+ * (no cambia los puertos de los servicios; solo indica a qué URL llama el front)
+ */
+const mainGraphqlUri =
+  import.meta.env.VITE_GRAPHQL_URL ||
+  `${import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002'}/graphql`;
+
 const mainHttpLink = createHttpLink({
-  uri: import.meta.env.VITE_GATEWAY_URL + '/graphql' || 'http://localhost:3002/graphql',
+  uri: mainGraphqlUri,
 });
 
 // Configuración para MenuNestJs (permisos de menú)
@@ -36,6 +46,7 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
   
   if (networkError) {
     console.error(`[Network error]: ${networkError}`);
+    console.error(`[GraphQL URI]: ${mainGraphqlUri}`);
   }
 });
 
