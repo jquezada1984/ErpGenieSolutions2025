@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
 import {
   Container,
   Row,
@@ -25,10 +27,23 @@ import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { getMediaByModule, deleteMedia, updateMedia } from '../../_apis_/media';
 import { getDirectorios, createDirectorio } from '../../_apis_/directorio';
+import SelectEmpresa from '../../components/SelectEmpresa';
+import useJwtPayload from '../../hooks/useJwtPayload';
 
-const useQuery = () => {
+const useUrlQuery = () => {
   return new URLSearchParams(useLocation().search);
 };
+
+const GET_EMPRESAS = gql`
+  query GetEmpresas {
+    empresas {
+      id_empresa
+      nombre
+      ruc
+      estado
+    }
+  }
+`;
 
 interface MediaItem {
   id_media: string;
@@ -45,15 +60,42 @@ interface DirectorioItem {
 }
 
 const Documentos: React.FC = () => {
-  const query = useQuery();
+  const usuario = useJwtPayload();
+  const scope = usuario?.scope_acceso || 'EMPRESA';
+  const query = useUrlQuery();
   const [searchParams] = useSearchParams();
   const empresaIdFromUrlRaw = searchParams.get('empresa_id');
   const empresaIdFromUrl =
     empresaIdFromUrlRaw && empresaIdFromUrlRaw !== 'undefined'
       ? empresaIdFromUrlRaw
       : undefined;
-  const module = query.get('module') || 'tercero';
-  const module_id = query.get('module_id');
+  const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string | null>(empresaIdFromUrl || null);
+  const empresaActiva = scope === 'GLOBAL' ? empresaSeleccionada : usuario?.id_empresa;
+  const moduleFromUrl = query.get('module');
+  const moduleIdFromUrl = query.get('module_id');
+  const [moduloSeleccionado, setModuloSeleccionado] = useState<string | null>(moduleFromUrl || null);
+  const [moduleIdSeleccionado, setModuleIdSeleccionado] = useState<string | null>(moduleIdFromUrl || null);
+  const hasModuloSeleccionado = !!moduloSeleccionado;
+  const hasModuleContext = !!moduleIdSeleccionado;
+  const { data: empresasData, loading: loadingEmpresas } = useQuery(GET_EMPRESAS, {
+    skip: scope !== 'GLOBAL',
+  });
+  const empresas = empresasData?.empresas || [];
+
+  useEffect(() => {
+    if (scope === 'GLOBAL' && empresaIdFromUrl) {
+      setEmpresaSeleccionada(empresaIdFromUrl);
+    }
+  }, [scope, empresaIdFromUrl]);
+
+  useEffect(() => {
+    if (moduleFromUrl) {
+      setModuloSeleccionado(moduleFromUrl);
+    }
+    if (moduleIdFromUrl) {
+      setModuleIdSeleccionado(moduleIdFromUrl);
+    }
+  }, [moduleFromUrl, moduleIdFromUrl]);
 
   const [documentos, setDocumentos] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,8 +112,19 @@ const Documentos: React.FC = () => {
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   const loadMedia = useCallback(async () => {
-    if (!module_id) {
-      setError('No se proporcionó module_id');
+    if (!hasModuloSeleccionado) {
+      setDocumentos([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+    if (!hasModuleContext) {
+      setDocumentos([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+    if (scope === 'GLOBAL' && !empresaActiva) {
       setDocumentos([]);
       setLoading(false);
       return;
@@ -81,10 +134,10 @@ const Documentos: React.FC = () => {
     setError(null);
     try {
       const list = await getMediaByModule(
-        module,
-        module_id,
+        moduloSeleccionado,
+        moduleIdSeleccionado,
         directorioSeleccionado || undefined,
-        empresaIdFromUrl,
+        empresaActiva || undefined,
       );
       setDocumentos(Array.isArray(list) ? list : []);
     } catch (e: unknown) {
@@ -94,20 +147,36 @@ const Documentos: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [module, module_id, directorioSeleccionado, empresaIdFromUrl]);
+  }, [
+    moduloSeleccionado,
+    moduleIdSeleccionado,
+    directorioSeleccionado,
+    empresaActiva,
+    scope,
+    hasModuloSeleccionado,
+    hasModuleContext,
+  ]);
 
   useEffect(() => {
     loadMedia();
   }, [loadMedia]);
 
   const loadDirectorios = useCallback(async () => {
+    if (!hasModuloSeleccionado) {
+      setDirectorios([]);
+      return;
+    }
+    if (scope === 'GLOBAL' && !empresaActiva) {
+      setDirectorios([]);
+      return;
+    }
     try {
-      const data = await getDirectorios(module, empresaIdFromUrl);
+      const data = await getDirectorios(moduloSeleccionado, empresaActiva || undefined);
       setDirectorios(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error cargando directorios', error);
     }
-  }, [module, empresaIdFromUrl]);
+  }, [moduloSeleccionado, empresaActiva, scope, hasModuloSeleccionado]);
 
   useEffect(() => {
     loadDirectorios();
@@ -115,6 +184,8 @@ const Documentos: React.FC = () => {
 
   const handleCrearDirectorio = async () => {
     if (!nuevoNombre.trim()) return;
+    if (!hasModuloSeleccionado) return;
+    if (scope === 'GLOBAL' && !empresaActiva) return;
 
     setLoadingCreate(true);
 
@@ -122,9 +193,9 @@ const Documentos: React.FC = () => {
       await createDirectorio(
         {
           nombre: nuevoNombre,
-          modulo: module,
+          modulo: moduloSeleccionado,
         },
-        empresaIdFromUrl || undefined,
+        empresaActiva || undefined,
       );
 
       setNuevoNombre('');
@@ -199,6 +270,76 @@ const Documentos: React.FC = () => {
                   {error}
                 </Alert>
               )}
+
+              {!hasModuloSeleccionado && (
+                <Alert color="info" className="mb-3">
+                  Seleccione un modulo para ver documentos
+                </Alert>
+              )}
+
+              <Row className="mb-3">
+                <Col md={scope === 'GLOBAL' ? 4 : 6}>
+                  <FormGroup>
+                    <Label>Modulo</Label>
+                    <Input
+                      type="select"
+                      value={moduloSeleccionado || ''}
+                      onChange={(e) => {
+                        const nextModulo = e.target.value || null;
+                        setModuloSeleccionado(nextModulo);
+                        setDirectorioSeleccionado(null);
+                        setModuleIdSeleccionado(null);
+                      }}
+                    >
+                      <option value="">Seleccionar modulo</option>
+                      <option value="tercero">tercero</option>
+                      <option value="producto">producto</option>
+                    </Input>
+                  </FormGroup>
+                </Col>
+                <Col md={scope === 'GLOBAL' ? 4 : 6}>
+                  <FormGroup>
+                    <Label>Module ID</Label>
+                    <Input
+                      value={moduleIdSeleccionado || ''}
+                      onChange={(e) => setModuleIdSeleccionado(e.target.value || null)}
+                      placeholder="Ingrese module_id"
+                    />
+                  </FormGroup>
+                </Col>
+              </Row>
+
+              {scope === 'GLOBAL' && (
+                <Row className="mb-3">
+                  <Col md={4}>
+                    <FormGroup>
+                      <Label>Empresa</Label>
+                      <SelectEmpresa
+                        value={empresaSeleccionada}
+                        onChange={(val) => {
+                          setEmpresaSeleccionada(val);
+                          setDirectorioSeleccionado(null);
+                        }}
+                        empresas={empresas}
+                        isLoading={loadingEmpresas}
+                        isDisabled={loadingEmpresas}
+                        placeholder="Seleccionar empresa"
+                      />
+                    </FormGroup>
+                  </Col>
+                </Row>
+              )}
+
+              {scope === 'GLOBAL' && !empresaSeleccionada ? (
+                <Alert color="info" className="mb-0">
+                  Seleccione una empresa
+                </Alert>
+              ) : !hasModuloSeleccionado ? null : (
+              !hasModuleContext ? (
+                <Alert color="info" className="mb-0">
+                  Seleccione o ingrese un module_id para listar documentos
+                </Alert>
+              ) : (
 
               <Row>
                 <Col md={3} className="mb-3 mb-md-0">
@@ -328,6 +469,7 @@ const Documentos: React.FC = () => {
                   )}
                 </Col>
               </Row>
+              ))}
             </CardBody>
           </Card>
         </Col>
