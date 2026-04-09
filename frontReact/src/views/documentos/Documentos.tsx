@@ -19,6 +19,7 @@ import {
   ModalBody,
   ModalFooter,
   FormGroup,
+  FormText,
   Label,
   Input,
 } from 'reactstrap';
@@ -89,6 +90,7 @@ const Documentos: React.FC = () => {
   const moduleFromUrl = searchParams.get('module');
   const moduleIdFromUrl = searchParams.get('module_id');
   const isContextLocked = !!(moduleFromUrl && moduleIdFromUrl);
+  const isEmpresaLocked = scope === 'GLOBAL' && isContextLocked;
   const [moduloSeleccionado, setModuloSeleccionado] = useState<string>(moduleFromUrl || '');
   const [moduleIdSeleccionado, setModuleIdSeleccionado] = useState<string>(moduleIdFromUrl || '');
   const [opcionesModulo, setOpcionesModulo] = useState<SearchableSelectOption[]>([]);
@@ -348,17 +350,24 @@ const Documentos: React.FC = () => {
                       <Label>Empresa</Label>
                       <SelectEmpresa
                         value={empresaSeleccionada}
-                        onChange={(val) => {
-                          setEmpresaSeleccionada(val);
+                        onChange={(empresa) => {
+                          if (isEmpresaLocked) return;
+
+                          setEmpresaSeleccionada(empresa);
                           setDirectorioSeleccionado(null);
                           setModuleIdSeleccionado('');
                           setOpcionesModulo([]);
                         }}
                         empresas={empresas}
                         isLoading={loadingEmpresas}
-                        isDisabled={loadingEmpresas}
+                        isDisabled={isEmpresaLocked || loadingEmpresas}
                         placeholder="Seleccionar empresa"
                       />
+                      {isEmpresaLocked && (
+                        <FormText color="muted">
+                          Empresa bloqueada por contexto de navegación
+                        </FormText>
+                      )}
                     </FormGroup>
                   </Col>
                 </Row>
