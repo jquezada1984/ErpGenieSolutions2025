@@ -70,6 +70,8 @@ type Props = {
    * `undefined` = este componente pide los catálogos (servicios / sin prefetch).
    */
   catalogosControlProveidos?: CatalogosControlProveidos | null;
+  /** Si true, no se muestra el input "Etiqueta" (listados); el valor en el form padre se mantiene. */
+  ocultarCampoEtiquetaListados?: boolean;
 };
 
 /** Compatibilidad con formulario: solo existe `usar_lote_serie` en payload; true se hidrata como LOTE. */
@@ -100,6 +102,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
   isEdit = false,
   uiRules,
   catalogosControlProveidos,
+  ocultarCampoEtiquetaListados = false,
 }) => {
   const [f, setF] = useState({
     nombre: '',
@@ -495,21 +498,23 @@ const SeccionItemGeneral: React.FC<Props> = ({
             </FormGroup>
           </Col>
         </Row>
-        {/* Segunda fila: Etiqueta | Naturaleza producto */}
+        {/* Segunda fila: Etiqueta (opcional) | Naturaleza producto */}
         <Row>
-          <Col md={6}>
-            <FormGroup>
-              <Label for="etiqueta">Etiqueta</Label>
-              <Input
-                id="etiqueta"
-                name="etiqueta"
-                value={f.etiqueta}
-                onChange={chg}
-                placeholder="Etiqueta para listados"
-              />
-            </FormGroup>
-          </Col>
-          <Col md={6}>
+          {!ocultarCampoEtiquetaListados && (
+            <Col md={6}>
+              <FormGroup>
+                <Label for="etiqueta">Etiqueta</Label>
+                <Input
+                  id="etiqueta"
+                  name="etiqueta"
+                  value={f.etiqueta}
+                  onChange={chg}
+                  placeholder="Etiqueta para listados"
+                />
+              </FormGroup>
+            </Col>
+          )}
+          <Col md={ocultarCampoEtiquetaListados ? 12 : 6}>
             <FormGroup>
               <Label for="id_naturaleza_item">
                 Naturaleza producto {mostrarAsteriscosObligatorios && <span className="text-danger">*</span>}

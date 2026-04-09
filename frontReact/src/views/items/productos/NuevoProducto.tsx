@@ -39,6 +39,10 @@ const NuevoProductoSchema = ItemSchema.shape({
     .nullable()
     .notRequired()
     .transform(() => null),
+  /** Referencia de producto → `producto_ref` en API (`mapItemFormToCreateBody`). */
+  codigo: yup.string().trim().required('El código de referencia es obligatorio'),
+  id_naturaleza_item: yup.string().trim().required('La naturaleza del producto es obligatoria'),
+  id_estado_venta: yup.string().trim().required('El estado de venta es obligatorio'),
 });
 
 const NuevoProducto: React.FC = () => {
@@ -47,8 +51,9 @@ const NuevoProducto: React.FC = () => {
   const scope = payload?.scope_acceso || 'EMPRESA';
   const empresaUsuario = payload?.id_empresa;
 
-  const [activeTab, setActiveTab] = useState<'1' | '2' | '3' | '4' | '5' | '6'>('1');
+  const [activeTab, setActiveTab] = useState<'1' | '2' | '3' | '4'>('1');
   const [loading, setLoading] = useState(false);
+  const [ok, setOk] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const { watch, setValue, handleSubmit, reset } = useForm<ItemFormValues>({
@@ -67,7 +72,7 @@ const NuevoProducto: React.FC = () => {
 
   const uiRules = React.useMemo(() => getTipoComportamientoUiRules(''), []);
 
-  const toggle = (t: '1' | '2' | '3' | '4' | '5' | '6') => activeTab !== t && setActiveTab(t);
+  const toggle = (t: '1' | '2' | '3' | '4') => activeTab !== t && setActiveTab(t);
 
   const onEmpresa = useCallback(
     (d: Partial<ItemFormValues>) => {
@@ -122,10 +127,11 @@ const NuevoProducto: React.FC = () => {
     async (values: ItemFormValues) => {
       setLoading(true);
       setErr(null);
+      setOk(false);
       try {
         const id_empresa = values.id_empresa || (payload?.id_empresa ?? '');
         if (!id_empresa) {
-          setErr('Debe seleccionar una empresa');
+          setErr('La empresa es obligatoria');
           setLoading(false);
           return;
         }
@@ -134,12 +140,30 @@ const NuevoProducto: React.FC = () => {
           setLoading(false);
           return;
         }
+        if (!values.codigo?.trim()) {
+          setErr('El código de referencia es obligatorio');
+          setLoading(false);
+          return;
+        }
+        if (!values.id_naturaleza_item?.trim()) {
+          setErr('La naturaleza del producto es obligatoria');
+          setLoading(false);
+          return;
+        }
+        if (!values.id_estado_venta?.trim()) {
+          setErr('El estado de venta es obligatorio');
+          setLoading(false);
+          return;
+        }
         const body = mapItemFormToCreateBody({ ...values, id_empresa });
         const res = await crearItemProducto(body);
         if (res?.success && res?.id_item) {
-          reset({ ...initialForm, id_empresa });
-          setActiveTab('1');
-          navigate('/items/productos');
+          setOk(true);
+          setTimeout(() => {
+            reset({ ...initialForm, id_empresa });
+            setOk(false);
+            setActiveTab('1');
+          }, 2000);
         } else {
           setErr(res?.message || res?.error || 'No se pudo crear el producto');
         }
@@ -162,7 +186,7 @@ const NuevoProducto: React.FC = () => {
         setLoading(false);
       }
     },
-    [payload?.id_empresa, reset, navigate]
+    [payload?.id_empresa, reset]
   );
 
   const onInvalid = useCallback((formErrors: unknown) => {
@@ -202,6 +226,7 @@ const NuevoProducto: React.FC = () => {
             </div>
           </div>
 
+          {ok && <Alert color="success">Producto creado correctamente.</Alert>}
           {err && <Alert color="danger">{err}</Alert>}
 
           <p className="text-muted mb-3">
@@ -211,16 +236,11 @@ const NuevoProducto: React.FC = () => {
           <Nav tabs className="nav-tabs-custom">
             <NavItem>
               <NavLink className={classnames({ active: activeTab === '1' })} onClick={() => toggle('1')}>
-                <i className="fas fa-building me-2" />Empresa
-              </NavLink>
-            </NavItem>
-            <NavItem>
-              <NavLink className={classnames({ active: activeTab === '2' })} onClick={() => toggle('2')}>
                 <i className="fas fa-id-card me-2" />General
               </NavLink>
             </NavItem>
             <NavItem>
-              <NavLink className={classnames({ active: activeTab === '5' })} onClick={() => toggle('5')}>
+              <NavLink className={classnames({ active: activeTab === '2' })} onClick={() => toggle('2')}>
                 <i className="fas fa-boxes me-2" />Inventario
               </NavLink>
             </NavItem>
@@ -230,7 +250,7 @@ const NuevoProducto: React.FC = () => {
               </NavLink>
             </NavItem>
             <NavItem>
-              <NavLink className={classnames({ active: activeTab === '6' })} onClick={() => toggle('6')}>
+              <NavLink className={classnames({ active: activeTab === '4' })} onClick={() => toggle('4')}>
                 <i className="fas fa-calculator me-2" />Contabilidad
               </NavLink>
             </NavItem>
@@ -245,14 +265,22 @@ const NuevoProducto: React.FC = () => {
                 defaultTipoItemCodigo="PRODUCT"
                 ocultarCatalogosTipoYComportamiento
               />
-            </TabPane>
-            <TabPane tabId="2">
               <SeccionItemGeneral
                 data={formData}
                 onChange={onGeneral}
                 tipoItem="producto"
                 uiRules={uiRules.general}
                 mostrarAsteriscosObligatorios
+                ocultarCampoEtiquetaListados
+              />
+            </TabPane>
+            <TabPane tabId="2">
+              <SeccionItemInventario
+                data={formData}
+                onChange={onInventario}
+                ocultarStockActual
+                usarTamanoReferenciaTercero
+                uiRules={uiRules.inventario}
               />
             </TabPane>
             <TabPane tabId="3">
@@ -263,16 +291,7 @@ const NuevoProducto: React.FC = () => {
                 </CardBody>
               </Card>
             </TabPane>
-            <TabPane tabId="5">
-              <SeccionItemInventario
-                data={formData}
-                onChange={onInventario}
-                ocultarStockActual
-                usarTamanoReferenciaTercero
-                uiRules={uiRules.inventario}
-              />
-            </TabPane>
-            <TabPane tabId="6">
+            <TabPane tabId="4">
               <SeccionItemContabilidad data={formData} onChange={onContabilidad} uiRules={uiRules.contabilidad} />
             </TabPane>
           </TabContent>
