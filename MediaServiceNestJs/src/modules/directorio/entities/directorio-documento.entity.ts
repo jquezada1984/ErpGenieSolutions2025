@@ -19,6 +19,9 @@ export class DirectorioDocumento {
   @Column({ type: 'varchar', nullable: false })
   modulo: string;
 
+  @Column({ type: 'varchar', length: 20, default: 'MANUAL' })
+  tipo_directorio: string;
+
   @Column({ type: 'uuid', nullable: true, name: 'id_empresa' })
   id_empresa?: string | null;
 

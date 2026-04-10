@@ -35,7 +35,8 @@ def get_or_create_directorio(nombre, empresa_id):
             f"{base_url}/directorio",
             json={
                 "nombre": nombre,
-                "modulo": "tercero"
+                "modulo": "tercero",
+                "tipo_directorio": "OBJETO",
             },
             headers=headers,
             timeout=10

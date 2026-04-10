@@ -37,7 +37,12 @@ export class DirectorioController {
 
   @Post()
   async crear(@Body() body: any, @Req() request: Request) {
-    const { nombre, modulo, id_directorio_padre = null } = body;
+    const {
+      nombre,
+      modulo,
+      id_directorio_padre = null,
+      tipo_directorio = 'MANUAL',
+    } = body;
 
     if (!nombre || !modulo) {
       throw new BadRequestException('nombre y modulo son requeridos');
@@ -48,6 +53,7 @@ export class DirectorioController {
     const nuevo = this.repo.create({
       nombre: String(nombre).trim(),
       modulo: String(modulo).trim(),
+      tipo_directorio: String(tipo_directorio).trim() || 'MANUAL',
       id_empresa: companyId || null,
       orden: 1,
       estado: true,

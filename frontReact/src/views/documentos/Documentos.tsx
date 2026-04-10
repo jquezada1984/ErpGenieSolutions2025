@@ -293,6 +293,7 @@ const Documentos: React.FC = () => {
       const payload = {
         nombre: nuevaCarpeta,
         modulo: moduloSeleccionado,
+        tipo_directorio: 'MANUAL',
         ...(currentDirectorioId && {
           id_directorio_padre: currentDirectorioId,
         }),
