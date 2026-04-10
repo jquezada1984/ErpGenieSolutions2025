@@ -165,12 +165,16 @@ const Documentos: React.FC = () => {
   );
 
   const directoriosManualActuales = useMemo(() => {
+    // RAÍZ → solo carpetas SIN padre
     if (!currentDirectorioId) {
-      return directoriosManual.filter((d) => !d.id_directorio_padre);
+      return directoriosManual.filter((d) => !d.padre);
     }
 
+    // DENTRO → solo hijos del actual
     return directoriosManual.filter(
-      (d) => d.id_directorio_padre === currentDirectorioId,
+      (d) =>
+        d.padre &&
+        d.padre.id_directorio_documento === currentDirectorioId,
     );
   }, [directoriosManual, currentDirectorioId]);
 
@@ -299,6 +303,7 @@ const Documentos: React.FC = () => {
     try {
       const data = await getDirectorios(moduloSeleccionado, empresaActiva || undefined);
       setDirectorios(Array.isArray(data) ? data : []);
+      console.log(data)
     } catch (error) {
       console.error('Error cargando directorios', error);
     }

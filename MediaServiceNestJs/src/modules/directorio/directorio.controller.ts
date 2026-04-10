@@ -29,6 +29,7 @@ export class DirectorioController {
         estado: true,
         ...(companyId ? { id_empresa: companyId } : {}),
       },
+      relations: ['padre'],
       order: {
         orden: 'ASC',
       },
