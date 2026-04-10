@@ -83,13 +83,6 @@ function esDirectorioManual(d: DirectorioItem): boolean {
   return t == null || t === '' || t === 'MANUAL';
 }
 
-function padreIdDeDirectorio(d: DirectorioItem): string | null {
-  const raw =
-    d.id_directorio_padre ?? d.padre?.id_directorio_documento ?? null;
-  if (raw === undefined || raw === null || raw === '') return null;
-  return String(raw);
-}
-
 const Documentos: React.FC = () => {
   const usuario = useJwtPayload();
   const scope = usuario?.scope_acceso || 'EMPRESA';
@@ -173,11 +166,11 @@ const Documentos: React.FC = () => {
 
   const directoriosManualActuales = useMemo(() => {
     if (!currentDirectorioId) {
-      return directoriosManual.filter((d) => !padreIdDeDirectorio(d));
+      return directoriosManual.filter((d) => !d.id_directorio_padre);
     }
-    const idActual = String(currentDirectorioId);
+
     return directoriosManual.filter(
-      (d) => padreIdDeDirectorio(d) === idActual,
+      (d) => d.id_directorio_padre === currentDirectorioId,
     );
   }, [directoriosManual, currentDirectorioId]);
 
