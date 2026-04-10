@@ -73,8 +73,14 @@ interface MediaItem {
 interface DirectorioItem {
   id_directorio_documento: string;
   nombre: string;
+  tipo_directorio?: string | null;
   id_directorio_padre?: string | null;
   padre?: { id_directorio_documento?: string } | null;
+}
+
+function esDirectorioManual(d: DirectorioItem): boolean {
+  const t = d.tipo_directorio;
+  return t == null || t === '' || t === 'MANUAL';
 }
 
 function padreIdDeDirectorio(d: DirectorioItem): string | null {
@@ -117,6 +123,8 @@ const Documentos: React.FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [directorios, setDirectorios] = useState<DirectorioItem[]>([]);
+  const [tabActivo, setTabActivo] = useState<'OBJETO' | 'MANUAL'>('OBJETO');
+  const [directorioSeleccionado, setDirectorioSeleccionado] = useState<string | null>(null);
   const [currentDirectorioId, setCurrentDirectorioId] = useState<string | null>(null);
   const [stackDirectorios, setStackDirectorios] = useState<DirectorioItem[]>([]);
   const [nuevoNombre, setNuevoNombre] = useState('');
@@ -137,22 +145,41 @@ const Documentos: React.FC = () => {
     setModuleIdSeleccionado(moduleIdFromUrl || '');
     setCurrentDirectorioId(null);
     setStackDirectorios([]);
+    setDirectorioSeleccionado(null);
   }, [moduleFromUrl, moduleIdFromUrl]);
 
   const resetCarpetas = useCallback(() => {
     setCurrentDirectorioId(null);
     setStackDirectorios([]);
+    setDirectorioSeleccionado(null);
   }, []);
 
+  const alCambiarTab = useCallback((tab: 'OBJETO' | 'MANUAL') => {
+    setTabActivo(tab);
+    setCurrentDirectorioId(null);
+    setStackDirectorios([]);
+    setDirectorioSeleccionado(null);
+  }, []);
+
+  const directoriosObjeto = useMemo(
+    () => directorios.filter((d) => d.tipo_directorio === 'OBJETO'),
+    [directorios],
+  );
+
+  const directoriosManual = useMemo(
+    () => directorios.filter((d) => esDirectorioManual(d)),
+    [directorios],
+  );
+
   const directoriosActuales = useMemo(() => {
-    return directorios.filter((d) => {
+    return directoriosManual.filter((d) => {
       const padre = padreIdDeDirectorio(d);
       if (currentDirectorioId) {
         return padre === currentDirectorioId;
       }
       return padre == null;
     });
-  }, [directorios, currentDirectorioId]);
+  }, [directoriosManual, currentDirectorioId]);
 
   useEffect(() => {
     if (isContextLocked) {
@@ -239,10 +266,15 @@ const Documentos: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      const directorioParaMedia =
+        tabActivo === 'OBJETO'
+          ? directorioSeleccionado || undefined
+          : currentDirectorioId || undefined;
+
       const list = await getMediaByModule(
         moduloSeleccionado,
         moduleIdSeleccionado,
-        currentDirectorioId || undefined,
+        directorioParaMedia,
         empresaActiva || undefined,
       );
       setDocumentos(Array.isArray(list) ? list : []);
@@ -256,6 +288,8 @@ const Documentos: React.FC = () => {
   }, [
     moduloSeleccionado,
     moduleIdSeleccionado,
+    tabActivo,
+    directorioSeleccionado,
     currentDirectorioId,
     empresaActiva,
   ]);
@@ -488,6 +522,65 @@ const Documentos: React.FC = () => {
                   <Card>
                     <CardBody>
                       <h6 className="mb-2">Directorios</h6>
+                      <div className="mb-3 d-flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${
+                            tabActivo === 'OBJETO' ? 'btn-primary' : 'btn-outline-primary'
+                          }`}
+                          onClick={() => alCambiarTab('OBJETO')}
+                        >
+                          Directorios de objetos
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${
+                            tabActivo === 'MANUAL' ? 'btn-primary' : 'btn-outline-primary'
+                          }`}
+                          onClick={() => alCambiarTab('MANUAL')}
+                        >
+                          Directorios manuales
+                        </button>
+                      </div>
+                      {tabActivo === 'OBJETO' ? (
+                        <>
+                          <ul className="list-group">
+                            <li
+                              className={`list-group-item d-flex align-items-center gap-2 ${
+                                directorioSeleccionado === null ? 'active' : ''
+                              }`}
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => setDirectorioSeleccionado(null)}
+                            >
+                              <span aria-hidden>{'\u{1F4C1}'}</span>
+                              <span>Todas</span>
+                            </li>
+                            {directoriosObjeto.map((dir) => (
+                              <li
+                                key={dir.id_directorio_documento}
+                                className={`list-group-item d-flex align-items-center gap-2 ${
+                                  directorioSeleccionado === dir.id_directorio_documento
+                                    ? 'active'
+                                    : ''
+                                }`}
+                                style={{ cursor: 'pointer' }}
+                                onClick={() =>
+                                  setDirectorioSeleccionado(dir.id_directorio_documento)
+                                }
+                              >
+                                <span aria-hidden>{'\u{1F4C1}'}</span>
+                                <span>{dir.nombre}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          {directoriosObjeto.length === 0 && (
+                            <p className="text-muted small mb-0 mt-2">
+                              No hay directorios de objeto
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <>
                       <div
                         className="small text-muted mb-2"
                         style={{ cursor: 'default' }}
@@ -593,6 +686,8 @@ const Documentos: React.FC = () => {
                         <p className="text-muted small mb-0 mt-2">
                           No hay subcarpetas en esta ubicación
                         </p>
+                      )}
+                        </>
                       )}
                     </CardBody>
                   </Card>
