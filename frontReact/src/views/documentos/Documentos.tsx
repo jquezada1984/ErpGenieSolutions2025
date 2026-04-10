@@ -171,14 +171,14 @@ const Documentos: React.FC = () => {
     [directorios],
   );
 
-  const directoriosActuales = useMemo(() => {
-    return directoriosManual.filter((d) => {
-      const padre = padreIdDeDirectorio(d);
-      if (currentDirectorioId) {
-        return padre === currentDirectorioId;
-      }
-      return padre == null;
-    });
+  const directoriosManualActuales = useMemo(() => {
+    if (!currentDirectorioId) {
+      return directoriosManual.filter((d) => !padreIdDeDirectorio(d));
+    }
+    const idActual = String(currentDirectorioId);
+    return directoriosManual.filter(
+      (d) => padreIdDeDirectorio(d) === idActual,
+    );
   }, [directoriosManual, currentDirectorioId]);
 
   useEffect(() => {
@@ -532,15 +532,19 @@ const Documentos: React.FC = () => {
                         >
                           Directorios de objetos
                         </button>
-                        <button
-                          type="button"
-                          className={`btn btn-sm ${
-                            tabActivo === 'MANUAL' ? 'btn-primary' : 'btn-outline-primary'
-                          }`}
-                          onClick={() => alCambiarTab('MANUAL')}
-                        >
-                          Directorios manuales
-                        </button>
+                        {!isContextLocked && (
+                          <button
+                            type="button"
+                            className={
+                              tabActivo === 'MANUAL'
+                                ? 'btn btn-primary btn-sm'
+                                : 'btn btn-outline-primary btn-sm'
+                            }
+                            onClick={() => alCambiarTab('MANUAL')}
+                          >
+                            Directorios manuales
+                          </button>
+                        )}
                       </div>
                       {tabActivo === 'OBJETO' ? (
                         <>
@@ -667,7 +671,7 @@ const Documentos: React.FC = () => {
                         </button>
                       </div>
                       <ul className="list-group">
-                        {directoriosActuales.map((dir) => (
+                        {directoriosManualActuales.map((dir) => (
                           <li
                             key={dir.id_directorio_documento}
                             className="list-group-item d-flex align-items-center gap-2"
@@ -682,7 +686,7 @@ const Documentos: React.FC = () => {
                           </li>
                         ))}
                       </ul>
-                      {directoriosActuales.length === 0 && (
+                      {directoriosManualActuales.length === 0 && (
                         <p className="text-muted small mb-0 mt-2">
                           No hay subcarpetas en esta ubicación
                         </p>
