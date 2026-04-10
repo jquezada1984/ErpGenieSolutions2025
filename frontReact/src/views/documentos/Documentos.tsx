@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
@@ -73,6 +73,15 @@ interface MediaItem {
 interface DirectorioItem {
   id_directorio_documento: string;
   nombre: string;
+  id_directorio_padre?: string | null;
+  padre?: { id_directorio_documento?: string } | null;
+}
+
+function padreIdDeDirectorio(d: DirectorioItem): string | null {
+  const raw =
+    d.id_directorio_padre ?? d.padre?.id_directorio_documento ?? null;
+  if (raw === undefined || raw === null || raw === '') return null;
+  return String(raw);
 }
 
 const Documentos: React.FC = () => {
@@ -108,7 +117,8 @@ const Documentos: React.FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [directorios, setDirectorios] = useState<DirectorioItem[]>([]);
-  const [directorioSeleccionado, setDirectorioSeleccionado] = useState<string | null>(null);
+  const [currentDirectorioId, setCurrentDirectorioId] = useState<string | null>(null);
+  const [stackDirectorios, setStackDirectorios] = useState<DirectorioItem[]>([]);
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
@@ -125,7 +135,24 @@ const Documentos: React.FC = () => {
   useEffect(() => {
     setModuloSeleccionado(moduleFromUrl || '');
     setModuleIdSeleccionado(moduleIdFromUrl || '');
+    setCurrentDirectorioId(null);
+    setStackDirectorios([]);
   }, [moduleFromUrl, moduleIdFromUrl]);
+
+  const resetCarpetas = useCallback(() => {
+    setCurrentDirectorioId(null);
+    setStackDirectorios([]);
+  }, []);
+
+  const directoriosActuales = useMemo(() => {
+    return directorios.filter((d) => {
+      const padre = padreIdDeDirectorio(d);
+      if (currentDirectorioId) {
+        return padre === currentDirectorioId;
+      }
+      return padre == null;
+    });
+  }, [directorios, currentDirectorioId]);
 
   useEffect(() => {
     if (isContextLocked) {
@@ -215,7 +242,7 @@ const Documentos: React.FC = () => {
       const list = await getMediaByModule(
         moduloSeleccionado,
         moduleIdSeleccionado,
-        directorioSeleccionado || undefined,
+        currentDirectorioId || undefined,
         empresaActiva || undefined,
       );
       setDocumentos(Array.isArray(list) ? list : []);
@@ -229,9 +256,9 @@ const Documentos: React.FC = () => {
   }, [
     moduloSeleccionado,
     moduleIdSeleccionado,
-    directorioSeleccionado,
+    currentDirectorioId,
     empresaActiva,
-  ])
+  ]);
 
   useEffect(() => {
     loadMedia();
@@ -262,13 +289,19 @@ const Documentos: React.FC = () => {
     setLoadingCreate(true);
 
     try {
-      await createDirectorio(
-        {
-          nombre: nuevoNombre,
-          modulo: moduloSeleccionado,
-        },
-        empresaActiva || undefined,
-      );
+      const nuevaCarpeta = nuevoNombre.trim();
+      const payload = {
+        nombre: nuevaCarpeta,
+        modulo: moduloSeleccionado,
+        ...(currentDirectorioId && {
+          id_directorio_padre: currentDirectorioId,
+        }),
+      };
+
+      console.log('currentDirectorioId:', currentDirectorioId);
+      console.log('CREANDO DIRECTORIO:', payload);
+
+      await createDirectorio(payload, empresaActiva || undefined);
 
       setNuevoNombre('');
       await loadDirectorios();
@@ -354,7 +387,7 @@ const Documentos: React.FC = () => {
                           if (isEmpresaLocked) return;
 
                           setEmpresaSeleccionada(empresa);
-                          setDirectorioSeleccionado(null);
+                          resetCarpetas();
                           setModuleIdSeleccionado('');
                           setOpcionesModulo([]);
                         }}
@@ -411,7 +444,7 @@ const Documentos: React.FC = () => {
                             onChange={(e) => {
                               setModuloSeleccionado(e.target.value);
                               setModuleIdSeleccionado('');
-                              setDirectorioSeleccionado(null);
+                              resetCarpetas();
                             }}
                           >
                             <option value="">Seleccione</option>
@@ -428,7 +461,7 @@ const Documentos: React.FC = () => {
                             value={moduleIdSeleccionado || null}
                             onChange={(val) => {
                               setModuleIdSeleccionado(val || '');
-                              setDirectorioSeleccionado(null);
+                              resetCarpetas();
                             }}
                             isDisabled={!moduloSeleccionado || !empresaActiva}
                             isLoading={loadingOpciones}
@@ -453,7 +486,76 @@ const Documentos: React.FC = () => {
                 <Col md={3} className="mb-3 mb-md-0">
                   <Card>
                     <CardBody>
-                      <h6 className="mb-3">Directorios</h6>
+                      <h6 className="mb-2">Directorios</h6>
+                      <div
+                        className="small text-muted mb-2"
+                        style={{ cursor: 'default' }}
+                      >
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="text-primary"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => {
+                            setStackDirectorios([]);
+                            setCurrentDirectorioId(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setStackDirectorios([]);
+                              setCurrentDirectorioId(null);
+                            }
+                          }}
+                        >
+                          Documentos
+                        </span>
+                        {stackDirectorios.map((d, index) => (
+                          <React.Fragment key={d.id_directorio_documento}>
+                            <span className="mx-1">/</span>
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              className="text-primary"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => {
+                                const newStack = stackDirectorios.slice(0, index + 1);
+                                setStackDirectorios(newStack);
+                                setCurrentDirectorioId(d.id_directorio_documento);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  const newStack = stackDirectorios.slice(0, index + 1);
+                                  setStackDirectorios(newStack);
+                                  setCurrentDirectorioId(d.id_directorio_documento);
+                                }
+                              }}
+                            >
+                              {d.nombre}
+                            </span>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                      {stackDirectorios.length > 0 && (
+                        <Button
+                          color="secondary"
+                          size="sm"
+                          className="mb-2 w-100"
+                          onClick={() => {
+                            const newStack = [...stackDirectorios];
+                            newStack.pop();
+                            setStackDirectorios(newStack);
+                            setCurrentDirectorioId(
+                              newStack.length > 0
+                                ? newStack[newStack.length - 1].id_directorio_documento
+                                : null,
+                            );
+                          }}
+                        >
+                          ← Volver
+                        </Button>
+                      )}
                       <div className="mb-2">
                         <input
                           className="form-control"
@@ -471,25 +573,26 @@ const Documentos: React.FC = () => {
                         </button>
                       </div>
                       <ul className="list-group">
-                        <li
-                          className={`list-group-item ${!directorioSeleccionado ? 'active' : ''}`}
-                          onClick={() => setDirectorioSeleccionado(null)}
-                        >
-                          📁 Todas
-                        </li>
-                        {directorios.map((dir) => (
+                        {directoriosActuales.map((dir) => (
                           <li
                             key={dir.id_directorio_documento}
-                            className={`list-group-item ${
-                              directorioSeleccionado === dir.id_directorio_documento ? 'active' : ''
-                            }`}
+                            className="list-group-item d-flex align-items-center gap-2"
                             style={{ cursor: 'pointer' }}
-                            onClick={() => setDirectorioSeleccionado(dir.id_directorio_documento)}
+                            onClick={() => {
+                              setStackDirectorios((prev) => [...prev, dir]);
+                              setCurrentDirectorioId(dir.id_directorio_documento);
+                            }}
                           >
-                            📁 {dir.nombre}
+                            <span aria-hidden>📁</span>
+                            <span>{dir.nombre}</span>
                           </li>
                         ))}
                       </ul>
+                      {directoriosActuales.length === 0 && (
+                        <p className="text-muted small mb-0 mt-2">
+                          No hay subcarpetas en esta ubicación
+                        </p>
+                      )}
                     </CardBody>
                   </Card>
                 </Col>
