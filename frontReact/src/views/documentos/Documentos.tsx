@@ -68,6 +68,7 @@ interface MediaItem {
   es_principal: boolean;
   url?: string;
   file?: { url?: string };
+  id_directorio_documento?: string | null;
 }
 
 interface DirectorioItem {
@@ -178,6 +179,30 @@ const Documentos: React.FC = () => {
         d.padre.id_directorio_documento === currentDirectorioId,
     );
   }, [directoriosManual, currentDirectorioId]);
+
+  const mediaFiltrada = useMemo(() => {
+    if (tabActivo === 'OBJETO') {
+      if (!directorioSeleccionado) {
+        return documentos.filter((m) => !m.id_directorio_documento);
+      }
+      return documentos.filter(
+        (m) => m.id_directorio_documento === directorioSeleccionado,
+      );
+    }
+
+    if (!currentDirectorioId) {
+      return documentos.filter((m) => !m.id_directorio_documento);
+    }
+
+    return documentos.filter(
+      (m) => m.id_directorio_documento === currentDirectorioId,
+    );
+  }, [documentos, tabActivo, currentDirectorioId, directorioSeleccionado]);
+
+  useEffect(() => {
+    setCurrentDirectorioId(null);
+    setStackDirectorios([]);
+  }, [tabActivo]);
 
   useEffect(() => {
     if (isContextLocked) {
@@ -785,7 +810,7 @@ const Documentos: React.FC = () => {
                       <Spinner color="primary" className="me-2" />
                       Cargando documentos…
                     </div>
-                  ) : documentos.length === 0 ? (
+                  ) : mediaFiltrada.length === 0 ? (
                     <Card>
                       <CardBody>
                         <p className="text-muted mb-0">No hay documentos</p>
@@ -793,7 +818,7 @@ const Documentos: React.FC = () => {
                     </Card>
                   ) : (
                     <Row>
-                      {documentos.map((doc) => {
+                      {mediaFiltrada.map((doc) => {
                         const url = resolveUrl(doc);
                         const esImagen = doc.tipo === 'imagen';
                         return (
