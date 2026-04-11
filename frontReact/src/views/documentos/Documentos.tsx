@@ -956,7 +956,6 @@ const Documentos: React.FC = () => {
               disabled={guardandoEdicion}
             >
               <option value="ACTIVO">ACTIVO</option>
-              <option value="INACTIVO">INACTIVO</option>
               <option value="EN_PROCESO">EN PROCESO</option>
               <option value="CANCELADO">CANCELADO</option>
               <option value="ACEPTADO">ACEPTADO</option>
