@@ -25,6 +25,7 @@ import {
 } from 'reactstrap';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
+import './Documentos.css';
 import apiClient, { getMediaByModule, deleteMedia, updateMedia } from '../../_apis_/media';
 import { getDirectorios, createDirectorio } from '../../_apis_/directorio';
 import SelectEmpresa from '../../components/SelectEmpresa';
@@ -198,6 +199,8 @@ const Documentos: React.FC = () => {
       (m) => m.id_directorio_documento === currentDirectorioId,
     );
   }, [documentos, tabActivo, currentDirectorioId, directorioSeleccionado]);
+
+  const hayCarpetaSeleccionada = !!directorioSeleccionado;
 
   useEffect(() => {
     setCurrentDirectorioId(null);
@@ -651,16 +654,6 @@ const Documentos: React.FC = () => {
                       {tabActivo === 'OBJETO' ? (
                         <>
                           <ul className="list-group">
-                            <li
-                              className={`list-group-item d-flex align-items-center gap-2 ${
-                                directorioSeleccionado === null ? 'active' : ''
-                              }`}
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => setDirectorioSeleccionado(null)}
-                            >
-                              <span aria-hidden>{'\u{1F4C1}'}</span>
-                              <span>Todas</span>
-                            </li>
                             {directoriosObjeto.map((dir) => (
                               <li
                                 key={dir.id_directorio_documento}
@@ -675,7 +668,9 @@ const Documentos: React.FC = () => {
                                 }
                               >
                                 <span aria-hidden>{'\u{1F4C1}'}</span>
-                                <span>{dir.nombre}</span>
+                                <span className="nombre-carpeta" title={dir.nombre}>
+                                  {dir.nombre}
+                                </span>
                               </li>
                             ))}
                           </ul>
@@ -716,8 +711,9 @@ const Documentos: React.FC = () => {
                             <span
                               role="button"
                               tabIndex={0}
-                              className="text-primary"
+                              className="text-primary nombre-carpeta"
                               style={{ cursor: 'pointer' }}
+                              title={d.nombre}
                               onClick={() => {
                                 const newStack = stackDirectorios.slice(0, index + 1);
                                 setStackDirectorios(newStack);
@@ -790,7 +786,9 @@ const Documentos: React.FC = () => {
                             }}
                           >
                             <span aria-hidden>📁</span>
-                            <span>{dir.nombre}</span>
+                            <span className="nombre-carpeta" title={dir.nombre}>
+                              {dir.nombre}
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -811,11 +809,15 @@ const Documentos: React.FC = () => {
                       Cargando documentos…
                     </div>
                   ) : mediaFiltrada.length === 0 ? (
-                    <Card>
-                      <CardBody>
-                        <p className="text-muted mb-0">No hay documentos</p>
-                      </CardBody>
-                    </Card>
+                    !hayCarpetaSeleccionada ? (
+                      <div className="text-center text-muted py-5">
+                        Seleccione una carpeta para ver los documentos
+                      </div>
+                    ) : (
+                      <div className="text-center text-muted py-5">
+                        No hay documentos en esta carpeta
+                      </div>
+                    )
                   ) : (
                     <Row>
                       {mediaFiltrada.map((doc) => {

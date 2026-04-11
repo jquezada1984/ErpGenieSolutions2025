@@ -1,0 +1,16 @@
+.nombre-carpeta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-group-item.d-flex .nombre-carpeta {
+  min-width: 0;
+  flex: 1 1 0%;
+}
+
+.small.text-muted.mb-2 .nombre-carpeta {
+  display: inline-block;
+  max-width: 11rem;
+  vertical-align: bottom;
+}
