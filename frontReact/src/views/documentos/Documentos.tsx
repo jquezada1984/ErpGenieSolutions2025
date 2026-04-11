@@ -200,7 +200,13 @@ const Documentos: React.FC = () => {
     );
   }, [documentos, tabActivo, currentDirectorioId, directorioSeleccionado]);
 
-  const hayCarpetaSeleccionada = !!directorioSeleccionado;
+  const hayCarpetaSeleccionada =
+    tabActivo === 'OBJETO' ? !!directorioSeleccionado : !!currentDirectorioId;
+  const tieneSubcarpetas =
+    tabActivo === 'OBJETO'
+      ? directoriosObjeto.length > 0
+      : directoriosManualActuales.length > 0;
+  const tieneMedia = mediaFiltrada.length > 0;
 
   useEffect(() => {
     setCurrentDirectorioId(null);
@@ -808,16 +814,20 @@ const Documentos: React.FC = () => {
                       <Spinner color="primary" className="me-2" />
                       Cargando documentos…
                     </div>
-                  ) : mediaFiltrada.length === 0 ? (
-                    !hayCarpetaSeleccionada ? (
-                      <div className="text-center text-muted py-5">
-                        Seleccione una carpeta para ver los documentos
-                      </div>
-                    ) : (
-                      <div className="text-center text-muted py-5">
-                        No hay documentos en esta carpeta
-                      </div>
-                    )
+                  ) : !tieneMedia ? (
+                    <div className="text-center mt-4 text-muted">
+                      {!hayCarpetaSeleccionada && (
+                        <>Seleccione una carpeta para ver los documentos</>
+                      )}
+
+                      {hayCarpetaSeleccionada && !tieneSubcarpetas && (
+                        <>No hay archivos que mostrar</>
+                      )}
+
+                      {hayCarpetaSeleccionada && tieneSubcarpetas && (
+                        <>Seleccione una carpeta para ver los documentos</>
+                      )}
+                    </div>
                   ) : (
                     <Row>
                       {mediaFiltrada.map((doc) => {
