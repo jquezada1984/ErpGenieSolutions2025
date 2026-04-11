@@ -25,7 +25,7 @@ import {
 } from 'reactstrap';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
-import { getMediaByModule, deleteMedia, updateMedia } from '../../_apis_/media';
+import apiClient, { getMediaByModule, deleteMedia, updateMedia } from '../../_apis_/media';
 import { getDirectorios, createDirectorio } from '../../_apis_/directorio';
 import SelectEmpresa from '../../components/SelectEmpresa';
 import SearchableSelect from '../../components/SearchableSelect';
@@ -126,6 +126,7 @@ const Documentos: React.FC = () => {
   const [mediaEditando, setMediaEditando] = useState<MediaItem | null>(null);
   const [estadoArchivo, setEstadoArchivo] = useState('');
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [uploadingArchivo, setUploadingArchivo] = useState(false);
 
   useEffect(() => {
     if (scope === 'GLOBAL' && empresaIdFromUrl) {
@@ -346,6 +347,84 @@ const Documentos: React.FC = () => {
   };
 
   const resolveUrl = (doc: MediaItem) => doc.file?.url ?? doc.url ?? '';
+
+  const handleUploadArchivo = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || tabActivo !== 'MANUAL') {
+        e.target.value = '';
+        return;
+      }
+      if (!moduloSeleccionado || !moduleIdSeleccionado || !empresaActiva) {
+        e.target.value = '';
+        return;
+      }
+
+      const directorioId = currentDirectorioId;
+
+      setUploadingArchivo(true);
+      setError(null);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('module', moduloSeleccionado);
+        formData.append('module_id', moduleIdSeleccionado);
+        if (directorioId) {
+          formData.append('id_directorio_documento', directorioId);
+        }
+
+        const uploadRes = await apiClient.post<{
+          url: string;
+          filename: string;
+          mimetype: string;
+          size: number;
+        }>('/api/media/upload', formData, {
+          headers: empresaActiva ? { 'X-Company-Id': empresaActiva } : {},
+        });
+
+        const up = uploadRes.data;
+        const tipo =
+          typeof up.mimetype === 'string' && up.mimetype.toLowerCase().startsWith('image/')
+            ? 'imagen'
+            : 'documento';
+
+        await apiClient.post('/api/media/metadata', {
+          module: moduloSeleccionado,
+          module_id: moduleIdSeleccionado,
+          url: up.url,
+          filename: up.filename,
+          mimetype: up.mimetype,
+          size: up.size,
+          tipo,
+          ...(directorioId ? { id_directorio_documento: directorioId } : {}),
+          id_empresa: empresaActiva,
+        });
+
+        await loadMedia();
+      } catch (err) {
+        console.error(err);
+        const msg =
+          err instanceof Error ? err.message : 'No se pudo subir el archivo';
+        setError(msg);
+        await Swal.fire({
+          title: 'Error al subir',
+          text: msg,
+          icon: 'error',
+        });
+      } finally {
+        e.target.value = '';
+        setUploadingArchivo(false);
+      }
+    },
+    [
+      tabActivo,
+      moduloSeleccionado,
+      moduleIdSeleccionado,
+      empresaActiva,
+      currentDirectorioId,
+      loadMedia,
+    ],
+  );
 
   const handleDelete = async (id_media: string) => {
     const result = await Swal.fire({
@@ -668,6 +747,12 @@ const Documentos: React.FC = () => {
                           {loadingCreate ? 'Creando...' : 'Crear'}
                         </button>
                       </div>
+                      <input
+                        type="file"
+                        className="form-control mb-2"
+                        onChange={handleUploadArchivo}
+                        disabled={uploadingArchivo}
+                      />
                       <ul className="list-group">
                         {directoriosManualActuales.map((dir) => (
                           <li
@@ -753,21 +838,23 @@ const Documentos: React.FC = () => {
                                   >
                                     Editar
                                   </Button>
-                                  <Button
-                                    color="danger"
-                                    size="sm"
-                                    disabled={deletingId === doc.id_media}
-                                    onClick={() => handleDelete(doc.id_media)}
-                                  >
-                                    {deletingId === doc.id_media ? (
-                                      <>
-                                        <Spinner size="sm" className="me-1" />
-                                        Eliminando…
-                                      </>
-                                    ) : (
-                                      'Eliminar'
-                                    )}
-                                  </Button>
+                                  {tabActivo === 'MANUAL' && (
+                                    <Button
+                                      color="danger"
+                                      size="sm"
+                                      disabled={deletingId === doc.id_media}
+                                      onClick={() => handleDelete(doc.id_media)}
+                                    >
+                                      {deletingId === doc.id_media ? (
+                                        <>
+                                          <Spinner size="sm" className="me-1" />
+                                          Eliminando…
+                                        </>
+                                      ) : (
+                                        'Eliminar'
+                                      )}
+                                    </Button>
+                                  )}
                                 </div>
                               </CardBody>
                             </Card>
