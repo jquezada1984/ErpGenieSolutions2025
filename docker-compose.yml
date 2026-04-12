@@ -8,7 +8,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
       - FLASK_ENV=production
     ports:
       - "5000:5000"
@@ -27,7 +27,8 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - JWT_SECRET=${JWT_SECRET_KEY:-your-secret-key-here}
+      - JWT_SECRET=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
+      - PYTHON_SERVICE_URL=http://python-service:5000
     ports:
       - "3001:3001"
     networks:
@@ -43,7 +44,7 @@ services:
       - NODE_ENV=production
       - PORT=3003
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - JWT_SECRET=${JWT_SECRET_KEY:-your-secret-key-here}
+      - JWT_SECRET=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
     ports:
       - "3003:3003"
     networks:
@@ -60,7 +61,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
       - FLASK_ENV=production
       - PORT=3004
     ports:
@@ -80,7 +81,7 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - JWT_SECRET=${JWT_SECRET_KEY:-your-secret-key-here}
+      - JWT_SECRET=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
     # Externo 3006 para NO chocar con InicioNestJs (3001) ni ContabilidadNestJs (3005)
     ports:
       - "3006:3001"
@@ -98,7 +99,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
       - FLASK_ENV=production
       - PORT=5002
     ports:
@@ -142,7 +143,7 @@ services:
       - NODE_ENV=production
       - PORT=3005
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - JWT_SECRET=${JWT_SECRET_KEY:-your-secret-key-here}
+      - JWT_SECRET=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
     ports:
       - "3005:3005"
     networks:
@@ -159,7 +160,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
       - FLASK_ENV=production
       - PORT=5001
     ports:
@@ -181,7 +182,7 @@ services:
       - NODE_ENV=production
       - PORT=3007
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - JWT_SECRET=${JWT_SECRET_KEY:-your-secret-key-here}
+      - JWT_SECRET=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
     ports:
       - "3007:3007"
     networks:

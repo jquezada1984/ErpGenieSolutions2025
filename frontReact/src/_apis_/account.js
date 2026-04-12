@@ -6,7 +6,8 @@ const fakeRequest = (time) => {
 };
 // ----------------------------------------------------------------------
 
-const JWT_SECRET = 'wrap-secret-key';
+/** Solo si usa el mock de login del template; sin valor por defecto en código. */
+const JWT_SECRET = import.meta.env.VITE_MOCK_JWT_SECRET?.trim();
 const JWT_EXPIRES_IN = '2 days';
 
 const users = [
@@ -29,6 +30,7 @@ const users = [
 
 // ----------------------------------------------------------------------
 
+if (JWT_SECRET) {
 mock.onPost('/api/account/login').reply(async (config) => {
   try {
     await fakeRequest(1000);
@@ -54,8 +56,6 @@ mock.onPost('/api/account/login').reply(async (config) => {
     return [500, { message: 'Internal server error' }];
   }
 });
-
-// ----------------------------------------------------------------------
 
 mock.onPost('/api/account/register').reply(async (config) => {
   try {
@@ -96,8 +96,6 @@ mock.onPost('/api/account/register').reply(async (config) => {
   }
 });
 
-// ----------------------------------------------------------------------
-
 mock.onGet('/api/account/my-account').reply((config) => {
   try {
     const { Authorization } = config.headers;
@@ -121,3 +119,8 @@ mock.onGet('/api/account/my-account').reply((config) => {
     return [500, { message: 'Internal server error' }];
   }
 });
+} else if (import.meta.env.DEV) {
+  console.warn(
+    '[account mock] Defina VITE_MOCK_JWT_SECRET en .env si necesita el mock /api/account del template.',
+  );
+}

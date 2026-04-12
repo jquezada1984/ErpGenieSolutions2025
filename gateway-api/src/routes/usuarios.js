@@ -1,5 +1,35 @@
 const { pythonService } = require('../services');
 
+function decodeJwtPayload(authHeader) {
+  if (!authHeader || typeof authHeader !== 'string') return null;
+  const raw = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : authHeader;
+  const parts = raw.split('.');
+  if (parts.length < 2) return null;
+  try {
+    return JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+  } catch {
+    try {
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const pad = '='.repeat((4 - (b64.length % 4)) % 4);
+      return JSON.parse(Buffer.from(b64 + pad, 'base64').toString('utf8'));
+    } catch {
+      return null;
+    }
+  }
+}
+
+function isCallerScopeGlobal(authHeader) {
+  const p = decodeJwtPayload(authHeader);
+  return String(p?.scope_acceso ?? 'EMPRESA').trim().toUpperCase() === 'GLOBAL';
+}
+
+function stripScopeIfNotGlobal(body, authHeader) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return body;
+  if (isCallerScopeGlobal(authHeader)) return body;
+  const { scope_acceso, ...rest } = body;
+  return rest;
+}
+
 async function routes(fastify) {
   // POST /api/usuarios - Crear usuario (InicioPython)
   fastify.post('/usuarios', {
@@ -22,15 +52,23 @@ async function routes(fastify) {
     }
   }, async (request, reply) => {
     try {
-      const usuarioData = request.body;
+      const auth =
+        request.headers.authorization ||
+        request.headers.Authorization ||
+        request.raw?.headers?.authorization;
+      const usuarioData = stripScopeIfNotGlobal(request.body, auth);
+      if (!auth) {
+        fastify.log.warn('POST /usuarios sin Authorization; InicioPython exige JWT');
+      }
       fastify.log.info('POST /usuarios - Creando usuario en Python');
-      const response = await pythonService.createUsuario(usuarioData);
+      const response = await pythonService.createUsuario(usuarioData, auth);
       reply.status(201);
       return response;
     } catch (error) {
       fastify.log.error('Error creando usuario:', error);
       const msg = error.message || 'Error al crear usuario';
-      return reply.status(500).send({ success: false, error: msg });
+      const code = error.statusCode || error.response?.status || 500;
+      return reply.status(code >= 400 && code < 600 ? code : 500).send({ success: false, error: msg });
     }
   });
 
@@ -50,14 +88,22 @@ async function routes(fastify) {
   }, async (request, reply) => {
     try {
       const { id } = request.params;
-      const usuarioData = request.body;
+      const auth =
+        request.headers.authorization ||
+        request.headers.Authorization ||
+        request.raw?.headers?.authorization;
+      const usuarioData = stripScopeIfNotGlobal(request.body, auth);
+      if (!auth) {
+        fastify.log.warn(`PUT /usuarios/${id} sin Authorization; InicioPython exige JWT`);
+      }
       fastify.log.info(`PUT /usuarios/${id} - Actualizando usuario en Python`);
-      const response = await pythonService.updateUsuario(id, usuarioData);
+      const response = await pythonService.updateUsuario(id, usuarioData, auth);
       return response;
     } catch (error) {
       fastify.log.error('Error actualizando usuario:', error);
       const msg = error.message || 'Error al actualizar usuario';
-      return reply.status(500).send({ success: false, error: msg });
+      const code = error.statusCode || error.response?.status || 500;
+      return reply.status(code >= 400 && code < 600 ? code : 500).send({ success: false, error: msg });
     }
   });
 }

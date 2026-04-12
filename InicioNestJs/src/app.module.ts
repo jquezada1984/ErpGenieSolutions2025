@@ -36,6 +36,7 @@ import { CondicionPago } from './entities/condicion-pago.entity';
 import { FormaPago } from './entities/forma-pago.entity';
 import { TamanoEmpresa } from './entities/tamano-empresa.entity';
 import { AuthModule } from './auth/auth.module';
+import { sanitizeGraphQLError } from './common/graphql-format-error';
 // Resolvers
 import { UsuarioResolver } from './resolvers/usuario.resolver';
 import { EmpresaResolver } from './resolvers/empresa.resolver';
@@ -111,9 +112,10 @@ import { AutorizacionService } from './services/autorizacion.service';
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: 'schema.gql',
-      playground: true,
-      introspection: true,
+      playground: process.env.NODE_ENV !== 'production',
+      introspection: process.env.NODE_ENV !== 'production',
       sortSchema: true,
+      formatError: (formattedError, error) => sanitizeGraphQLError(formattedError, error),
     }),
     AuthModule,
     HttpModule,

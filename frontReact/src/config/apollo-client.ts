@@ -2,17 +2,22 @@ import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/clien
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 
-// URL del gateway: si no está definida en .env, usar localhost:3002 (login y GraphQL pasan por aquí)
+// URL del gateway: todo GraphQL (auth, menú, terceros…) pasa por aquí; el gateway enruta a cada NestJS.
 const GATEWAY_GRAPHQL_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002').replace(/\/$/, '') + '/graphql';
+
+// Solo si necesitas depurar MenuNestJs directo (no recomendado): VITE_MENU_GRAPHQL_URL completo, ej. http://localhost:3003/graphql
+const menuGraphqlUri = import.meta.env.VITE_MENU_GRAPHQL_URL
+  ? String(import.meta.env.VITE_MENU_GRAPHQL_URL).replace(/\/$/, '')
+  : GATEWAY_GRAPHQL_URL;
 
 // Configuración para Gateway (autenticación, usuarios, etc.)
 const mainHttpLink = createHttpLink({
   uri: GATEWAY_GRAPHQL_URL,
 });
 
-// Configuración para MenuNestJs (permisos de menú)
+// Mismo endpoint que main: permisos/menú los resuelve el gateway → MenuNestJs (ver gateway routes/graphql.js)
 const menuHttpLink = createHttpLink({
-  uri: import.meta.env.VITE_MENU_GRAPHQL_URL || 'http://localhost:3003/graphql',
+  uri: menuGraphqlUri.includes('/graphql') ? menuGraphqlUri : `${menuGraphqlUri}/graphql`,
 });
 
 // Middleware para agregar token de autenticación

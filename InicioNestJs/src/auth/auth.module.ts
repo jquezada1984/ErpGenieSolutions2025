@@ -11,13 +11,14 @@ import { Perfil } from '../entities/perfil.entity';
 import { PerfilMenuPermiso } from '../entities/perfil-menu-permiso.entity';
 import { MenuSeccion } from '../entities/menu.entity';
 import { AutorizacionService } from '../services/autorizacion.service';
+import { requireJwtSecret } from './require-jwt-secret';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Usuario, Perfil, PerfilMenuPermiso, MenuSeccion]),
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'supersecret',
+      secret: requireJwtSecret(),
       signOptions: { expiresIn: '8h' },
     }),
   ],

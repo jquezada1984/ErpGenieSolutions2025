@@ -50,15 +50,13 @@ No hay usuario/contraseña de prueba hardcodeados. Los usuarios se crean en el s
 
 ## Cómo iniciar InicioNestJs
 
-**Opción A – Con Docker (recomendado si ya usas docker-compose):**
-```bash
-docker-compose -f docker-compose.dev.yml up -d nestjs-service
-```
-Ver logs: `docker-compose -f docker-compose.dev.yml logs -f nestjs-service`
+**Opción A – Stack completo con Docker (recomendado):**
+- En la raíz del repo: **`docker-dev-up.bat`** (construye e inicia todos los servicios de `docker-compose.dev.yml`).
+- Solo GraphQL NestJS: `docker compose -f docker-compose.dev.yml up -d nestjs-service`
+- Logs: `docker compose -f docker-compose.dev.yml logs -f nestjs-service`
 
-**Opción B – Sin Docker (desde la raíz del repo):**
-- Ejecutar el script: **`start-inicio-nestjs.bat`** (doble clic o desde terminal).
-- O manualmente:
+**Opción B – Sin Docker (Node en tu máquina):**
+- Manualmente:
   ```bash
   cd InicioNestJs
   npm install --legacy-peer-deps
@@ -71,7 +69,7 @@ Cuando arranque bien verás: `Backend NestJS ejecutándose en puerto 3001` y Gra
 ## Orden para que funcione
 
 1. **Base de datos** accesible para InicioNestJs (variables en `InicioNestJs/.env`: `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`).
-2. **InicioNestJs** en marcha en el puerto **3001** (usa `start-inicio-nestjs.bat` o Docker).
+2. **InicioNestJs** en marcha en el puerto **3001** (por ejemplo con **`docker-dev-up.bat`** o `npm run start:dev` dentro de `InicioNestJs`).
 3. **MenuNestJs** en marcha en el puerto **3003** (y opcionalmente Python en 5000 si usas ese servicio).
 4. **Gateway** en marcha en el puerto **3002** con las variables anteriores.
 5. **Frontend** en **3000** con `VITE_GATEWAY_URL=http://localhost:3002` (o sin .env para usar el default).

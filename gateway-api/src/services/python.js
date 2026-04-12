@@ -137,25 +137,56 @@ const pythonService = {
     }
   },
 
-  // Usuario: crear (InicioPython guarda)
-  async createUsuario(usuarioData) {
+  _authHeaders(authHeader) {
+    if (!authHeader) return {};
+    return { headers: { Authorization: authHeader } };
+  },
+
+  // Usuario: crear (InicioPython guarda; requiere JWT igual que PUT)
+  async createUsuario(usuarioData, authHeader) {
     try {
-      const response = await pythonClient.post('/api/usuario', usuarioData);
+      const response = await pythonClient.post(
+        '/api/usuario',
+        usuarioData,
+        this._authHeaders(authHeader),
+      );
       return response.data;
     } catch (error) {
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
-      throw new Error(`Error creando usuario en Python: ${errorMessage}`);
+      const status = error.response?.status;
+      const d = error.response?.data;
+      const errorMessage =
+        d?.msg ||
+        d?.error ||
+        d?.message ||
+        error.response?.statusText ||
+        error.message;
+      const err = new Error(`Error creando usuario en Python: ${errorMessage}`);
+      err.statusCode = status;
+      throw err;
     }
   },
 
   // Usuario: actualizar
-  async updateUsuario(id, usuarioData) {
+  async updateUsuario(id, usuarioData, authHeader) {
     try {
-      const response = await pythonClient.put(`/api/usuario/${id}`, usuarioData);
+      const response = await pythonClient.put(
+        `/api/usuario/${id}`,
+        usuarioData,
+        this._authHeaders(authHeader),
+      );
       return response.data;
     } catch (error) {
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
-      throw new Error(`Error actualizando usuario en Python: ${errorMessage}`);
+      const status = error.response?.status;
+      const d = error.response?.data;
+      const errorMessage =
+        d?.msg ||
+        d?.error ||
+        d?.message ||
+        error.response?.statusText ||
+        error.message;
+      const err = new Error(`Error actualizando usuario en Python: ${errorMessage}`);
+      err.statusCode = status;
+      throw err;
     }
   },
 

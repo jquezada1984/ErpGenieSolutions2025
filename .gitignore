@@ -48,6 +48,9 @@ back-nest-js/dist/
 npm-debug.log
 yarn.lock
 package-lock.json
+# Lockfiles versionados para `npm ci` en Docker
+!frontReact/package-lock.json
+!gateway-api/package-lock.json
 
 # Archivos de cache y temporales adicionales
 .cache/

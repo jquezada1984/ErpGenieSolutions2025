@@ -6,7 +6,7 @@ import 'react-table/react-table.css';
 import { useLazyQuery, gql } from '@apollo/client';
 import { eliminarUsuario, cambiarEstadoUsuario } from '../../_apis_/usuario';
 
-const GET_USUARIOS = gql`
+export const GET_USUARIOS = gql`
   query GetUsuarios {
     usuarios {
       id_usuario

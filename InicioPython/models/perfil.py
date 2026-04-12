@@ -15,8 +15,7 @@ class Perfil(db.Model):
     # created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
     # updated_at = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
     
-    # Relación con Empresa - sin backref para evitar conflicto
-    empresa = db.relationship('Empresa')
+    empresa = db.relationship('Empresa', back_populates='perfiles')
     
     def __repr__(self):
         return f"<Perfil(id_perfil={self.id_perfil}, nombre='{self.nombre}', empresa='{self.id_empresa}')>"

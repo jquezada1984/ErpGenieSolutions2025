@@ -5,8 +5,10 @@ import os
 
 app = Flask(__name__)
 
-# Configuración básica
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'supersecret')
+_jwt = (os.getenv('JWT_SECRET') or os.getenv('JWT_SECRET_KEY') or '').strip()
+if not _jwt:
+    raise RuntimeError('Configure JWT_SECRET o JWT_SECRET_KEY en el entorno (.env).')
+app.config['JWT_SECRET_KEY'] = _jwt
 app.config['CORS_ORIGINS'] = os.getenv('CORS_ORIGINS', '*').split(',')
 
 # CORS

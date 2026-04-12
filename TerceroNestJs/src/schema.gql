@@ -151,9 +151,11 @@ type Tercero {
   id_profesional_1: String
   id_profesional_2: String
   id_provincia: String
+  id_tamano_empresa: String
   id_tercero: ID!
   id_tipo_entidad: Float
   id_tipo_tercero: String
+  logo: String
   movil: String
   nombre: String!
   poblacion: String

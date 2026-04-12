@@ -11,6 +11,28 @@ const apiClient = axios.create({
   },
 });
 
+// JWT hacia el gateway (InicioPython exige @jwt_required en /api/usuario)
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  try {
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.id_empresa) {
+        config.headers['X-Company-Id'] = payload.id_empresa;
+      }
+      if (payload.sub) {
+        config.headers['X-User-Id'] = payload.sub;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return config;
+});
+
 // Interceptor para manejar errores
 apiClient.interceptors.response.use(
   (response) => response,

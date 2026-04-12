@@ -16,6 +16,16 @@ const fastify = require('fastify')({
   trustProxy: true
 });
 const terceroPython = require('./services/terceroPython');
+const { buildFastifyErrorReply } = require('./utils/sanitize-gateway-error');
+
+const corsOriginList = (process.env.CORS_ORIGIN?.split(',') ?? [])
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+if (corsOriginList.length === 0) {
+  console.error('❌ ERROR: CORS_ORIGIN debe estar definido en .env (orígenes separados por coma).');
+  process.exit(1);
+}
 
 // Configuración (puerto 3002 para coincidir con el frontend y Docker)
 const config = {
@@ -24,9 +34,9 @@ const config = {
   nestjsService: process.env.NESTJS_SERVICE_URL,
   menuService: process.env.MENU_SERVICE_URL, // Agregar servicio de menú
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(',') || ['*'],
-    credentials: true
-  }
+    origin: corsOriginList,
+    credentials: true,
+  },
 };
 
 // Debug: Imprimir variables de entorno
@@ -96,15 +106,11 @@ fastify.setSerializerCompiler(({ schema, method, url, httpStatus }) => {
   };
 });
 
-// Hook para manejo de errores
+// Hook para manejo de errores (en producción: mensajes genéricos al cliente)
 fastify.setErrorHandler((error, request, reply) => {
-  fastify.log.error(error);
-  
-  reply.status(error.statusCode || 500).send({
-    success: false,
-    error: error.message || 'Error interno del servidor',
-    timestamp: new Date().toISOString()
-  });
+  fastify.log.error({ err: error, url: request.url, method: request.method });
+  const { statusCode, body } = buildFastifyErrorReply(error);
+  reply.status(statusCode).send(body);
 });
 
 // Hook para logging de requests

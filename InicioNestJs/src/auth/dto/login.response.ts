@@ -45,6 +45,23 @@ export class PermisosResponse {
   totalPermisos: number;
 }
 
+/** Diagnóstico de conexión a BD en login (sin credenciales). */
+@ObjectType()
+export class DbConnectionStatus {
+  @Field()
+  ok: boolean;
+
+  @Field()
+  latencyMs: number;
+
+  @Field()
+  databaseName: string;
+
+  /** Host:puerto configurado (sin usuario ni contraseña). */
+  @Field()
+  hostHint: string;
+}
+
 @ObjectType()
 export class LoginResponse {
   @Field()
@@ -58,4 +75,7 @@ export class LoginResponse {
 
   @Field(() => PermisosResponse)
   permisos: PermisosResponse;
+
+  @Field(() => DbConnectionStatus)
+  dbConnection: DbConnectionStatus;
 } 
