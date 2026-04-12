@@ -387,8 +387,8 @@ const Documentos: React.FC = () => {
 
   const handleUploadArchivo = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || tabActivo !== 'MANUAL') {
+      const files = Array.from(e.target.files || []);
+      if (!files.length || tabActivo !== 'MANUAL') {
         e.target.value = '';
         return;
       }
@@ -399,9 +399,7 @@ const Documentos: React.FC = () => {
 
       const directorioId = currentDirectorioId;
 
-      setUploadingArchivo(true);
-      setError(null);
-      try {
+      const subirArchivo = async (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('module', moduloSeleccionado);
@@ -436,7 +434,12 @@ const Documentos: React.FC = () => {
           ...(directorioId ? { id_directorio_documento: directorioId } : {}),
           id_empresa: empresaActiva,
         });
+      };
 
+      setUploadingArchivo(true);
+      setError(null);
+      try {
+        await Promise.all(files.map((file) => subirArchivo(file)));
         await loadMedia();
       } catch (err) {
         console.error(err);
@@ -799,6 +802,7 @@ const Documentos: React.FC = () => {
                       </div>
                       <input
                         type="file"
+                        multiple
                         className="form-control mb-2"
                         onChange={handleUploadArchivo}
                         disabled={uploadingArchivo}
