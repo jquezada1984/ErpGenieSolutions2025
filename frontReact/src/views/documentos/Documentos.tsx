@@ -116,7 +116,7 @@ const Documentos: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [directorios, setDirectorios] = useState<DirectorioItem[]>([]);
   const [tabActivo, setTabActivo] = useState<'OBJETO' | 'MANUAL'>('OBJETO');
   const [directorioSeleccionado, setDirectorioSeleccionado] = useState<string | null>(null);
@@ -215,6 +215,15 @@ const Documentos: React.FC = () => {
     setCurrentDirectorioId(null);
     setStackDirectorios([]);
   }, [tabActivo]);
+
+  useEffect(() => {
+    if (
+      previewIndex !== null &&
+      (previewIndex < 0 || previewIndex >= mediaFiltrada.length)
+    ) {
+      setPreviewIndex(null);
+    }
+  }, [previewIndex, mediaFiltrada.length]);
 
   useEffect(() => {
     if (isContextLocked) {
@@ -529,6 +538,27 @@ const Documentos: React.FC = () => {
     },
     [loadMedia],
   );
+
+  const mediaActual =
+    previewIndex !== null &&
+    previewIndex >= 0 &&
+    previewIndex < mediaFiltrada.length
+      ? mediaFiltrada[previewIndex]
+      : null;
+
+  const siguiente = () => {
+    if (previewIndex === null) return;
+    if (previewIndex < mediaFiltrada.length - 1) {
+      setPreviewIndex(previewIndex + 1);
+    }
+  };
+
+  const anterior = () => {
+    if (previewIndex === null) return;
+    if (previewIndex > 0) {
+      setPreviewIndex(previewIndex - 1);
+    }
+  };
 
   return (
     <Container fluid>
@@ -859,7 +889,7 @@ const Documentos: React.FC = () => {
                     </div>
                   ) : (
                     <Row>
-                      {mediaFiltrada.map((doc) => {
+                      {mediaFiltrada.map((doc, index) => {
                         const url = resolveUrl(doc);
                         const esImagen = doc.tipo === 'imagen';
                         return (
@@ -876,7 +906,7 @@ const Documentos: React.FC = () => {
                                     width: '100%',
                                     cursor: 'pointer',
                                   }}
-                                  onClick={() => setPreviewUrl(url)}
+                                  onClick={() => setPreviewIndex(index)}
                                 />
                               ) : (
                                 <CardBody className="pb-0 text-muted" style={{ height: 180 }}>
@@ -965,19 +995,64 @@ const Documentos: React.FC = () => {
         </Col>
       </Row>
       <Modal
-        isOpen={!!previewUrl}
-        toggle={() => setPreviewUrl(null)}
+        isOpen={previewIndex !== null}
+        toggle={() => setPreviewIndex(null)}
         size="lg"
         centered
       >
-        <ModalHeader toggle={() => setPreviewUrl(null)} />
-        <ModalBody className="text-center">
-          {previewUrl && (
-            <img
-              src={previewUrl}
-              alt="preview"
-              style={{ maxWidth: '100%', maxHeight: '80vh' }}
-            />
+        <ModalHeader toggle={() => setPreviewIndex(null)} />
+        <ModalBody>
+          {mediaActual && (
+            <div style={{ textAlign: 'center' }}>
+              <img
+                src={resolveUrl(mediaActual) || mediaActual.url || ''}
+                alt={mediaActual.tipo}
+                style={{
+                  maxWidth: '90%',
+                  maxHeight: '80vh',
+                  objectFit: 'contain',
+                }}
+              />
+
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary me-1"
+                  onClick={anterior}
+                  disabled={previewIndex === 0}
+                >
+                  ←
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary me-1"
+                  onClick={siguiente}
+                  disabled={previewIndex === mediaFiltrada.length - 1}
+                >
+                  →
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary me-1"
+                  onClick={() => {
+                    const u = resolveUrl(mediaActual) || mediaActual.url;
+                    if (u) window.open(u, '_blank');
+                  }}
+                >
+                  Descargar
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-dark"
+                  onClick={() => setPreviewIndex(null)}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
           )}
         </ModalBody>
       </Modal>
