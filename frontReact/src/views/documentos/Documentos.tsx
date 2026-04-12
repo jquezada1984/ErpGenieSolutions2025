@@ -129,6 +129,7 @@ const Documentos: React.FC = () => {
   const [estadoArchivo, setEstadoArchivo] = useState('');
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [uploadingArchivo, setUploadingArchivo] = useState(false);
+  const [actualizandoPrincipalId, setActualizandoPrincipalId] = useState<string | null>(null);
 
   useEffect(() => {
     if (scope === 'GLOBAL' && empresaIdFromUrl) {
@@ -506,6 +507,26 @@ const Documentos: React.FC = () => {
     }
   };
 
+  const handleTogglePrincipal = useCallback(
+    async (doc: MediaItem) => {
+      setActualizandoPrincipalId(doc.id_media);
+      try {
+        await updateMedia(doc.id_media, { es_principal: !doc.es_principal });
+        await loadMedia();
+      } catch (e) {
+        console.error(e);
+        await Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo actualizar el destacado principal',
+        });
+      } finally {
+        setActualizandoPrincipalId(null);
+      }
+    },
+    [loadMedia],
+  );
+
   return (
     <Container fluid>
       <Row>
@@ -868,7 +889,11 @@ const Documentos: React.FC = () => {
                                   <Button
                                     color="primary"
                                     size="sm"
-                                    disabled={guardandoEdicion || deletingId === doc.id_media}
+                                    disabled={
+                                      guardandoEdicion ||
+                                      deletingId === doc.id_media ||
+                                      actualizandoPrincipalId === doc.id_media
+                                    }
                                     onClick={() => {
                                       setMediaEditando(doc);
                                       setEstadoArchivo(doc.estado_archivo || 'ACTIVO');
@@ -876,6 +901,28 @@ const Documentos: React.FC = () => {
                                     }}
                                   >
                                     Editar
+                                  </Button>
+                                  <Button
+                                    color="secondary"
+                                    outline
+                                    size="sm"
+                                    disabled={
+                                      guardandoEdicion ||
+                                      deletingId === doc.id_media ||
+                                      actualizandoPrincipalId === doc.id_media
+                                    }
+                                    onClick={() => handleTogglePrincipal(doc)}
+                                  >
+                                    {actualizandoPrincipalId === doc.id_media ? (
+                                      <>
+                                        <Spinner size="sm" className="me-1" />
+                                        Actualizando…
+                                      </>
+                                    ) : doc.es_principal ? (
+                                      'Quitar principal'
+                                    ) : (
+                                      'Marcar principal'
+                                    )}
                                   </Button>
                                   {(tabActivo === 'MANUAL' || puedeEliminarEnObjeto) && (
                                     <Button

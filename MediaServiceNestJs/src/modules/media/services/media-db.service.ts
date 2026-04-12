@@ -140,26 +140,49 @@ export class MediaDbService {
 
   async actualizarMedia(
     id_media: string,
-    data: { estado_archivo?: string },
+    data: { estado_archivo?: string; es_principal?: boolean },
   ): Promise<{ success: boolean }> {
     const media = await this.mediaRepository.findOne({ where: { id_media } });
     if (!media) {
       throw new NotFoundException('Media no encontrado');
     }
 
-    const allowedEstados = ['ACTIVO', 'INACTIVO', 'EN_PROCESO', 'CANCELADO', 'ACEPTADO', 'COMPLETADO'];
-    const raw =
-      typeof data?.estado_archivo === 'string' ? data.estado_archivo.trim() : '';
-    if (!raw || !allowedEstados.includes(raw)) {
-      throw new BadRequestException(
-        `estado_archivo debe ser uno de: ${allowedEstados.join(', ')}`,
-      );
+    const patch: Record<string, unknown> = {
+      updated_at: new Date(),
+    };
+
+    if (data.estado_archivo !== undefined) {
+      const raw =
+        typeof data.estado_archivo === 'string' ? data.estado_archivo.trim() : '';
+      if (raw) {
+        const allowedEstados = [
+          'ACTIVO',
+          'INACTIVO',
+          'EN_PROCESO',
+          'CANCELADO',
+          'ACEPTADO',
+          'COMPLETADO',
+        ];
+        if (!allowedEstados.includes(raw)) {
+          throw new BadRequestException(
+            `estado_archivo debe ser uno de: ${allowedEstados.join(', ')}`,
+          );
+        }
+        patch.estado_archivo = raw;
+      }
     }
 
-    await this.mediaRepository.update(id_media, {
-      estado_archivo: raw,
-      updated_at: new Date(),
-    });
+    if (typeof data.es_principal === 'boolean') {
+      patch.es_principal = data.es_principal;
+    }
+
+    const hasEstado = 'estado_archivo' in patch;
+    const hasPrincipal = 'es_principal' in patch;
+    if (!hasEstado && !hasPrincipal) {
+      throw new BadRequestException('Debe enviar estado_archivo y/o es_principal');
+    }
+
+    await this.mediaRepository.update(id_media, patch);
     return { success: true };
   }
 }

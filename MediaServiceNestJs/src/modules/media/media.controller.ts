@@ -117,7 +117,7 @@ export class MediaController {
   @Patch(':id_media')
   async actualizar(
     @Param('id_media') id_media: string,
-    @Body() body: { estado_archivo?: string },
+    @Body() body: { estado_archivo?: string; es_principal?: boolean },
   ) {
     const id = typeof id_media === 'string' ? id_media.trim() : '';
     if (!id) {
