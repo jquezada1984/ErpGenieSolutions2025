@@ -797,12 +797,14 @@ const Documentos: React.FC = () => {
                           {loadingCreate ? 'Creando...' : 'Crear'}
                         </button>
                       </div>
-                      <input
-                        type="file"
-                        className="form-control mb-2"
-                        onChange={handleUploadArchivo}
-                        disabled={uploadingArchivo}
-                      />
+                      {currentDirectorioId && (
+                        <input
+                          type="file"
+                          className="form-control mb-2"
+                          onChange={handleUploadArchivo}
+                          disabled={uploadingArchivo}
+                        />
+                      )}
                       <ul className="list-group">
                         {directoriosManualActuales.map((dir) => (
                           <li
