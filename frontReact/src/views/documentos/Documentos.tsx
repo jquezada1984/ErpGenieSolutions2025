@@ -208,6 +208,8 @@ const Documentos: React.FC = () => {
       : directoriosManualActuales.length > 0;
   const tieneMedia = mediaFiltrada.length > 0;
 
+  const puedeEliminarEnObjeto = tabActivo === 'OBJETO' && scope === 'GLOBAL';
+
   useEffect(() => {
     setCurrentDirectorioId(null);
     setStackDirectorios([]);
@@ -875,7 +877,7 @@ const Documentos: React.FC = () => {
                                   >
                                     Editar
                                   </Button>
-                                  {tabActivo === 'MANUAL' && (
+                                  {(tabActivo === 'MANUAL' || puedeEliminarEnObjeto) && (
                                     <Button
                                       color="danger"
                                       size="sm"
