@@ -13,6 +13,7 @@ from schemas.item_schema import ItemCreateSchema
 from repositories.item_repository import (
     create_item_row,
     update_item_row,
+    fetch_item_row_for_merge,
     fetch_id_tipo_comportamiento_by_codigo,
     fetch_tipo_item_codigo,
     tipo_comportamiento_row_exists,
@@ -296,14 +297,37 @@ def servicio_actualizar_item(
     except ValueError as e:
         raise ValidationError({"id_empresa": ["id_empresa debe ser UUID"]}) from e
 
-    merged = dict(payload)
-    merged["id_item"] = str(id_item).strip()
+    existing = fetch_item_row_for_merge(str(id_item).strip(), str(id_empresa).strip())
+    if existing is None:
+        raise LookupError("item_not_found")
 
-    row = build_item_row(merged, id_empresa=str(id_empresa).strip(), user_id=user_id)
+    body = dict(payload)
+    body.pop("id_empresa", None)
+    merged = {**existing, **body}
+    merged["id_item"] = str(id_item).strip()
+    merged["id_empresa"] = str(id_empresa).strip()
+
+    normalized_payload = normalize_item_payload(merged)
+    normalized_payload["id_empresa"] = str(id_empresa).strip()
+    schema_data = ItemCreateSchema().load(normalized_payload)
+
+    row = build_item_row(schema_data, id_empresa=str(id_empresa).strip(), user_id=user_id)
     row["id_item"] = str(id_item).strip()
     row["id_empresa"] = str(id_empresa).strip()
     _apply_tipo_comportamiento_servicio_por_tipo_item(row)
     _validar_tipo_comportamiento_catalogo(row.get("id_tipo_comportamiento"))
+
+    required_errors: Dict[str, list[str]] = {}
+    if not row.get("id_estado_venta"):
+        required_errors["id_estado_venta"] = ["id_estado_venta es obligatorio"]
+    if not row.get("id_naturaleza_item"):
+        required_errors["id_naturaleza_item"] = ["id_naturaleza_item es obligatorio"]
+    if row.get("estado") is None:
+        required_errors["estado"] = ["estado es obligatorio"]
+    if row.get("inventariable") is None:
+        required_errors["inventariable"] = ["inventariable es obligatorio"]
+    if required_errors:
+        raise ValidationError(required_errors)
 
     n = update_item_row(row)
     if n == 0:

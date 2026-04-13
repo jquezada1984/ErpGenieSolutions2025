@@ -17,6 +17,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { gql, useLazyQuery } from '@apollo/client';
 import classnames from 'classnames';
+import * as yup from 'yup';
 import '../ConfiguracionItem.scss';
 
 import SeccionItemEmpresa from '../secciones/SeccionItemEmpresa';
@@ -33,6 +34,15 @@ import { getTipoComportamientoUiRules } from '../utils/tipoComportamientoUiRules
 import { actualizarItemProducto } from '../../../_apis_/item';
 
 const initialForm = getDefaultItemFormValues('producto');
+
+/**
+ * Misma idea que NuevoProducto (`NuevoProductoSchema`): el `ItemSchema` base exige
+ * `id_tipo_comportamiento` si tipo_item es producto; en edición muchos ítems vienen de BD
+ * con ese FK vacío y el usuario no debería verse forzado a rellenarlo solo para guardar.
+ */
+const EditarProductoSchema = ItemSchema.shape({
+  id_tipo_comportamiento: yup.string().trim().optional(),
+});
 
 const ITEM_DETALLE_EDICION = gql`
   query ItemDetalleEdicion($id_item: ID!) {
@@ -106,7 +116,7 @@ const EditarProducto: React.FC = () => {
   });
 
   const { watch, setValue, handleSubmit, reset } = useForm<ItemFormValues>({
-    resolver: yupResolver(ItemSchema),
+    resolver: yupResolver(EditarProductoSchema),
     mode: 'onSubmit',
     defaultValues: initialForm,
   });

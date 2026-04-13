@@ -62,6 +62,20 @@ def tipo_comportamiento_row_exists(id_tipo_comportamiento: str) -> bool:
     return row is not None
 
 
+def fetch_item_row_for_merge(id_item: str, id_empresa: str) -> Optional[Dict[str, Any]]:
+    """
+    Lee la fila actual de public.item para un PUT parcial seguro:
+    las claves que el front no envía conservan su valor en BD (no se pisan con NULL).
+    """
+    item = Item.query.filter_by(
+        id_item=str(id_item).strip(),
+        id_empresa=str(id_empresa).strip(),
+    ).first()
+    if item is None:
+        return None
+    return {c.name: getattr(item, c.name) for c in Item.__table__.columns}
+
+
 INSERT_SQL = text(
     """
     INSERT INTO public.item (
