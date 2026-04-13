@@ -85,6 +85,13 @@ function esDirectorioManual(d: DirectorioItem): boolean {
   return t == null || t === '' || t === 'MANUAL';
 }
 
+const fadeStyle = `
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+`;
+
 const Documentos: React.FC = () => {
   const usuario = useJwtPayload();
   const scope = usuario?.scope_acceso || 'EMPRESA';
@@ -546,22 +553,52 @@ const Documentos: React.FC = () => {
       ? mediaFiltrada[previewIndex]
       : null;
 
-  const siguiente = () => {
+  const siguiente = useCallback(() => {
     if (previewIndex === null) return;
     if (previewIndex < mediaFiltrada.length - 1) {
       setPreviewIndex(previewIndex + 1);
     }
-  };
+  }, [previewIndex, mediaFiltrada.length]);
 
-  const anterior = () => {
+  const anterior = useCallback(() => {
     if (previewIndex === null) return;
     if (previewIndex > 0) {
       setPreviewIndex(previewIndex - 1);
     }
-  };
+  }, [previewIndex]);
+
+  useEffect(() => {
+    if (previewIndex === null) {
+      return undefined;
+    }
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        siguiente();
+      }
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        anterior();
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setPreviewIndex(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKey);
+
+    return () => {
+      window.removeEventListener('keydown', handleKey);
+    };
+  }, [previewIndex, siguiente, anterior]);
 
   return (
     <Container fluid>
+      <style>{fadeStyle}</style>
       <Row>
         <Col>
           <Card>
@@ -997,61 +1034,75 @@ const Documentos: React.FC = () => {
       <Modal
         isOpen={previewIndex !== null}
         toggle={() => setPreviewIndex(null)}
-        size="lg"
+        backdrop
         centered
+        size="xl"
       >
         <ModalHeader toggle={() => setPreviewIndex(null)} />
         <ModalBody>
           {mediaActual && (
-            <div style={{ textAlign: 'center' }}>
-              <img
-                src={resolveUrl(mediaActual) || mediaActual.url || ''}
-                alt={mediaActual.tipo}
-                style={{
-                  maxWidth: '90%',
-                  maxHeight: '80vh',
-                  objectFit: 'contain',
-                }}
-              />
-
-              <div style={{ marginTop: 10 }}>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-secondary me-1"
-                  onClick={anterior}
-                  disabled={previewIndex === 0}
-                >
-                  ←
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-secondary me-1"
-                  onClick={siguiente}
-                  disabled={previewIndex === mediaFiltrada.length - 1}
-                >
-                  →
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-primary me-1"
-                  onClick={() => {
-                    const u = resolveUrl(mediaActual) || mediaActual.url;
-                    if (u) window.open(u, '_blank');
+            <div
+              style={{
+                textAlign: 'center',
+                animation: 'fadeIn 0.2s ease',
+              }}
+            >
+                <img
+                  src={resolveUrl(mediaActual) || mediaActual.url || ''}
+                  alt={mediaActual.tipo}
+                  style={{
+                    maxWidth: '90%',
+                    maxHeight: '80vh',
+                    objectFit: 'contain',
+                    transition: 'all 0.3s ease',
+                    display: 'block',
+                    margin: '0 auto',
                   }}
-                >
-                  Descargar
-                </button>
+                />
 
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-dark"
-                  onClick={() => setPreviewIndex(null)}
-                >
-                  Cerrar
-                </button>
-              </div>
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary me-1"
+                    style={{ margin: '0 5px', padding: '6px 10px', cursor: 'pointer' }}
+                    onClick={anterior}
+                    disabled={previewIndex === 0}
+                  >
+                    ←
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary me-1"
+                    style={{ margin: '0 5px', padding: '6px 10px', cursor: 'pointer' }}
+                    onClick={siguiente}
+                    disabled={previewIndex === mediaFiltrada.length - 1}
+                  >
+                    →
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary me-1"
+                    style={{ margin: '0 5px', padding: '6px 10px', cursor: 'pointer' }}
+                    onClick={() => {
+                      const u = resolveUrl(mediaActual) || mediaActual.url;
+                      if (u) window.open(u, '_blank');
+                    }}
+                  >
+                    Descargar
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-dark"
+                    style={{ margin: '0 5px', padding: '6px 10px', cursor: 'pointer' }}
+                    onClick={() => setPreviewIndex(null)}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              
             </div>
           )}
         </ModalBody>
