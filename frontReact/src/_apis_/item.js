@@ -169,3 +169,58 @@ export const actualizarItemProducto = async (id_item, body) => {
   const response = await apiClient.put(`/api/item/${encodeURIComponent(id_item)}`, body);
   return response.data;
 };
+
+/**
+ * Catálogo etiquetas/categorías comerciales (tabla item_etiqueta_categoria).
+ * Gateway → ItemPython GET /api/item/etiqueta-categoria (params opcionales id_empresa).
+ * Sin id_empresa el backend devuelve lista vacía; no rompe la UI.
+ */
+export const listarEtiquetasCategoria = async (id_empresa) => {
+  try {
+    const config =
+      id_empresa != null && String(id_empresa).trim() !== ''
+        ? { params: { id_empresa: String(id_empresa).trim() } }
+        : {};
+    const response = await apiClient.get('/api/item/etiqueta-categoria', config);
+    const raw = response.data;
+    if (raw && typeof raw === 'object' && Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw)) return raw;
+    return [];
+  } catch (error) {
+    console.error('❌ Error al listar etiquetas/categorías:', error);
+    return [];
+  }
+};
+
+/**
+ * Crear fila en item_etiqueta_categoria → Gateway → ItemPython POST /api/item/etiqueta-categoria.
+ * id_empresa puede ir en body; el interceptor añade X-Company-Id desde el JWT.
+ */
+export const crearEtiquetaCategoria = async (body) => {
+  const response = await apiClient.post('/api/item/etiqueta-categoria', body);
+  return response.data;
+};
+
+/**
+ * Actualizar fila en item_etiqueta_categoria → Gateway → ItemPython
+ * PUT /api/item/etiqueta-categoria/:id_etiqueta_categoria
+ * Body: id_empresa, id_etiqueta_categoria (opcional, eco), ref, nombre, descripcion, color, posicion, estado
+ */
+export const actualizarEtiquetaCategoria = async (id_etiqueta_categoria, body) => {
+  const response = await apiClient.put(
+    `/api/item/etiqueta-categoria/${encodeURIComponent(String(id_etiqueta_categoria || '').trim())}`,
+    body
+  );
+  return response.data;
+};
+
+/**
+ * Cambiar solo estado (activo/inactivo) → Gateway → ItemPython
+ * PATCH /api/item/etiqueta-categoria/:id/estado
+ * Body: { id_empresa?, estado: boolean }
+ */
+export const cambiarEstadoEtiquetaCategoria = async (id_etiqueta_categoria, body) => {
+  const id = encodeURIComponent(String(id_etiqueta_categoria || '').trim());
+  const response = await apiClient.patch(`/api/item/etiqueta-categoria/${id}/estado`, body);
+  return response.data;
+};

@@ -223,7 +223,7 @@ const EditarServicio: React.FC = () => {
               <SeccionItemEmpresa data={formData} onChange={onEmpresa} />
             </TabPane>
             <TabPane tabId="2">
-              <SeccionItemGeneral data={formData} onChange={onGeneral} tipoItem="servicio" isEdit />
+              <SeccionItemGeneral data={formData} onChange={onGeneral} tipoItem="servicio" />
             </TabPane>
             <TabPane tabId="3">
               <SeccionItemVenta data={formData} onChange={onVenta} />

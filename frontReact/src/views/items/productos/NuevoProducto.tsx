@@ -51,7 +51,7 @@ const NuevoProducto: React.FC = () => {
   const scope = payload?.scope_acceso || 'EMPRESA';
   const empresaUsuario = payload?.id_empresa;
 
-  const [activeTab, setActiveTab] = useState<'1' | '2' | '3' | '4'>('1');
+  const [activeTab, setActiveTab] = useState<'1' | '2' | '3'>('1');
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -72,7 +72,7 @@ const NuevoProducto: React.FC = () => {
 
   const uiRules = React.useMemo(() => getTipoComportamientoUiRules(''), []);
 
-  const toggle = (t: '1' | '2' | '3' | '4') => activeTab !== t && setActiveTab(t);
+  const toggle = (t: '1' | '2' | '3') => activeTab !== t && setActiveTab(t);
 
   const onEmpresa = useCallback(
     (d: Partial<ItemFormValues>) => {
@@ -246,11 +246,6 @@ const NuevoProducto: React.FC = () => {
             </NavItem>
             <NavItem>
               <NavLink className={classnames({ active: activeTab === '3' })} onClick={() => toggle('3')}>
-                <i className="fas fa-tag me-2" />Precios
-              </NavLink>
-            </NavItem>
-            <NavItem>
-              <NavLink className={classnames({ active: activeTab === '4' })} onClick={() => toggle('4')}>
                 <i className="fas fa-calculator me-2" />Contabilidad
               </NavLink>
             </NavItem>
@@ -258,17 +253,20 @@ const NuevoProducto: React.FC = () => {
 
           <TabContent activeTab={activeTab} className="mt-4">
             <TabPane tabId="1">
-              <SeccionItemEmpresa
-                data={formData}
-                onChange={onEmpresa}
-                mostrarAsteriscosObligatorios
-                defaultTipoItemCodigo="PRODUCT"
-                ocultarCatalogosTipoYComportamiento
-              />
               <SeccionItemGeneral
                 data={formData}
                 onChange={onGeneral}
                 tipoItem="producto"
+                empresaSlot={
+                  <SeccionItemEmpresa
+                    data={formData}
+                    onChange={onEmpresa}
+                    mostrarAsteriscosObligatorios
+                    defaultTipoItemCodigo="PRODUCT"
+                    ocultarCatalogosTipoYComportamiento
+                    variant="inline"
+                  />
+                }
                 uiRules={uiRules.general}
                 mostrarAsteriscosObligatorios
                 ocultarCampoEtiquetaListados
@@ -290,8 +288,6 @@ const NuevoProducto: React.FC = () => {
                   <SeccionItemCompra data={formData} onChange={onCompra} modoPrecios uiRules={uiRules.precios} />
                 </CardBody>
               </Card>
-            </TabPane>
-            <TabPane tabId="4">
               <SeccionItemContabilidad data={formData} onChange={onContabilidad} uiRules={uiRules.contabilidad} />
             </TabPane>
           </TabContent>

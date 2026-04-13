@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import {
@@ -29,6 +29,7 @@ import { ItemSchema, getDefaultItemFormValues, type ItemFormValues } from '../sc
 import useJwtPayload from '../../../hooks/useJwtPayload';
 import { mapItemDetalleToFormValues } from '../utils/mapItemDetalleToFormValues';
 import { mapItemFormToCreateBody } from '../utils/mapItemFormToCreateBody';
+import { getTipoComportamientoUiRules } from '../utils/tipoComportamientoUiRules';
 import { actualizarItemProducto } from '../../../_apis_/item';
 
 const initialForm = getDefaultItemFormValues('producto');
@@ -93,7 +94,7 @@ const EditarProducto: React.FC = () => {
   const scope = payload?.scope_acceso || 'EMPRESA';
   const empresaUsuario = payload?.id_empresa;
 
-  const [activeTab, setActiveTab] = useState<'1' | '2' | '3' | '4' | '5' | '6'>('1');
+  const [activeTab, setActiveTab] = useState<'1' | '2' | '3'>('1');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -147,7 +148,9 @@ const EditarProducto: React.FC = () => {
     };
   }, [id, fetchItemDetalle, reset]);
 
-  const toggle = (t: '1' | '2' | '3' | '4' | '5' | '6') => activeTab !== t && setActiveTab(t);
+  const uiRules = useMemo(() => getTipoComportamientoUiRules(''), []);
+
+  const toggle = (t: '1' | '2' | '3') => activeTab !== t && setActiveTab(t);
 
   const onEmpresa = useCallback(
     (d: Partial<ItemFormValues>) => {
@@ -269,7 +272,7 @@ const EditarProducto: React.FC = () => {
         <CardBody>
           <div className="d-flex justify-content-between align-items-center mb-4">
             <CardTitle className="mb-0">
-              <i className="fas fa-edit text-primary me-2" />
+              <i className="fas fa-box text-primary me-2" />
               Editar Producto
             </CardTitle>
             <div>
@@ -284,7 +287,7 @@ const EditarProducto: React.FC = () => {
                 {loading ? (
                   <>
                     <Spinner size="sm" className="me-2" />
-                    Guardando...
+                    Guardando…
                   </>
                 ) : (
                   'Guardar Cambios'
@@ -293,9 +296,7 @@ const EditarProducto: React.FC = () => {
             </div>
           </div>
 
-          {success && (
-            <Alert color="success">Los cambios del producto se han guardado correctamente.</Alert>
-          )}
+          {success && <Alert color="success">Los cambios se realizaron de manera exitosa.</Alert>}
           {error && <Alert color="danger">{error}</Alert>}
 
           {loadingDetalle && (
@@ -312,51 +313,62 @@ const EditarProducto: React.FC = () => {
           <Nav tabs className="nav-tabs-custom">
             <NavItem>
               <NavLink className={classnames({ active: activeTab === '1' })} onClick={() => toggle('1')}>
-                <i className="fas fa-building me-2" />Empresa
+                <i className="fas fa-id-card me-2" />
+                General
               </NavLink>
             </NavItem>
             <NavItem>
               <NavLink className={classnames({ active: activeTab === '2' })} onClick={() => toggle('2')}>
-                <i className="fas fa-id-card me-2" />General
-              </NavLink>
-            </NavItem>
-            <NavItem>
-              <NavLink className={classnames({ active: activeTab === '5' })} onClick={() => toggle('5')}>
-                <i className="fas fa-boxes me-2" />Inventario
+                <i className="fas fa-boxes me-2" />
+                Inventario
               </NavLink>
             </NavItem>
             <NavItem>
               <NavLink className={classnames({ active: activeTab === '3' })} onClick={() => toggle('3')}>
-                <i className="fas fa-tag me-2" />Precios
-              </NavLink>
-            </NavItem>
-            <NavItem>
-              <NavLink className={classnames({ active: activeTab === '6' })} onClick={() => toggle('6')}>
-                <i className="fas fa-calculator me-2" />Contabilidad
+                <i className="fas fa-calculator me-2" />
+                Contabilidad
               </NavLink>
             </NavItem>
           </Nav>
 
           <TabContent activeTab={activeTab} className="mt-4">
             <TabPane tabId="1">
-              <SeccionItemEmpresa data={formData} onChange={onEmpresa} defaultTipoItemCodigo="PRODUCT" />
+              <SeccionItemGeneral
+                data={formData}
+                onChange={onGeneral}
+                tipoItem="producto"
+                empresaSlot={
+                  <SeccionItemEmpresa
+                    data={formData}
+                    onChange={onEmpresa}
+                    mostrarAsteriscosObligatorios
+                    defaultTipoItemCodigo="PRODUCT"
+                    ocultarCatalogosTipoYComportamiento
+                    variant="inline"
+                  />
+                }
+                uiRules={uiRules.general}
+                mostrarAsteriscosObligatorios
+                ocultarCampoEtiquetaListados
+              />
             </TabPane>
             <TabPane tabId="2">
-              <SeccionItemGeneral data={formData} onChange={onGeneral} tipoItem="producto" />
+              <SeccionItemInventario
+                data={formData}
+                onChange={onInventario}
+                ocultarStockActual
+                usarTamanoReferenciaTercero
+                uiRules={uiRules.inventario}
+              />
             </TabPane>
             <TabPane tabId="3">
               <Card>
                 <CardBody>
-                  <SeccionItemVenta data={formData} onChange={onVenta} modoPrecios />
-                  <SeccionItemCompra data={formData} onChange={onCompra} modoPrecios />
+                  <SeccionItemVenta data={formData} onChange={onVenta} modoPrecios uiRules={uiRules.precios} />
+                  <SeccionItemCompra data={formData} onChange={onCompra} modoPrecios uiRules={uiRules.precios} />
                 </CardBody>
               </Card>
-            </TabPane>
-            <TabPane tabId="5">
-              <SeccionItemInventario data={formData} onChange={onInventario} ocultarStockActual />
-            </TabPane>
-            <TabPane tabId="6">
-              <SeccionItemContabilidad data={formData} onChange={onContabilidad} />
+              <SeccionItemContabilidad data={formData} onChange={onContabilidad} uiRules={uiRules.contabilidad} />
             </TabPane>
           </TabContent>
         </CardBody>

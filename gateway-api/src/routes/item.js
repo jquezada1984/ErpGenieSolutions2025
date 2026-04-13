@@ -82,6 +82,59 @@ module.exports = async function (fastify, opts) {
     }
   });
 
+  // Catálogo etiquetas/categorías comerciales (tabla item_etiqueta_categoria) → ItemPython
+  fastify.get('/item/etiqueta-categoria', async (request, reply) => {
+    try {
+      const data = await itemPython.listarEtiquetasCategoria(request);
+      return reply.code(200).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      const payload = err.response?.data || { success: false, error: err.message };
+      return reply.code(status).send(payload);
+    }
+  });
+
+  fastify.post('/item/etiqueta-categoria', async (request, reply) => {
+    try {
+      const data = await itemPython.crearEtiquetaCategoria(request.body || {}, request);
+      return reply.code(201).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      const payload = err.response?.data || { success: false, error: err.message };
+      return reply.code(status).send(payload);
+    }
+  });
+
+  fastify.put('/item/etiqueta-categoria/:id', async (request, reply) => {
+    try {
+      const data = await itemPython.actualizarEtiquetaCategoria(
+        request.params.id,
+        request.body || {},
+        request
+      );
+      return reply.code(200).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      const payload = err.response?.data || { success: false, error: err.message };
+      return reply.code(status).send(payload);
+    }
+  });
+
+  fastify.patch('/item/etiqueta-categoria/:id/estado', async (request, reply) => {
+    try {
+      const data = await itemPython.cambiarEstadoEtiquetaCategoria(
+        request.params.id,
+        request.body || {},
+        request
+      );
+      return reply.code(200).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      const payload = err.response?.data || { success: false, error: err.message };
+      return reply.code(status).send(payload);
+    }
+  });
+
   // ---------------------------
   // ESCRITURA -> ItemPython
   // ---------------------------
