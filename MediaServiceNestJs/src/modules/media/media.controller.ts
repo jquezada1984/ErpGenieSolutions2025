@@ -41,9 +41,14 @@ export class MediaController {
       throw new BadRequestException('Campo "file" obligatorio');
     }
     const mimetype = (file.mimetype || '').toLowerCase();
-    const isImage = mimetype.startsWith('image/') || IMAGE_MIMETYPES.includes(mimetype);
-    if (!isImage) {
-      throw new BadRequestException('Solo se aceptan archivos de tipo imagen (image/*)');
+    const isImage =
+      mimetype.startsWith('image/') || IMAGE_MIMETYPES.includes(mimetype);
+    const isPDF = mimetype === 'application/pdf';
+
+    if (!isImage && !isPDF) {
+      throw new BadRequestException(
+        'Solo se aceptan archivos de tipo imagen o PDF (image/*, application/pdf)',
+      );
     }
     const raw =
       request.headers['x-company-id'] ?? request.headers['X-Company-Id'];

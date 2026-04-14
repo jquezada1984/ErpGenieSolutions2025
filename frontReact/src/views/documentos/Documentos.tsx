@@ -69,6 +69,7 @@ interface MediaItem {
   es_principal: boolean;
   url?: string;
   file?: { url?: string };
+  mimetype?: string | null;
   id_directorio_documento?: string | null;
 }
 
@@ -357,7 +358,7 @@ const Documentos: React.FC = () => {
     try {
       const data = await getDirectorios(moduloSeleccionado, empresaActiva || undefined);
       setDirectorios(Array.isArray(data) ? data : []);
-      console.log(data)
+      //console.log(data)
     } catch (error) {
       console.error('Error cargando directorios', error);
     }
@@ -385,8 +386,8 @@ const Documentos: React.FC = () => {
         }),
       };
 
-      console.log('currentDirectorioId:', currentDirectorioId);
-      console.log('CREANDO DIRECTORIO:', payload);
+      //console.log('currentDirectorioId:', currentDirectorioId);
+      //console.log('CREANDO DIRECTORIO:', payload);
 
       await createDirectorio(payload, empresaActiva || undefined);
 
@@ -552,6 +553,11 @@ const Documentos: React.FC = () => {
     previewIndex < mediaFiltrada.length
       ? mediaFiltrada[previewIndex]
       : null;
+
+  const esPDF =
+    !!mediaActual &&
+    (mediaActual.mimetype?.toLowerCase().includes('pdf') ||
+      mediaActual.url?.toLowerCase().endsWith('.pdf'));
 
   const siguiente = useCallback(() => {
     if (previewIndex === null) return;
@@ -946,7 +952,17 @@ const Documentos: React.FC = () => {
                                   onClick={() => setPreviewIndex(index)}
                                 />
                               ) : (
-                                <CardBody className="pb-0 text-muted" style={{ height: 180 }}>
+                                <CardBody
+                                  className="pb-0 text-muted"
+                                  style={{
+                                    height: 180,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                  onClick={() => setPreviewIndex(index)}
+                                >
                                   <i className="bi bi-file-earmark fs-1" aria-hidden />
                                 </CardBody>
                               )}
@@ -1047,18 +1063,32 @@ const Documentos: React.FC = () => {
                 animation: 'fadeIn 0.2s ease',
               }}
             >
-                <img
-                  src={resolveUrl(mediaActual) || mediaActual.url || ''}
-                  alt={mediaActual.tipo}
-                  style={{
-                    maxWidth: '90%',
-                    maxHeight: '80vh',
-                    objectFit: 'contain',
-                    transition: 'all 0.3s ease',
-                    display: 'block',
-                    margin: '0 auto',
-                  }}
-                />
+                {mediaActual && esPDF ? (
+                  <iframe
+                    src={resolveUrl(mediaActual) || mediaActual.url || ''}
+                    title="Preview PDF"
+                    style={{
+                      width: '80%',
+                      height: '75vh',
+                      border: 'none',
+                      borderRadius: 8,
+                      backgroundColor: '#fff',
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={resolveUrl(mediaActual) || mediaActual.url || ''}
+                    alt={mediaActual.tipo}
+                    style={{
+                      maxWidth: '80%',
+                      maxHeight: '75vh',
+                      objectFit: 'contain',
+                      transition: 'all 0.3s ease',
+                      display: 'block',
+                      margin: '0 auto',
+                    }}
+                  />
+                )}
 
                 <div style={{ marginTop: 10 }}>
                   <button
