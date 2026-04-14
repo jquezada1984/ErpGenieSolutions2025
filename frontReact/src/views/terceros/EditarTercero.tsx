@@ -15,7 +15,7 @@ import {
   Spinner
 } from 'reactstrap';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
+import { useLazyQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import classnames from 'classnames';
 import './ConfiguracionTercero.scss';
@@ -43,7 +43,7 @@ const initialForm: NuevoTerceroFormValues = {
   poblacion: '',
   codigo_postal: '',
   id_pais: '',
-  provincia: '',
+  id_provincia: '',
   telefono: '',
   movil: '',
   fax: '',
@@ -117,6 +117,8 @@ const EditarTercero: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [terceroData, setTerceroData] = useState<any | null>(null);
+  const [consultaRealizada, setConsultaRealizada] = useState(false);
 
   const {
     watch,
@@ -132,51 +134,69 @@ const EditarTercero: React.FC = () => {
 
   const formData = watch();
 
-  const { data, loading: loadingQuery, error: errorQuery } = useQuery(GET_TERCERO, {
-    variables: { id_tercero: id ?? '' },
-    skip: !id,
-    fetchPolicy: 'cache-and-network',
+  const [fetchTercero, { loading: loadingQuery, error: errorQuery }] = useLazyQuery(GET_TERCERO, {
+    fetchPolicy: 'network-only',
+    errorPolicy: 'all',
   });
 
   useEffect(() => {
-    if (!data?.tercero) return;
-    const t = data.tercero;
-    reset({
-      id_empresa: t.id_empresa ?? t.empresa?.id_empresa ?? '',
-      cliente_potencial: !!t.cliente_potencial,
-      cliente: !!t.cliente,
-      proveedor: !!t.proveedor,
-      nombre: t.nombre ?? '',
-      apodo: t.apodo ?? '',
-      codigo_cliente: t.codigo_cliente ?? '',
-      codigo_proveedor: t.codigo_proveedor ?? '',
-      estado: !!t.estado,
-      sujeto_iva: t.sujeto_iva !== false,
-      id_tipo_tercero: t.id_tipo_tercero ?? t.tipo_tercero?.id_tipo_tercero ?? '',
-      id_tipo_entidad: t.id_tipo_entidad ?? '',
-      direccion: t.direccion ?? '',
-      poblacion: t.poblacion ?? '',
-      codigo_postal: t.codigo_postal ?? '',
-      id_pais: t.id_pais ?? '',
-      provincia: t.id_provincia ?? '',
-      telefono: t.telefono ?? '',
-      movil: t.movil ?? '',
-      fax: t.fax ?? '',
-      web: t.web ?? '',
-      correo: t.correo ?? '',
-      logo: data?.tercero?.logo ?? '',
-      capital: t.capital != null ? Number(t.capital) : 0,
-      id_condicion_pago: t.id_condicion_pago ?? '',
-      id_forma_pago: t.id_forma_pago ?? '',
-      id_tamano_empresa: t.id_tamano_empresa ?? '',
-      id_profesional_1: t.id_profesional_1 ?? '',
-      id_profesional_2: t.id_profesional_2 ?? '',
-      cif_intra: t.cif_intra ?? '',
-      sede_central: t.sede_central ?? '',
-      asignado_a: t.asignado_a ?? '',
-    });
-    setHasChanges(false);
-  }, [data?.tercero, reset]);
+    if (!id) return;
+
+    let cancelled = false;
+    setConsultaRealizada(false);
+    setTerceroData(null);
+
+    (async () => {
+      const res = await fetchTercero({ variables: { id_tercero: id } });
+      if (cancelled) return;
+
+      const tercero = res.data?.tercero ?? null;
+      setTerceroData(tercero);
+      setConsultaRealizada(true);
+
+      if (!tercero) return;
+      const t = tercero;
+      reset({
+        id_empresa: t.id_empresa ?? t.empresa?.id_empresa ?? '',
+        cliente_potencial: !!t.cliente_potencial,
+        cliente: !!t.cliente,
+        proveedor: !!t.proveedor,
+        nombre: t.nombre ?? '',
+        apodo: t.apodo ?? '',
+        codigo_cliente: t.codigo_cliente ?? '',
+        codigo_proveedor: t.codigo_proveedor ?? '',
+        estado: !!t.estado,
+        sujeto_iva: t.sujeto_iva !== false,
+        id_tipo_tercero: t.id_tipo_tercero ?? t.tipo_tercero?.id_tipo_tercero ?? '',
+        id_tipo_entidad: t.id_tipo_entidad ?? '',
+        direccion: t.direccion ?? '',
+        poblacion: t.poblacion ?? '',
+        codigo_postal: t.codigo_postal ?? '',
+        id_pais: t.id_pais ?? '',
+        id_provincia: t.id_provincia ?? '',
+        telefono: t.telefono ?? '',
+        movil: t.movil ?? '',
+        fax: t.fax ?? '',
+        web: t.web ?? '',
+        correo: t.correo ?? '',
+        logo: t.logo ?? '',
+        capital: t.capital != null ? Number(t.capital) : 0,
+        id_condicion_pago: t.id_condicion_pago ?? '',
+        id_forma_pago: t.id_forma_pago ?? '',
+        id_tamano_empresa: t.id_tamano_empresa ?? '',
+        id_profesional_1: t.id_profesional_1 ?? '',
+        id_profesional_2: t.id_profesional_2 ?? '',
+        cif_intra: t.cif_intra ?? '',
+        sede_central: t.sede_central ?? '',
+        asignado_a: t.asignado_a ?? '',
+      });
+      setHasChanges(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, fetchTercero, reset]);
 
   const toggle = (t: '1'|'2'|'3') => {
     if (activeTab !== t) setActiveTab(t);
@@ -279,7 +299,7 @@ const EditarTercero: React.FC = () => {
               <Button
                 color="primary"
                 onClick={handleSubmit(onSubmitRHF, onInvalid)}
-                disabled={loading || !hasChanges || loadingQuery || !data?.tercero}
+                disabled={loading || !hasChanges || loadingQuery || !terceroData}
               >
                 {loading ? (
                   <>
@@ -311,19 +331,19 @@ const EditarTercero: React.FC = () => {
             </Alert>
           )}
 
-          {loadingQuery && !data?.tercero && (
+          {loadingQuery && !terceroData && (
             <div className="text-center py-4">
               <Spinner />
               <p className="mt-2 text-muted">Cargando tercero...</p>
             </div>
           )}
 
-          {!loadingQuery && !data?.tercero && id && !errorQuery && (
+          {!loadingQuery && consultaRealizada && !terceroData && id && !errorQuery && (
             <Alert color="warning">Tercero no encontrado.</Alert>
           )}
 
-          {data?.tercero && (
-          <>
+          {terceroData && (
+          <div key={terceroData.id_tercero}>
           <p className="text-muted mb-3">
             Modifique la información del tercero y haga clic en <b>Guardar Cambios</b>.
           </p>
@@ -369,7 +389,7 @@ const EditarTercero: React.FC = () => {
               <SeccionTerceroComercialOrganizacion data={formData} onChange={onComercial} />
             </TabPane>
           </TabContent>
-          </>
+          </div>
           )}
 
         </CardBody>

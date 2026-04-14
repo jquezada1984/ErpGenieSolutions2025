@@ -93,6 +93,7 @@ const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) =>
             <FormGroup>
               <Label>Provincia</Label>
               <SelectProvincia
+                key={`provincia-${f.id_pais}-${f.id_provincia}`}
                 value={f.id_provincia || null}
                 onChange={(v) => {
                   const u = { ...f, id_provincia: v ?? '' };
