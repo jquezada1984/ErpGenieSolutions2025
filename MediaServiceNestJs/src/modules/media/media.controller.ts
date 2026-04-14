@@ -35,7 +35,13 @@ export class MediaController {
   ) {}
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB
+      },
+    }),
+  )
   async upload(@UploadedFile() file: Express.Multer.File, @Req() request: Request) {
     if (!file) {
       throw new BadRequestException('Campo "file" obligatorio');

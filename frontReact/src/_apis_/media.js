@@ -36,13 +36,20 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('❌ Error en API Media:', error.response?.data || error.message);
-    if (error.response?.data?.error) {
-      const err = new Error(error.response.data.error);
-      err.status = error.response.status;
-      err.data = error.response.data;
-      throw err;
-    }
-    throw error;
+    const rawMessage = error?.response?.data?.message;
+    const messageFromArray = Array.isArray(rawMessage)
+      ? rawMessage.join(', ')
+      : rawMessage;
+    const mensaje =
+      messageFromArray ||
+      error?.response?.data?.error ||
+      error?.message ||
+      'Error inesperado';
+
+    const err = new Error(mensaje);
+    err.status = error?.response?.status;
+    err.data = error?.response?.data;
+    throw err;
   }
 );
 

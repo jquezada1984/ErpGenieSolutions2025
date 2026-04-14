@@ -61,7 +61,11 @@ if (!config.menuService) {
 // Registrar plugins
 fastify.register(require('@fastify/cors'), config.cors);
 fastify.register(require('@fastify/helmet'));
-fastify.register(require('@fastify/multipart'));
+fastify.register(require('@fastify/multipart'), {
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+  },
+});
 
 // Registrar rutas
 fastify.register(require('./routes/empresas'), { prefix: '/api' });

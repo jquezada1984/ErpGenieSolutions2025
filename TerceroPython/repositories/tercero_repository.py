@@ -132,7 +132,7 @@ def create_tercero(payload: Dict[str, Any], id_empresa: str, user_id: Optional[s
                     "id_directorio_documento": directorio_id,
                     "id_empresa": str(tercero.id_empresa) if tercero.id_empresa else None,
                 },
-                timeout=15,
+                timeout=5,
             )
             print("MEDIA STATUS:", response.status_code)
             print("MEDIA RESPONSE:", response.text)
@@ -198,7 +198,7 @@ def update_tercero(
                     "id_directorio_documento": directorio_id,
                     "id_empresa": str(tercero.id_empresa) if tercero.id_empresa else None,
                 },
-                timeout=15,
+                timeout=5,
             )
             print("MEDIA STATUS:", response.status_code)
             print("MEDIA RESPONSE:", response.text)

@@ -93,6 +93,9 @@ const fadeStyle = `
 }
 `;
 
+const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+
 const Documentos: React.FC = () => {
   const usuario = useJwtPayload();
   const scope = usuario?.scope_acceso || 'EMPRESA';
@@ -123,6 +126,7 @@ const Documentos: React.FC = () => {
   const [documentos, setDocumentos] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [directorios, setDirectorios] = useState<DirectorioItem[]>([]);
@@ -404,6 +408,7 @@ const Documentos: React.FC = () => {
 
   const handleUploadArchivo = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
+      setUploadError(null);
       const files = Array.from(e.target.files || []);
       if (!files.length || tabActivo !== 'MANUAL') {
         e.target.value = '';
@@ -415,6 +420,31 @@ const Documentos: React.FC = () => {
       }
 
       const directorioId = currentDirectorioId;
+      const archivosValidos: File[] = [];
+      const errores: string[] = [];
+
+      for (const file of files) {
+        if (!ALLOWED_TYPES.includes(file.type)) {
+          errores.push(`${file.name}: formato no permitido`);
+          continue;
+        }
+
+        if (file.size > MAX_SIZE) {
+          errores.push(`${file.name}: supera 10MB`);
+          continue;
+        }
+
+        archivosValidos.push(file);
+      }
+
+      if (errores.length > 0) {
+        setUploadError(`Errores al subir archivos:\n\n${errores.join('\n')}`);
+      }
+
+      if (archivosValidos.length === 0) {
+        e.target.value = '';
+        return;
+      }
 
       const subirArchivo = async (file: File) => {
         const formData = new FormData();
@@ -456,13 +486,14 @@ const Documentos: React.FC = () => {
       setUploadingArchivo(true);
       setError(null);
       try {
-        await Promise.all(files.map((file) => subirArchivo(file)));
+        await Promise.all(archivosValidos.map((file) => subirArchivo(file)));
         await loadMedia();
       } catch (err) {
         console.error(err);
         const msg =
           err instanceof Error ? err.message : 'No se pudo subir el archivo';
         setError(msg);
+        setUploadError(msg);
         await Swal.fire({
           title: 'Error al subir',
           text: msg,
@@ -619,6 +650,11 @@ const Documentos: React.FC = () => {
                 <Alert color="danger" className="mb-3">
                   {error}
                 </Alert>
+              )}
+              {uploadError && (
+                <div className="alert alert-danger" role="alert">
+                  {uploadError}
+                </div>
               )}
 
               {scope === 'GLOBAL' && (
