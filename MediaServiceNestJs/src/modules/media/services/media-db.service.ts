@@ -117,13 +117,14 @@ export class MediaDbService {
 
     return this.mediaRepository.find({
       where,
-      order: { es_principal: 'DESC', created_at: 'DESC' },
+      order: { es_principal: 'DESC', updated_at: 'DESC', created_at: 'DESC' },
     });
   }
 
   async obtenerPrincipal(module: string, module_id: string): Promise<Media | null> {
     return this.mediaRepository.findOne({
       where: { module, module_id, es_principal: true, estado: true },
+      order: { updated_at: 'DESC', created_at: 'DESC' },
     });
   }
 

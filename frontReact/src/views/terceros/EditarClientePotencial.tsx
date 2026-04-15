@@ -106,6 +106,7 @@ const EditarClientePotencial: React.FC = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const [terceroData, setTerceroData] = useState<any | null>(null);
   const [consultaRealizada, setConsultaRealizada] = useState(false);
+  const [logoOriginal, setLogoOriginal] = useState<string | null>(null);
 
   const {
     watch,
@@ -135,6 +136,7 @@ const EditarClientePotencial: React.FC = () => {
     let cancelled = false;
     setConsultaRealizada(false);
     setTerceroData(null);
+    setLogoOriginal(null);
 
     (async () => {
       const res = await fetchTercero({ variables: { id_tercero: id } });
@@ -146,6 +148,8 @@ const EditarClientePotencial: React.FC = () => {
 
       if (!terceroRes || terceroRes.cliente_potencial !== true) return;
       const t = terceroRes;
+      const logoCargado = t.logo ?? '';
+      setLogoOriginal(logoCargado);
       reset({
         id_empresa: t.id_empresa ?? t.empresa?.id_empresa ?? '',
         cliente_potencial: true,
@@ -169,7 +173,7 @@ const EditarClientePotencial: React.FC = () => {
         fax: t.fax ?? '',
         web: t.web ?? '',
         correo: t.correo ?? '',
-        logo: t.logo ?? '',
+        logo: logoCargado,
         capital: t.capital != null ? Number(t.capital) : 0,
         id_condicion_pago: t.id_condicion_pago ?? '',
         id_forma_pago: t.id_forma_pago ?? '',
@@ -251,6 +255,10 @@ const EditarClientePotencial: React.FC = () => {
       cleanedData.cliente = false;
       cleanedData.proveedor = false;
 
+      if (logoOriginal !== null && values.logo === logoOriginal) {
+        (cleanedData as Record<string, unknown>).logo = null;
+      }
+
       await actualizarTercero(id, cleanedData);
       setSuccess(true);
       setHasChanges(false);
@@ -263,7 +271,7 @@ const EditarClientePotencial: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, logoOriginal]);
 
   const onInvalid = useCallback((formErrors: any) => {
     const collectMessages = (obj: any): string[] => {
