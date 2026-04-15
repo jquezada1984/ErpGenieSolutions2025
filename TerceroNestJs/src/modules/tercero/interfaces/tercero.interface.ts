@@ -16,7 +16,7 @@ export interface ITercero {
     poblacion?: string;
     codigo_postal?: string;
     id_pais?: string;
-    provincia?: string;
+    id_provincia?: string;
     telefono?: string;
     movil?: string;
     fax?: string;

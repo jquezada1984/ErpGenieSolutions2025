@@ -17,7 +17,6 @@ export interface NuevoTerceroFormValues {
   poblacion: string;
   codigo_postal: string;
   id_pais: string;
-  provincia?: string;
   id_provincia?: string;
   telefono: string;
   movil: string;
@@ -31,6 +30,7 @@ export interface NuevoTerceroFormValues {
   id_profesional_1: string;
   id_profesional_2: string;
   cif_intra: string;
+  id_tamano_empresa?: string;
   sede_central: string;
   asignado_a: string;
 }
@@ -58,7 +58,6 @@ export const NuevoTerceroSchema = yup.object({
   poblacion: yup.string(),
   codigo_postal: yup.string(),
   id_pais: yup.string(),
-  provincia: yup.string(),
   id_provincia: yup.string(),
   telefono: yup.string(),
   movil: yup.string(),
@@ -85,6 +84,7 @@ export const NuevoTerceroSchema = yup.object({
   id_profesional_1: yup.string(),
   id_profesional_2: yup.string(),
   cif_intra: yup.string(),
+  id_tamano_empresa: yup.string(),
   sede_central: yup.string(),
   asignado_a: yup.string(),
 }).test(

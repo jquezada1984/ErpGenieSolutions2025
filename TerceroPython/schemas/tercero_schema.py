@@ -24,7 +24,6 @@ class TerceroCreateSchema(Schema):
     poblacion     = fields.Str(allow_none=True)
     codigo_postal = fields.Str(allow_none=True)
     id_pais       = fields.UUID(allow_none=True)
-    provincia     = fields.Str(allow_none=True)
     id_provincia  = fields.UUID(allow_none=True)
     telefono      = fields.Str(allow_none=True)
     movil         = fields.Str(allow_none=True)

@@ -32,7 +32,7 @@ const initialForm: NuevoTerceroFormValues = {
   poblacion: '',
   codigo_postal: '',
   id_pais: '',
-  provincia: '',
+  id_provincia: '',
   telefono: '',
   movil: '',
   fax: '',
@@ -45,6 +45,7 @@ const initialForm: NuevoTerceroFormValues = {
   id_profesional_1: '',
   id_profesional_2: '',
   cif_intra: '',
+  id_tamano_empresa: '',
   sede_central: '',
   asignado_a: '',
 };
