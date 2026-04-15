@@ -120,6 +120,7 @@ const EditarTercero: React.FC = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const [terceroData, setTerceroData] = useState<any | null>(null);
   const [consultaRealizada, setConsultaRealizada] = useState(false);
+  const [logoOriginal, setLogoOriginal] = useState<string | null>(null);
 
   const {
     watch,
@@ -146,6 +147,7 @@ const EditarTercero: React.FC = () => {
     let cancelled = false;
     setConsultaRealizada(false);
     setTerceroData(null);
+    setLogoOriginal(null);
 
     (async () => {
       const res = await fetchTercero({ variables: { id_tercero: id } });
@@ -157,6 +159,8 @@ const EditarTercero: React.FC = () => {
 
       if (!tercero) return;
       const t = tercero;
+      const logoCargado = t.logo ?? '';
+      setLogoOriginal(logoCargado);
       reset({
         id_empresa: t.id_empresa ?? t.empresa?.id_empresa ?? '',
         cliente_potencial: !!t.cliente_potencial,
@@ -180,7 +184,7 @@ const EditarTercero: React.FC = () => {
         fax: t.fax ?? '',
         web: t.web ?? '',
         correo: t.correo ?? '',
-        logo: t.logo ?? '',
+        logo: logoCargado,
         capital: t.capital != null ? Number(t.capital) : 0,
         id_condicion_pago: t.id_condicion_pago ?? '',
         id_forma_pago: t.id_forma_pago ?? '',
@@ -251,6 +255,10 @@ const EditarTercero: React.FC = () => {
       });
       cleanedData.id_empresa = values.id_empresa;
 
+      if (logoOriginal !== null && values.logo === logoOriginal) {
+        (cleanedData as Record<string, unknown>).logo = null;
+      }
+
       await actualizarTercero(id, cleanedData);
       setSuccess(true);
       setHasChanges(false);
@@ -263,7 +271,7 @@ const EditarTercero: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, logoOriginal]);
 
   const onInvalid = useCallback((formErrors: any) => {
     const collectMessages = (obj: any): string[] => {
