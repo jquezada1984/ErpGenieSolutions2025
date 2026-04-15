@@ -23,7 +23,6 @@ const SeccionContactoDireccion: React.FC<Props> = ({ data, onChange }) => {
     direccion: '',
     codigo_postal: '',
     poblacion: '',
-    provincia: '',
     id_provincia: '',
     id_pais: '',
   });
