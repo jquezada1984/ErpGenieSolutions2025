@@ -16,6 +16,11 @@ from repositories.item_repository import (
     fetch_item_row_for_merge,
     fetch_id_tipo_comportamiento_by_codigo,
     fetch_tipo_item_codigo,
+    fetch_id_tipo_item_by_codigo,
+    fetch_first_id_naturaleza_item_activo,
+    fetch_first_id_estado_compra_activo,
+    fetch_first_id_tipo_control_inventario_activo,
+    fetch_first_id_tipo_control_caducidad_activo,
     tipo_comportamiento_row_exists,
 )
 
@@ -75,6 +80,85 @@ def _int_opt(value: Any, field: str) -> Optional[int]:
         return int(value)
     except (TypeError, ValueError) as e:
         raise ValidationError({field: ["Debe ser entero"]}) from e
+
+
+def _str_uuid_present(value: Any) -> bool:
+    if value is None or value == "":
+        return False
+    s = str(value).strip()
+    if not s:
+        return False
+    try:
+        uuid.UUID(s)
+    except ValueError:
+        return False
+    return True
+
+
+def _prefill_payload_catalogos_creacion(normalized: Dict[str, Any]) -> None:
+    """
+    Antes de Marshmallow: completa FKs críticas desde catálogo real para evitar
+    IntegrityError y payloads incompletos (Nuevo Producto / Nuevo Servicio).
+    Mutación in-place.
+    """
+    # inventariable: hint de producto (true) vs servicio (false); default producto
+    inv = _bool_opt(normalized.get("inventariable"), True)
+    normalized["inventariable"] = inv if inv is not None else True
+
+    # Quitar id_tipo_item inválido o inexistente en catálogo
+    tid_in = normalized.get("id_tipo_item")
+    if _str_uuid_present(tid_in) and fetch_tipo_item_codigo(str(tid_in).strip()) is None:
+        normalized.pop("id_tipo_item", None)
+
+    # Resolver id_tipo_item por catálogo (PRODUCT / SERVICE)
+    if not _str_uuid_present(normalized.get("id_tipo_item")):
+        codigo_tipo = "SERVICE" if normalized.get("inventariable") is False else "PRODUCT"
+        res = fetch_id_tipo_item_by_codigo(codigo_tipo)
+        if not res:
+            raise ValidationError(
+                {
+                    "id_tipo_item": [
+                        f"No existe fila activa en tipo_item_catalogo con codigo={codigo_tipo}"
+                    ]
+                }
+            )
+        normalized["id_tipo_item"] = res
+
+    # Alinear inventariable con el tipo resuelto (fuente de verdad: catálogo)
+    cod_ti = fetch_tipo_item_codigo(str(normalized["id_tipo_item"]).strip())
+    if cod_ti == "SERVICE":
+        normalized["inventariable"] = False
+    elif cod_ti == "PRODUCT":
+        normalized["inventariable"] = True
+
+    if not _str_uuid_present(normalized.get("id_naturaleza_item")):
+        nid = fetch_first_id_naturaleza_item_activo()
+        if nid:
+            normalized["id_naturaleza_item"] = nid
+
+    if not _str_uuid_present(normalized.get("id_estado_compra")):
+        ec = fetch_first_id_estado_compra_activo()
+        if ec:
+            normalized["id_estado_compra"] = ec
+
+    if not _str_uuid_present(normalized.get("id_tipo_control_inventario")):
+        x = fetch_first_id_tipo_control_inventario_activo()
+        if x:
+            normalized["id_tipo_control_inventario"] = x
+
+    if not _str_uuid_present(normalized.get("id_tipo_control_caducidad")):
+        x = fetch_first_id_tipo_control_caducidad_activo()
+        if x:
+            normalized["id_tipo_control_caducidad"] = x
+
+    if not _str_uuid_present(normalized.get("id_naturaleza_item")):
+        raise ValidationError(
+            {
+                "id_naturaleza_item": [
+                    "No se pudo resolver id_naturaleza_item desde catálogo (tabla vacía o sin filas activas)"
+                ]
+            }
+        )
 
 
 def normalize_item_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
@@ -250,6 +334,7 @@ def servicio_crear_item(
     # Mantener compatibilidad con payloads legacy: primero normaliza aliases y luego valida por schema.
     normalized_payload = normalize_item_payload(payload)
     normalized_payload["id_empresa"] = str(id_empresa).strip()
+    _prefill_payload_catalogos_creacion(normalized_payload)
     schema_data = ItemCreateSchema().load(normalized_payload)
 
     row = build_item_row(schema_data, id_empresa=str(id_empresa).strip(), user_id=user_id)

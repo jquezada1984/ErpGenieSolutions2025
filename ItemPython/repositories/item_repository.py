@@ -23,6 +23,57 @@ TIPO_ITEM_CODIGO_SQL = text(
     """
 )
 
+TIPO_ITEM_ID_BY_CODIGO_SQL = text(
+    """
+    SELECT id_tipo_item::text
+    FROM public.tipo_item_catalogo
+    WHERE UPPER(TRIM(codigo)) = UPPER(TRIM(:codigo))
+      AND COALESCE(estado, true) = true
+    ORDER BY orden NULLS LAST, codigo
+    LIMIT 1
+    """
+)
+
+NATURALEZA_FIRST_ACTIVO_SQL = text(
+    """
+    SELECT id_naturaleza_item::text
+    FROM public.naturaleza_item_catalogo
+    WHERE COALESCE(estado, true) = true
+    ORDER BY orden NULLS LAST, codigo
+    LIMIT 1
+    """
+)
+
+ESTADO_COMPRA_FIRST_ACTIVO_SQL = text(
+    """
+    SELECT id_estado_compra::text
+    FROM public.estado_compra_item
+    WHERE COALESCE(estado, true) = true
+    ORDER BY orden NULLS LAST, codigo
+    LIMIT 1
+    """
+)
+
+TIPO_CTRL_INV_FIRST_ACTIVO_SQL = text(
+    """
+    SELECT id_tipo_control_inventario::text
+    FROM public.tipo_control_inventario_item
+    WHERE COALESCE(estado, true) = true
+    ORDER BY orden NULLS LAST, codigo
+    LIMIT 1
+    """
+)
+
+TIPO_CTRL_CAD_FIRST_ACTIVO_SQL = text(
+    """
+    SELECT id_tipo_control_caducidad::text
+    FROM public.tipo_control_caducidad_item
+    WHERE COALESCE(estado, true) = true
+    ORDER BY orden NULLS LAST, codigo
+    LIMIT 1
+    """
+)
+
 COMPORTAMIENTO_BY_CODIGO_SQL = text(
     """
     SELECT id_tipo_comportamiento FROM public.tipo_comportamiento_item
@@ -43,6 +94,46 @@ COMPORTAMIENTO_EXISTS_SQL = text(
 
 def fetch_tipo_item_codigo(id_tipo_item: str) -> Optional[str]:
     row = db.session.execute(TIPO_ITEM_CODIGO_SQL, {"id": id_tipo_item}).fetchone()
+    if not row or row[0] is None:
+        return None
+    return str(row[0]).strip() or None
+
+
+def fetch_id_tipo_item_by_codigo(codigo: str) -> Optional[str]:
+    """UUID de tipo_item_catalogo por codigo (ej. PRODUCT, SERVICE)."""
+    if not codigo or not str(codigo).strip():
+        return None
+    row = db.session.execute(
+        TIPO_ITEM_ID_BY_CODIGO_SQL, {"codigo": str(codigo).strip()}
+    ).fetchone()
+    if not row or row[0] is None:
+        return None
+    return str(row[0]).strip() or None
+
+
+def fetch_first_id_naturaleza_item_activo() -> Optional[str]:
+    row = db.session.execute(NATURALEZA_FIRST_ACTIVO_SQL).fetchone()
+    if not row or row[0] is None:
+        return None
+    return str(row[0]).strip() or None
+
+
+def fetch_first_id_estado_compra_activo() -> Optional[str]:
+    row = db.session.execute(ESTADO_COMPRA_FIRST_ACTIVO_SQL).fetchone()
+    if not row or row[0] is None:
+        return None
+    return str(row[0]).strip() or None
+
+
+def fetch_first_id_tipo_control_inventario_activo() -> Optional[str]:
+    row = db.session.execute(TIPO_CTRL_INV_FIRST_ACTIVO_SQL).fetchone()
+    if not row or row[0] is None:
+        return None
+    return str(row[0]).strip() or None
+
+
+def fetch_first_id_tipo_control_caducidad_activo() -> Optional[str]:
+    row = db.session.execute(TIPO_CTRL_CAD_FIRST_ACTIVO_SQL).fetchone()
     if not row or row[0] is None:
         return None
     return str(row[0]).strip() or None

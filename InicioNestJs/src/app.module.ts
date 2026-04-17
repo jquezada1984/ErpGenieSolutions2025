@@ -40,6 +40,7 @@ import { FormaPago } from './entities/forma-pago.entity';
 import { Impuesto } from './entities/impuesto.entity';
 import { CuentaContable } from './entities/cuenta-contable.entity';
 import { TipoItemCatalogo } from './entities/tipo-item-catalogo.entity';
+import { DuracionUnidadCatalogo } from './entities/duracion-unidad-catalogo.entity';
 import { AuthModule } from './auth/auth.module';
 // Resolvers
 import { UsuarioResolver } from './resolvers/usuario.resolver';
@@ -59,6 +60,7 @@ import { TipoEntidadComercialResolver } from './resolvers/tipo-entidad-comercial
 import { ImpuestoResolver } from './resolvers/impuesto.resolver';
 import { CuentaContableResolver } from './resolvers/cuenta-contable.resolver';
 import { TipoItemCatalogoResolver } from './resolvers/tipo-item-catalogo.resolver';
+import { DuracionUnidadCatalogoResolver } from './resolvers/duracion-unidad-catalogo.resolver';
 import { AuthResolver } from './auth/auth.resolver';
 // Services
 import { PaisService } from './services/pais.service';
@@ -69,6 +71,7 @@ import { UnidadService } from './services/unidad.service';
 import { ImpuestoService } from './services/impuesto.service';
 import { CuentaContableService } from './services/cuenta-contable.service';
 import { TipoItemCatalogoService } from './services/tipo-item-catalogo.service';
+import { DuracionUnidadCatalogoService } from './services/duracion-unidad-catalogo.service';
 import { AutorizacionService } from './services/autorizacion.service';
 
 @Module({
@@ -100,6 +103,7 @@ import { AutorizacionService } from './services/autorizacion.service';
         Impuesto,
         CuentaContable,
         TipoItemCatalogo,
+        DuracionUnidadCatalogo,
       ],
       synchronize: false, // Deshabilitado para evitar conflictos con datos existentes
       ssl: {
@@ -130,6 +134,7 @@ import { AutorizacionService } from './services/autorizacion.service';
         Impuesto,
         CuentaContable,
         TipoItemCatalogo,
+        DuracionUnidadCatalogo,
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -162,6 +167,7 @@ import { AutorizacionService } from './services/autorizacion.service';
       ImpuestoResolver,
       CuentaContableResolver,
       TipoItemCatalogoResolver,
+      DuracionUnidadCatalogoResolver,
       AuthResolver,
       PaisService,
       MonedaService,
@@ -171,6 +177,7 @@ import { AutorizacionService } from './services/autorizacion.service';
       ImpuestoService,
       CuentaContableService,
       TipoItemCatalogoService,
+      DuracionUnidadCatalogoService,
       AutorizacionService,
     ],
 })

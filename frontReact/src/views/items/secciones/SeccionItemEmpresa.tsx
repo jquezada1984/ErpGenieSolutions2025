@@ -104,11 +104,19 @@ const SeccionItemEmpresa: React.FC<Props> = ({
   const { data: empresasData, loading: loadingEmpresas, error: errorEmpresas } = useQuery(GET_EMPRESAS);
   const empresas = empresasData?.empresas || [];
 
+  /**
+   * Si solo ocultamos los combos pero debemos resolver `id_tipo_item` vía `defaultTipoItemCodigo`
+   * (Nuevo Producto → PRODUCT, Nuevo Servicio → SERVICE), el catálogo debe cargarse igual;
+   * si `skip` fuera siempre true con `ocultarCatalogosTipoYComportamiento`, `tipos` queda [] y nunca se asigna la FK.
+   */
+  const skipTiposCatalogo =
+    ocultarCatalogosTipoYComportamiento && !defaultTipoItemCodigo;
+
   const {
     data: tiposData,
     loading: loadingTipos,
     error: errorTipos,
-  } = useQuery(GET_TIPOS_ITEM_CATALOGO, { skip: ocultarCatalogosTipoYComportamiento });
+  } = useQuery(GET_TIPOS_ITEM_CATALOGO, { skip: skipTiposCatalogo });
   const tiposLista = tiposData?.tiposItemCatalogo;
   const tipos = useMemo(
     () =>

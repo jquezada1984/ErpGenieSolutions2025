@@ -129,6 +129,36 @@ export const listarAlmacenes = async () => {
   }
 };
 
+// Catálogo unidad de duración (InicioNestJs – tabla duracion_unidad_catalogo, vía GraphQL Gateway)
+export const listarDuracionUnidadCatalogo = async () => {
+  try {
+    const response = await gatewayClient.post('/graphql', {
+      query: `
+        query {
+          duracionUnidadesCatalogo {
+            id_duration_unit
+            codigo
+            nombre
+            descripcion
+            orden
+            estado
+          }
+        }
+      `,
+    });
+    const gqlErr = response.data?.errors?.[0]?.message;
+    if (gqlErr) {
+      throw new Error(gqlErr);
+    }
+    const data = response.data?.data;
+    const list = data?.duracionUnidadesCatalogo ?? response.data?.duracionUnidadesCatalogo ?? [];
+    return Array.isArray(list) ? list : [];
+  } catch (error) {
+    console.error('❌ Error al listar catálogo unidad de duración:', error);
+    throw error;
+  }
+};
+
 // Catálogo tipos de unidad (InicioNestJs – catálogo general vía GraphQL)
 export const listarTiposUnidad = async () => {
   try {
