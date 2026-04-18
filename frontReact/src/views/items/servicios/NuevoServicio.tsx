@@ -25,7 +25,6 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  FormText,
 } from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
 import classnames from 'classnames';
@@ -42,6 +41,8 @@ import {
   listarNaturalezasItem,
   crearEtiquetaCategoria,
   crearItemProducto,
+  actualizarEtiquetaCategoria,
+  cambiarEstadoEtiquetaCategoria,
 } from '../../../_apis_/item';
 import { mapItemFormToCreateBody } from '../utils/mapItemFormToCreateBody';
 import { listarDuracionUnidadCatalogo, listarImpuestos } from '../../../_apis_/gateway';
@@ -88,6 +89,7 @@ type DuracionUnidadCatalogoRow = {
 
 type EtiquetaRow = {
   id: string;
+  id_empresa: string;
   ref: string;
   nombre: string;
   descripcion: string;
@@ -109,6 +111,27 @@ function normalizeHexColor(input: string): string | null {
     return `#${a}${a}${b}${b}${c}${c}`.toLowerCase();
   }
   return null;
+}
+
+/** Mensaje legible desde error del API de etiquetas (mismo criterio que SeccionItemGeneral). */
+function mensajeErrorEtiquetaApi(e: unknown): string {
+  const err = e as Error & { data?: Record<string, unknown> };
+  const d = err.data;
+  if (d && typeof d === 'object') {
+    if (typeof d.error === 'string' && d.error.trim()) return d.error.trim();
+    const raw = d.errors;
+    if (raw && typeof raw === 'object') {
+      const parts: string[] = [];
+      for (const v of Object.values(raw)) {
+        if (Array.isArray(v)) parts.push(...v.filter((x): x is string => typeof x === 'string'));
+        else if (typeof v === 'string') parts.push(v);
+      }
+      if (parts.length) return parts.join(' ');
+    }
+    if (typeof d.detail === 'string' && d.detail.trim()) return d.detail.trim();
+  }
+  if (typeof err.message === 'string' && err.message.trim()) return err.message.trim();
+  return 'No se pudo completar la operación. Inténtelo de nuevo.';
 }
 
 const NuevoServicio: React.FC = () => {
@@ -136,9 +159,15 @@ const NuevoServicio: React.FC = () => {
   const [errDuracionUnidades, setErrDuracionUnidades] = useState<string | null>(null);
 
   const [labelsOpen, setLabelsOpen] = useState(false);
-  const [labelsView, setLabelsView] = useState<'list' | 'create'>('list');
+  const [labelsView, setLabelsView] = useState<'list' | 'create' | 'edit'>('list');
   const [labelsLoading, setLabelsLoading] = useState(false);
+  const [labelsSaving, setLabelsSaving] = useState(false);
   const [labelsErr, setLabelsErr] = useState<string | null>(null);
+  const [labelsOk, setLabelsOk] = useState<string | null>(null);
+  const [labelsBusqueda, setLabelsBusqueda] = useState('');
+  const [labelsFieldErrors, setLabelsFieldErrors] = useState<{ ref?: string; posicion?: string }>({});
+  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+  const [labelEstadoSavingId, setLabelEstadoSavingId] = useState<string | null>(null);
   const [labelsList, setLabelsList] = useState<EtiquetaRow[]>([]);
   const [newLabel, setNewLabel] = useState({
     ref: '',
@@ -146,6 +175,7 @@ const NuevoServicio: React.FC = () => {
     descripcion: '',
     color: '#0d6efd',
     posicion: 10,
+    estado: true,
   });
 
   const { watch, setValue, handleSubmit, reset } = useForm<ItemFormValues>({
@@ -155,6 +185,26 @@ const NuevoServicio: React.FC = () => {
   });
 
   const formData = watch();
+
+  /** UUID tipo_item_catalogo (SERVICE vía SeccionItemEmpresa); ámbito del catálogo de etiquetas. */
+  const idTipoItemEtiquetas = useMemo(
+    () => String(formData.id_tipo_item ?? '').trim(),
+    [formData.id_tipo_item]
+  );
+
+  const idEmpresaEtiquetas = useMemo(
+    () => String(formData.id_empresa ?? empresaUsuario ?? '').trim(),
+    [formData.id_empresa, empresaUsuario]
+  );
+
+  const etiquetasListadoFiltrado = useMemo(() => {
+    const q = labelsBusqueda.trim().toLowerCase();
+    if (!q) return labelsList;
+    return labelsList.filter(
+      (l) =>
+        (l.ref && l.ref.toLowerCase().includes(q)) || (l.nombre && l.nombre.toLowerCase().includes(q))
+    );
+  }, [labelsList, labelsBusqueda]);
 
   useEffect(() => {
     if (scope === 'EMPRESA' && empresaUsuario && !formData.id_empresa) {
@@ -349,6 +399,7 @@ const NuevoServicio: React.FC = () => {
 
   const toEtiqueta = (raw: Record<string, unknown>): EtiquetaRow => ({
     id: String(raw.id_etiqueta_categoria ?? raw.idEtiquetaCategoria ?? ''),
+    id_empresa: String(raw.id_empresa ?? raw.idEmpresa ?? ''),
     ref: String(raw.ref ?? raw.referencia ?? ''),
     nombre: String(raw.nombre ?? ''),
     descripcion: String(raw.descripcion ?? ''),
@@ -357,17 +408,37 @@ const NuevoServicio: React.FC = () => {
     estado: raw.estado !== false,
   });
 
+  const closeLabelsModal = useCallback(() => {
+    setLabelsOpen(false);
+    setLabelsView('list');
+    setLabelsErr(null);
+    setLabelsOk(null);
+    setLabelsFieldErrors({});
+    setLabelsBusqueda('');
+    setEditingLabelId(null);
+    setLabelEstadoSavingId(null);
+    setNewLabel({ ref: '', nombre: '', descripcion: '', color: '#0d6efd', posicion: 10, estado: true });
+  }, []);
+
   const loadLabels = useCallback(async () => {
-    const idEmp = String(formData.id_empresa || empresaUsuario || '').trim();
-    if (!idEmp) {
-      setLabelsErr('Seleccione una empresa en General para gestionar etiquetas/categorías.');
+    const idE = idEmpresaEtiquetas;
+    const idT = idTipoItemEtiquetas;
+    if (!idE) {
+      setLabelsErr(null);
       setLabelsList([]);
+      setLabelsLoading(false);
+      return;
+    }
+    if (!idT) {
+      setLabelsErr(null);
+      setLabelsList([]);
+      setLabelsLoading(false);
       return;
     }
     setLabelsLoading(true);
     setLabelsErr(null);
     try {
-      const data = await listarEtiquetasCategoria(idEmp);
+      const data = await listarEtiquetasCategoria(idE, idT);
       const list = Array.isArray(data) ? data : [];
       setLabelsList(list.map((x) => toEtiqueta((x ?? {}) as Record<string, unknown>)));
     } catch (e) {
@@ -376,45 +447,254 @@ const NuevoServicio: React.FC = () => {
     } finally {
       setLabelsLoading(false);
     }
-  }, [formData.id_empresa, empresaUsuario]);
+  }, [idEmpresaEtiquetas, idTipoItemEtiquetas]);
 
   const openLabels = useCallback(async () => {
     setLabelsOpen(true);
     setLabelsView('list');
+    setLabelsErr(null);
+    setLabelsOk(null);
+    setLabelsFieldErrors({});
+    setLabelsBusqueda('');
+    setEditingLabelId(null);
+    setLabelEstadoSavingId(null);
+    const idE = idEmpresaEtiquetas;
+    const idT = idTipoItemEtiquetas;
+    if (!idE || !idT) {
+      setLabelsList([]);
+      setLabelsLoading(false);
+      return;
+    }
     await loadLabels();
-  }, [loadLabels]);
+  }, [loadLabels, idEmpresaEtiquetas, idTipoItemEtiquetas]);
+
+  const handleStartCreateLabel = useCallback(() => {
+    setNewLabel({
+      ref: '',
+      nombre: '',
+      descripcion: '',
+      color: '#0d6efd',
+      posicion: labelsList.length + 1,
+      estado: true,
+    });
+    setLabelsErr(null);
+    setLabelsOk(null);
+    setLabelsFieldErrors({});
+    setEditingLabelId(null);
+    setLabelsView('create');
+  }, [labelsList.length]);
+
+  const handleCancelLabelForm = useCallback(() => {
+    setLabelsView('list');
+    setLabelsErr(null);
+    setLabelsFieldErrors({});
+    setEditingLabelId(null);
+    setNewLabel({ ref: '', nombre: '', descripcion: '', color: '#0d6efd', posicion: 10, estado: true });
+  }, []);
+
+  const handleStartEditLabel = useCallback((row: EtiquetaRow) => {
+    if (row.estado === false) return;
+    setLabelsErr(null);
+    setLabelsOk(null);
+    setLabelsFieldErrors({});
+    setNewLabel({
+      ref: row.ref,
+      nombre: row.nombre,
+      descripcion: row.descripcion,
+      color: normalizeHexColor(row.color) ?? row.color ?? '#0d6efd',
+      posicion: row.posicion,
+      estado: row.estado !== false,
+    });
+    setEditingLabelId(row.id || null);
+    setLabelsView('edit');
+  }, []);
+
+  const chgNewLabel = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    const v =
+      type === 'checkbox'
+        ? (e.target as HTMLInputElement).checked
+        : type === 'number'
+          ? value === ''
+            ? 0
+            : Number(value)
+          : value;
+    setNewLabel((p) => ({ ...p, [name]: v } as typeof p));
+    if (name === 'ref' || name === 'posicion') {
+      setLabelsErr(null);
+      setLabelsFieldErrors((prev) => {
+        const n = { ...prev };
+        if (name === 'ref') delete n.ref;
+        if (name === 'posicion') delete n.posicion;
+        return n;
+      });
+    }
+  }, []);
+
+  const handleToggleEtiquetaEstado = useCallback(
+    async (id: string, estadoActual: boolean, idEmpresaDeFila?: string) => {
+      if (!id || labelEstadoSavingId) return;
+      const idE = idEmpresaEtiquetas;
+      const idEmpresaPayload = (idEmpresaDeFila && String(idEmpresaDeFila).trim()) || idE;
+      if (!idEmpresaPayload) {
+        setLabelsErr('Debe indicar una empresa en General o iniciar sesión con empresa asignada.');
+        return;
+      }
+      if (!idTipoItemEtiquetas) {
+        setLabelsErr('Falta el tipo de ítem SERVICE resuelto en Empresa.');
+        return;
+      }
+      const siguiente = !estadoActual;
+      setLabelsErr(null);
+      setLabelEstadoSavingId(id);
+      setLabelsList((prev) => prev.map((row) => (row.id === id ? { ...row, estado: siguiente } : row)));
+      try {
+        const res = await cambiarEstadoEtiquetaCategoria(id, {
+          id_empresa: idEmpresaPayload,
+          estado: siguiente,
+        });
+        if (res && typeof res === 'object' && (res as { success?: boolean }).success === false) {
+          throw new Error(
+            typeof (res as { error?: string }).error === 'string'
+              ? (res as { error: string }).error
+              : 'No se pudo actualizar el estado'
+          );
+        }
+        await loadLabels();
+      } catch (e) {
+        console.error('Error al cambiar estado de etiqueta/categoría:', e);
+        setLabelsList((prev) => prev.map((row) => (row.id === id ? { ...row, estado: estadoActual } : row)));
+        setLabelsErr(mensajeErrorEtiquetaApi(e));
+      } finally {
+        setLabelEstadoSavingId(null);
+      }
+    },
+    [idEmpresaEtiquetas, idTipoItemEtiquetas, labelEstadoSavingId, loadLabels]
+  );
+
+  const handleGuardarEdicionLabel = useCallback(async () => {
+    const idEdit = (editingLabelId || '').trim();
+    const ref = (newLabel.ref || '').trim();
+    const posNum = Number(newLabel.posicion);
+    const idE = idEmpresaEtiquetas;
+
+    if (!idEdit) {
+      setLabelsErr('No se identifica la etiqueta a guardar. Vuelva al listado e intente de nuevo.');
+      return;
+    }
+    const nextField: { ref?: string; posicion?: string } = {};
+    if (!ref) nextField.ref = 'La referencia es obligatoria';
+    if (!Number.isFinite(posNum) || posNum < 0) {
+      nextField.posicion = 'Indique una posición válida (número ≥ 0)';
+    }
+    setLabelsFieldErrors(nextField);
+    if (!ref || nextField.posicion) {
+      setLabelsErr('Revise los campos marcados.');
+      return;
+    }
+    if (!idE) {
+      setLabelsErr('Debe indicar una empresa en General o iniciar sesión con empresa asignada.');
+      return;
+    }
+    if (!idTipoItemEtiquetas) {
+      setLabelsErr('Debe resolverse el tipo de ítem SERVICE en Empresa antes de guardar.');
+      return;
+    }
+
+    const descripcion = (newLabel.descripcion || '').trim();
+    const nombreTrim = (newLabel.nombre || '').trim();
+    const nombre = nombreTrim || ref;
+
+    setLabelsSaving(true);
+    setLabelsErr(null);
+    setLabelsOk(null);
+    try {
+      const res = await actualizarEtiquetaCategoria(idEdit, {
+        id_empresa: idE,
+        id_etiqueta_categoria: idEdit,
+        ref,
+        nombre,
+        descripcion: descripcion || null,
+        color: normalizeHexColor(newLabel.color) ?? '#0d6efd',
+        posicion: posNum,
+        estado: newLabel.estado !== false,
+      });
+      if (res && typeof res === 'object' && (res as { success?: boolean }).success === false) {
+        throw new Error(
+          typeof (res as { error?: string }).error === 'string'
+            ? (res as { error: string }).error
+            : 'Respuesta rechazada'
+        );
+      }
+      await loadLabels();
+      setLabelsView('list');
+      setEditingLabelId(null);
+      setLabelsFieldErrors({});
+      setLabelsOk('Los cambios se han guardado correctamente.');
+    } catch (e) {
+      console.error('Error al actualizar etiqueta/categoría:', e);
+      setLabelsErr(mensajeErrorEtiquetaApi(e));
+    } finally {
+      setLabelsSaving(false);
+    }
+  }, [editingLabelId, newLabel, idEmpresaEtiquetas, idTipoItemEtiquetas, loadLabels]);
 
   const createLabel = useCallback(async () => {
     const idEmp = String(formData.id_empresa || empresaUsuario || '').trim();
+    const idTipo = String(formData.id_tipo_item ?? '').trim();
     if (!idEmp) {
       setLabelsErr('Seleccione una empresa en General antes de crear etiquetas/categorías.');
       return;
     }
-    if (!newLabel.ref.trim() || !newLabel.nombre.trim()) {
-      setLabelsErr('Referencia y nombre son obligatorios.');
+    if (!idTipo) {
+      setLabelsErr('Debe resolverse el tipo de ítem SERVICE en Empresa antes de crear etiquetas.');
       return;
     }
-    setLabelsLoading(true);
-    setLabelsErr(null);
-    try {
-      await crearEtiquetaCategoria({
-        id_empresa: idEmp,
-        ref: newLabel.ref.trim(),
-        nombre: newLabel.nombre.trim(),
-        descripcion: newLabel.descripcion.trim(),
-        color: newLabel.color,
-        posicion: Number(newLabel.posicion || 0),
-        estado: true,
-      });
-      setLabelsView('list');
-      setNewLabel({ ref: '', nombre: '', descripcion: '', color: '#0d6efd', posicion: 10 });
-      await loadLabels();
-    } catch (e) {
-      setLabelsErr(e instanceof Error ? e.message : 'No se pudo crear la categoría.');
-    } finally {
-      setLabelsLoading(false);
+    const ref = (newLabel.ref || '').trim();
+    const posNum = Number(newLabel.posicion);
+    const nextField: { ref?: string; posicion?: string } = {};
+    if (!ref) nextField.ref = 'La referencia es obligatoria';
+    if (!Number.isFinite(posNum) || posNum < 0) {
+      nextField.posicion = 'Indique una posición válida (número ≥ 0)';
     }
-  }, [formData.id_empresa, empresaUsuario, loadLabels, newLabel]);
+    setLabelsFieldErrors(nextField);
+    if (!ref || nextField.posicion) {
+      setLabelsErr('Revise los campos marcados.');
+      return;
+    }
+    const nombreTrim = (newLabel.nombre || '').trim();
+    const nombre = nombreTrim || ref;
+
+    setLabelsSaving(true);
+    setLabelsErr(null);
+    setLabelsOk(null);
+    try {
+      const res = await crearEtiquetaCategoria({
+        id_empresa: idEmp,
+        id_tipo_item: idTipo,
+        ref,
+        nombre,
+        descripcion: (newLabel.descripcion || '').trim() || null,
+        color: normalizeHexColor(newLabel.color) ?? newLabel.color,
+        posicion: posNum,
+        estado: newLabel.estado !== false,
+      });
+      if (res && typeof res === 'object' && (res as { success?: boolean }).success === false) {
+        throw new Error(
+          typeof (res as { error?: string }).error === 'string' ? (res as { error: string }).error : 'Respuesta rechazada'
+        );
+      }
+      setLabelsView('list');
+      setNewLabel({ ref: '', nombre: '', descripcion: '', color: '#0d6efd', posicion: labelsList.length + 1, estado: true });
+      setLabelsFieldErrors({});
+      await loadLabels();
+      setLabelsOk('La etiqueta/categoría fue creada correctamente.');
+    } catch (e) {
+      setLabelsErr(mensajeErrorEtiquetaApi(e));
+    } finally {
+      setLabelsSaving(false);
+    }
+  }, [formData.id_empresa, formData.id_tipo_item, empresaUsuario, loadLabels, newLabel, labelsList.length]);
 
   const onColorHexChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setNewLabel((p) => ({ ...p, color: e.target.value }));
@@ -430,6 +710,12 @@ const NuevoServicio: React.FC = () => {
   const onColorNativeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setNewLabel((p) => ({ ...p, color: e.target.value }));
   }, []);
+
+  useEffect(() => {
+    if (!labelsOk) return;
+    const t = window.setTimeout(() => setLabelsOk(null), 5000);
+    return () => window.clearTimeout(t);
+  }, [labelsOk]);
 
   const onSubmitRHF = useCallback(
     async (values: ItemFormValues) => {
@@ -944,7 +1230,7 @@ const NuevoServicio: React.FC = () => {
 
           <Modal
             isOpen={labelsOpen}
-            toggle={() => setLabelsOpen(false)}
+            toggle={closeLabelsModal}
             size="lg"
             style={{ zIndex: 9999 }}
             backdrop="static"
@@ -952,11 +1238,16 @@ const NuevoServicio: React.FC = () => {
             centered
             contentClassName="modal-etiquetas-categoria-scope bg-white shadow"
           >
-            <ModalHeader toggle={() => setLabelsOpen(false)} className="modal-etiquetas-header border-0">
+            <ModalHeader toggle={closeLabelsModal} className="modal-etiquetas-header border-0">
               {labelsView === 'create' ? (
                 <span className="modal-title d-flex align-items-center gap-2">
                   <i className="fas fa-tags text-primary" />
                   Crear etiqueta / categoría
+                </span>
+              ) : labelsView === 'edit' ? (
+                <span className="modal-title d-flex align-items-center gap-2">
+                  <i className="fas fa-tags text-primary" />
+                  Editar etiqueta / categoría
                 </span>
               ) : (
                 <span className="modal-title d-flex align-items-center gap-2">
@@ -968,35 +1259,67 @@ const NuevoServicio: React.FC = () => {
             <ModalBody className="modal-etiquetas-body pt-0">
               {labelsView === 'list' && (
                 <div className="etiquetas-modal-lista">
+                  {labelsOk && (
+                    <Alert color="success" className="py-2 px-3 small mb-2" role="status">
+                      {labelsOk}
+                    </Alert>
+                  )}
                   {labelsErr && (
                     <Alert color="danger" className="py-2 px-3 small mb-2">
                       {labelsErr}
                     </Alert>
                   )}
-                  <p className="text-muted small mb-2 etiquetas-lista-ayuda">
-                    Catálogo de clasificación comercial para servicios.
-                  </p>
+                  {!idEmpresaEtiquetas && (
+                    <Alert color="warning" className="mb-3">
+                      Seleccione una empresa en <b>General</b> o use una sesión con empresa asignada para cargar y crear
+                      etiquetas.
+                    </Alert>
+                  )}
+                  {idEmpresaEtiquetas && !idTipoItemEtiquetas && (
+                    <Alert color="warning" className="py-2 small mb-2">
+                      Espere a que se cargue el tipo de ítem <strong>SERVICE</strong> en <strong>Empresa</strong>.
+                    </Alert>
+                  )}
                   <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                    <div className="etiquetas-subtitle">Listado por empresa</div>
+                    <div className="etiquetas-subtitle">Listado por empresa y tipo de ítem</div>
                     <Button
                       color="primary"
                       size="sm"
                       className="px-3"
-                      onClick={() => setLabelsView('create')}
-                      disabled={labelsLoading}
+                      onClick={handleStartCreateLabel}
+                      disabled={labelsLoading || !idEmpresaEtiquetas || !idTipoItemEtiquetas}
                     >
                       <i className="fas fa-plus me-1" />
                       Nueva
                     </Button>
                   </div>
+                  <Row className="mb-2 g-2 align-items-end">
+                    <Col xs={12} md={7} lg={6}>
+                      <Label for="srv_etq_busqueda" className="small text-muted mb-1">
+                        Buscar
+                      </Label>
+                      <Input
+                        id="srv_etq_busqueda"
+                        type="search"
+                        bsSize="sm"
+                        className="etiquetas-busqueda-input"
+                        placeholder="Buscar por referencia o nombre"
+                        value={labelsBusqueda}
+                        onChange={(e) => setLabelsBusqueda(e.target.value)}
+                        autoComplete="off"
+                        aria-label="Buscar etiquetas por referencia o nombre"
+                      />
+                    </Col>
+                  </Row>
                   <div className="etiquetas-tabla-scroll">
                     <table className="table table-custom table-bordered table-sm mb-0 etiquetas-tabla-datos">
                       <colgroup>
-                        <col style={{ width: '12%' }} />
-                        <col style={{ width: '20%' }} />
-                        <col />
-                        <col style={{ width: '8%' }} />
+                        <col style={{ width: '11%' }} />
                         <col style={{ width: '18%' }} />
+                        <col />
+                        <col style={{ width: '7%' }} />
+                        <col style={{ width: '16%' }} />
+                        <col style={{ width: '124px' }} />
                       </colgroup>
                       <thead>
                         <tr>
@@ -1005,23 +1328,26 @@ const NuevoServicio: React.FC = () => {
                           <th>Descripción</th>
                           <th className="text-end">Pos.</th>
                           <th>Color</th>
+                          <th className="etiquetas-col-acciones">Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
                         {labelsLoading ? (
                           <tr>
-                            <td colSpan={5} className="text-center text-muted small py-4">
+                            <td colSpan={6} className="text-center text-muted small py-4">
                               Cargando catálogo…
                             </td>
                           </tr>
-                        ) : labelsList.length === 0 ? (
+                        ) : etiquetasListadoFiltrado.length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="text-center text-muted small py-4">
-                              No hay etiquetas para mostrar.
+                            <td colSpan={6} className="text-center text-muted small py-4">
+                              {labelsList.length === 0
+                                ? 'No hay etiquetas para mostrar.'
+                                : 'Ningún resultado coincide con la búsqueda.'}
                             </td>
                           </tr>
                         ) : (
-                          labelsList.map((l, idx) => (
+                          etiquetasListadoFiltrado.map((l, idx) => (
                             <tr key={l.id || `${l.ref || 'row'}-${idx}`}>
                               <td className="text-nowrap">{l.ref}</td>
                               <td className="text-truncate etiquetas-col-nombre" title={l.nombre}>
@@ -1040,6 +1366,47 @@ const NuevoServicio: React.FC = () => {
                                 />
                                 <span className="text-muted small">{l.color}</span>
                               </td>
+                              <td className="etiquetas-col-acciones">
+                                <div className="d-flex align-items-center justify-content-center gap-2">
+                                  <Button
+                                    type="button"
+                                    color={l.estado === false ? 'secondary' : 'info'}
+                                    size="sm"
+                                    className="px-2 py-1 etiquetas-btn-editar"
+                                    title={l.estado === false ? 'Actívela para poder editar' : 'Editar'}
+                                    disabled={
+                                      l.estado === false || labelsLoading || labelEstadoSavingId === l.id
+                                    }
+                                    onClick={() =>
+                                      l.estado !== false &&
+                                      !labelsLoading &&
+                                      labelEstadoSavingId !== l.id &&
+                                      handleStartEditLabel(l)
+                                    }
+                                    aria-label="Editar etiqueta o categoría"
+                                  >
+                                    <i className="bi bi-pencil-fill" aria-hidden />
+                                  </Button>
+                                  <div className="form-check form-switch etiquetas-switch-fila mb-0">
+                                    <Input
+                                      id={`srv-etq-estado-${l.id || String(idx)}`}
+                                      type="checkbox"
+                                      className="form-check-input"
+                                      checked={l.estado !== false}
+                                      disabled={labelsLoading || labelEstadoSavingId === l.id}
+                                      onChange={() =>
+                                        handleToggleEtiquetaEstado(l.id, l.estado !== false, l.id_empresa)
+                                      }
+                                      title={l.estado !== false ? 'Activo' : 'Inactivo'}
+                                      aria-label={
+                                        l.estado !== false
+                                          ? 'Etiqueta activa; pulse para marcar inactiva'
+                                          : 'Etiqueta inactiva; pulse para marcar activa'
+                                      }
+                                    />
+                                  </div>
+                                </div>
+                              </td>
                             </tr>
                           ))
                         )}
@@ -1049,39 +1416,48 @@ const NuevoServicio: React.FC = () => {
                 </div>
               )}
 
-              {labelsView === 'create' && (
+              {(labelsView === 'create' || labelsView === 'edit') && (
                 <>
                   {labelsErr && (
                     <Alert color="danger" className="py-2 px-3 small mb-2">
                       {labelsErr}
                     </Alert>
                   )}
-                  <p className="text-muted small mb-3">
-                    Complete los datos. La referencia y el nombre son obligatorios para crear la categoría en el catálogo.
-                  </p>
+                  {labelsView === 'create' ? (
+                    <p className="text-muted small mb-3">
+                      Complete los datos. La referencia es obligatoria; el nombre, si lo deja vacío, usará la referencia al
+                      guardar.
+                    </p>
+                  ) : (
+                    <p className="text-muted small mb-3">
+                      Modifique los datos y pulse &quot;Guardar cambios&quot; para actualizar el catálogo en el servidor.
+                    </p>
+                  )}
                   <Row>
                     <Col md={6}>
                       <FormGroup>
-                        <Label for="label_ref">
+                        <Label for="srv_etq_ref">
                           Ref. <span className="text-danger">*</span>
                         </Label>
                         <Input
-                          id="label_ref"
+                          id="srv_etq_ref"
+                          name="ref"
                           value={newLabel.ref}
-                          onChange={(e) => setNewLabel((p) => ({ ...p, ref: e.target.value }))}
+                          onChange={chgNewLabel}
                           placeholder="ETQ-003"
+                          invalid={!!labelsFieldErrors.ref}
                         />
+                        {labelsFieldErrors.ref && <FormText color="danger">{labelsFieldErrors.ref}</FormText>}
                       </FormGroup>
                     </Col>
                     <Col md={6}>
                       <FormGroup>
-                        <Label for="label_nombre">
-                          Nombre <span className="text-danger">*</span>
-                        </Label>
+                        <Label for="srv_etq_nombre">Nombre</Label>
                         <Input
-                          id="label_nombre"
+                          id="srv_etq_nombre"
+                          name="nombre"
                           value={newLabel.nombre}
-                          onChange={(e) => setNewLabel((p) => ({ ...p, nombre: e.target.value }))}
+                          onChange={chgNewLabel}
                           placeholder="Nombre visible"
                         />
                       </FormGroup>
@@ -1091,11 +1467,12 @@ const NuevoServicio: React.FC = () => {
                   <Row>
                     <Col md={12}>
                       <FormGroup>
-                        <Label for="label_desc">Descripción</Label>
+                        <Label for="srv_etq_descripcion">Descripción</Label>
                         <Input
-                          id="label_desc"
+                          id="srv_etq_descripcion"
+                          name="descripcion"
                           value={newLabel.descripcion}
-                          onChange={(e) => setNewLabel((p) => ({ ...p, descripcion: e.target.value }))}
+                          onChange={chgNewLabel}
                           placeholder="Descripción opcional"
                         />
                       </FormGroup>
@@ -1105,7 +1482,7 @@ const NuevoServicio: React.FC = () => {
                   <Row>
                     <Col md={12}>
                       <FormGroup>
-                        <Label for="label_color_hex">Color</Label>
+                        <Label for="srv_etq_color_hex">Color</Label>
                         <div className="d-flex flex-wrap align-items-start gap-3">
                           <div
                             className="rounded border etq-color-swatch"
@@ -1118,7 +1495,8 @@ const NuevoServicio: React.FC = () => {
                           />
                           <div className="flex-grow-1" style={{ minWidth: 160 }}>
                             <Input
-                              id="label_color_hex"
+                              id="srv_etq_color_hex"
+                              name="color"
                               type="text"
                               value={newLabel.color}
                               onChange={onColorHexChange}
@@ -1133,11 +1511,11 @@ const NuevoServicio: React.FC = () => {
                             </FormText>
                           </div>
                           <div>
-                            <Label className="small text-muted d-block mb-1" for="label_color_native">
+                            <Label className="small text-muted d-block mb-1" for="srv_etq_color_native">
                               Selector
                             </Label>
                             <Input
-                              id="label_color_native"
+                              id="srv_etq_color_native"
                               type="color"
                               className="etq-color-native form-control form-control-color"
                               value={normalizeHexColor(newLabel.color) ?? '#0d6efd'}
@@ -1153,16 +1531,36 @@ const NuevoServicio: React.FC = () => {
                   <Row>
                     <Col md={6}>
                       <FormGroup>
-                        <Label for="label_pos">Posición</Label>
+                        <Label for="srv_etq_posicion">Posición</Label>
                         <Input
-                          id="label_pos"
+                          id="srv_etq_posicion"
+                          name="posicion"
                           type="number"
-                          min={0}
                           value={newLabel.posicion}
-                          onChange={(e) =>
-                            setNewLabel((p) => ({ ...p, posicion: e.target.value === '' ? 0 : Number(e.target.value) }))
-                          }
+                          onChange={chgNewLabel}
+                          min={0}
+                          invalid={!!labelsFieldErrors.posicion}
                         />
+                        {labelsFieldErrors.posicion && (
+                          <FormText color="danger">{labelsFieldErrors.posicion}</FormText>
+                        )}
+                      </FormGroup>
+                    </Col>
+                    <Col md={6} className="d-flex align-items-end">
+                      <FormGroup className="w-100">
+                        <div className="form-check form-switch mb-3 pb-1">
+                          <Input
+                            id="srv_etq_estado"
+                            name="estado"
+                            type="checkbox"
+                            className="form-check-input"
+                            checked={newLabel.estado}
+                            onChange={chgNewLabel}
+                          />
+                          <Label for="srv_etq_estado" className="form-check-label ms-2">
+                            Activo
+                          </Label>
+                        </div>
                       </FormGroup>
                     </Col>
                   </Row>
@@ -1172,15 +1570,38 @@ const NuevoServicio: React.FC = () => {
             <ModalFooter className="modal-etiquetas-footer">
               {labelsView === 'create' ? (
                 <>
-                  <Button color="secondary" outline className="me-2" onClick={() => setLabelsView('list')}>
+                  <Button color="secondary" outline className="me-2" onClick={handleCancelLabelForm}>
                     Anular
                   </Button>
-                  <Button color="primary" onClick={createLabel} disabled={labelsLoading}>
-                    Crear
+                  <Button color="primary" onClick={createLabel} disabled={labelsLoading || labelsSaving}>
+                    {labelsSaving ? (
+                      <>
+                        <Spinner size="sm" className="me-2" />
+                        Guardando…
+                      </>
+                    ) : (
+                      'Crear'
+                    )}
+                  </Button>
+                </>
+              ) : labelsView === 'edit' ? (
+                <>
+                  <Button color="secondary" outline className="me-2" onClick={handleCancelLabelForm}>
+                    Volver al listado
+                  </Button>
+                  <Button color="primary" onClick={handleGuardarEdicionLabel} disabled={labelsLoading || labelsSaving}>
+                    {labelsSaving ? (
+                      <>
+                        <Spinner size="sm" className="me-2" />
+                        Guardando…
+                      </>
+                    ) : (
+                      'Guardar cambios'
+                    )}
                   </Button>
                 </>
               ) : (
-                <Button color="secondary" outline onClick={() => setLabelsOpen(false)}>
+                <Button color="secondary" outline onClick={closeLabelsModal}>
                   Cerrar
                 </Button>
               )}

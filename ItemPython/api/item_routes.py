@@ -19,6 +19,14 @@ def _ctx_empresa_user():
     return id_empresa, user_id
 
 
+def _truthy_query(val) -> bool:
+    """Query flags: 1, true, yes, si, on."""
+    if val is None:
+        return False
+    s = str(val).strip().lower()
+    return s in ("1", "true", "yes", "si", "sí", "on")
+
+
 @item_bp.route("/item", methods=["POST", "OPTIONS"])
 @item_bp.route("/item/", methods=["POST", "OPTIONS"])
 def crear_item():
@@ -156,8 +164,18 @@ def etiqueta_categoria():
         if not id_empresa:
             return jsonify({"success": True, "data": []}), 200
 
+        id_tipo_item = (request.args.get("id_tipo_item") or "").strip() or None
+        # Modal producto: incluir filas legado id_tipo_item NULL; modal servicio no envía este flag.
+        incluir_sin_tipo_item = bool(id_tipo_item) and _truthy_query(
+            request.args.get("incluir_sin_tipo_item")
+        )
+
         try:
-            data = servicio_listar_etiqueta_categoria(id_empresa)
+            data = servicio_listar_etiqueta_categoria(
+                id_empresa,
+                id_tipo_item,
+                incluir_sin_tipo_item=incluir_sin_tipo_item,
+            )
             return jsonify({"success": True, "data": data}), 200
         except SQLAlchemyError as e:
             return jsonify({"success": False, "error": "Error de base de datos", "detail": str(e)}), 500

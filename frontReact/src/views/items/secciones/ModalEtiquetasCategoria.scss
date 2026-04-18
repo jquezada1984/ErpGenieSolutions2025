@@ -162,8 +162,8 @@
       margin-right: 6px;
     }
 
-    /** Editar: mismo patrón que Lista de Terceros (btn info + bi-pencil-fill), cursor mano. */
-    .etiquetas-btn-editar {
+    /** Editar: mismo patrón que Lista de Terceros (info activo / secondary inactivo + bi-pencil-fill). */
+    .etiquetas-btn-editar:not(:disabled) {
       cursor: pointer;
     }
 

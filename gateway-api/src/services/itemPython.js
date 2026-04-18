@@ -23,14 +23,21 @@ async function actualizarItem(idItem, body, req) {
   return res.data;
 }
 
-/** Catálogo item_etiqueta_categoria (listado por empresa). */
+/** Catálogo item_etiqueta_categoria (listado por empresa; opcional id_tipo_item vía tipo_item_catalogo). */
 async function listarEtiquetasCategoria(req) {
   const headers = await ctxHeaders(req, {});
   const q = req.query || {};
   console.log('📤 Gateway -> ItemPython: GET /api/item/etiqueta-categoria');
+  const params = { id_empresa: q.id_empresa || '' };
+  if (q.id_tipo_item != null && String(q.id_tipo_item).trim() !== '') {
+    params.id_tipo_item = String(q.id_tipo_item).trim();
+  }
+  if (q.incluir_sin_tipo_item != null && String(q.incluir_sin_tipo_item).trim() !== '') {
+    params.incluir_sin_tipo_item = String(q.incluir_sin_tipo_item).trim();
+  }
   const res = await http.get('/api/item/etiqueta-categoria', {
     headers,
-    params: { id_empresa: q.id_empresa || '' },
+    params,
   });
   return res.data;
 }

@@ -172,15 +172,24 @@ export const actualizarItemProducto = async (id_item, body) => {
 
 /**
  * Catálogo etiquetas/categorías comerciales (tabla item_etiqueta_categoria).
- * Gateway → ItemPython GET /api/item/etiqueta-categoria (params opcionales id_empresa).
+ * Gateway → ItemPython GET /api/item/etiqueta-categoria (params: id_empresa; opcional id_tipo_item UUID tipo_item_catalogo).
  * Sin id_empresa el backend devuelve lista vacía; no rompe la UI.
+ * Sin id_tipo_item el backend lista todas las filas de la empresa (compatibilidad consumidores antiguos).
+ * opciones.incluirSinTipoItem: solo modal Nuevo Producto — incluye filas con id_tipo_item NULL (legado).
  */
-export const listarEtiquetasCategoria = async (id_empresa) => {
+export const listarEtiquetasCategoria = async (id_empresa, id_tipo_item, opciones = {}) => {
   try {
-    const config =
-      id_empresa != null && String(id_empresa).trim() !== ''
-        ? { params: { id_empresa: String(id_empresa).trim() } }
-        : {};
+    const params = {};
+    if (id_empresa != null && String(id_empresa).trim() !== '') {
+      params.id_empresa = String(id_empresa).trim();
+    }
+    if (id_tipo_item != null && String(id_tipo_item).trim() !== '') {
+      params.id_tipo_item = String(id_tipo_item).trim();
+    }
+    if (opciones && opciones.incluirSinTipoItem === true) {
+      params.incluir_sin_tipo_item = '1';
+    }
+    const config = Object.keys(params).length > 0 ? { params } : {};
     const response = await apiClient.get('/api/item/etiqueta-categoria', config);
     const raw = response.data;
     if (raw && typeof raw === 'object' && Array.isArray(raw.data)) return raw.data;

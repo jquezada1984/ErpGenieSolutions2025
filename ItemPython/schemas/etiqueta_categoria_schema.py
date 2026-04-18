@@ -7,6 +7,7 @@ class EtiquetaCategoriaCreateSchema(Schema):
         unknown = INCLUDE
 
     id_empresa = fields.UUID(load_default=None, allow_none=True)
+    id_tipo_item = fields.UUID(load_default=None, allow_none=True)
     ref = fields.Str(required=True)
     nombre = fields.Str(allow_none=True, load_default=None)
     descripcion = fields.Str(allow_none=True, load_default=None)

@@ -220,6 +220,12 @@ const SeccionItemGeneral: React.FC<Props> = ({
     [data.id_empresa, jwtPayload]
   );
 
+  /** UUID en tipo_item_catalogo (PRODUCT vía SeccionItemEmpresa); requerido para catálogo de etiquetas por ámbito. */
+  const idTipoItemEtiquetas = useMemo(
+    () => String(data.id_tipo_item ?? '').trim(),
+    [data.id_tipo_item]
+  );
+
   const [f, setF] = useState({
     nombre: '',
     codigo: '',
@@ -312,7 +318,8 @@ const SeccionItemGeneral: React.FC<Props> = ({
   useEffect(() => {
     if (tipoItem !== 'producto') return;
     const idE = idEmpresaEtiquetas;
-    if (!idE) {
+    const idT = idTipoItemEtiquetas;
+    if (!idE || !idT) {
       setEtiquetasComboOpciones([]);
       setSelEtiquetasCategoriasVisual([]);
       setEtiquetasComboLoading(false);
@@ -320,7 +327,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
     }
     let cancelled = false;
     setEtiquetasComboLoading(true);
-    listarEtiquetasCategoria(idE)
+    listarEtiquetasCategoria(idE, idT, { incluirSinTipoItem: true })
       .then((rows) => {
         if (cancelled) return;
         const arr = Array.isArray(rows) ? rows : [];
@@ -342,7 +349,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [tipoItem, idEmpresaEtiquetas, labelsModalOpen]);
+  }, [tipoItem, idEmpresaEtiquetas, idTipoItemEtiquetas, labelsModalOpen]);
 
   useEffect(() => {
     let idInv = data.id_tipo_control_inventario ?? '';
@@ -577,13 +584,15 @@ const SeccionItemGeneral: React.FC<Props> = ({
   useEffect(() => {
     if (!labelsModalOpen) return;
     const idE = idEmpresaEtiquetas;
-    if (!idE) {
+    const idT = idTipoItemEtiquetas;
+    if (!idE || !idT) {
       setLabelsList([]);
+      setLabelsLoading(false);
       return;
     }
     let cancelled = false;
     setLabelsLoading(true);
-    listarEtiquetasCategoria(idE)
+    listarEtiquetasCategoria(idE, idT, { incluirSinTipoItem: true })
       .then((raw: unknown) => {
         if (cancelled) return;
         setLabelsList(mapRowsEtiquetaApi(normalizarListaEtiquetasApi(raw)));
@@ -597,7 +606,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [labelsModalOpen, idEmpresaEtiquetas, mapRowsEtiquetaApi]);
+  }, [labelsModalOpen, idEmpresaEtiquetas, idTipoItemEtiquetas, mapRowsEtiquetaApi]);
 
   useEffect(() => {
     if (!labelsOk) return;
@@ -654,6 +663,10 @@ const SeccionItemGeneral: React.FC<Props> = ({
         setLabelsErr('Debe indicar una empresa (pestaña Empresa) o iniciar sesión con una empresa asignada.');
         return;
       }
+      if (!idTipoItemEtiquetas) {
+        setLabelsErr('Falta el tipo de ítem (PRODUCT) en el formulario para gestionar el catálogo.');
+        return;
+      }
       const siguiente = !estadoActual;
       setLabelsErr(null);
       setLabelEstadoSavingId(id);
@@ -671,7 +684,9 @@ const SeccionItemGeneral: React.FC<Props> = ({
           );
         }
         try {
-          const raw = await listarEtiquetasCategoria(idEmpresaPayload);
+          const raw = await listarEtiquetasCategoria(idEmpresaPayload, idTipoItemEtiquetas, {
+            incluirSinTipoItem: true,
+          });
           setLabelsList(mapRowsEtiquetaApi(normalizarListaEtiquetasApi(raw)));
         } catch (refreshErr) {
           console.error('El estado se guardó pero falló al refrescar el listado:', refreshErr);
@@ -687,7 +702,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
         setLabelEstadoSavingId(null);
       }
     },
-    [idEmpresaEtiquetas, labelEstadoSavingId, mapRowsEtiquetaApi]
+    [idEmpresaEtiquetas, idTipoItemEtiquetas, labelEstadoSavingId, mapRowsEtiquetaApi]
   );
 
   const handleStartCreateLabel = useCallback(() => {
@@ -718,6 +733,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
       posicion: number;
       estado: boolean;
     }) => {
+      if (row.estado === false) return;
       setLabelsOk(null);
       setLabelsErr(null);
       setLabelsInfo(null);
@@ -769,6 +785,10 @@ const SeccionItemGeneral: React.FC<Props> = ({
       setLabelsErr('Debe indicar una empresa (pestaña Empresa) o iniciar sesión con una empresa asignada.');
       return;
     }
+    if (!idTipoItemEtiquetas) {
+      setLabelsErr('Debe resolverse el tipo de ítem (PRODUCT) en la pestaña Empresa antes de editar etiquetas.');
+      return;
+    }
 
     const descripcion = (newLabel.descripcion || '').trim();
     const nombreTrim = (newLabel.nombre || '').trim();
@@ -796,7 +816,9 @@ const SeccionItemGeneral: React.FC<Props> = ({
             : 'Respuesta rechazada'
         );
       }
-      const raw = await listarEtiquetasCategoria(idE);
+      const raw = await listarEtiquetasCategoria(idE, idTipoItemEtiquetas, {
+        incluirSinTipoItem: true,
+      });
       const listActualizado = mapRowsEtiquetaApi(normalizarListaEtiquetasApi(raw));
       setLabelsList(listActualizado);
       setLabelsView('list');
@@ -809,11 +831,12 @@ const SeccionItemGeneral: React.FC<Props> = ({
     } finally {
       setLabelsSaving(false);
     }
-  }, [newLabel, editingLabelId, idEmpresaEtiquetas, mapRowsEtiquetaApi]);
+  }, [newLabel, editingLabelId, idEmpresaEtiquetas, idTipoItemEtiquetas, mapRowsEtiquetaApi]);
 
   const handleCreateLabel = useCallback(async () => {
     const ref = (newLabel.ref || '').trim();
     const idE = idEmpresaEtiquetas;
+    const idT = idTipoItemEtiquetas;
 
     const nextField: { ref?: string; posicion?: string } = {};
     if (!ref) nextField.ref = 'La referencia es obligatoria';
@@ -830,6 +853,10 @@ const SeccionItemGeneral: React.FC<Props> = ({
       setLabelsErr('Debe indicar una empresa (pestaña Empresa) o iniciar sesión con una empresa asignada.');
       return;
     }
+    if (!idT) {
+      setLabelsErr('Debe resolverse el tipo de ítem (PRODUCT) en la pestaña Empresa antes de crear etiquetas.');
+      return;
+    }
 
     const descripcion = (newLabel.descripcion || '').trim();
     const nombreTrim = (newLabel.nombre || '').trim();
@@ -840,6 +867,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
     try {
       const res = await crearEtiquetaCategoria({
         id_empresa: idE,
+        id_tipo_item: idT,
         ref,
         nombre,
         descripcion: descripcion || null,
@@ -850,7 +878,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
       if (res && typeof res === 'object' && (res as { success?: boolean }).success === false) {
         throw new Error(typeof (res as { error?: string }).error === 'string' ? (res as { error: string }).error : 'Respuesta rechazada');
       }
-      const raw = await listarEtiquetasCategoria(idE);
+      const raw = await listarEtiquetasCategoria(idE, idT, { incluirSinTipoItem: true });
       const listActualizado = mapRowsEtiquetaApi(normalizarListaEtiquetasApi(raw));
       setLabelsList(listActualizado);
       setLabelsView('create');
@@ -872,7 +900,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
     } finally {
       setLabelsSaving(false);
     }
-  }, [newLabel, idEmpresaEtiquetas, mapRowsEtiquetaApi]);
+  }, [newLabel, idEmpresaEtiquetas, idTipoItemEtiquetas, mapRowsEtiquetaApi]);
 
   const onColorHexChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setNewLabel((p) => ({ ...p, color: e.target.value }));
@@ -1069,17 +1097,19 @@ const SeccionItemGeneral: React.FC<Props> = ({
                   value={selEtiquetasCategoriasVisual}
                   onChange={(opts) => setSelEtiquetasCategoriasVisual(opts ?? [])}
                   placeholder={
-                    idEmpresaEtiquetas
-                      ? etiquetasComboLoading
-                        ? 'Cargando catálogo…'
-                        : 'Seleccionar una o varias'
-                      : 'Seleccione empresa en la pestaña Empresa para cargar el catálogo'
+                    !idEmpresaEtiquetas
+                      ? 'Seleccione empresa en la pestaña Empresa para cargar el catálogo'
+                      : !idTipoItemEtiquetas
+                        ? 'Espere el tipo de ítem PRODUCT (pestaña Empresa)…'
+                        : etiquetasComboLoading
+                          ? 'Cargando catálogo…'
+                          : 'Seleccionar una o varias'
                   }
                   styles={estilosEtiquetasCategoriasVisual}
                   classNamePrefix="etq-cat-visual"
                   isClearable
                   isLoading={etiquetasComboLoading}
-                  isDisabled={!idEmpresaEtiquetas}
+                  isDisabled={!idEmpresaEtiquetas || !idTipoItemEtiquetas}
                   closeMenuOnSelect={false}
                   onFocus={() => setEtiquetasCatSelectFocused(true)}
                   onBlur={() => setEtiquetasCatSelectFocused(false)}
@@ -1091,6 +1121,11 @@ const SeccionItemGeneral: React.FC<Props> = ({
                   <FormText color="muted" className="mb-0">
                     Indique empresa en <strong>Empresa</strong> o use sesión con empresa asignada para ver las
                     etiquetas disponibles.
+                  </FormText>
+                ) : !idTipoItemEtiquetas ? (
+                  <FormText color="muted" className="mb-0">
+                    El catálogo de etiquetas se filtra por empresa y por tipo de ítem <strong>PRODUCT</strong> (UUID en{' '}
+                    <strong>tipo_item_catalogo</strong>).
                   </FormText>
                 ) : null}
               </FormGroup>
@@ -1316,12 +1351,25 @@ const SeccionItemGeneral: React.FC<Props> = ({
                     crear etiquetas.
                   </Alert>
                 )}
+                {idEmpresaEtiquetas && !idTipoItemEtiquetas && (
+                  <Alert color="warning" className="mb-3">
+                    Espere a que se cargue el tipo de ítem <b>PRODUCT</b> en la pestaña <b>Empresa</b> (catálogo{' '}
+                    <b>tipo_item_catalogo</b>) para listar y crear etiquetas de producto.
+                  </Alert>
+                )}
                 <p className="text-muted small mb-2 etiquetas-lista-ayuda">
-                  Catálogo de clasificación comercial para productos. Estilo de acciones alineado con la lista de terceros.
+                  Catálogo de clasificación comercial para productos (empresa + tipo PRODUCT). Estilo de acciones alineado con
+                  la lista de terceros.
                 </p>
                 <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                  <div className="etiquetas-subtitle">Listado por empresa</div>
-                  <Button color="primary" size="sm" className="px-3" onClick={handleStartCreateLabel} disabled={labelsLoading}>
+                  <div className="etiquetas-subtitle">Listado por empresa y tipo de ítem</div>
+                  <Button
+                    color="primary"
+                    size="sm"
+                    className="px-3"
+                    onClick={handleStartCreateLabel}
+                    disabled={labelsLoading || !idEmpresaEtiquetas || !idTipoItemEtiquetas}
+                  >
                     <i className="fas fa-plus me-1" />
                     Nueva
                   </Button>
@@ -1403,11 +1451,19 @@ const SeccionItemGeneral: React.FC<Props> = ({
                               <div className="d-flex align-items-center justify-content-center gap-2">
                                 <Button
                                   type="button"
-                                  color="info"
+                                  color={l.estado === false ? 'secondary' : 'info'}
                                   size="sm"
                                   className="px-2 py-1 etiquetas-btn-editar"
-                                  title="Editar"
-                                  onClick={() => handleStartEditLabel(l)}
+                                  title={l.estado === false ? 'Actívela para poder editar' : 'Editar'}
+                                  disabled={
+                                    l.estado === false || labelsLoading || labelEstadoSavingId === l.id
+                                  }
+                                  onClick={() =>
+                                    l.estado !== false &&
+                                    !labelsLoading &&
+                                    labelEstadoSavingId !== l.id &&
+                                    handleStartEditLabel(l)
+                                  }
                                   aria-label="Editar etiqueta o categoría"
                                 >
                                   <i className="bi bi-pencil-fill" aria-hidden />

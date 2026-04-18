@@ -19,10 +19,20 @@ from repositories.etiqueta_categoria_repository import (
 from services.item_service import _uuid_or_none
 
 
-def servicio_listar_etiqueta_categoria(id_empresa: str) -> List[Dict[str, Any]]:
+def servicio_listar_etiqueta_categoria(
+    id_empresa: str,
+    id_tipo_item: Optional[str] = None,
+    *,
+    incluir_sin_tipo_item: bool = False,
+) -> List[Dict[str, Any]]:
     if not id_empresa or not str(id_empresa).strip():
         return []
-    return list_etiquetas_categoria_by_empresa(str(id_empresa).strip())
+    tid = (id_tipo_item or "").strip() or None
+    return list_etiquetas_categoria_by_empresa(
+        str(id_empresa).strip(),
+        tid,
+        incluir_sin_tipo_item=incluir_sin_tipo_item,
+    )
 
 
 def servicio_crear_etiqueta_categoria(
@@ -52,8 +62,14 @@ def servicio_crear_etiqueta_categoria(
     if estado is None:
         estado = True
 
+    id_tipo_raw = data.get("id_tipo_item")
+    id_tipo_str: Optional[str] = None
+    if id_tipo_raw is not None and str(id_tipo_raw).strip():
+        id_tipo_str = str(id_tipo_raw).strip()
+
     row: Dict[str, Any] = {
         "id_empresa": id_empresa,
+        "id_tipo_item": id_tipo_str,
         "ref": ref,
         "nombre": nombre,
         "descripcion": descripcion,
