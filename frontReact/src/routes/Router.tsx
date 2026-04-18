@@ -57,6 +57,18 @@ const NuevoContacto = Loadable(lazy(() => import('../views/terceros/contactos/Nu
 const EditarContacto = Loadable(lazy(() => import('../views/terceros/contactos/EditarContacto')));
 const ContabilidadGeneral = Loadable(lazy(() => import('../views/contabilidad/ContabilidadGeneral')));
 const ContabilidadConfiguracion = Loadable(lazy(() => import('../views/contabilidad/ContabilidadConfiguracion')));
+// Módulo Item (productos y servicios)
+const Productos = Loadable(lazy(() => import('../views/items/productos/Productos')));
+const ProductosStocks = Loadable(lazy(() => import('../views/items/productos/ProductosStocks')));
+const ProductosStocksLotes = Loadable(lazy(() => import('../views/items/productos/ProductosStocksLotes')));
+const ProductosLotes = Loadable(lazy(() => import('../views/items/productos/ProductosLotes')));
+const ProductosAtributos = Loadable(lazy(() => import('../views/items/productos/ProductosAtributos')));
+const ProductosEstadisticas = Loadable(lazy(() => import('../views/items/productos/ProductosEstadisticas')));
+const NuevoProducto = Loadable(lazy(() => import('../views/items/productos/NuevoProducto')));
+const EditarProducto = Loadable(lazy(() => import('../views/items/productos/EditarProducto')));
+const Servicios = Loadable(lazy(() => import('../views/items/servicios/Servicios')));
+const NuevoServicio = Loadable(lazy(() => import('../views/items/servicios/NuevoServicio')));
+const EditarServicio = Loadable(lazy(() => import('../views/items/servicios/EditarServicio')));
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
@@ -122,9 +134,6 @@ const ThemeRoutes: RouteType[] = [
       { path: 'terceros/:id/contactos', element: <Contactos /> },
       { path: 'terceros/:id/contactos/nuevo', element: <NuevoContacto /> },
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
-
-      { path: 'contabilidad/general', element: <ContabilidadGeneral /> },
-      { path: 'contabilidad/configuracion/general', element: <ContabilidadConfiguracion /> },
 
     ],
   },

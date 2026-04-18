@@ -14,6 +14,11 @@ const getTargetService = (query, config) => {
     console.log('🔄 Redirigiendo mutación de autenticación a InicioNestJs');
     return config.nestjsService;
   }
+
+  if (query && query.includes('mutation') && query.includes('actualizarEstadoItem')) {
+    console.log('🔄 Redirigiendo mutación actualizarEstadoItem a ItemNestJs');
+    return config.itemNestJsService;
+  }
   
   // Verificar si es una consulta de catálogos de terceros o contactos (TerceroNestJs)
   if (query && (
@@ -30,6 +35,38 @@ const getTargetService = (query, config) => {
     return config.terceroNestJsService;
   }
   
+  // Verificar si es una consulta de catálogos del módulo item (ItemNestJs)
+  if (query && (
+    query.includes('itemDetalleEdicion') ||
+    query.includes('itemsListado') ||
+    query.includes('estadosVentaItem') ||
+    query.includes('estadosCompraItem') ||
+    query.includes('naturalezasItem') ||
+    query.includes('tiposControlInventarioItem') ||
+    query.includes('tiposControlCaducidadItem')
+  )) {
+    console.log('🔄 Redirigiendo consulta de item (catálogos) a ItemNestJs');
+    return config.itemNestJsService;
+  }
+
+  // Catálogo tipo ítem (tabla tipo_item_catalogo) en InicioNestJs
+  if (query && query.includes('tiposItemCatalogo')) {
+    console.log('🔄 Redirigiendo consulta tiposItemCatalogo a InicioNestJs');
+    return config.nestjsService;
+  }
+
+  // Catálogo almacenes vive en InicioNestJs (catálogo general)
+  if (query && query.includes('almacenes')) {
+    console.log('🔄 Redirigiendo consulta de almacenes a InicioNestJs');
+    return config.nestjsService;
+  }
+
+  // Catálogo unidades vive en InicioNestJs (catálogo general)
+  if (query && (query.includes('tiposUnidad') || query.includes('unidades'))) {
+    console.log('🔄 Redirigiendo consulta de unidades a InicioNestJs');
+    return config.nestjsService;
+  }
+
   // Luego verificar si es una consulta específica de menús y permisos
   if (query && (
     query.includes('menu') || 
@@ -93,11 +130,12 @@ async function routes(fastify, options) {
         });
       }
 
-      // Obtener configuración del gateway
+      // Obtener configuración del gateway (catálogos generales como monedas, impuestos → InicioNestJs vía nestjsService)
       const config = {
         nestjsService: process.env.NESTJS_SERVICE_URL,
         menuService: process.env.MENU_SERVICE_URL,
-        terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || 'http://tercero-nestjs-service:3001'
+        terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || 'http://tercero-nestjs-service:3001',
+        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011'
       };
 
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);
@@ -133,17 +171,33 @@ async function routes(fastify, options) {
     }
   });
 
-  // Endpoint para verificar conectividad con NestJS GraphQL
+  // Endpoint para verificar conectividad con InicioNestJs GraphQL (POST mínimo; no existe GET /health en Nest)
   fastify.get('/graphql/health', async (request, reply) => {
     try {
-      const response = await axios.get(NESTJS_GRAPHQL_URL.replace('/graphql', '/health'), {
-        timeout: 3000
-      });
-      
-      return reply.send({
-        success: true,
+      const base = (process.env.NESTJS_SERVICE_URL || 'http://localhost:3001').replace(/\/$/, '');
+      const response = await axios.post(
+        `${base}/graphql`,
+        { query: '{ __typename }' },
+        {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 3000
+        }
+      );
+
+      if (response.data && response.data.data) {
+        return reply.send({
+          success: true,
+          service: 'NestJS GraphQL',
+          status: 'connected',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      return reply.status(503).send({
+        success: false,
         service: 'NestJS GraphQL',
-        status: 'connected',
+        status: 'disconnected',
+        error: 'GraphQL respondió sin data válida',
         timestamp: new Date().toISOString()
       });
     } catch (error) {

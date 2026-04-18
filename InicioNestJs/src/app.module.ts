@@ -23,6 +23,9 @@ import { Empresa } from './entities/empresa.entity';
 import { Pais } from './entities/pais.entity';
 import { Moneda } from './entities/moneda.entity';
 import { Provincia } from './entities/provincia.entity';
+import { Almacen } from './entities/almacen.entity';
+import { TipoUnidad } from './entities/tipo-unidad.entity';
+import { Unidad } from './entities/unidad.entity';
 import { TipoEntidadComercial } from './entities/tipo-entidad-comercial.entity';
 import { SocialNetwork } from './entities/social-network.entity';
 import { EmpresaIdentificacion } from './entities/empresa-identificacion.entity';
@@ -34,7 +37,10 @@ import { MenuSeccion, MenuItem } from './entities/menu.entity';
 import { PerfilMenuPermiso } from './entities/perfil-menu-permiso.entity';
 import { CondicionPago } from './entities/condicion-pago.entity';
 import { FormaPago } from './entities/forma-pago.entity';
-import { TamanoEmpresa } from './entities/tamano-empresa.entity';
+import { Impuesto } from './entities/impuesto.entity';
+import { CuentaContable } from './entities/cuenta-contable.entity';
+import { TipoItemCatalogo } from './entities/tipo-item-catalogo.entity';
+import { DuracionUnidadCatalogo } from './entities/duracion-unidad-catalogo.entity';
 import { AuthModule } from './auth/auth.module';
 // Resolvers
 import { UsuarioResolver } from './resolvers/usuario.resolver';
@@ -47,15 +53,25 @@ import { AutorizacionResolver } from './resolvers/autorizacion.resolver';
 import { PaisResolver } from './resolvers/pais.resolver';
 import { MonedaResolver } from './resolvers/moneda.resolver';
 import { ProvinciaResolver } from './resolvers/provincia.resolver';
+import { AlmacenResolver } from './resolvers/almacen.resolver';
+import { UnidadResolver } from './resolvers/unidad.resolver';
 import { CatalogosPagoResolver } from './resolvers/catalogos-pago.resolver';
 import { TipoEntidadComercialResolver } from './resolvers/tipo-entidad-comercial.resolver';
-import { TamanoEmpresaResolver } from './resolvers/tamano-empresa.resolver';
+import { ImpuestoResolver } from './resolvers/impuesto.resolver';
+import { CuentaContableResolver } from './resolvers/cuenta-contable.resolver';
+import { TipoItemCatalogoResolver } from './resolvers/tipo-item-catalogo.resolver';
+import { DuracionUnidadCatalogoResolver } from './resolvers/duracion-unidad-catalogo.resolver';
 import { AuthResolver } from './auth/auth.resolver';
 // Services
 import { PaisService } from './services/pais.service';
 import { MonedaService } from './services/moneda.service';
 import { ProvinciaService } from './services/provincia.service';
-import { TamanoEmpresaService } from './services/tamano-empresa.service';
+import { AlmacenService } from './services/almacen.service';
+import { UnidadService } from './services/unidad.service';
+import { ImpuestoService } from './services/impuesto.service';
+import { CuentaContableService } from './services/cuenta-contable.service';
+import { TipoItemCatalogoService } from './services/tipo-item-catalogo.service';
+import { DuracionUnidadCatalogoService } from './services/duracion-unidad-catalogo.service';
 import { AutorizacionService } from './services/autorizacion.service';
 
 @Module({
@@ -69,6 +85,9 @@ import { AutorizacionService } from './services/autorizacion.service';
         Pais, 
         Moneda, 
         Provincia, 
+        Almacen,
+        TipoUnidad,
+        Unidad,
         TipoEntidadComercial, 
         SocialNetwork, 
         EmpresaIdentificacion, 
@@ -80,8 +99,7 @@ import { AutorizacionService } from './services/autorizacion.service';
         MenuItem,
         PerfilMenuPermiso,
         CondicionPago,
-        FormaPago,
-        TamanoEmpresa
+        FormaPago
       ],
       synchronize: false, // Deshabilitado para evitar conflictos con datos existentes
       ssl: {
@@ -94,6 +112,9 @@ import { AutorizacionService } from './services/autorizacion.service';
       Pais, 
       Moneda, 
       Provincia, 
+      Almacen,
+      TipoUnidad,
+      Unidad,
       TipoEntidadComercial, 
       SocialNetwork, 
       EmpresaIdentificacion, 
@@ -106,7 +127,10 @@ import { AutorizacionService } from './services/autorizacion.service';
       PerfilMenuPermiso,
       CondicionPago,
       FormaPago,
-      TamanoEmpresa
+        Impuesto,
+        CuentaContable,
+        TipoItemCatalogo,
+        DuracionUnidadCatalogo,
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -132,14 +156,24 @@ import { AutorizacionService } from './services/autorizacion.service';
       PaisResolver,
       MonedaResolver,
       ProvinciaResolver,
+      AlmacenResolver,
+      UnidadResolver,
       CatalogosPagoResolver,
       TipoEntidadComercialResolver,
-      TamanoEmpresaResolver,
+      ImpuestoResolver,
+      CuentaContableResolver,
+      TipoItemCatalogoResolver,
+      DuracionUnidadCatalogoResolver,
       AuthResolver,
       PaisService,
       MonedaService,
       ProvinciaService,
-      TamanoEmpresaService,
+      AlmacenService,
+      UnidadService,
+      ImpuestoService,
+      CuentaContableService,
+      TipoItemCatalogoService,
+      DuracionUnidadCatalogoService,
       AutorizacionService,
     ],
 })

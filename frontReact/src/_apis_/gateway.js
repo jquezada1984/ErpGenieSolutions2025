@@ -11,6 +11,15 @@ const gatewayClient = axios.create({
   },
 });
 
+// Interceptor para enviar token en peticiones GraphQL/REST (mismo comportamiento que Apollo)
+gatewayClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Interceptor para manejar errores
 gatewayClient.interceptors.response.use(
   (response) => response,
@@ -71,6 +80,154 @@ export const eliminarEmpresa = async (id) => {
   } catch (error) {
     console.error('❌ Error al eliminar empresa:', error);
     throw error;
+  }
+};
+
+// Catálogo impuestos (InicioNestJs – catálogo general vía GraphQL)
+export const listarImpuestos = async () => {
+  try {
+    const response = await gatewayClient.post('/graphql', {
+      query: `
+        query {
+          impuestos {
+            id
+            nombre
+            tasa
+          }
+        }
+      `,
+    });
+    const data = response.data?.data;
+    const list = data?.impuestos ?? response.data?.impuestos ?? [];
+    return Array.isArray(list) ? list : [];
+  } catch (error) {
+    console.error('❌ Error al listar impuestos:', error);
+    return [];
+  }
+};
+
+// Catálogo almacenes (InicioNestJs – catálogo general vía GraphQL)
+export const listarAlmacenes = async () => {
+  try {
+    const response = await gatewayClient.post('/graphql', {
+      query: `
+        query {
+          almacenes {
+            id_almacen
+            almacen_ref
+            nombre
+          }
+        }
+      `,
+    });
+    const data = response.data?.data;
+    const list = data?.almacenes ?? response.data?.almacenes ?? [];
+    return Array.isArray(list) ? list : [];
+  } catch (error) {
+    console.error('❌ Error al listar almacenes:', error);
+    return [];
+  }
+};
+
+// Catálogo unidad de duración (InicioNestJs – tabla duracion_unidad_catalogo, vía GraphQL Gateway)
+export const listarDuracionUnidadCatalogo = async () => {
+  try {
+    const response = await gatewayClient.post('/graphql', {
+      query: `
+        query {
+          duracionUnidadesCatalogo {
+            id_duration_unit
+            codigo
+            nombre
+            descripcion
+            orden
+            estado
+          }
+        }
+      `,
+    });
+    const gqlErr = response.data?.errors?.[0]?.message;
+    if (gqlErr) {
+      throw new Error(gqlErr);
+    }
+    const data = response.data?.data;
+    const list = data?.duracionUnidadesCatalogo ?? response.data?.duracionUnidadesCatalogo ?? [];
+    return Array.isArray(list) ? list : [];
+  } catch (error) {
+    console.error('❌ Error al listar catálogo unidad de duración:', error);
+    throw error;
+  }
+};
+
+// Catálogo tipos de unidad (InicioNestJs – catálogo general vía GraphQL)
+export const listarTiposUnidad = async () => {
+  try {
+    const response = await gatewayClient.post('/graphql', {
+      query: `
+        query {
+          tiposUnidad {
+            id_tipo_unidad
+            codigo
+            nombre
+          }
+        }
+      `,
+    });
+    const data = response.data?.data;
+    const list = data?.tiposUnidad ?? response.data?.tiposUnidad ?? [];
+    return Array.isArray(list) ? list : [];
+  } catch (error) {
+    console.error('❌ Error al listar tipos de unidad:', error);
+    return [];
+  }
+};
+
+// Catálogo unidades (InicioNestJs) con filtro opcional por tipo (ej: PESO, LONGITUD, SUPERFICIE, VOLUMEN)
+export const listarUnidades = async (tipoCodigo) => {
+  try {
+    const hasTipo = typeof tipoCodigo === 'string' && tipoCodigo.trim() !== '';
+    const response = await gatewayClient.post('/graphql', {
+      query: hasTipo
+        ? `
+          query ($tipoCodigo: String) {
+            unidades(tipoCodigo: $tipoCodigo) {
+              id_unidad
+              id_tipo_unidad
+              codigo
+              nombre
+              abreviatura
+              tipo_unidad {
+                id_tipo_unidad
+                codigo
+                nombre
+              }
+            }
+          }
+        `
+        : `
+          query {
+            unidades {
+              id_unidad
+              id_tipo_unidad
+              codigo
+              nombre
+              abreviatura
+              tipo_unidad {
+                id_tipo_unidad
+                codigo
+                nombre
+              }
+            }
+          }
+        `,
+      variables: hasTipo ? { tipoCodigo } : undefined,
+    });
+    const data = response.data?.data;
+    const list = data?.unidades ?? response.data?.unidades ?? [];
+    return Array.isArray(list) ? list : [];
+  } catch (error) {
+    console.error('❌ Error al listar unidades:', error);
+    return [];
   }
 };
 

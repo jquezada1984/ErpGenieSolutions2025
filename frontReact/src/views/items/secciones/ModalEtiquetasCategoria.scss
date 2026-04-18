@@ -1,0 +1,197 @@
+// Estilos del modal Etiquetas/Categorías alineados con ConfiguracionTercero (Nuevo Tercero).
+// Scope propio para no depender de la clase raíz de la página de terceros.
+
+.modal-etiquetas-categoria-scope {
+  &.modal-content {
+    background-color: #fff;
+    border-radius: 0.375rem;
+  }
+
+  .modal-etiquetas-header {
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem 1.25rem;
+    background-color: #fff;
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #495057;
+      margin: 0;
+
+      i.text-primary {
+        color: #007bff !important;
+      }
+    }
+  }
+
+  .modal-etiquetas-body {
+    padding: 1.25rem;
+    background-color: #fff;
+  }
+
+  .modal-etiquetas-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 0.75rem 1.25rem;
+    background-color: #fff;
+  }
+
+  // Misma línea visual que .configuracion-empresa .form-group en ConfiguracionTercero.scss
+  .form-group {
+    margin-bottom: 1.5rem;
+
+    label {
+      font-weight: 500;
+      color: #495057;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+      border: 1px solid #ced4da;
+      border-radius: 0.375rem;
+      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+      &:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      }
+    }
+  }
+
+  .table-custom {
+    th {
+      background-color: #f8f9fa;
+      border-bottom: 2px solid #dee2e6;
+      font-weight: 600;
+      color: #495057;
+      padding: 0.75rem;
+    }
+
+    td {
+      padding: 0.75rem;
+      vertical-align: middle;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+  }
+
+  .etiquetas-subtitle {
+    color: #6c757d;
+    font-weight: 500;
+    font-size: 0.9rem;
+  }
+
+  /** Bloque lista: ayuda a que el área de tabla respete altura y scroll (flex). */
+  .etiquetas-modal-lista {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .etiquetas-lista-ayuda {
+    font-size: 0.8125rem;
+  }
+
+  .etiquetas-busqueda-input {
+    font-size: 0.875rem;
+  }
+
+  /**
+   * Scroll vertical real: altura fija (~5–6 filas visibles).
+   * Cabecera sticky al desplazar.
+   */
+  .etiquetas-tabla-scroll {
+    flex: 0 0 auto;
+    height: 260px;
+    max-height: 260px;
+    overflow-y: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    background: #fff;
+
+    .etiquetas-tabla-datos {
+      margin-bottom: 0;
+      font-size: 0.875rem;
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background-color: #f8f9fa !important;
+      box-shadow: inset 0 -1px 0 #dee2e6;
+      padding: 0.4rem 0.45rem;
+      white-space: nowrap;
+      font-size: 0.8125rem;
+    }
+
+    tbody td {
+      padding: 0.4rem 0.45rem;
+      vertical-align: middle;
+    }
+
+    .etiquetas-col-nombre {
+      max-width: 0;
+    }
+
+    .etiquetas-col-desc {
+      max-width: 0;
+    }
+
+    .etiquetas-col-acciones {
+      width: 124px;
+      min-width: 124px;
+      max-width: 124px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .etiquetas-swatch-inline {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    /** Editar: mismo patrón que Lista de Terceros (info activo / secondary inactivo + bi-pencil-fill). */
+    .etiquetas-btn-editar:not(:disabled) {
+      cursor: pointer;
+    }
+
+    /** Switch activo/inactivo en fila (solo estado local hasta endpoint PUT). */
+    .etiquetas-switch-fila {
+      padding-left: 2.1em;
+      min-height: 1.1rem;
+
+      .form-check-input {
+        width: 1.85em;
+        height: 1em;
+        margin-top: 0.12em;
+        cursor: pointer;
+      }
+    }
+  }
+
+  .etq-color-swatch {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  }
+
+  .etq-color-native {
+    width: 3rem;
+    height: 2.5rem;
+    padding: 0.125rem;
+    cursor: pointer;
+  }
+}

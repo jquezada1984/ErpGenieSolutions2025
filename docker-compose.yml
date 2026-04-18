@@ -186,6 +186,49 @@ services:
     networks:
       - erp-network
 
+# =========================
+  # ItemNestJs (GraphQL - Lectura catálogos item)
+  # =========================
+  item-nestjs-service:
+    build:
+      context: ./ItemNestJs
+      dockerfile: Dockerfile
+    container_name: erp-item-nestjs-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3011
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - JWT_SECRET=${JWT_SECRET_KEY:-your-secret-key-here}
+    ports:
+      - "3011:3011"
+    networks:
+      - erp-network
+
+  # =========================
+  # ItemPython (REST - Escritura módulo item)
+  # =========================
+  item-python-service:
+    build:
+      context: ./ItemPython
+      dockerfile: Dockerfile
+    container_name: erp-item-python-service
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - FLASK_ENV=production
+      - PORT=3012
+    ports:
+      - "3012:3012"
+    networks:
+      - erp-network
+
+
+
+
+
+
+
   # Gateway API (Fastify)
   gateway-api:
     build:
@@ -199,6 +242,13 @@ services:
       - PYTHON_SERVICE_URL=http://python-service:5000
       - NESTJS_SERVICE_URL=http://nestjs-service:3001
       - MENU_SERVICE_URL=http://menu-service:3003
+      # ✅ Canales específicos Item (lectura catálogos = ItemNestJs; escritura = ItemPython)
+      - MEDIA_SERVICE_BASE_URL=http://media-service:3010
+
+      # ✅ Canal ItemNestJs (base URL sin /graphql; el cliente añade /graphql)
+      - ITEM_NEST_GQL_URL=http://item-nestjs-service:3011
+      # ✅ Canal específico ItemPython (escritura)
+      - ITEM_PY_BASE_URL=http://item-python-service:3012
 
       # ✅ Canales específicos Tercero
       - TERCERO_PY_BASE_URL=http://tercero-python-service:3004
@@ -233,6 +283,8 @@ services:
       - contabilidad-nestjs-service
       - financiero-python-service
       - financiero-nestjs-service
+      - item-nestjs-service
+      - item-python-service
     networks:
       - erp-network
 
@@ -258,3 +310,5 @@ volumes:
 networks:
   erp-network:
     driver: bridge
+
+  

@@ -1,0 +1,71 @@
+from marshmallow import Schema, fields, INCLUDE
+
+
+class ItemCreateSchema(Schema):
+    class Meta:
+        unknown = INCLUDE
+
+    id_item = fields.UUID(load_default=None, allow_none=True)
+    id_empresa = fields.UUID(required=True)
+    producto_ref = fields.Str(required=True)
+    etiqueta = fields.Str(allow_none=True, load_default=None)
+    estado = fields.Bool(load_default=True)
+    descripcion = fields.Str(allow_none=True, load_default=None)
+    url_publica = fields.Str(allow_none=True, load_default=None)
+    peso = fields.Decimal(allow_none=True, load_default=None, as_string=False)
+    longitud = fields.Decimal(allow_none=True, load_default=None, as_string=False)
+    anchura = fields.Decimal(allow_none=True, load_default=None, as_string=False)
+    altura = fields.Decimal(allow_none=True, load_default=None, as_string=False)
+    superficie = fields.Decimal(allow_none=True, load_default=None, as_string=False)
+    volumen = fields.Decimal(allow_none=True, load_default=None, as_string=False)
+    nomenclatura_aduanera = fields.Str(allow_none=True, load_default=None)
+    nota_interna = fields.Str(allow_none=True, load_default=None)
+    precio_venta = fields.Decimal(allow_none=True, load_default=None, as_string=False)
+    precio_minimo = fields.Decimal(allow_none=True, load_default=None, as_string=False)
+    impuesto_id = fields.Str(allow_none=True, load_default=None)
+    inventariable = fields.Bool(load_default=True)
+    duration_value = fields.Int(allow_none=True, load_default=None)
+    mandatory_periods = fields.Bool(load_default=False)
+    created_by = fields.UUID(allow_none=True, load_default=None)
+    updated_by = fields.UUID(allow_none=True, load_default=None)
+    id_pais = fields.UUID(allow_none=True, load_default=None)
+    id_provincia = fields.UUID(allow_none=True, load_default=None)
+    poblacion = fields.Str(allow_none=True, load_default=None)
+    id_unidad_medida = fields.UUID(allow_none=True, load_default=None)
+    id_unidad_peso = fields.UUID(allow_none=True, load_default=None)
+    id_unidad_longitud = fields.UUID(allow_none=True, load_default=None)
+    id_unidad_superficie = fields.UUID(allow_none=True, load_default=None)
+    id_unidad_volumen = fields.UUID(allow_none=True, load_default=None)
+    codigo_barras = fields.Str(allow_none=True, load_default=None)
+    precio_compra = fields.Decimal(allow_none=True, load_default=None, as_string=False)
+    stock_minimo_alerta = fields.Decimal(allow_none=True, load_default=None, as_string=False)
+    stock_deseado = fields.Decimal(allow_none=True, load_default=None, as_string=False)
+    id_almacen_defecto = fields.UUID(allow_none=True, load_default=None)
+    id_categoria_item = fields.UUID(allow_none=True, load_default=None)
+    id_estado_venta = fields.UUID(required=True)
+    id_estado_compra = fields.UUID(allow_none=True, load_default=None)
+    id_tipo_control_caducidad = fields.UUID(allow_none=True, load_default=None)
+    id_tipo_item = fields.UUID(allow_none=True, load_default=None)
+    id_duration_unit = fields.UUID(allow_none=True, load_default=None)
+    id_tipo_control_inventario = fields.UUID(allow_none=True, load_default=None)
+    id_naturaleza_item = fields.UUID(required=True)
+    id_tipo_comportamiento = fields.UUID(allow_none=True, load_default=None)
+    id_cuenta_venta = fields.UUID(allow_none=True, load_default=None)
+    id_cuenta_venta_intracomunitaria = fields.UUID(allow_none=True, load_default=None)
+    id_cuenta_venta_exportacion = fields.UUID(allow_none=True, load_default=None)
+    id_cuenta_compra = fields.UUID(allow_none=True, load_default=None)
+    id_cuenta_compra_intracomunitaria = fields.UUID(allow_none=True, load_default=None)
+    id_cuenta_compra_importacion = fields.UUID(allow_none=True, load_default=None)
+
+
+class ItemUpdateServicioSchema(ItemCreateSchema):
+    """
+    Misma forma de validación que alta/genérico (columnas de `public.item`), con nombre
+    explícito para el flujo PUT /api/item/servicio/<id_item>. Evita confundir “create” con “update servicio”.
+    """
+
+
+class ItemOutSchema(Schema):
+    id_item = fields.UUID()
+    id_empresa = fields.UUID()
+    producto_ref = fields.Str()

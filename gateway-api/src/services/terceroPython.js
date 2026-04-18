@@ -149,4 +149,5 @@ module.exports = {
   obtenerContacto,
   actualizarContacto,
   toggleContactoEstado,
+  ctxHeaders,
 };
