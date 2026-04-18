@@ -58,6 +58,13 @@ class ItemCreateSchema(Schema):
     id_cuenta_compra_importacion = fields.UUID(allow_none=True, load_default=None)
 
 
+class ItemUpdateServicioSchema(ItemCreateSchema):
+    """
+    Misma forma de validación que alta/genérico (columnas de `public.item`), con nombre
+    explícito para el flujo PUT /api/item/servicio/<id_item>. Evita confundir “create” con “update servicio”.
+    """
+
+
 class ItemOutSchema(Schema):
     id_item = fields.UUID()
     id_empresa = fields.UUID()

@@ -254,62 +254,59 @@ const SeccionItemEmpresa: React.FC<Props> = ({
   const colEmpresaSola =
     variant === 'inline' && ocultarCatalogosTipoYComportamiento ? 12 : 6;
 
+  /** Usuario EMPRESA: la empresa ya viene del login; no mostrar label/mensaje redundante en Datos generales. */
+  const mostrarSelectorEmpresaGlobal = scope === 'GLOBAL';
+  const mostrarFilaEmpresaTipoItem =
+    mostrarSelectorEmpresaGlobal || !ocultarCatalogosTipoYComportamiento;
+
   const contenidoEmpresa = (
     <>
-      <Row>
-        {scope === 'GLOBAL' && (
-          <Col md={colEmpresaSola}>
-            {errorEmpresas && (
-              <div className="alert alert-danger">
-                <strong>Error cargando empresas:</strong> {errorEmpresas.message}
-              </div>
-            )}
-            <FormGroup>
-              <Label htmlFor="id_empresa">
-                Empresa {mostrarAsteriscosObligatorios && <span className="text-danger">*</span>}
-              </Label>
-              <SelectEmpresa
-                value={f.id_empresa || ''}
-                onChange={chg}
-                empresas={empresas}
-                isLoading={loadingEmpresas}
-                isDisabled={loadingEmpresas}
-                placeholder="Seleccionar empresa"
-              />
-            </FormGroup>
-          </Col>
-        )}
-        {scope === 'EMPRESA' && (
-          <Col md={colEmpresaSola}>
-            <FormGroup>
-              <Label>
-                Empresa {mostrarAsteriscosObligatorios && <span className="text-danger">*</span>}
-              </Label>
-              <p className="form-control-plaintext text-muted mb-0">Se usará la empresa del usuario actual.</p>
-            </FormGroup>
-          </Col>
-        )}
-        {!ocultarCatalogosTipoYComportamiento && (
-          <Col md={6}>
-            {errorTipos && (
-              <div className="alert alert-danger">
-                <strong>Error cargando tipo de ítem:</strong> {errorTipos.message}
-              </div>
-            )}
-            <FormGroup>
-              <Label htmlFor="id_tipo_item">Tipo de ítem</Label>
-              <SelectTipoItemCatalogo
-                value={data.id_tipo_item || ''}
-                onChange={chgTipoItem}
-                tipos={tipos}
-                isLoading={loadingTipos}
-                isDisabled={loadingTipos}
-                placeholder="Seleccionar tipo de ítem"
-              />
-            </FormGroup>
-          </Col>
-        )}
-      </Row>
+      {mostrarFilaEmpresaTipoItem && (
+        <Row>
+          {mostrarSelectorEmpresaGlobal && (
+            <Col md={colEmpresaSola}>
+              {errorEmpresas && (
+                <div className="alert alert-danger">
+                  <strong>Error cargando empresas:</strong> {errorEmpresas.message}
+                </div>
+              )}
+              <FormGroup>
+                <Label htmlFor="id_empresa">
+                  Empresa {mostrarAsteriscosObligatorios && <span className="text-danger">*</span>}
+                </Label>
+                <SelectEmpresa
+                  value={f.id_empresa || ''}
+                  onChange={chg}
+                  empresas={empresas}
+                  isLoading={loadingEmpresas}
+                  isDisabled={loadingEmpresas}
+                  placeholder="Seleccionar empresa"
+                />
+              </FormGroup>
+            </Col>
+          )}
+          {!ocultarCatalogosTipoYComportamiento && (
+            <Col md={6}>
+              {errorTipos && (
+                <div className="alert alert-danger">
+                  <strong>Error cargando tipo de ítem:</strong> {errorTipos.message}
+                </div>
+              )}
+              <FormGroup>
+                <Label htmlFor="id_tipo_item">Tipo de ítem</Label>
+                <SelectTipoItemCatalogo
+                  value={data.id_tipo_item || ''}
+                  onChange={chgTipoItem}
+                  tipos={tipos}
+                  isLoading={loadingTipos}
+                  isDisabled={loadingTipos}
+                  placeholder="Seleccionar tipo de ítem"
+                />
+              </FormGroup>
+            </Col>
+          )}
+        </Row>
+      )}
       {!ocultarCatalogosTipoYComportamiento && mostrarFilaComportamiento && (
         <Row className="mt-2">
           <Col md={6}>
@@ -349,6 +346,11 @@ const SeccionItemEmpresa: React.FC<Props> = ({
   );
 
   if (variant === 'inline') {
+    const tieneComportamiento =
+      !ocultarCatalogosTipoYComportamiento && mostrarFilaComportamiento;
+    if (!mostrarFilaEmpresaTipoItem && !tieneComportamiento) {
+      return null;
+    }
     return <div className="mb-4">{contenidoEmpresa}</div>;
   }
 

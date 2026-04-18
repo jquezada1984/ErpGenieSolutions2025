@@ -1,5 +1,9 @@
 """
-Creación de ítem: normalización de payload, validación mínima, UUID en cuentas contables.
+Ítem (tabla public.item): normalización de payload, validación y escritura.
+
+- Alta: servicio_crear_item
+- Update genérico: servicio_actualizar_item (PUT /api/item/<id_item>)
+- Update solo servicio: servicio_actualizar_servicio (PUT /api/item/servicio/<id_item>)
 """
 from __future__ import annotations
 
@@ -9,7 +13,7 @@ from typing import Any, Dict, Optional
 
 from marshmallow import ValidationError
 
-from schemas.item_schema import ItemCreateSchema
+from schemas.item_schema import ItemCreateSchema, ItemUpdateServicioSchema
 from repositories.item_repository import (
     create_item_row,
     update_item_row,
@@ -421,5 +425,141 @@ def servicio_actualizar_item(
     return {
         "success": True,
         "message": "Ítem actualizado",
+        "id_item": str(id_item).strip(),
+    }
+
+
+# Claves de body aceptadas en update de servicio (el resto se ignora antes del merge).
+CAMPOS_BODY_UPDATE_SERVICIO = {
+    "producto_ref",
+    "codigo",
+    "nombre",
+    "etiqueta",
+    "id_estado_compra",
+    "id_estado_venta",
+    "descripcion",
+    "nota_interna",
+    "nota_privada",
+    "url_publica",
+    "estado",
+    "duration_value",
+    "id_duration_unit",
+    "mandatory_periods",
+    "precio_venta",
+    "precio_minimo",
+    "precio_venta_minimo",
+    "impuesto_id",
+    "id_cuenta_venta",
+    "id_cuenta_venta_intracomunitaria",
+    "id_cuenta_venta_exportacion",
+    "id_cuenta_compra",
+    "id_cuenta_compra_intracomunitaria",
+    "id_cuenta_compra_importacion",
+    "cuenta_venta",
+    "cuenta_venta_intracomunitaria",
+    "cuenta_venta_exportacion",
+    "cuenta_compra",
+    "cuenta_compra_intracomunitaria",
+    "cuenta_compra_importacion",
+    "id_tipo_comportamiento",
+}
+
+
+def _filtrar_body_update_servicio(payload: Dict[str, Any]) -> Dict[str, Any]:
+    body = dict(payload or {})
+    body.pop("id_empresa", None)
+    return {k: v for k, v in body.items() if k in CAMPOS_BODY_UPDATE_SERVICIO}
+
+
+def _resolve_service_tipo_item_id(existing: Dict[str, Any]) -> str:
+    id_tipo_item_raw = existing.get("id_tipo_item")
+    id_tipo_item = str(id_tipo_item_raw).strip() if id_tipo_item_raw else ""
+    if id_tipo_item:
+        codigo = fetch_tipo_item_codigo(id_tipo_item)
+        if codigo == "SERVICE":
+            return id_tipo_item
+        raise ValidationError({"id_tipo_item": ["El ítem no corresponde al tipo SERVICE"]})
+
+    # Compatibilidad legacy: filas antiguas podrían no tener id_tipo_item.
+    if existing.get("inventariable") is False:
+        service_id = fetch_id_tipo_item_by_codigo("SERVICE")
+        if service_id:
+            return service_id
+        raise ValidationError(
+            {
+                "id_tipo_item": [
+                    "No existe fila activa en tipo_item_catalogo con codigo=SERVICE"
+                ]
+            }
+        )
+
+    raise ValidationError({"id_tipo_item": ["El ítem no corresponde al tipo SERVICE"]})
+
+
+def servicio_actualizar_servicio(
+    payload: Dict[str, Any],
+    *,
+    id_item: str,
+    id_empresa: str,
+    user_id: Optional[str],
+) -> Dict[str, Any]:
+    if not id_item or not str(id_item).strip():
+        raise ValidationError({"id_item": ["Identificador de ítem obligatorio"]})
+    try:
+        uuid.UUID(str(id_item).strip())
+    except ValueError as e:
+        raise ValidationError({"id_item": ["id_item debe ser UUID"]}) from e
+
+    if not id_empresa or not str(id_empresa).strip():
+        raise ValidationError({"id_empresa": ["Empresa obligatoria"]})
+    try:
+        uuid.UUID(str(id_empresa).strip())
+    except ValueError as e:
+        raise ValidationError({"id_empresa": ["id_empresa debe ser UUID"]}) from e
+
+    existing = fetch_item_row_for_merge(str(id_item).strip(), str(id_empresa).strip())
+    if existing is None:
+        raise LookupError("item_not_found")
+
+    service_tipo_item_id = _resolve_service_tipo_item_id(existing)
+    body = _filtrar_body_update_servicio(payload)
+
+    merged = {**existing, **body}
+    merged["id_item"] = str(id_item).strip()
+    merged["id_empresa"] = str(id_empresa).strip()
+    merged["inventariable"] = False
+    merged["id_tipo_item"] = service_tipo_item_id
+
+    normalized_payload = normalize_item_payload(merged)
+    normalized_payload["id_empresa"] = str(id_empresa).strip()
+    schema_data = ItemUpdateServicioSchema().load(normalized_payload)
+
+    row = build_item_row(schema_data, id_empresa=str(id_empresa).strip(), user_id=user_id)
+    row["id_item"] = str(id_item).strip()
+    row["id_empresa"] = str(id_empresa).strip()
+    row["inventariable"] = False
+    row["id_tipo_item"] = service_tipo_item_id
+    _apply_tipo_comportamiento_servicio_por_tipo_item(row)
+    _validar_tipo_comportamiento_catalogo(row.get("id_tipo_comportamiento"))
+
+    required_errors: Dict[str, list[str]] = {}
+    if not row.get("id_estado_venta"):
+        required_errors["id_estado_venta"] = ["id_estado_venta es obligatorio"]
+    if not row.get("id_naturaleza_item"):
+        required_errors["id_naturaleza_item"] = ["id_naturaleza_item es obligatorio"]
+    if row.get("estado") is None:
+        required_errors["estado"] = ["estado es obligatorio"]
+    if row.get("inventariable") is None:
+        required_errors["inventariable"] = ["inventariable es obligatorio"]
+    if required_errors:
+        raise ValidationError(required_errors)
+
+    n = update_item_row(row)
+    if n == 0:
+        raise LookupError("item_not_found")
+
+    return {
+        "success": True,
+        "message": "Servicio actualizado",
         "id_item": str(id_item).strip(),
     }

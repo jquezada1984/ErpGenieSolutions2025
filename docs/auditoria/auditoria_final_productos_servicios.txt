@@ -1,0 +1,136 @@
+================================================================================
+AUDITORÍA GENERAL FINAL – MÓDULO PRODUCTOS Y SERVICIOS (ITEM)
+Fecha de elaboración: 2026-04-18
+Alcance: revisión estática de código y flujos documentados en el repositorio.
+Nota: La afirmación "100% funcional" no se puede garantizar sin pruebas E2E en el
+entorno real; esta auditoría evalúa coherencia arquitectónica, riesgos y mantenibilidad.
+================================================================================
+
+1. RESUMEN EJECUTIVO
+--------------------------------------------------------------------------------
+El módulo separa de forma razonable lectura (ItemNestJs vía Gateway) y escritura
+(ItemPython vía Gateway). Los listados filtran por empresa según JWT (GLOBAL vs EMPRESA).
+Los formularios de alta/edición de producto reutilizan SeccionItemGeneral y secciones
+por pestaña; servicio usa NuevoServicio/EditarServicio con tabs General/Venta y endpoint
+dedicado de actualización de servicio en backend.
+
+Riesgos de mantenimiento: duplicación considerable entre NuevoServicio y EditarServicio
+(histórico por aislar SeccionItemGeneral en edición). No se detectaron hallazgos críticos
+que obliguen cambios de backend/gateway en esta revisión.
+
+Ajuste aplicado en esta tarea (solo frontend): ocultar el bloque visual redundante de
+"Empresa / se usará la empresa del usuario actual" para usuarios con scope EMPRESA dentro
+de SeccionItemEmpresa (afecta Nuevo/Editar Producto y Nuevo/Editar Servicio en Datos generales).
+
+2. ALCANCE DE LA AUDITORÍA
+--------------------------------------------------------------------------------
+- Frontend: Nuevo Producto, Listado Productos, Editar Producto, Nuevo Servicio,
+  Listado Servicios, Editar Servicio, secciones compartidas (SeccionItemEmpresa,
+  SeccionItemGeneral, utils de mapeo, _apis_/item.js).
+- Gateway: rutas en gateway-api/src/routes/item.js y proxy itemPython.js (solo lectura
+  para coherencia; sin cambios en esta tarea).
+- Backend: ItemPython (POST/PUT item, PUT item/servicio), ItemNestJs catálogos (referido
+  por comentarios y rutas gateway); sin cambios en esta tarea.
+
+3. MÓDULOS REVISADOS
+--------------------------------------------------------------------------------
+- frontReact/src/views/items/productos/NuevoProducto.tsx
+- frontReact/src/views/items/productos/Productos.tsx
+- frontReact/src/views/items/productos/EditarProducto.tsx
+- frontReact/src/views/items/servicios/NuevoServicio.tsx
+- frontReact/src/views/items/servicios/Servicios.tsx
+- frontReact/src/views/items/servicios/EditarServicio.tsx
+- frontReact/src/views/items/secciones/SeccionItemEmpresa.tsx
+- frontReact/src/views/items/secciones/SeccionItemGeneral.tsx (referencia)
+- frontReact/src/_apis_/item.js
+- frontReact/src/views/items/utils/mapItemFormToCreateBody.ts
+- gateway-api/src/routes/item.js
+- gateway-api/src/services/itemPython.js
+- ItemPython: api/item_routes.py, services/item_service.py (referencia arquitectura)
+
+4. HALLAZGOS POSITIVOS
+--------------------------------------------------------------------------------
+- Patrón GLOBAL/EMPRESA centralizado en useJwtPayload (scope_acceso, id_empresa).
+- Listados Productos/Servicios: selector de empresa solo para GLOBAL; EMPRESA usa JWT.
+- Escritura ítem unificada en gateway → ItemPython; headers X-Company-Id / X-User-Id
+  desde interceptor JWT en frontend.
+- Servicio: update acotado vía PUT /api/item/servicio/<id> con filtrado de campos en
+  ItemPython; producto puede usar PUT genérico.
+- mapItemFormToCreateBody alinea nombres de formulario con columnas item (producto_ref,
+  nota_interna, cuentas, etc.).
+- Nuevo/Editar producto comparten SeccionItemGeneral con uiRules (comportamiento).
+
+5. HALLAZGOS DE RIESGO
+--------------------------------------------------------------------------------
+- Duplicación UI/lógica entre NuevoServicio y EditarServicio: más costo de mantenimiento
+  y riesgo de divergencia visual/funcional (aceptado por decisión previa de aislar edición).
+- SeccionItemGeneral es complejo (producto/servicio); edición servicio lo evitó replicando
+  JSX en EditarServicio.
+- Sin pruebas automatizadas citadas en esta revisión para el flujo completo guardado.
+- ItemCreateSchema en update genérico de ítem en Python sigue siendo nombre "create"
+  en ese camino (mejorado con ItemUpdateServicioSchema solo para servicio).
+
+6. VALIDACIÓN DE PRODUCTO
+--------------------------------------------------------------------------------
+- Nuevo Producto: tabs General / Venta+ (según ConfiguracionItem), validación yup reforzada
+  (código, naturaleza, estado venta). SeccionItemEmpresa inline con tipo PRODUCT resuelto
+  por catálogo oculto. Guardado: crearItemProducto → POST /api/item.
+- Listado Productos: filtro empresa GLOBAL; navegación a edición coherente.
+- Editar Producto: precarga GraphQL itemDetalleEdicion; guardado actualizarItemProducto
+  → PUT /api/item/:id. Tabs y secciones alineadas con nuevo producto vía mismas secciones.
+
+7. VALIDACIÓN DE SERVICIO
+--------------------------------------------------------------------------------
+- Nuevo Servicio: tabs General/Venta; duración y unidades; inventariable false en payload.
+  Guardado POST /api/item.
+- Listado Servicios: mismo patrón de filtro GLOBAL/EMPRESA que productos.
+- Editar Servicio: precarga detalle + estado navegación opcional; guardado
+  actualizarItemServicio → PUT /api/item/servicio/:id (gateway) → ItemPython.
+
+8. VALIDACIÓN DE USUARIO GLOBAL
+--------------------------------------------------------------------------------
+- Puede elegir empresa en listados y en formularios vía SelectEmpresa en SeccionItemEmpresa
+  cuando scope === 'GLOBAL'.
+- Tras el ajuste mínimo, el selector GLOBAL se mantiene intacto.
+
+9. VALIDACIÓN DE USUARIO EMPRESA
+--------------------------------------------------------------------------------
+- id_empresa se rellena desde JWT en efectos useEffect en formularios y en SeccionItemEmpresa.
+- Antes del ajuste: mensaje redundante "Se usará la empresa del usuario actual" en Datos generales.
+- Tras el ajuste: ese bloque no se renderiza; la lógica de onChange/setValue no cambia.
+
+10. AJUSTE MÍNIMO REALIZADO
+--------------------------------------------------------------------------------
+Archivo: frontReact/src/views/items/secciones/SeccionItemEmpresa.tsx
+- Eliminado el bloque visual para scope === 'EMPRESA' (label Empresa + texto explicativo).
+- La fila Row de empresa/tipo solo se muestra si hay selector GLOBAL o si se muestran
+  catálogos de tipo de ítem.
+- variant === 'inline': si no hay contenido visible, retorna null (evita div vacío con margen).
+
+11. ARCHIVOS AFECTADOS (esta tarea)
+--------------------------------------------------------------------------------
+- frontReact/src/views/items/secciones/SeccionItemEmpresa.tsx (único cambio de código)
+- docs/auditoria/auditoria_final_productos_servicios.txt (este reporte)
+
+No se modificaron: gateway, backend, puertos, endpoints ni contratos.
+
+12. CONCLUSIÓN FINAL
+--------------------------------------------------------------------------------
+La arquitectura del módulo ítems es coherente con el patrón ERP del proyecto (lectura Nest,
+escritura Python, gateway como fachada). La diferenciación producto/servicio se sostiene en
+tipo_item / inventariable y en endpoint de update de servicio. La mantenibilidad es buena
+en producto (secciones compartidas) y mejorable en servicio por duplicación en edición.
+
+El ajuste visual para usuario EMPRESA reduce ruido UI sin tocar lógica de negocio.
+
+13. RECOMENDACIONES FUTURAS (sin implementar aquí)
+--------------------------------------------------------------------------------
+- Extraer un subcomponente compartido "DatosGeneralesServicio" entre Nuevo y Editar servicio
+  para reducir duplicación, con pruebas de regresión.
+- Suite E2E mínima: crear producto, editar producto, crear servicio, editar servicio, ambos perfiles.
+- Revisar si useQuery(GET_EMPRESAS) en SeccionItemEmpresa para usuario EMPRESA puede
+  omitirse (optimización de red; fuera del alcance actual).
+
+================================================================================
+FIN DEL DOCUMENTO
+================================================================================

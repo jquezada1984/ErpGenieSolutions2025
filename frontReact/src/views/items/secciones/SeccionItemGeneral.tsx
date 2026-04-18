@@ -220,7 +220,9 @@ const SeccionItemGeneral: React.FC<Props> = ({
     [data.id_empresa, jwtPayload]
   );
 
-  /** UUID en tipo_item_catalogo (PRODUCT vía SeccionItemEmpresa); requerido para catálogo de etiquetas por ámbito. */
+  const tipoItemCodigoEtiquetas = tipoItem === 'servicio' ? 'SERVICE' : 'PRODUCT';
+
+  /** UUID en tipo_item_catalogo (p. ej. PRODUCT/SERVICE vía SeccionItemEmpresa); requerido para catálogo de etiquetas por ámbito. */
   const idTipoItemEtiquetas = useMemo(
     () => String(data.id_tipo_item ?? '').trim(),
     [data.id_tipo_item]
@@ -664,7 +666,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
         return;
       }
       if (!idTipoItemEtiquetas) {
-        setLabelsErr('Falta el tipo de ítem (PRODUCT) en el formulario para gestionar el catálogo.');
+      setLabelsErr(`Falta el tipo de ítem (${tipoItemCodigoEtiquetas}) en el formulario para gestionar el catálogo.`);
         return;
       }
       const siguiente = !estadoActual;
@@ -786,7 +788,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
       return;
     }
     if (!idTipoItemEtiquetas) {
-      setLabelsErr('Debe resolverse el tipo de ítem (PRODUCT) en la pestaña Empresa antes de editar etiquetas.');
+      setLabelsErr(`Debe resolverse el tipo de ítem (${tipoItemCodigoEtiquetas}) en la pestaña Empresa antes de editar etiquetas.`);
       return;
     }
 
@@ -854,7 +856,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
       return;
     }
     if (!idT) {
-      setLabelsErr('Debe resolverse el tipo de ítem (PRODUCT) en la pestaña Empresa antes de crear etiquetas.');
+      setLabelsErr(`Debe resolverse el tipo de ítem (${tipoItemCodigoEtiquetas}) en la pestaña Empresa antes de crear etiquetas.`);
       return;
     }
 
@@ -900,7 +902,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
     } finally {
       setLabelsSaving(false);
     }
-  }, [newLabel, idEmpresaEtiquetas, idTipoItemEtiquetas, mapRowsEtiquetaApi]);
+  }, [newLabel, idEmpresaEtiquetas, idTipoItemEtiquetas, mapRowsEtiquetaApi, tipoItemCodigoEtiquetas]);
 
   const onColorHexChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setNewLabel((p) => ({ ...p, color: e.target.value }));
@@ -983,7 +985,7 @@ const SeccionItemGeneral: React.FC<Props> = ({
             <i className="fas fa-id-card text-primary me-2" />
             Datos generales
           </h5>
-          {tipoItem === 'producto' && (
+          {(tipoItem === 'producto' || tipoItem === 'servicio') && (
             <div className="d-flex align-items-center gap-3 flex-shrink-0">
               <FormGroup className="mb-0">
                 <div className="form-check form-switch">
@@ -1177,27 +1179,8 @@ const SeccionItemGeneral: React.FC<Props> = ({
             </FormGroup>
           </Col>
         </Row>
-        {/* Cuarta fila: Activo solo servicio; control inventario + control fechas (misma fila, solo producto) */}
+        {/* Cuarta fila: control inventario + control fechas (solo producto). */}
         <Row className="mb-3">
-          {tipoItem !== 'producto' && (
-            <Col md={6}>
-              <FormGroup>
-                <div className="form-check form-switch">
-                  <Input
-                    id="estado"
-                    name="estado"
-                    type="checkbox"
-                    className="form-check-input"
-                    checked={f.estado}
-                    onChange={chg}
-                  />
-                  <Label for="estado" className="form-check-label ms-2">
-                    Activo
-                  </Label>
-                </div>
-              </FormGroup>
-            </Col>
-          )}
           {tipoItem === 'producto' && (
             <Col md={6}>
               <FormGroup>
@@ -1353,13 +1336,13 @@ const SeccionItemGeneral: React.FC<Props> = ({
                 )}
                 {idEmpresaEtiquetas && !idTipoItemEtiquetas && (
                   <Alert color="warning" className="mb-3">
-                    Espere a que se cargue el tipo de ítem <b>PRODUCT</b> en la pestaña <b>Empresa</b> (catálogo{' '}
-                    <b>tipo_item_catalogo</b>) para listar y crear etiquetas de producto.
+                    Espere a que se cargue el tipo de ítem <b>{tipoItemCodigoEtiquetas}</b> en la pestaña <b>Empresa</b> (catálogo{' '}
+                    <b>tipo_item_catalogo</b>) para listar y crear etiquetas.
                   </Alert>
                 )}
                 <p className="text-muted small mb-2 etiquetas-lista-ayuda">
-                  Catálogo de clasificación comercial para productos (empresa + tipo PRODUCT). Estilo de acciones alineado con
-                  la lista de terceros.
+                  Catálogo de clasificación comercial por empresa y tipo de ítem ({tipoItemCodigoEtiquetas}). Estilo de acciones
+                  alineado con la lista de terceros.
                 </p>
                 <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                   <div className="etiquetas-subtitle">Listado por empresa y tipo de ítem</div>

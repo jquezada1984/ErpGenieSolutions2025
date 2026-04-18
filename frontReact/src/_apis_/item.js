@@ -3,6 +3,7 @@
  * Lectura (catálogos) → Gateway → ItemNestJs.
  * Escritura (crear ítem) → Gateway → ItemPython POST /api/item.
  * Actualizar ítem → Gateway → ItemPython PUT /api/item/:id_item.
+ * Actualizar servicio (tipo SERVICE) → Gateway → ItemPython PUT /api/item/servicio/:id_item.
  * Mismo patrón que _apis_/tercero.js.
  */
 import axios from 'axios';
@@ -167,6 +168,17 @@ export const crearItemProducto = async (body) => {
  */
 export const actualizarItemProducto = async (id_item, body) => {
   const response = await apiClient.put(`/api/item/${encodeURIComponent(id_item)}`, body);
+  return response.data;
+};
+
+/**
+ * Actualizar solo servicio (tipo SERVICE) → Gateway → ItemPython PUT /api/item/servicio/:id_item.
+ */
+export const actualizarItemServicio = async (id_item, body) => {
+  const response = await apiClient.put(
+    `/api/item/servicio/${encodeURIComponent(String(id_item || '').trim())}`,
+    body,
+  );
   return response.data;
 };
 

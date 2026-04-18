@@ -149,6 +149,22 @@ module.exports = async function (fastify, opts) {
     }
   });
 
+  // Debe declararse antes de PUT /item/:id para que "servicio" no se interprete como :id.
+  fastify.put('/item/servicio/:id', async (request, reply) => {
+    try {
+      const data = await itemPython.actualizarItemServicio(
+        request.params.id,
+        request.body || {},
+        request
+      );
+      return reply.code(200).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      const payload = err.response?.data || { success: false, error: err.message };
+      return reply.code(status).send(payload);
+    }
+  });
+
   fastify.put('/item/:id', async (request, reply) => {
     try {
       const data = await itemPython.actualizarItem(request.params.id, request.body || {}, request);

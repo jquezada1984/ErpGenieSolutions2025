@@ -71,3 +71,59 @@ export function mapItemFormToCreateBody(v: ItemFormValues): Record<string, unkno
 
   return out;
 }
+
+/** Campos extra del formulario Editar Servicio (no están en ItemFormValues). */
+export type ServicioUpdateExtras = {
+  duration_value?: number | '' | null;
+  id_duration_unit?: string;
+  mandatory_periods?: boolean;
+};
+
+/**
+ * Cuerpo JSON para PUT edición de servicio → Gateway → ItemPython /api/item/servicio/:id.
+ * Solo incluye campos que el backend acepta en update de servicio (resto se ignora en ItemPython).
+ */
+export function mapItemFormToUpdateServicioBody(
+  v: ItemFormValues,
+  extras: ServicioUpdateExtras,
+): Record<string, unknown> {
+  const etiqueta = trim(v.nombre) || trim(v.etiqueta) || trim(v.codigo);
+  const out: Record<string, unknown> = {
+    id_empresa: trim(v.id_empresa),
+    etiqueta,
+    estado: v.estado !== false,
+  };
+
+  const ref = trim(v.codigo) || trim(v.nombre);
+  put(out, 'producto_ref', ref);
+
+  put(out, 'descripcion', trim(v.descripcion));
+  put(out, 'url_publica', trim(v.url_publica));
+  put(out, 'nota_interna', trim(v.nota_privada));
+
+  put(out, 'id_estado_venta', trim(v.id_estado_venta));
+  put(out, 'id_estado_compra', trim(v.id_estado_compra));
+  put(out, 'id_tipo_comportamiento', trim(v.id_tipo_comportamiento));
+
+  put(out, 'precio_venta', v.precio_venta);
+  put(out, 'precio_minimo', v.precio_venta_minimo);
+  put(out, 'impuesto_id', trim(v.impuesto_id));
+
+  put(out, 'id_cuenta_venta', trim(v.cuenta_venta));
+  put(out, 'id_cuenta_venta_intracomunitaria', trim(v.cuenta_venta_intracomunitaria));
+  put(out, 'id_cuenta_venta_exportacion', trim(v.cuenta_venta_exportacion));
+  put(out, 'id_cuenta_compra', trim(v.cuenta_compra));
+  put(out, 'id_cuenta_compra_intracomunitaria', trim(v.cuenta_compra_intracomunitaria));
+  put(out, 'id_cuenta_compra_importacion', trim(v.cuenta_compra_importacion));
+
+  if (extras.mandatory_periods !== undefined) {
+    out.mandatory_periods = !!extras.mandatory_periods;
+  }
+  const dv = extras.duration_value;
+  if (dv !== '' && dv != null && Number.isFinite(Number(dv))) {
+    out.duration_value = Number(dv);
+  }
+  put(out, 'id_duration_unit', trim(extras.id_duration_unit ?? ''));
+
+  return out;
+}

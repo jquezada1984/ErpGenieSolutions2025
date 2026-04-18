@@ -23,6 +23,15 @@ async function actualizarItem(idItem, body, req) {
   return res.data;
 }
 
+/** Actualización solo servicio (tipo SERVICE en catálogo) → ItemPython PUT /api/item/servicio/:id_item */
+async function actualizarItemServicio(idItem, body, req) {
+  const headers = await ctxHeaders(req, body || {});
+  const id = encodeURIComponent(String(idItem || '').trim());
+  console.log('Gateway -> ItemPython: PUT /api/item/servicio/' + id);
+  const res = await http.put(`/api/item/servicio/${id}`, body || {}, { headers });
+  return res.data;
+}
+
 /** Catálogo item_etiqueta_categoria (listado por empresa; opcional id_tipo_item vía tipo_item_catalogo). */
 async function listarEtiquetasCategoria(req) {
   const headers = await ctxHeaders(req, {});
@@ -71,6 +80,7 @@ async function cambiarEstadoEtiquetaCategoria(idEtiquetaCategoria, body, req) {
 module.exports = {
   crearItem,
   actualizarItem,
+  actualizarItemServicio,
   listarEtiquetasCategoria,
   crearEtiquetaCategoria,
   actualizarEtiquetaCategoria,

@@ -83,6 +83,8 @@ type ServicioListRow = {
   id_empresa: string;
   producto_ref: string | null;
   etiqueta: string;
+  duration_value?: number | null;
+  id_duration_unit?: string | null;
   duracion: string;
   estado_venta_label: string | null;
   estado_compra_label: string | null;
@@ -180,7 +182,7 @@ const Servicios: React.FC = () => {
         producto_ref: string | null;
         etiqueta: string;
         duration_value?: number | null;
-        duracionUnidad?: { nombre?: string | null } | null;
+        duracionUnidad?: { id_duration_unit?: string | null; nombre?: string | null } | null;
         estado: boolean;
         estadoVenta?: { nombre?: string | null } | null;
         estadoCompra?: { nombre?: string | null } | null;
@@ -191,6 +193,8 @@ const Servicios: React.FC = () => {
           id_empresa: i.id_empresa,
           producto_ref: i.producto_ref,
           etiqueta: i.etiqueta,
+          duration_value: i.duration_value ?? null,
+          id_duration_unit: i.duracionUnidad?.id_duration_unit ?? null,
           duracion: formatDuracionLabel(i),
           estado_venta_label: i.estadoVenta?.nombre ?? null,
           estado_compra_label: i.estadoCompra?.nombre ?? null,
@@ -249,8 +253,15 @@ const Servicios: React.FC = () => {
   }, []);
 
   const handleEditar = useCallback(
-    (id: string) => {
-      navigate(`/items/servicios/editar/${id}`);
+    (row: ServicioListRow) => {
+      navigate(`/items/servicios/editar/${row.id_item}`, {
+        state: {
+          prefill: {
+            duration_value: row.duration_value ?? null,
+            id_duration_unit: row.id_duration_unit ?? null,
+          },
+        },
+      });
     },
     [navigate],
   );
@@ -341,12 +352,11 @@ const Servicios: React.FC = () => {
         className: 'text-center',
         headerClassName: 'text-center',
         Cell: ({ original }: { original: ServicioListRow }) => {
-          const id = original.id_item;
           const activo = original.estado !== false;
           return (
             <div className="d-flex align-items-center justify-content-center gap-1">
               <Button
-                onClick={() => activo && handleEditar(id)}
+                onClick={() => activo && handleEditar(original)}
                 color={activo ? 'info' : 'secondary'}
                 size="sm"
                 className="me-1"
