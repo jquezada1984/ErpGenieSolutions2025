@@ -1,0 +1,87 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AsientoContable {
+  concepto: String!
+  created_at: DateTime!
+  empresa_id: Int
+  estado: String!
+  fecha: DateTime!
+  id: Int!
+  numero: String!
+  total_debe: Float!
+  total_haber: Float!
+  updated_at: DateTime!
+  usuario_id: Int
+}
+
+type BalanceComprobacionRow {
+  codigo: String!
+  cuenta_id: Float!
+  naturaleza: String!
+  nombre: String!
+  saldo: Float!
+  tipo: String!
+  total_debe: Float!
+  total_haber: Float!
+}
+
+type BalanceGeneralSaldosRow {
+  saldo: Float!
+  tipo_cuenta: String!
+}
+
+type CuentaContable {
+  activa: Boolean!
+  codigo: String!
+  created_at: DateTime!
+  cuenta_padre_id: Int
+  descripcion: String
+  id: Int!
+  naturaleza: String!
+  nombre: String!
+  tipo: String!
+  updated_at: DateTime!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type EstadoResultadosRow {
+  resultado: Float
+  tipo_cuenta: String!
+  total: Float!
+}
+
+type LibroMayorRow {
+  asiento_id: Float!
+  concepto: String!
+  debe: Float!
+  fecha: String!
+  haber: Float!
+  numero: String!
+  saldo_acum: Float!
+}
+
+type Mutation {
+  crearAsientoContable(concepto: String!, empresaId: Int!, fecha: String!, numero: String!, usuarioId: Int): AsientoContable!
+  crearCuentaContable(codigo: String!, cuentaPadreId: Int, descripcion: String, naturaleza: String!, nombre: String!, tipo: String!): CuentaContable!
+  publicarAsiento(id: Int!): AsientoContable!
+  reversarAsiento(id: Int!, usuarioId: Int): AsientoContable!
+}
+
+type Query {
+  asientoContable(id: Int!): AsientoContable
+  asientosContables: [AsientoContable!]!
+  asientosContablesPorFecha(fechaFin: String!, fechaInicio: String!): [AsientoContable!]!
+  balanceComprobacion(empresaId: Int!, fechaDesde: String!, fechaHasta: String!): [BalanceComprobacionRow!]!
+  balanceGeneralSaldos(empresaId: Int!, fechaCorte: String!): [BalanceGeneralSaldosRow!]!
+  cuentaContable(id: Int!): CuentaContable
+  cuentasContables: [CuentaContable!]!
+  cuentasContablesPorTipo(tipo: String!): [CuentaContable!]!
+  estadoResultados(empresaId: Int!, fechaDesde: String!, fechaHasta: String!): [EstadoResultadosRow!]!
+  libroMayor(cuentaId: Int!, empresaId: Int!, fechaDesde: String!, fechaHasta: String!): [LibroMayorRow!]!
+}

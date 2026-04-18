@@ -28,10 +28,6 @@ import { usePermissions } from '../../components/authGurad/usePermissions';
 import { useEffect } from 'react';
 import './HeaderMenu.css';
 
-<<<<<<< HEAD
-// Icono por defecto cuando la sección no tiene icono en BD
-const DEFAULT_SECTION_ICON = 'bi bi-menu-button-wide';
-=======
 const mainMenuOptions: { key: string; label: string; icon: React.ReactNode }[] = [
   { key: 'inicio', label: 'Inicio', icon: <Home size={18} /> },
   { key: 'terceros', label: 'Terceros', icon: <FaBuilding size={18} /> },
@@ -48,7 +44,6 @@ const mainMenuOptions: { key: string; label: string; icon: React.ReactNode }[] =
   { key: 'tickets', label: 'Tickets', icon: <FaTicketAlt size={18} /> },
   { key: 'utilidades', label: 'Utilidades', icon: <Tool size={18} /> },
 ];
->>>>>>> item_may
 
 type RootState = ReturnType<typeof store.getState>;
 

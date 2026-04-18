@@ -2,10 +2,44 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type Almacen {
+  almacen_ref: String
+  id_almacen: ID!
+  id_empresa: String
+  nombre: String!
+}
+
+type CondicionPago {
+  descripcion: String!
+  id_condicion_pago: ID!
+}
+
+type CuentaContable {
+  codigo: String!
+  descripcion: String
+  estado: Boolean!
+  id_cuenta_contable: ID!
+  id_cuenta_padre: ID
+  id_plan_contable: ID!
+  nivel: Int!
+  nombre: String!
+  permite_movimientos: Boolean!
+  tipo_cuenta: String!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
+
+type DuracionUnidadCatalogo {
+  codigo: String!
+  descripcion: String
+  estado: Boolean
+  id_duration_unit: ID!
+  nombre: String!
+  orden: Int
+}
 
 type Empresa {
   codigo_postal: String
@@ -107,6 +141,17 @@ type EmpresaRedSocial {
   updated_at: DateTime
   updated_by: String
   url: String
+}
+
+type FormaPago {
+  descripcion: String!
+  id_forma_pago: ID!
+}
+
+type Impuesto {
+  id: Int!
+  nombre: String!
+  tasa: Float!
 }
 
 type LoginResponse {
@@ -287,9 +332,15 @@ type Provincia {
 }
 
 type Query {
+  almacenes: [Almacen!]!
+  condicionesPago: [CondicionPago!]!
+  cuentasContables: [CuentaContable!]!
+  duracionUnidadesCatalogo: [DuracionUnidadCatalogo!]!
   empresa(id_empresa: ID!): Empresa
   empresas: [EmpresaListDto!]!
+  formasPago: [FormaPago!]!
   getUserProfile: LoginResponse
+  impuestos: [Impuesto!]!
   item(id_item: ID!): MenuItem
   items: [MenuItem!]!
   itemsPorSeccion(id_seccion: ID!): [MenuItem!]!
@@ -317,6 +368,10 @@ type Query {
   sucursales: [SucursalListDto!]!
   sucursalesPorEmpresa(id_empresa: ID!): [SucursalListDto!]!
   test: String!
+  tiposEntidadComercial: [TipoEntidadComercial!]!
+  tiposItemCatalogo: [TipoItemCatalogo!]!
+  tiposUnidad: [TipoUnidad!]!
+  unidades(tipoCodigo: String): [Unidad!]!
   usuario(id_usuario: ID!): Usuario
   usuarios: [UsuarioListDto!]!
   validateToken: Boolean!
@@ -358,6 +413,30 @@ type TipoEntidadComercial {
   descripcion: String
   id_tipo_entidad: ID!
   nombre: String!
+}
+
+type TipoItemCatalogo {
+  codigo: String!
+  descripcion: String
+  estado: Boolean
+  id_tipo_item: ID!
+  nombre: String!
+  orden: Int
+}
+
+type TipoUnidad {
+  codigo: String
+  id_tipo_unidad: ID!
+  nombre: String!
+}
+
+type Unidad {
+  abreviatura: String
+  codigo: String
+  id_tipo_unidad: String!
+  id_unidad: ID!
+  nombre: String!
+  tipo_unidad: TipoUnidad
 }
 
 type Usuario {
