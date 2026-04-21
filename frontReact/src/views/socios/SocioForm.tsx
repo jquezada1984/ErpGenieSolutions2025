@@ -55,9 +55,10 @@ const SocioForm: React.FC<Props> = ({ idSocio }) => {
 
   const {
     control,
-    register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<SocioFormValues>({
     resolver: yupResolver(SocioFormSchema),
@@ -137,7 +138,12 @@ const SocioForm: React.FC<Props> = ({ idSocio }) => {
 
       await crearSocio(cleanedData);
       setOk(true);
-      reset(initialForm);
+      reset({
+        id_rol_socio: '',
+        fecha_inicio: '',
+        fecha_fin: '',
+        terceros: [],
+      });
     } catch (e: any) {
       const errorMessage = e?.response?.data?.error || e?.message || 'Error al crear el socio';
       setErr(errorMessage);
@@ -225,14 +231,26 @@ const SocioForm: React.FC<Props> = ({ idSocio }) => {
                 <Col md={3}>
                   <FormGroup>
                     <Label for="fecha_inicio">Fecha inicio</Label>
-                    <Input id="fecha_inicio" type="date" {...register('fecha_inicio')} invalid={!!errors.fecha_inicio} />
+                    <Input
+                      id="fecha_inicio"
+                      type="date"
+                      value={watch('fecha_inicio') || ''}
+                      onChange={(e) => setValue('fecha_inicio', e.target.value, { shouldValidate: true })}
+                      invalid={!!errors.fecha_inicio}
+                    />
                     {errors.fecha_inicio?.message && <FormText color="danger">{errors.fecha_inicio.message}</FormText>}
                   </FormGroup>
                 </Col>
                 <Col md={3}>
                   <FormGroup>
                     <Label for="fecha_fin">Fecha fin</Label>
-                    <Input id="fecha_fin" type="date" {...register('fecha_fin')} invalid={!!errors.fecha_fin} />
+                    <Input
+                      id="fecha_fin"
+                      type="date"
+                      value={watch('fecha_fin') || ''}
+                      onChange={(e) => setValue('fecha_fin', e.target.value, { shouldValidate: true })}
+                      invalid={!!errors.fecha_fin}
+                    />
                     {errors.fecha_fin?.message && <FormText color="danger">{errors.fecha_fin.message}</FormText>}
                   </FormGroup>
                 </Col>
