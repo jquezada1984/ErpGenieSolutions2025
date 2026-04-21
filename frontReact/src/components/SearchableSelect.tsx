@@ -9,17 +9,18 @@ export interface SearchableSelectOption {
 }
 
 export interface SearchableSelectProps {
-  value?: string | null;
-  onChange: (value: string | null) => void;
+  value?: string | string[] | null;
+  onChange: (value: string | string[] | null) => void;
   options?: SearchableSelectOption[];
   loadOptions?: (inputValue: string) => Promise<SearchableSelectOption[]>;
   placeholder?: string;
   isDisabled?: boolean;
   isLoading?: boolean;
   error?: string;
+  isMulti?: boolean;
 }
 
-function getSelectStyles(error?: string): StylesConfig<SearchableSelectOption, false> {
+function getSelectStyles(error?: string): StylesConfig<SearchableSelectOption, boolean> {
   return {
     control: (base, state) => ({
       ...base,
@@ -46,10 +47,18 @@ function getSelectStyles(error?: string): StylesConfig<SearchableSelectOption, f
 }
 
 function valueToOption(
-  value: string | null | undefined,
+  value: string | string[] | null | undefined,
   options: SearchableSelectOption[] | undefined,
-  useAsync: boolean
-): SearchableSelectOption | null {
+  useAsync: boolean,
+  isMulti: boolean
+): SearchableSelectOption | SearchableSelectOption[] | null {
+  if (isMulti) {
+    const values = Array.isArray(value) ? value.filter((v) => v !== '') : [];
+    if (values.length === 0) return [];
+    const mapped = values.map((v) => options?.find((o) => o.value === v) || (useAsync ? { value: v, label: v } : null));
+    return mapped.filter(Boolean) as SearchableSelectOption[];
+  }
+
   if (value === undefined || value === null || value === '') {
     return null;
   }
@@ -70,17 +79,23 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   isDisabled = false,
   isLoading = false,
   error,
+  isMulti = false,
 }) => {
   const useAsync = typeof loadOptions === 'function';
   const selectValue = useMemo(
-    () => valueToOption(value ?? null, options, useAsync),
-    [value, options, useAsync]
+    () => valueToOption(value ?? null, options, useAsync, isMulti),
+    [value, options, useAsync, isMulti]
   );
 
   const styles = useMemo(() => getSelectStyles(error), [error]);
 
-  const handleChange = (option: SearchableSelectOption | null) => {
-    onChange(option?.value ?? null);
+  const handleChange = (option: SearchableSelectOption | SearchableSelectOption[] | null) => {
+    if (isMulti) {
+      const values = Array.isArray(option) ? option.map((o) => o.value) : [];
+      onChange(values);
+      return;
+    }
+    onChange((option as SearchableSelectOption | null)?.value ?? null);
   };
 
   const commonProps = {
@@ -91,11 +106,12 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     isLoading,
     styles,
     isClearable: true,
+    isMulti,
   };
 
   if (useAsync) {
     return (
-      <AsyncSelect<SearchableSelectOption>
+      <AsyncSelect<SearchableSelectOption, boolean>
         {...commonProps}
         loadOptions={loadOptions}
         defaultOptions={options?.length ? options : true}
@@ -104,7 +120,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     );
   }
 
-  return <Select<SearchableSelectOption> {...commonProps} options={options} />;
+  return <Select<SearchableSelectOption, boolean> {...commonProps} options={options} />;
 };
 
 export default SearchableSelect;

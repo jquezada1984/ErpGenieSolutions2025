@@ -140,6 +140,27 @@ async function toggleContactoEstado(idContacto, req) {
   return res.data;
 }
 
+// ----- Socios (TerceroPython mismo servicio) -----
+async function socioListarRolesSelect(req) {
+  const res = await http.get('/api/socio/selects/rol-socio', { headers: await ctxHeaders(req, {}) });
+  return res.data;
+}
+
+async function crearSocio(body, req) {
+  const res = await http.post('/api/socio', body, { headers: await ctxHeaders(req, body) });
+  return res.data;
+}
+
+async function actualizarSocio(idSocio, body, req) {
+  const res = await http.put(`/api/socio/${idSocio}`, body, { headers: await ctxHeaders(req, body) });
+  return res.data;
+}
+
+async function toggleEstadoSocio(idSocio, req) {
+  const res = await http.patch(`/api/socio/${idSocio}/estado`, {}, { headers: await ctxHeaders(req, {}) });
+  return res.data;
+}
+
 module.exports = {
   crearTercero,
   actualizarTercero,
@@ -149,4 +170,8 @@ module.exports = {
   obtenerContacto,
   actualizarContacto,
   toggleContactoEstado,
+  socioListarRolesSelect,
+  crearSocio,
+  actualizarSocio,
+  toggleEstadoSocio,
 };

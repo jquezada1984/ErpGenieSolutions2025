@@ -72,6 +72,7 @@ fastify.register(require('./routes/empresas'), { prefix: '/api' });
 fastify.register(require('./routes/perfil'), { prefix: '/api' });
 fastify.register(require('./routes/sucursal'), { prefix: '/api' });
 fastify.register(require('./routes/tercero'), { prefix: '/api' });
+fastify.register(require('./routes/socio'), { prefix: '/api' });
 fastify.register(require('./routes/contacto'), { prefix: '/api' });
 fastify.register(require('./routes/menu'), { prefix: '/api' });
 fastify.register(require('./routes/usuarios'), { prefix: '/api' });

@@ -20,6 +20,10 @@ const getTargetService = (query, config) => {
     query.includes('incoterms') ||
     query.includes('tiposTercero') ||
     query.includes('representantesPorEmpresa') ||
+    query.includes('rolesSocio') ||
+    query.includes('tercerosDisponiblesParaSocio') ||
+    query.includes('socios') ||
+    query.includes('socio(') ||
     query.includes('terceros') ||
     query.includes('tercero(') ||
     query.includes('clientes') ||

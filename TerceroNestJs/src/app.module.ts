@@ -5,6 +5,8 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { TerceroModule } from './modules/tercero/tercero.module';
+import { SocioModule } from './modules/socio/socio.module';
+import { RolSocio } from './modules/socio/entities/rol-socio.entity';
 import { CatalogosModule } from './modules/catalogos/catalogos.module';
 import { EmpresaModule } from './modules/empresa/empresa.module';
 
@@ -33,7 +35,7 @@ import { TipoEntidadComercial } from './modules/catalogos/entities/tipo-entidad-
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL || `postgresql://${process.env.DB_USERNAME || 'postgres'}:${process.env.DB_PASSWORD || ''}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}/${process.env.DB_DATABASE || 'postgres'}`,
-      entities: [Tercero, Contacto, Empresa, TipoTercero, CondicionPago, FormaPago, Incoterm, Pais, TipoEntidadComercial],
+      entities: [Tercero, Contacto, Empresa, TipoTercero, CondicionPago, FormaPago, Incoterm, Pais, TipoEntidadComercial, RolSocio,],
       synchronize: false, // TRUE solo en dev si no usas migraciones
       logging: ['error', 'warn'],
       ssl: {
@@ -45,6 +47,7 @@ import { TipoEntidadComercial } from './modules/catalogos/entities/tipo-entidad-
     CatalogosModule,
     EmpresaModule,
     TerceroModule,
+    SocioModule,
   ],
 })
 export class AppModule {}
