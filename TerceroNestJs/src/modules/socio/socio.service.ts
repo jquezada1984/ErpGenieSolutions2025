@@ -22,15 +22,15 @@ export class SocioService {
     const qb = this.socioRepo
       .createQueryBuilder('s')
       .leftJoinAndSelect('s.rol_socio', 'rol_socio')
-      .orderBy('s.created_at', 'DESC');
-
+      .leftJoinAndSelect('s.socioTerceros', 'st')
+      .leftJoinAndSelect('st.tercero', 't')
+      .orderBy('s.created_at', 'DESC')
+      .distinct(true);
+  
     if (id_empresa) {
-      qb.innerJoin('s.socioTerceros', 'st')
-        .innerJoin('st.tercero', 't')
-        .where('t.id_empresa = :id_empresa', { id_empresa })
-        .distinct(true);
+      qb.andWhere('t.id_empresa = :id_empresa', { id_empresa });
     }
-
+  
     return qb.getMany();
   }
 

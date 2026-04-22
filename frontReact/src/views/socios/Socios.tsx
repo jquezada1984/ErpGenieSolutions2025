@@ -14,6 +14,9 @@ const GET_SOCIOS = gql`
       fecha_inicio
       fecha_fin
       estado
+      socioTerceros {
+        id_tercero
+      }
       rol_socio {
         nombre
       }
@@ -26,6 +29,9 @@ interface Socio {
   fecha_inicio?: string | null;
   fecha_fin?: string | null;
   estado: boolean;
+  socioTerceros?: {
+    id_tercero: string;
+  }[] | null;
   rol_socio?: {
     nombre?: string | null;
   } | null;
@@ -106,7 +112,7 @@ const Socios: React.FC = () => {
   const tableData = socios.map((socio) => ({
     ...socio,
     rol: socio.rol_socio?.nombre || 'N/A',
-    cantidad_terceros: '—',
+    cantidad_terceros: socio.socioTerceros?.length || 0,
   }));
 
   const columns = [
