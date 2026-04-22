@@ -12,7 +12,7 @@ class TerceroDisponibleSocioGql {
   nombre: string;
 }
 
-@Resolver()
+@Resolver(() => Socio)
 export class SocioResolver {
   constructor(private readonly socioService: SocioService) {}
 
@@ -26,6 +26,13 @@ export class SocioResolver {
     @Args('id_empresa', { type: () => ID, nullable: true }) id_empresa?: string | null,
   ): Promise<Socio[]> {
     return this.socioService.findAllSocios(id_empresa ?? undefined);
+  }
+
+  @Query(() => Socio, { name: 'socio' })
+  socio(
+    @Args('id_socio', { type: () => ID }) id_socio: string,
+  ): Promise<Socio | null> {
+    return this.socioService.findOneSocio(id_socio);
   }
 
   @Query(() => [TerceroDisponibleSocioGql], { name: 'tercerosDisponiblesParaSocio' })

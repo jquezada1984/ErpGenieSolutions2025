@@ -34,6 +34,16 @@ export class SocioService {
     return qb.getMany();
   }
 
+  async findOneSocio(id_socio: string): Promise<Socio | null> {
+    return this.socioRepo
+      .createQueryBuilder('s')
+      .leftJoinAndSelect('s.rol_socio', 'rol_socio')
+      .leftJoinAndSelect('s.socioTerceros', 'st')
+      .leftJoinAndSelect('st.tercero', 't')
+      .where('s.id_socio = :id_socio', { id_socio })
+      .getOne();
+  }
+
   async findRolesSocio(): Promise<RolSocio[]> {
     return this.rolSocioRepo.find({
       where: { estado: true },

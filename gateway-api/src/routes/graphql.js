@@ -71,6 +71,7 @@ async function executeGraphQLQuery(query, variables, operationName, context, con
       headers: {
         'Content-Type': 'application/json',
         'Authorization': context.request.headers.authorization || '',
+        'X-Company-Id': context.request.headers['x-company-id'] || '',
       },
       timeout: parseInt(process.env.GRAPHQL_SERVICE_TIMEOUT || '10000')
     });

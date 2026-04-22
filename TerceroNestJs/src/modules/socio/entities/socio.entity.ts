@@ -52,18 +52,25 @@ export class Socio {
   @Column({ type: 'timestamp', name: 'updated_at', default: () => 'CURRENT_TIMESTAMP' })
   updated_at?: Date;
 
+  /*@OneToMany(() => SocioTercero, (st) => st.socio)
+  socioTerceros: SocioTercero[];*/
+
+  @Field(() => [SocioTercero], { nullable: true })
   @OneToMany(() => SocioTercero, (st) => st.socio)
   socioTerceros: SocioTercero[];
 }
 
+@ObjectType()
 @Entity('socio_tercero')
 export class SocioTercero {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Field()
   @Column({ type: 'uuid' })
   id_socio: string;
 
+  @Field()
   @Column({ type: 'uuid' })
   id_tercero: string;
 

@@ -44,17 +44,10 @@ const GET_SOCIO = gql`
       id_socio
       fecha_inicio
       fecha_fin
-      id_rol_socio
       rol_socio {
         id_rol_socio
       }
       socioTerceros {
-        id_tercero
-        tercero {
-          id_tercero
-        }
-      }
-      terceros {
         id_tercero
       }
     }
@@ -74,6 +67,7 @@ const SocioForm: React.FC = () => {
   const [tercerosOptions, setTercerosOptions] = useState<{ value: string; label: string }[]>([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
   const [loadingTerceros, setLoadingTerceros] = useState(false);
+  const [socioData, setSocioData] = useState<any | null>(null);
 
   const {
     control,
@@ -152,25 +146,7 @@ const SocioForm: React.FC = () => {
 
         const socio = res.data?.socio;
         if (!socio) return;
-
-        const tercerosFromSocioTerceros = Array.isArray(socio.socioTerceros)
-          ? socio.socioTerceros
-              .map((st: any) => st?.id_tercero || st?.tercero?.id_tercero || '')
-              .filter((v: string) => !!v)
-          : [];
-        const tercerosFromTerceros = Array.isArray(socio.terceros)
-          ? socio.terceros
-              .map((t: any) => t?.id_tercero || '')
-              .filter((v: string) => !!v)
-          : [];
-        const tercerosIds = tercerosFromSocioTerceros.length > 0 ? tercerosFromSocioTerceros : tercerosFromTerceros;
-
-        reset({
-          id_rol_socio: socio.id_rol_socio ?? socio.rol_socio?.id_rol_socio ?? '',
-          fecha_inicio: socio.fecha_inicio ?? '',
-          fecha_fin: socio.fecha_fin ?? '',
-          terceros: tercerosIds,
-        });
+        setSocioData(socio);
       } catch (e: any) {
         if (cancelled) return;
         setErr(e?.message || 'Error al cargar el socio');
@@ -180,7 +156,20 @@ const SocioForm: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [fetchSocio, id, isEdit, reset]);
+  }, [fetchSocio, id, isEdit]);
+
+  useEffect(() => {
+    if (!isEdit || !socioData) return;
+
+    const tercerosSeleccionados = socioData.socioTerceros || [];
+
+    reset({
+      id_rol_socio: socioData.rol_socio?.id_rol_socio || '',
+      fecha_inicio: socioData.fecha_inicio || '',
+      fecha_fin: socioData.fecha_fin || '',
+      terceros: tercerosSeleccionados.map((t: any) => t.id_tercero),
+    });
+  }, [isEdit, reset, socioData]);
 
   const onSubmitRHF = useCallback(async (values: SocioFormValues) => {
     setLoading(true);
