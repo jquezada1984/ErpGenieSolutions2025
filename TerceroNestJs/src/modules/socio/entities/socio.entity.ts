@@ -52,9 +52,6 @@ export class Socio {
   @Column({ type: 'timestamp', name: 'updated_at', default: () => 'CURRENT_TIMESTAMP' })
   updated_at?: Date;
 
-  /*@OneToMany(() => SocioTercero, (st) => st.socio)
-  socioTerceros: SocioTercero[];*/
-
   @Field(() => [SocioTercero], { nullable: true })
   @OneToMany(() => SocioTercero, (st) => st.socio)
   socioTerceros: SocioTercero[];
