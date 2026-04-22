@@ -92,18 +92,20 @@ const Socios: React.FC = () => {
     }
   };
 
-  const formatDate = (value?: string | null) => {
-    if (!value) return 'N/A';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString();
+  const formatFecha = (value?: string | null) => {
+    if (!value) return '-';
+
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [y, m, d] = value.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    return value;
   };
 
   const tableData = socios.map((socio) => ({
     ...socio,
     rol: socio.rol_socio?.nombre || 'N/A',
-    fecha_inicio_fmt: formatDate(socio.fecha_inicio),
-    fecha_fin_fmt: formatDate(socio.fecha_fin),
     cantidad_terceros: '—',
   }));
 
@@ -115,12 +117,14 @@ const Socios: React.FC = () => {
     },
     {
       Header: 'Fecha inicio',
-      accessor: 'fecha_inicio_fmt',
+      accessor: 'fecha_inicio',
+      Cell: ({ value }: { value?: string | null }) => formatFecha(value),
       filterable: true,
     },
     {
       Header: 'Fecha fin',
-      accessor: 'fecha_fin_fmt',
+      accessor: 'fecha_fin',
+      Cell: ({ value }: { value?: string | null }) => formatFecha(value),
       filterable: true,
     },
     {
