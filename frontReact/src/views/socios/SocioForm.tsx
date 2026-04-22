@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { gql, useLazyQuery } from '@apollo/client';
 import * as yup from 'yup';
 import { Card, CardBody, CardTitle, Button, Alert, Spinner, FormGroup, Label, Input, Row, Col, FormText } from 'reactstrap';
+import { useParams } from 'react-router-dom';
 
 import SearchableSelect from '../../components/SearchableSelect';
 import useJwtPayload from '../../hooks/useJwtPayload';
-import { crearSocio, listarRolesSocio, listarTercerosDisponibles } from '../../_apis_/socio';
+import { actualizarSocio, crearSocio, listarRolesSocio, listarTercerosDisponibles } from '../../_apis_/socio';
 import '../terceros/ConfiguracionTercero.scss';
 
 type SocioFormValues = {
@@ -36,14 +38,34 @@ const initialForm: SocioFormValues = {
   terceros: [],
 };
 
-type Props = {
-  idSocio?: string;
-};
+const GET_SOCIO = gql`
+  query GetSocio($id_socio: ID!) {
+    socio(id_socio: $id_socio) {
+      id_socio
+      fecha_inicio
+      fecha_fin
+      id_rol_socio
+      rol_socio {
+        id_rol_socio
+      }
+      socioTerceros {
+        id_tercero
+        tercero {
+          id_tercero
+        }
+      }
+      terceros {
+        id_tercero
+      }
+    }
+  }
+`;
 
-const SocioForm: React.FC<Props> = ({ idSocio }) => {
+const SocioForm: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const payload = useJwtPayload();
   const idEmpresa = payload?.id_empresa || '';
-  const isEdit = !!idSocio;
+  const isEdit = !!id;
 
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
@@ -64,6 +86,10 @@ const SocioForm: React.FC<Props> = ({ idSocio }) => {
     resolver: yupResolver(SocioFormSchema),
     mode: 'onSubmit',
     defaultValues: initialForm,
+  });
+  const [fetchSocio] = useLazyQuery(GET_SOCIO, {
+    fetchPolicy: 'network-only',
+    errorPolicy: 'all',
   });
 
   const cargarRoles = useCallback(async () => {
@@ -94,7 +120,7 @@ const SocioForm: React.FC<Props> = ({ idSocio }) => {
     try {
       const data = await listarTercerosDisponibles({
         id_empresa: idEmpresa,
-        id_socio: isEdit ? idSocio : null,
+        id_socio: isEdit ? id : null,
       });
       setTercerosOptions(
         (data || []).map((t: { id_tercero: string; nombre: string }) => ({
@@ -108,12 +134,53 @@ const SocioForm: React.FC<Props> = ({ idSocio }) => {
     } finally {
       setLoadingTerceros(false);
     }
-  }, [idEmpresa, isEdit, idSocio]);
+  }, [idEmpresa, isEdit, id]);
 
   useEffect(() => {
     cargarRoles();
     cargarTerceros();
   }, [cargarRoles, cargarTerceros]);
+
+  useEffect(() => {
+    if (!isEdit || !id) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetchSocio({ variables: { id_socio: id } });
+        if (cancelled) return;
+
+        const socio = res.data?.socio;
+        if (!socio) return;
+
+        const tercerosFromSocioTerceros = Array.isArray(socio.socioTerceros)
+          ? socio.socioTerceros
+              .map((st: any) => st?.id_tercero || st?.tercero?.id_tercero || '')
+              .filter((v: string) => !!v)
+          : [];
+        const tercerosFromTerceros = Array.isArray(socio.terceros)
+          ? socio.terceros
+              .map((t: any) => t?.id_tercero || '')
+              .filter((v: string) => !!v)
+          : [];
+        const tercerosIds = tercerosFromSocioTerceros.length > 0 ? tercerosFromSocioTerceros : tercerosFromTerceros;
+
+        reset({
+          id_rol_socio: socio.id_rol_socio ?? socio.rol_socio?.id_rol_socio ?? '',
+          fecha_inicio: socio.fecha_inicio ?? '',
+          fecha_fin: socio.fecha_fin ?? '',
+          terceros: tercerosIds,
+        });
+      } catch (e: any) {
+        if (cancelled) return;
+        setErr(e?.message || 'Error al cargar el socio');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchSocio, id, isEdit, reset]);
 
   const onSubmitRHF = useCallback(async (values: SocioFormValues) => {
     setLoading(true);
@@ -127,7 +194,15 @@ const SocioForm: React.FC<Props> = ({ idSocio }) => {
         return;
       }
 
-      const cleanedData: Record<string, any> = { ...values };
+      const token = localStorage.getItem('accessToken');
+      let id_empresa = '';
+
+      if (token) {
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        id_empresa = tokenPayload.id_empresa;
+      }
+
+      const cleanedData: Record<string, any> = { ...values, id_empresa };
       Object.keys(cleanedData).forEach((key) => {
         if (cleanedData[key] === '' || cleanedData[key] === null) {
           delete cleanedData[key];
@@ -136,21 +211,27 @@ const SocioForm: React.FC<Props> = ({ idSocio }) => {
 
       cleanedData.terceros = values.terceros || [];
 
-      await crearSocio(cleanedData);
+      if (isEdit) {
+        await actualizarSocio(id, cleanedData);
+      } else {
+        await crearSocio(cleanedData);
+      }
       setOk(true);
-      reset({
-        id_rol_socio: '',
-        fecha_inicio: '',
-        fecha_fin: '',
-        terceros: [],
-      });
+      if (!isEdit) {
+        reset({
+          id_rol_socio: '',
+          fecha_inicio: '',
+          fecha_fin: '',
+          terceros: [],
+        });
+      }
     } catch (e: any) {
-      const errorMessage = e?.response?.data?.error || e?.message || 'Error al crear el socio';
+      const errorMessage = e?.response?.data?.error || e?.message || (isEdit ? 'Error al actualizar el socio' : 'Error al crear el socio');
       setErr(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [idEmpresa, reset]);
+  }, [id, idEmpresa, isEdit, reset]);
 
   const onInvalid = useCallback((formErrors: any) => {
     const collectMessages = (obj: any): string[] => {
@@ -170,7 +251,7 @@ const SocioForm: React.FC<Props> = ({ idSocio }) => {
           <div className="d-flex justify-content-between align-items-center mb-4">
             <CardTitle className="mb-0">
               <i className="fas fa-user-tie text-primary me-2" />
-              Nuevo Socio
+              {isEdit ? 'Editar Socio' : 'Nuevo Socio'}
             </CardTitle>
             <div>
               <Button color="secondary" outline className="me-2" onClick={() => reset(initialForm)} disabled={loading}>
@@ -183,17 +264,19 @@ const SocioForm: React.FC<Props> = ({ idSocio }) => {
                     Guardando…
                   </>
                 ) : (
-                  'Crear Socio'
+                  isEdit ? 'Guardar cambios' : 'Crear socio'
                 )}
               </Button>
             </div>
           </div>
 
-          {ok && <Alert color="success">Socio creado correctamente.</Alert>}
+          {ok && <Alert color="success">{isEdit ? 'Socio actualizado correctamente' : 'Socio creado correctamente'}</Alert>}
           {err && <Alert color="danger">{err}</Alert>}
 
           <p className="text-muted mb-3">
-            Complete la información del socio y haga clic en <b>Crear Socio</b>.
+            {isEdit
+              ? 'Modifique la información del socio y haga clic en Guardar cambios.'
+              : 'Complete la información del socio y haga clic en Crear Socio.'}
           </p>
 
           <Card>

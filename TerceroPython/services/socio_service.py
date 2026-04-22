@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from models.socio import Socio
@@ -36,6 +37,19 @@ def _socio_tercero_to_dict(vinculo: SocioTercero) -> Dict[str, Any]:
         "id_socio": vinculo.id_socio,
         "id_tercero": vinculo.id_tercero,
     }
+
+
+def _parse_date(value: Any):
+    if value is None:
+        return None
+    if hasattr(value, "year"):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.strptime(value[:10], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return None
+    return None
 
 
 def create_socio(
@@ -95,10 +109,59 @@ def list_socios(solo_activos: bool = False) -> List[Dict[str, Any]]:
 
 
 def update_socio(id_socio: str, data: Dict[str, Any], user_id: Optional[str]) -> Optional[Dict[str, Any]]:
-    socio = repo_update_socio(id_socio, data, user_id)
-    if not socio:
-        return None
-    return _socio_to_dict(socio)
+    terceros = data.get("terceros")
+    if not isinstance(terceros, list):
+        raise ValueError("terceros debe ser un array")
+    if len(terceros) == 0:
+        raise ValueError("terceros no puede estar vacío")
+
+    id_empresa = data.get("id_empresa")
+    if not id_empresa:
+        raise ValueError("id_empresa es obligatorio para validar terceros")
+
+    terceros_ids = [str(t).strip() for t in terceros if str(t).strip()]
+    if len(terceros_ids) == 0:
+        raise ValueError("terceros no puede estar vacío")
+
+    terceros_existentes = Tercero.query.filter(
+        Tercero.id_tercero.in_(terceros_ids),
+        Tercero.id_empresa == id_empresa,
+    ).all()
+
+    ids_existentes = {str(t.id_tercero) for t in terceros_existentes}
+    if any(id_tercero not in ids_existentes for id_tercero in terceros_ids):
+        raise ValueError("Uno o más terceros no existen o no pertenecen a la empresa")
+
+    payload_socio = {k: v for k, v in data.items() if k not in {"terceros", "id_empresa"}}
+
+    try:
+        socio = repo_get_socio_by_id(id_socio)
+        if not socio:
+            return None
+
+        updatable = {"id_rol_socio", "fecha_inicio", "fecha_fin", "estado"}
+        for key, value in payload_socio.items():
+            if key in updatable:
+                if key in {"fecha_inicio", "fecha_fin"}:
+                    value = _parse_date(value)
+                elif isinstance(value, str):
+                    value = value.strip()
+                setattr(socio, key, value)
+        socio.updated_by = user_id
+
+        SocioTercero.query.filter_by(id_socio=id_socio).delete()
+        for id_tercero in terceros_ids:
+            repo_create_socio_tercero(
+                id_socio=id_socio,
+                id_tercero=id_tercero,
+                commit=False,
+            )
+
+        db.session.commit()
+        return _socio_to_dict(socio)
+    except Exception:
+        db.session.rollback()
+        raise
 
 
 def soft_delete_socio(id_socio: str, user_id: Optional[str]) -> bool:
