@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RolSocio } from './entities/rol-socio.entity';
+import { Socio } from './entities/socio.entity';
 
 export interface TerceroDisponibleSocio {
   id_tercero: string;
@@ -13,7 +14,25 @@ export class SocioService {
   constructor(
     @InjectRepository(RolSocio)
     private readonly rolSocioRepo: Repository<RolSocio>,
+    @InjectRepository(Socio)
+    private readonly socioRepo: Repository<Socio>,
   ) {}
+
+  async findAllSocios(id_empresa?: string): Promise<Socio[]> {
+    const qb = this.socioRepo
+      .createQueryBuilder('s')
+      .leftJoinAndSelect('s.rol_socio', 'rol_socio')
+      .orderBy('s.created_at', 'DESC');
+
+    if (id_empresa) {
+      qb.innerJoin('s.socioTerceros', 'st')
+        .innerJoin('st.tercero', 't')
+        .where('t.id_empresa = :id_empresa', { id_empresa })
+        .distinct(true);
+    }
+
+    return qb.getMany();
+  }
 
   async findRolesSocio(): Promise<RolSocio[]> {
     return this.rolSocioRepo.find({

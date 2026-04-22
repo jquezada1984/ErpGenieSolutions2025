@@ -1,6 +1,7 @@
-import { Args, Field, ObjectType, Query, Resolver } from '@nestjs/graphql';
+import { Args, Field, ID, ObjectType, Query, Resolver } from '@nestjs/graphql';
 import { SocioService, TerceroDisponibleSocio } from './socio.service';
 import { RolSocio } from './entities/rol-socio.entity';
+import { Socio } from './entities/socio.entity';
 
 @ObjectType()
 class TerceroDisponibleSocioGql {
@@ -18,6 +19,13 @@ export class SocioResolver {
   @Query(() => [RolSocio], { name: 'rolesSocio' })
   rolesSocio(): Promise<RolSocio[]> {
     return this.socioService.findRolesSocio();
+  }
+
+  @Query(() => [Socio], { name: 'socios' })
+  socios(
+    @Args('id_empresa', { type: () => ID, nullable: true }) id_empresa?: string | null,
+  ): Promise<Socio[]> {
+    return this.socioService.findAllSocios(id_empresa ?? undefined);
   }
 
   @Query(() => [TerceroDisponibleSocioGql], { name: 'tercerosDisponiblesParaSocio' })
