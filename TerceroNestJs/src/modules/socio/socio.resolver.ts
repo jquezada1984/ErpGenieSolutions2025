@@ -2,6 +2,7 @@ import { Args, Field, ID, ObjectType, Query, Resolver } from '@nestjs/graphql';
 import { SocioService, TerceroDisponibleSocio } from './socio.service';
 import { RolSocio } from './entities/rol-socio.entity';
 import { Socio } from './entities/socio.entity';
+import { Context } from '@nestjs/graphql';
 
 @ObjectType()
 class TerceroDisponibleSocioGql {
@@ -22,10 +23,16 @@ export class SocioResolver {
   }
 
   @Query(() => [Socio], { name: 'socios' })
-  socios(
-    @Args('id_empresa', { type: () => ID, nullable: true }) id_empresa?: string | null,
-  ): Promise<Socio[]> {
-    return this.socioService.findAllSocios(id_empresa ?? undefined);
+  socios(@Context() context): Promise<Socio[]> {
+    const id_empresa =
+      context?.req?.headers?.['x-company-id'] ||
+      context?.req?.headers?.['X-Company-Id'];
+  
+    if (!id_empresa) {
+      throw new Error('Se requiere X-Company-Id en el header');
+    }
+  
+    return this.socioService.findAllSocios(id_empresa);
   }
 
   @Query(() => Socio, { name: 'socio' })
