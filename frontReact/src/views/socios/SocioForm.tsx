@@ -307,7 +307,7 @@ const SocioForm: React.FC = () => {
                       id="fecha_inicio"
                       type="date"
                       value={watch('fecha_inicio') || ''}
-                      onChange={(e) => setValue('fecha_inicio', e.target.value, { shouldValidate: true })}
+                      onChange={(e) => setValue('fecha_inicio', e.target.value, { shouldDirty: true, shouldValidate: true })}
                       invalid={!!errors.fecha_inicio}
                     />
                     {errors.fecha_inicio?.message && <FormText color="danger">{errors.fecha_inicio.message}</FormText>}
@@ -320,7 +320,7 @@ const SocioForm: React.FC = () => {
                       id="fecha_fin"
                       type="date"
                       value={watch('fecha_fin') || ''}
-                      onChange={(e) => setValue('fecha_fin', e.target.value, { shouldValidate: true })}
+                      onChange={(e) => setValue('fecha_fin', e.target.value, { shouldDirty: true, shouldValidate: true })}
                       invalid={!!errors.fecha_fin}
                     />
                     {errors.fecha_fin?.message && <FormText color="danger">{errors.fecha_fin.message}</FormText>}
