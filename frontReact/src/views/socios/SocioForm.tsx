@@ -75,7 +75,7 @@ const SocioForm: React.FC = () => {
     reset,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<SocioFormValues>({
     resolver: yupResolver(SocioFormSchema),
     mode: 'onSubmit',
@@ -246,7 +246,7 @@ const SocioForm: React.FC = () => {
               <Button color="secondary" outline className="me-2" onClick={() => reset(initialForm)} disabled={loading}>
                 Cancelar
               </Button>
-              <Button color="primary" onClick={handleSubmit(onSubmitRHF, onInvalid)} disabled={loading}>
+              <Button color="primary" onClick={handleSubmit(onSubmitRHF, onInvalid)} disabled={loading || (isEdit && !isDirty)}>
                 {loading ? (
                   <>
                     <Spinner size="sm" className="me-2" />
