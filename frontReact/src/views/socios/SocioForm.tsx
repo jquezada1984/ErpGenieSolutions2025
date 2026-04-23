@@ -50,6 +50,9 @@ const GET_SOCIO = gql`
       }
       socioTerceros {
         id_tercero
+        tercero {
+          id_empresa
+        }
       }
     }
   }
@@ -74,7 +77,7 @@ const SocioForm: React.FC = () => {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
   const idEmpresa = isGlobal ? empresaSeleccionada : (payload?.id_empresa || '');
   const isEdit = !!id;
-  const isDisabled = isGlobal && !empresaSeleccionada;
+  const isDisabled = isGlobal && !empresaSeleccionada && !isEdit;
 
   const { data: empresasData } = useQuery(GET_EMPRESAS, { skip: !isGlobal });
   const empresas = empresasData?.empresas || [];
@@ -156,17 +159,13 @@ const SocioForm: React.FC = () => {
 
   useEffect(() => {
     if (!isEdit || !id) return;
-    if (isGlobal && !empresaSeleccionada) return;
     let cancelled = false;
 
     (async () => {
       try {
         const res = await fetchSocio({
           variables: { id_socio: id },
-          context:
-            isGlobal && empresaSeleccionada
-              ? { headers: { 'X-Company-Id': empresaSeleccionada } }
-              : undefined,
+          context: empresaSeleccionada ? { headers: { 'X-Company-Id': empresaSeleccionada } } : undefined,
         });
         if (cancelled) return;
 
@@ -182,7 +181,19 @@ const SocioForm: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [fetchSocio, id, isEdit, isGlobal, empresaSeleccionada]);
+  }, [fetchSocio, id, isEdit]);
+
+  useEffect(() => {
+    if (!isEdit || !isGlobal || !socioData) return;
+    const conEmpresa = (socioData.socioTerceros || []).find((st: any) => st?.tercero?.id_empresa);
+    const idEmpresaSocio =
+      socioData.id_empresa ||
+      conEmpresa?.tercero?.id_empresa ||
+      socioData.socioTerceros?.[0]?.tercero?.id_empresa;
+    if (idEmpresaSocio) {
+      setEmpresaSeleccionada(String(idEmpresaSocio));
+    }
+  }, [isEdit, isGlobal, socioData]);
 
   useEffect(() => {
     if (!isEdit || !socioData) return;
@@ -275,7 +286,7 @@ const SocioForm: React.FC = () => {
               <Button color="secondary" outline className="me-2" onClick={() => reset(initialForm)} disabled={loading}>
                 Cancelar
               </Button>
-              <Button color="primary" onClick={handleSubmit(onSubmitRHF, onInvalid)} disabled={loading || isDisabled || !isDirty}>
+              <Button color="primary" onClick={handleSubmit(onSubmitRHF, onInvalid)} disabled={loading || isDisabled || (isEdit && !isDirty)}>
                 {loading ? (
                   <>
                     <Spinner size="sm" className="me-2" />
@@ -298,21 +309,20 @@ const SocioForm: React.FC = () => {
           </p>
 
           {isGlobal && (
-            <FormGroup className="mb-3">
-              <Label for="id_empresa_socio_form">Empresa</Label>
-              <SelectEmpresa
-                value={empresaSeleccionada || null}
-                onChange={(val) => setEmpresaSeleccionada(val ?? '')}
-                empresas={empresas}
-                placeholder="Seleccione una empresa"
-              />
-            </FormGroup>
-          )}
-
-          {isGlobal && !empresaSeleccionada && (
-            <Alert color="info" className="mb-3">
-              Seleccione una empresa para continuar
-            </Alert>
+            <Row className="mb-3">
+              <Col md={6}>
+                <FormGroup className="mb-0">
+                  <Label for="id_empresa_socio_form">Empresa</Label>
+                  <SelectEmpresa
+                    value={empresaSeleccionada || null}
+                    onChange={(val) => setEmpresaSeleccionada(val ?? '')}
+                    empresas={empresas}
+                    placeholder="Seleccione una empresa"
+                    isDisabled={isEdit}
+                  />
+                </FormGroup>
+              </Col>
+            </Row>
           )}
 
           <Card>

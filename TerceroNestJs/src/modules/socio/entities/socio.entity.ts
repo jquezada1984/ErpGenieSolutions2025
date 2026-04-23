@@ -75,6 +75,7 @@ export class SocioTercero {
   @JoinColumn({ name: 'id_socio' })
   socio: Socio;
 
+  @Field(() => Tercero)
   @ManyToOne(() => Tercero, { nullable: false })
   @JoinColumn({ name: 'id_tercero' })
   tercero: Tercero;
