@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { gql, useLazyQuery } from '@apollo/client';
+import { gql, useLazyQuery, useQuery } from '@apollo/client';
 import * as yup from 'yup';
 import { Card, CardBody, CardTitle, Button, Alert, Spinner, FormGroup, Label, Input, Row, Col, FormText } from 'reactstrap';
 import { useParams } from 'react-router-dom';
 
 import SearchableSelect from '../../components/SearchableSelect';
+import SelectEmpresa from '../../components/SelectEmpresa';
 import useJwtPayload from '../../hooks/useJwtPayload';
 import { actualizarSocio, crearSocio, listarRolesSocio, listarTercerosDisponibles } from '../../_apis_/socio';
 import '../terceros/ConfiguracionTercero.scss';
@@ -54,11 +55,29 @@ const GET_SOCIO = gql`
   }
 `;
 
+const GET_EMPRESAS = gql`
+  query GetEmpresas {
+    empresas {
+      id_empresa
+      nombre
+      ruc
+      estado
+    }
+  }
+`;
+
 const SocioForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const payload = useJwtPayload();
-  const idEmpresa = payload?.id_empresa || '';
+  const scope = payload?.scope_acceso || 'EMPRESA';
+  const isGlobal = scope === 'GLOBAL';
+  const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
+  const idEmpresa = isGlobal ? empresaSeleccionada : (payload?.id_empresa || '');
   const isEdit = !!id;
+  const isDisabled = isGlobal && !empresaSeleccionada;
+
+  const { data: empresasData } = useQuery(GET_EMPRESAS, { skip: !isGlobal });
+  const empresas = empresasData?.empresas || [];
 
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
@@ -137,11 +156,18 @@ const SocioForm: React.FC = () => {
 
   useEffect(() => {
     if (!isEdit || !id) return;
+    if (isGlobal && !empresaSeleccionada) return;
     let cancelled = false;
 
     (async () => {
       try {
-        const res = await fetchSocio({ variables: { id_socio: id } });
+        const res = await fetchSocio({
+          variables: { id_socio: id },
+          context:
+            isGlobal && empresaSeleccionada
+              ? { headers: { 'X-Company-Id': empresaSeleccionada } }
+              : undefined,
+        });
         if (cancelled) return;
 
         const socio = res.data?.socio;
@@ -156,7 +182,7 @@ const SocioForm: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [fetchSocio, id, isEdit]);
+  }, [fetchSocio, id, isEdit, isGlobal, empresaSeleccionada]);
 
   useEffect(() => {
     if (!isEdit || !socioData) return;
@@ -190,6 +216,9 @@ const SocioForm: React.FC = () => {
         const tokenPayload = JSON.parse(atob(token.split('.')[1]));
         id_empresa = tokenPayload.id_empresa;
       }
+      if (isGlobal && empresaSeleccionada) {
+        id_empresa = empresaSeleccionada;
+      }
 
       const cleanedData: Record<string, any> = { ...values, id_empresa };
       Object.keys(cleanedData).forEach((key) => {
@@ -220,7 +249,7 @@ const SocioForm: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, idEmpresa, isEdit, reset]);
+  }, [id, idEmpresa, isEdit, isGlobal, empresaSeleccionada, reset]);
 
   const onInvalid = useCallback((formErrors: any) => {
     const collectMessages = (obj: any): string[] => {
@@ -246,7 +275,7 @@ const SocioForm: React.FC = () => {
               <Button color="secondary" outline className="me-2" onClick={() => reset(initialForm)} disabled={loading}>
                 Cancelar
               </Button>
-              <Button color="primary" onClick={handleSubmit(onSubmitRHF, onInvalid)} disabled={loading || (isEdit && !isDirty)}>
+              <Button color="primary" onClick={handleSubmit(onSubmitRHF, onInvalid)} disabled={loading || isDisabled || !isDirty}>
                 {loading ? (
                   <>
                     <Spinner size="sm" className="me-2" />
@@ -267,6 +296,24 @@ const SocioForm: React.FC = () => {
               ? 'Modifique la información del socio y haga clic en Guardar cambios.'
               : 'Complete la información del socio y haga clic en Crear Socio.'}
           </p>
+
+          {isGlobal && (
+            <FormGroup className="mb-3">
+              <Label for="id_empresa_socio_form">Empresa</Label>
+              <SelectEmpresa
+                value={empresaSeleccionada || null}
+                onChange={(val) => setEmpresaSeleccionada(val ?? '')}
+                empresas={empresas}
+                placeholder="Seleccione una empresa"
+              />
+            </FormGroup>
+          )}
+
+          {isGlobal && !empresaSeleccionada && (
+            <Alert color="info" className="mb-3">
+              Seleccione una empresa para continuar
+            </Alert>
+          )}
 
           <Card>
             <CardBody>
@@ -290,7 +337,7 @@ const SocioForm: React.FC = () => {
                           onChange={(value) => field.onChange((value as string | null) ?? '')}
                           options={rolOptions}
                           isLoading={loadingRoles}
-                          isDisabled={loadingRoles}
+                          isDisabled={loadingRoles || isDisabled}
                           placeholder="Seleccionar rol"
                           error={errors.id_rol_socio?.message}
                         />
@@ -309,6 +356,7 @@ const SocioForm: React.FC = () => {
                       value={watch('fecha_inicio') || ''}
                       onChange={(e) => setValue('fecha_inicio', e.target.value, { shouldDirty: true, shouldValidate: true })}
                       invalid={!!errors.fecha_inicio}
+                      disabled={isDisabled}
                     />
                     {errors.fecha_inicio?.message && <FormText color="danger">{errors.fecha_inicio.message}</FormText>}
                   </FormGroup>
@@ -322,6 +370,7 @@ const SocioForm: React.FC = () => {
                       value={watch('fecha_fin') || ''}
                       onChange={(e) => setValue('fecha_fin', e.target.value, { shouldDirty: true, shouldValidate: true })}
                       invalid={!!errors.fecha_fin}
+                      disabled={isDisabled}
                     />
                     {errors.fecha_fin?.message && <FormText color="danger">{errors.fecha_fin.message}</FormText>}
                   </FormGroup>
@@ -343,7 +392,7 @@ const SocioForm: React.FC = () => {
                           onChange={(value) => field.onChange(Array.isArray(value) ? value : [])}
                           options={tercerosOptions}
                           isLoading={loadingTerceros}
-                          isDisabled={loadingTerceros || !idEmpresa}
+                          isDisabled={loadingTerceros || !idEmpresa || isDisabled}
                           placeholder={!idEmpresa ? 'Seleccione empresa primero' : 'Seleccionar terceros'}
                           error={errors.terceros?.message as string | undefined}
                           isMulti
