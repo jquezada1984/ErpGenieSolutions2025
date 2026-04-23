@@ -22,16 +22,15 @@ const authLink = setContext((_, { headers }) => {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       companyId = payload.id_empresa || '';
-    } catch (e) {
-      console.warn('No se pudo extraer id_empresa del token');
-    }
+    } catch {}
   }
 
   return {
     headers: {
       ...headers,
       authorization: token ? `Bearer ${token}` : '',
-      'X-Company-Id': companyId,
+      // 🔥 SOLO poner si NO viene ya definido
+      'X-Company-Id': headers?.['X-Company-Id'] || companyId,
     },
   };
 });

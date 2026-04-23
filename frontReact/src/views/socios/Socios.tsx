@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardBody, CardTitle, Button, Container, Row, Col, Badge, Alert, Spinner } from 'reactstrap';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useLazyQuery } from '@apollo/client';
+import { Card, CardBody, CardTitle, Button, Container, Row, Col, Badge, Alert, Spinner, FormGroup, Label } from 'reactstrap';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
 import { toggleEstadoSocio } from '../../_apis_/socio';
+import useJwtPayload from '../../hooks/useJwtPayload';
+import SelectEmpresa from '../../components/SelectEmpresa';
 
 const GET_SOCIOS = gql`
   query GetSocios {
@@ -20,6 +22,17 @@ const GET_SOCIOS = gql`
       rol_socio {
         nombre
       }
+    }
+  }
+`;
+
+const GET_EMPRESAS = gql`
+  query GetEmpresas {
+    empresas {
+      id_empresa
+      nombre
+      ruc
+      estado
     }
   }
 `;
@@ -39,46 +52,33 @@ interface Socio {
 
 const Socios: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const payload = useJwtPayload();
+  const scope = payload?.scope_acceso || 'EMPRESA';
+  const empresaToken = payload?.id_empresa || '';
+  const isGlobal = scope === 'GLOBAL';
 
-  const [socios, setSocios] = useState<Socio[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const [getSocios, { loading: queryLoading }] = useLazyQuery(GET_SOCIOS, {
+  const { data: empresasData } = useQuery(GET_EMPRESAS, { skip: !isGlobal });
+  const empresas = empresasData?.empresas || [];
+
+  const {
+    data: sociosData,
+    loading: queryLoading,
+    error: queryError,
+    refetch: refetchSocios,
+  } = useQuery(GET_SOCIOS, {
     fetchPolicy: 'cache-and-network',
     errorPolicy: 'all',
+    skip: isGlobal && !empresaSeleccionada,
+    context: {
+      headers: {
+        'X-Company-Id': isGlobal ? empresaSeleccionada : empresaToken,
+      },
+    },
   });
-
-  useEffect(() => {
-    loadSocios();
-  }, []);
-
-  useEffect(() => {
-    if (location.pathname === '/socios') {
-      loadSocios();
-    }
-  }, [location.pathname]);
-
-  const loadSocios = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data } = await getSocios();
-      if (data && data.socios) {
-        setSocios(data.socios);
-      } else {
-        setSocios([]);
-      }
-    } catch (err: any) {
-      console.error('❌ Error cargando socios:', err);
-      setSocios([]);
-      setError('Error al cargar los socios: ' + (err.message || 'Error desconocido'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const socios: Socio[] = sociosData?.socios || [];
 
   const handleNuevoSocio = () => {
     navigate('/socios/nuevo');
@@ -91,7 +91,7 @@ const Socios: React.FC = () => {
   const handleToggleEstado = async (socio: Socio) => {
     try {
       await toggleEstadoSocio(socio.id_socio);
-      await loadSocios();
+      await refetchSocios();
     } catch (err: any) {
       console.error('Error actualizando estado de socio:', err);
       setError(err?.message || 'Error al actualizar el estado');
@@ -205,11 +205,35 @@ const Socios: React.FC = () => {
                 </div>
               </div>
 
-              {(loading || queryLoading) && (
+              {isGlobal && (
+                <FormGroup className="mb-3">
+                  <Label for="id_empresa_listado">Empresa</Label>
+                  <SelectEmpresa
+                    value={empresaSeleccionada || null}
+                    onChange={(val) => setEmpresaSeleccionada(val ?? '')}
+                    empresas={empresas}
+                    placeholder="Seleccione una empresa para ver los socios"
+                  />
+                </FormGroup>
+              )}
+
+              {isGlobal && !empresaSeleccionada && (
+                <Alert color="info" className="mb-3">
+                  Seleccione una empresa para ver los socios
+                </Alert>
+              )}
+
+              {queryLoading && (
                 <div className="d-flex align-items-center mb-3">
                   <Spinner size="sm" className="me-2" />
                   <span>Cargando socios...</span>
                 </div>
+              )}
+
+              {queryError && (
+                <Alert color="danger" className="mb-3">
+                  Error al cargar los socios: {queryError.message}
+                </Alert>
               )}
 
               {error && (
@@ -231,7 +255,7 @@ const Socios: React.FC = () => {
                   collapseOnSortingChange={true}
                   collapseOnPageChange={true}
                   collapseOnDataChange={true}
-                  loading={loading || queryLoading}
+                  loading={queryLoading}
                 />
               </div>
             </CardBody>
