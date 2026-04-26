@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 
 export default function useJwtPayload() {
-  const payload = useMemo(() => {
+  const { pathname, key } = useLocation();
+  return useMemo(() => {
     try {
       const token = localStorage.getItem('accessToken');
       if (!token) return null;
@@ -10,10 +12,8 @@ export default function useJwtPayload() {
       const decoded = JSON.parse(atob(base64));
 
       return decoded;
-    } catch (e) {
+    } catch {
       return null;
     }
-  }, []);
-
-  return payload;
+  }, [pathname, key]);
 }

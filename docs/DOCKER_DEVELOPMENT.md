@@ -4,25 +4,24 @@ Este documento explica cómo configurar y usar Docker para desarrollo con hot re
 
 ## 🚀 Inicio Rápido
 
-### Windows
+### Windows (scripts en la raíz del repo)
+
+- **`docker-dev-up.bat`** — construye imágenes si hace falta e inicia todo el stack (`up -d --build`).
+- **`docker-dev-down.bat`** — detiene y elimina los contenedores del compose de desarrollo.
+- **`docker-dev-restart.bat`** — `down` + `up -d` sin rebuild (útil tras un fallo o para refrescar).
+
+### Linux / macOS / WSL (mismos comandos que usan los scripts)
+
 ```bash
-# Ejecutar el script de desarrollo
-start-dev-docker.bat
+docker compose -f docker-compose.dev.yml up -d --build   # equivalente a docker-dev-up.bat
+docker compose -f docker-compose.dev.yml down            # equivalente a docker-dev-down.bat
+docker compose -f docker-compose.dev.yml down && docker compose -f docker-compose.dev.yml up -d
 ```
 
-### Linux/Mac
-```bash
-# Hacer ejecutable el script
-chmod +x start-dev-docker.sh
+### Primer plano (logs en la terminal)
 
-# Ejecutar el script de desarrollo
-./start-dev-docker.sh
-```
-
-### Manual
 ```bash
-# Construir y ejecutar todos los servicios en modo desarrollo
-docker-compose -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.dev.yml up --build
 ```
 
 ## 📋 Servicios Disponibles
@@ -64,25 +63,25 @@ volumes:
 ### Desarrollo
 ```bash
 # Iniciar todos los servicios
-docker-compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up
 
 # Iniciar en segundo plano
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 
 # Reconstruir solo un servicio
-docker-compose -f docker-compose.dev.yml up --build nestjs-service
+docker compose -f docker-compose.dev.yml up --build nestjs-service
 
 # Ver logs de un servicio específico
-docker-compose -f docker-compose.dev.yml logs -f frontend
+docker compose -f docker-compose.dev.yml logs -f frontend
 ```
 
 ### Limpieza
 ```bash
 # Detener todos los servicios
-docker-compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml down
 
 # Detener y eliminar volúmenes
-docker-compose -f docker-compose.dev.yml down -v
+docker compose -f docker-compose.dev.yml down -v
 
 # Limpiar imágenes no utilizadas
 docker system prune -f
@@ -113,10 +112,10 @@ Cada servicio tiene su propio `Dockerfile.dev` optimizado para desarrollo:
 ### Ver Logs en Tiempo Real
 ```bash
 # Todos los servicios
-docker-compose -f docker-compose.dev.yml logs -f
+docker compose -f docker-compose.dev.yml logs -f
 
 # Servicio específico
-docker-compose -f docker-compose.dev.yml logs -f nestjs-service
+docker compose -f docker-compose.dev.yml logs -f nestjs-service
 ```
 
 ### Acceder a Contenedor
@@ -149,7 +148,7 @@ netstat -tulpn | grep :3002
 ### Reconstruir Contenedor
 ```bash
 # Reconstruir servicio específico
-docker-compose -f docker-compose.dev.yml up --build --force-recreate nestjs-service
+docker compose -f docker-compose.dev.yml up --build --force-recreate nestjs-service
 ```
 
 ### Limpiar Docker
@@ -161,7 +160,7 @@ docker volume prune -f
 
 ## 🎯 Flujo de Desarrollo
 
-1. **Iniciar servicios**: `docker-compose -f docker-compose.dev.yml up`
+1. **Iniciar servicios**: `docker compose -f docker-compose.dev.yml up`
 2. **Hacer cambios**: Editar código en tu editor
 3. **Ver cambios**: Se reflejan automáticamente en el navegador
 4. **Debug**: Usar logs y herramientas de desarrollo

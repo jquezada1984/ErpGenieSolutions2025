@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { Usuario } from '../entities/usuario.entity';
 import { Perfil } from '../entities/perfil.entity';
 import { AutorizacionService } from '../services/autorizacion.service';
-import { LoginResponse } from './dto/login.response';
+import { LoginResponse, DbConnectionStatus } from './dto/login.response';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -18,6 +18,45 @@ export class AuthService {
     private jwtService: JwtService,
     private autorizacionService: AutorizacionService,
   ) {}
+
+  /** Host:puerto efectivo sin exponer usuario ni contraseña. */
+  private getDbHostHint(): string {
+    const url = process.env.DATABASE_URL?.trim();
+    if (url?.startsWith('postgresql')) {
+      try {
+        const u = new URL(url);
+        const port = u.port || '5432';
+        return `${u.hostname}:${port}`;
+      } catch {
+        return '(url-postgres-invalida)';
+      }
+    }
+    const host = process.env.DB_HOST || 'localhost';
+    const port = process.env.DB_PORT || '5432';
+    return `${host}:${port}`;
+  }
+
+  private async measureDbConnection(): Promise<DbConnectionStatus> {
+    const hostHint = this.getDbHostHint();
+    const t0 = Date.now();
+    try {
+      const rows = await this.usuarioRepository.manager.query(
+        'SELECT current_database() AS db',
+      );
+      const latencyMs = Date.now() - t0;
+      const databaseName =
+        rows?.[0]?.db != null ? String(rows[0].db) : '(desconocida)';
+      return { ok: true, latencyMs, databaseName, hostHint };
+    } catch {
+      const latencyMs = Date.now() - t0;
+      return {
+        ok: false,
+        latencyMs,
+        databaseName: '(error)',
+        hostHint,
+      };
+    }
+  }
 
   async validateUser(email: string, password: string): Promise<any> {
     try {
@@ -47,11 +86,6 @@ export class AuthService {
         throw new UnauthorizedException('Perfil no válido o inactivo');
       }
 
-      // Verificar contraseña
-      console.log('🔍 Verificando contraseña...');
-      console.log('🔍 Contraseña ingresada:', password);
-      console.log('🔍 Hash almacenado:', usuario.password_hash);
-      
       const isPasswordValid = await bcrypt.compare(password, usuario.password_hash);
       console.log('🔍 Resultado de verificación:', isPasswordValid);
       
@@ -102,6 +136,8 @@ export class AuthService {
       const modulosDisponibles = await this.autorizacionService.obtenerPermisosPorModulo(usuario.perfil.id_perfil);
       const totalPermisos = Object.values(modulosDisponibles).reduce((total, permisos) => total + permisos.length, 0);
 
+      const dbConnection = await this.measureDbConnection();
+
       return {
         accessToken: access_token,
         user: {
@@ -122,6 +158,7 @@ export class AuthService {
           modulosDisponibles: Object.keys(modulosDisponibles),
           totalPermisos,
         },
+        dbConnection,
       };
     } catch (error) {
       throw new UnauthorizedException(`Error en el login: ${error.message}`);

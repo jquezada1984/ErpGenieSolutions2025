@@ -15,6 +15,12 @@ const LOGIN_MUTATION = gql`
         lastName
         id_perfil
       }
+      dbConnection {
+        ok
+        latencyMs
+        databaseName
+        hostHint
+      }
     }
   }
 `;
@@ -227,7 +233,16 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Respuesta inválida del servidor');
       }
       
-      const { accessToken, user } = data.login;
+      const { accessToken, user, dbConnection } = data.login;
+
+      if (dbConnection) {
+        console.info('[Login] Validación base de datos:', {
+          ok: dbConnection.ok,
+          baseDatos: dbConnection.databaseName,
+          host: dbConnection.hostHint,
+          latenciaMs: dbConnection.latencyMs,
+        });
+      }
 
       if (!accessToken) {
         throw new Error('No se recibió token de acceso del servidor');

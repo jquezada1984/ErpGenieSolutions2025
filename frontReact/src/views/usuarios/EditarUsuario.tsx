@@ -1,20 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, CardTitle, Button, Form, FormGroup, Label, Input, Alert, Row, Col, Spinner, Badge } from 'reactstrap';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery, gql } from '@apollo/client';
-import { actualizarUsuario, cambiarPasswordUsuario } from '../../_apis_/usuario';
+import { useQuery, gql, useMutation } from '@apollo/client';
+import { cambiarPasswordUsuario } from '../../_apis_/usuario';
+import { GET_USUARIOS } from './Usuarios';
+import useJwtPayload from '../../hooks/useJwtPayload';
+import { isScopeGlobal } from '../../utils/scopeAcceso';
 
 // Consulta GraphQL para obtener usuario (InicioNestJS)
 const GET_USUARIO = gql`
   query GetUsuario($id_usuario: ID!) {
     usuario(id_usuario: $id_usuario) {
       id_usuario
+      id_empresa
+      id_perfil
       username
       nombre_completo
       email
       estado
       created_at
       updated_at
+      scope_acceso
       empresa {
         id_empresa
         nombre
@@ -59,6 +65,51 @@ const GET_PERFILES = gql`
   }
 `;
 
+const ACTUALIZAR_USUARIO = gql`
+  mutation ActualizarUsuario(
+    $id_usuario: ID!
+    $id_empresa: ID
+    $id_perfil: ID
+    $username: String
+    $nombre_completo: String
+    $email: String
+    $estado: Boolean
+    $scope_acceso: String
+  ) {
+    actualizarUsuario(
+      id_usuario: $id_usuario
+      id_empresa: $id_empresa
+      id_perfil: $id_perfil
+      username: $username
+      nombre_completo: $nombre_completo
+      email: $email
+      estado: $estado
+      scope_acceso: $scope_acceso
+    ) {
+      id_usuario
+      id_empresa
+      id_perfil
+      username
+      nombre_completo
+      email
+      estado
+      scope_acceso
+      empresa {
+        id_empresa
+        nombre
+        ruc
+        estado
+      }
+      perfil {
+        id_perfil
+        nombre
+        descripcion
+        estado
+      }
+    }
+  }
+`;
+
 interface Empresa {
   id_empresa: string;
   nombre: string;
@@ -80,13 +131,16 @@ interface Perfil {
 const EditarUsuario: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const jwtPayload = useJwtPayload();
+  const puedeEditarAlcance = isScopeGlobal(jwtPayload);
   const [formData, setFormData] = useState({
     id_empresa: '',
     id_perfil: '',
     username: '',
     nombre_completo: '',
     email: '',
-    estado: true
+    estado: true,
+    scope_acceso: 'EMPRESA',
   });
   const [passwordData, setPasswordData] = useState({
     password: '',
@@ -99,10 +153,11 @@ const EditarUsuario: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
-  // Consulta GraphQL para obtener el usuario desde InicioNestJS
+  // Red al cargar: tras guardar, la mutación refetch deja lista y detalle alineados con Nest/TypeORM.
   const { loading: loadingUsuario, error: queryError, data } = useQuery(GET_USUARIO, {
     variables: { id_usuario: id },
-    skip: !id
+    skip: !id,
+    fetchPolicy: 'network-only',
   });
 
   // Consulta GraphQL para obtener empresas desde InicioNestJS
@@ -111,25 +166,52 @@ const EditarUsuario: React.FC = () => {
   // Consulta GraphQL para obtener perfiles desde InicioNestJS
   const { loading: loadingPerfiles, error: errorPerfiles, data: perfilesData } = useQuery(GET_PERFILES);
 
+  const [mutateActualizarUsuario, { loading: mutationLoading }] = useMutation(ACTUALIZAR_USUARIO);
+
   useEffect(() => {
     if (data?.usuario) {
       const usuario = data.usuario;
+      const scopeRaw = (usuario as { scope_acceso?: string }).scope_acceso;
+      const scopeNorm =
+        String(scopeRaw || 'EMPRESA')
+          .trim()
+          .toUpperCase() === 'GLOBAL'
+          ? 'GLOBAL'
+          : 'EMPRESA';
       setFormData({
-        id_empresa: usuario.empresa?.id_empresa || '',
-        id_perfil: usuario.perfil?.id_perfil || '',
+        id_empresa: String(usuario.empresa?.id_empresa ?? usuario.id_empresa ?? ''),
+        id_perfil: String(usuario.perfil?.id_perfil ?? usuario.id_perfil ?? ''),
         username: usuario.username,
         nombre_completo: usuario.nombre_completo || '',
         email: usuario.email || '',
-        estado: usuario.estado
+        estado: usuario.estado,
+        scope_acceso: scopeNorm,
       });
     }
   }, [data]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    if (name === 'id_empresa') {
+      const newEmpresa = value;
+      setFormData((prev) => {
+        const list = perfilesData?.perfiles || [];
+        let id_perfil = prev.id_perfil;
+        if (list.length > 0) {
+          const ok = list.some(
+            (p: Perfil) =>
+              p.id_perfil === prev.id_perfil &&
+              (!newEmpresa || p.empresa?.id_empresa === newEmpresa),
+          );
+          if (!ok) id_perfil = '';
+        }
+        return { ...prev, id_empresa: newEmpresa, id_perfil };
+      });
+      return;
+    }
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
@@ -173,18 +255,38 @@ const EditarUsuario: React.FC = () => {
     }
 
     try {
-      const result = await actualizarUsuario(id, {
+      const variables: Record<string, unknown> = {
+        id_usuario: id,
         id_empresa: formData.id_empresa,
         id_perfil: formData.id_perfil,
         username: formData.username.trim(),
         nombre_completo: formData.nombre_completo.trim() || null,
         email: formData.email.trim() || null,
-        estado: formData.estado
+        estado: formData.estado,
+      };
+      if (puedeEditarAlcance) {
+        variables.scope_acceso =
+          String(formData.scope_acceso || 'EMPRESA').trim().toUpperCase() === 'GLOBAL' ? 'GLOBAL' : 'EMPRESA';
+      }
+
+      const result = await mutateActualizarUsuario({
+        variables,
+        refetchQueries: [
+          { query: GET_USUARIO, variables: { id_usuario: id } },
+          { query: GET_USUARIOS },
+        ],
+        awaitRefetchQueries: true,
       });
 
+      if (result.errors?.length) {
+        throw new Error(result.errors.map((e) => e.message).join('; '));
+      }
+      if (!result.data?.actualizarUsuario) {
+        throw new Error('No se pudo actualizar el usuario');
+      }
+
       setSuccess(true);
-      
-      // Redirigir después de un breve delay para mostrar el mensaje de éxito
+
       setTimeout(() => {
         navigate('/usuario');
       }, 2000);
@@ -414,6 +516,32 @@ const EditarUsuario: React.FC = () => {
                     </FormGroup>
                   </Col>
                 </Row>
+
+                {puedeEditarAlcance && (
+                  <Row>
+                    <Col md={6}>
+                      <FormGroup>
+                        <Label for="scope_acceso" className="fw-bold">
+                          Alcance de acceso
+                        </Label>
+                        <Input
+                          id="scope_acceso"
+                          name="scope_acceso"
+                          type="select"
+                          value={formData.scope_acceso}
+                          onChange={handleInputChange}
+                          disabled={loading}
+                        >
+                          <option value="EMPRESA">Solo su empresa (EMPRESA)</option>
+                          <option value="GLOBAL">Todas las empresas (GLOBAL)</option>
+                        </Input>
+                        <small className="text-muted d-block mt-1">
+                          Solo administradores globales pueden cambiar este valor.
+                        </small>
+                      </FormGroup>
+                    </Col>
+                  </Row>
+                )}
 
                 <Row>
                   <Col md={6}>

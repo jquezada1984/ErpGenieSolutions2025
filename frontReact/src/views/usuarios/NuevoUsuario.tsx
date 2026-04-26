@@ -22,6 +22,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, gql } from '@apollo/client';
 import classnames from 'classnames';
 import { crearUsuario } from '../../_apis_/usuario';
+import useJwtPayload from '../../hooks/useJwtPayload';
+import { isScopeGlobal } from '../../utils/scopeAcceso';
 
 const GET_EMPRESAS = gql`
   query {
@@ -164,10 +166,13 @@ const initialForm = {
   fecha_empleo_desde: '',
   fecha_empleo_hasta: '',
   fecha_nacimiento: '',
+  scope_acceso: 'EMPRESA',
 };
 
 const NuevoUsuario: React.FC = () => {
   const navigate = useNavigate();
+  const jwtPayload = useJwtPayload();
+  const puedeEditarAlcance = isScopeGlobal(jwtPayload);
   const [activeTab, setActiveTab] = useState('1');
   const [formData, setFormData] = useState(initialForm);
   const [loading, setLoading] = useState(false);
@@ -282,6 +287,11 @@ const NuevoUsuario: React.FC = () => {
       if (formData.fecha_empleo_desde) payload.fecha_empleo_desde = formData.fecha_empleo_desde;
       if (formData.fecha_empleo_hasta) payload.fecha_empleo_hasta = formData.fecha_empleo_hasta;
 
+      if (puedeEditarAlcance) {
+        const s = String(formData.scope_acceso || 'EMPRESA').trim().toUpperCase();
+        payload.scope_acceso = s === 'GLOBAL' ? 'GLOBAL' : 'EMPRESA';
+      }
+
       try {
         await crearUsuario(payload as any);
         setSuccess(true);
@@ -292,7 +302,7 @@ const NuevoUsuario: React.FC = () => {
         setLoading(false);
       }
     },
-    [formData, navigate]
+    [formData, navigate, puedeEditarAlcance]
   );
 
   const handleCancel = useCallback(() => navigate('/usuario'), [navigate]);
@@ -691,6 +701,31 @@ const NuevoUsuario: React.FC = () => {
                     </FormGroup>
                   </Col>
                 </Row>
+                {puedeEditarAlcance && (
+                  <Row>
+                    <Col md={6}>
+                      <FormGroup>
+                        <Label for="scope_acceso" className="fw-bold">
+                          Alcance de acceso
+                        </Label>
+                        <Input
+                          id="scope_acceso"
+                          name="scope_acceso"
+                          type="select"
+                          value={formData.scope_acceso}
+                          onChange={handleChange}
+                          disabled={loading}
+                        >
+                          <option value="EMPRESA">Solo su empresa (EMPRESA)</option>
+                          <option value="GLOBAL">Todas las empresas (GLOBAL)</option>
+                        </Input>
+                        <small className="text-muted">
+                          Solo administradores globales pueden asignar alcance GLOBAL.
+                        </small>
+                      </FormGroup>
+                    </Col>
+                  </Row>
+                )}
               </Form>
             </TabPane>
 

@@ -155,7 +155,7 @@ type Tercero {
   id_tercero: ID!
   id_tipo_entidad: Float
   id_tipo_tercero: String
-  updated_by: String
+  logo: String
   movil: String
   nombre: String!
   poblacion: String

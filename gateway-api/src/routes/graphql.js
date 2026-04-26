@@ -1,4 +1,9 @@
 const axios = require('axios');
+const {
+  isProduction,
+  buildGraphqlProxyErrorReply,
+  buildGraphqlHealthErrorReply,
+} = require('../utils/sanitize-gateway-error');
 
 // Función para determinar el servicio objetivo basado en la consulta
 const getTargetService = (query, config) => {
@@ -119,8 +124,14 @@ async function executeGraphQLQuery(query, variables, operationName, context, con
 async function routes(fastify, options) {
   // Endpoint GraphQL
   fastify.post('/graphql', async (request, reply) => {
+    const config = {
+      nestjsService: process.env.NESTJS_SERVICE_URL,
+      menuService: process.env.MENU_SERVICE_URL,
+      terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || process.env.TERCERO_NESTJS_SERVICE_URL || 'http://localhost:3001'
+    };
+
     try {
-      const { query, variables, operationName } = request.body;
+      const { query, variables, operationName } = request.body || {};
       
       if (!query) {
         return reply.status(400).send({
@@ -139,16 +150,11 @@ async function routes(fastify, options) {
       };
 
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);
-      
       return reply.send(result);
     } catch (error) {
       fastify.log.error('Error en endpoint GraphQL:', error);
-      
-      return reply.status(500).send({
-        success: false,
-        error: error.response?.data?.errors?.[0]?.message || error.message || 'Error interno del servidor',
-        timestamp: new Date().toISOString()
-      });
+      const { statusCode, body } = buildGraphqlProxyErrorReply(error);
+      return reply.status(statusCode).send(body);
     }
   });
 
@@ -163,16 +169,19 @@ async function routes(fastify, options) {
       });
     } catch (error) {
       fastify.log.error('Error en endpoint GraphQL GET:', error);
+      const ts = new Date().toISOString();
       return reply.status(500).send({
         success: false,
-        error: 'Error en endpoint GraphQL',
-        timestamp: new Date().toISOString()
+        error: isProduction() ? 'No se pudo completar la operación.' : 'Error en endpoint GraphQL',
+        timestamp: ts,
       });
     }
   });
 
   // Endpoint para verificar conectividad con InicioNestJs GraphQL (POST mínimo; no existe GET /health en Nest)
   fastify.get('/graphql/health', async (request, reply) => {
+    const baseUrl = process.env.NESTJS_SERVICE_URL || 'http://localhost:3001';
+    const healthUrl = baseUrl.replace(/\/graphql\/?$/, '') + '/';
     try {
       const base = (process.env.NESTJS_SERVICE_URL || 'http://localhost:3001').replace(/\/$/, '');
       const response = await axios.post(
@@ -201,13 +210,8 @@ async function routes(fastify, options) {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      return reply.status(503).send({
-        success: false,
-        service: 'NestJS GraphQL',
-        status: 'disconnected',
-        error: error.message,
-        timestamp: new Date().toISOString()
-      });
+      const { statusCode, body } = buildGraphqlHealthErrorReply(error);
+      return reply.status(statusCode).send(body);
     }
   });
 }

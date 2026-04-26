@@ -19,6 +19,8 @@ Sistema ERP moderno con arquitectura de microservicios, API Gateway y frontend R
 - **Microservicio Python** (`InicioPython/`) - Gestión de base de datos (Flask)
 - **Backend NestJS** (`InicioNestJs/`) - API GraphQL (NestJS)
 
+**Documentación:** índice por componente (cada microservicio, gateway y front) en [`documentacion/README.md`](documentacion/README.md); arquitectura completa en [`documentacion/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md`](documentacion/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md).
+
 ---
 
 ## 📋 Requisitos del Sistema
@@ -52,50 +54,35 @@ cd ErpGenieSolutions2025
 
 ### **Inicio Rápido:**
 
-#### **Opción 1: Scripts Automáticos (Windows)**
+#### **Opción 1: Scripts (Windows, desarrollo con Docker)**
 
-##### **Para Desarrollo (con Hot-Reload):**
+| Acción | Script |
+|--------|--------|
+| Construir imágenes si hace falta e iniciar todo el stack | `docker-dev-up.bat` |
+| Detener contenedores | `docker-dev-down.bat` |
+| Reiniciar (down + up, sin rebuild) | `docker-dev-restart.bat` |
+
+Reconstrucción forzada sin caché (cuando cambian Dockerfiles a fondo):
+
 ```bash
-# Iniciar servicios de desarrollo
-start-docker-dev.bat
-
-# Detener servicios de desarrollo
-stop-docker-dev.bat
-```
-
-##### **Para Producción:**
-```bash
-# Iniciar servicios de producción
-start-docker.bat
-
-# Detener servicios de producción
-stop-docker.bat
+docker compose -f docker-compose.dev.yml build --no-cache
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 #### **Opción 2: Comandos Docker**
 
-##### **Para Desarrollo (con Hot-Reload):**
+##### **Desarrollo (`docker-compose.dev.yml`):**
 ```bash
-# Construir e iniciar servicios de desarrollo
-docker-compose -f docker-compose.dev.yml up --build -d
-
-# Ver logs en tiempo real
-docker-compose -f docker-compose.dev.yml logs -f
-
-# Detener servicios de desarrollo
-docker-compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml up -d --build
+docker compose -f docker-compose.dev.yml logs -f
+docker compose -f docker-compose.dev.yml down
 ```
 
-##### **Para Producción:**
+##### **Producción (`docker-compose.yml`):**
 ```bash
-# Construir e iniciar servicios de producción
-docker-compose up --build -d
-
-# Ver logs en tiempo real
-docker-compose logs -f
-
-# Detener servicios de producción
-docker-compose down
+docker compose up --build -d
+docker compose logs -f
+docker compose down
 ```
 
 ---
@@ -303,8 +290,9 @@ DATABASE_URL=postgresql://usuario:password@servidor-externo:5432/erp_database
 # Para SQLite local (desarrollo):
 # DATABASE_URL=sqlite:///app/data/database.db
 
-JWT_SECRET_KEY=your-secret-key-here
-JWT_SECRET=your-jwt-secret-here
+# JWT: definir valores aleatorios largos (p. ej. openssl rand -base64 48); sin valores de ejemplo en código
+JWT_SECRET_KEY=
+JWT_SECRET=
 ```
 
 ### **Comandos de Base de Datos con Docker:**
@@ -525,6 +513,8 @@ docker-compose -f docker-compose.dev.yml restart frontend
 
 ## 📚 Documentación Adicional
 
+- **Índice del ERP (servicios + web):** [`documentacion/README.md`](documentacion/README.md)
+- **Arquitectura global (gateway, CORS, flujos):** [`documentacion/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md`](documentacion/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md)
 - **Arquitectura CORS:** `ARQUITECTURA_CORS.md`
 - **Gateway API:** `gateway-api/README.md`
 - **Microservicio Python:** `InicioPython/README.md`
@@ -694,9 +684,9 @@ GATEWAY_PORT=3002
 CORS_ORIGIN=http://localhost:3000,http://localhost:5173
 CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
 
-# JWT
-JWT_SECRET_KEY=your-secret-key-here
-JWT_SECRET=your-jwt-secret-here
+# JWT (obligatorio; mismos criterios que arriba)
+JWT_SECRET_KEY=
+JWT_SECRET=
 ```
 
 ### **Volúmenes Docker:**

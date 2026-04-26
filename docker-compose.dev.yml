@@ -5,10 +5,12 @@ services:
       context: ./InicioPython
       dockerfile: Dockerfile
     container_name: erp-python-service-dev
+    # Mismo JWT_SECRET que Nest: NO usar ${JWT_SECRET} del .env raíz (suele desalinear y provoca 422 en Flask-JWT).
+    env_file:
+      - ./InicioNestJs/.env
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres.xfeycgctysoumclptgoh:XeCWl8Dam9CNUS1m@aws-0-sa-east-1.pooler.supabase.com:5432/postgres}
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
-      - JWT_SECRET_KEY=your-secret-key-here
+      - CORS_ORIGINS=http://localhost:3002
       - FLASK_ENV=development
       - TZ=America/Guayaquil
     ports:
@@ -26,10 +28,14 @@ services:
       context: ./InicioNestJs
       dockerfile: Dockerfile.dev
     container_name: erp-nestjs-service-dev
+    env_file:
+      - ./InicioNestJs/.env
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      # DATABASE_URL solo en InicioNestJs/.env (evita DATABASE_URL= vacío desde .env raíz)
+      - CORS_ORIGINS=http://localhost:3002
+      # No pisar JWT_SECRET: viene de env_file (InicioNestJs/.env), debe coincidir con InicioPython
+      - PYTHON_SERVICE_URL=http://python-service:5000
       - TZ=America/Guayaquil
     ports:
       - "3001:3001"
@@ -46,10 +52,14 @@ services:
       context: ./MenuNestJs
       dockerfile: Dockerfile.dev
     container_name: erp-menu-service-dev
+    # DATABASE_URL desde MenuNestJs/.env: si se pone en `environment` con ${DATABASE_URL:-...}
+    # y el .env raíz tiene DATABASE_URL= vacío, Compose inyecta "" y TypeORM cae en localhost:5432.
+    env_file:
+      - ./MenuNestJs/.env
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - CORS_ORIGINS=http://localhost:3002
+      # JWT_SECRET desde env_file (MenuNestJs/.env), sin valor por defecto en Compose
       - TZ=America/Guayaquil
     ports:
       - "3003:3003"
@@ -66,10 +76,11 @@ services:
       context: ./TerceroPython
       dockerfile: Dockerfile
     container_name: erp-tercero-python-service-dev
+    env_file:
+      - ./InicioNestJs/.env
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - CORS_ORIGINS=http://localhost:3002
       - FLASK_ENV=development
       - PORT=3004
       - TZ=America/Guayaquil
@@ -88,11 +99,12 @@ services:
       context: ./TerceroNestJs
       dockerfile: Dockerfile.dev
     container_name: erp-tercero-nestjs-service-dev
+    env_file:
+      - ./TerceroNestJs/.env
     environment:
       - NODE_ENV=development
       - PORT=3001
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - CORS_ORIGINS=http://localhost:3002
       - TZ=America/Guayaquil
     ports:
       - "3006:3001"
@@ -109,10 +121,11 @@ services:
       context: ./ContabilidadPython
       dockerfile: Dockerfile
     container_name: erp-contabilidad-python-service-dev
+    env_file:
+      - ./InicioNestJs/.env
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - CORS_ORIGINS=http://localhost:3002
       - FLASK_ENV=development
       - PORT=5002
       - TZ=America/Guayaquil
@@ -131,10 +144,11 @@ services:
       context: ./ContabilidadNestJs
       dockerfile: Dockerfile.dev
     container_name: erp-contabilidad-nestjs-service-dev
+    env_file:
+      - ./ContabilidadNestJs/.env
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - CORS_ORIGINS=http://localhost:3002
       - TZ=America/Guayaquil
     ports:
       - "3005:3005"
@@ -151,10 +165,11 @@ services:
       context: ./FinancieroPython
       dockerfile: Dockerfile
     container_name: erp-financiero-python-service-dev
+    env_file:
+      - ./InicioNestJs/.env
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:5173
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - CORS_ORIGINS=http://localhost:3002
       - FLASK_ENV=development
       - PORT=5001
       - TZ=America/Guayaquil
@@ -173,10 +188,11 @@ services:
       context: ./FinancieroNestJs
       dockerfile: Dockerfile.dev
     container_name: erp-financiero-nestjs-service-dev
+    env_file:
+      - ./FinancieroNestJs/.env
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
-      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-here}
+      - CORS_ORIGINS=http://localhost:3002
       - TZ=America/Guayaquil
     ports:
       - "3007:3007"
@@ -205,7 +221,7 @@ services:
       - FINANCIERO_PY_BASE_URL=http://financiero-python-service:5001
       - FINANCIERO_NEST_GQL_URL=http://financiero-nestjs-service:3007
       - GATEWAY_PORT=3002
-      - CORS_ORIGIN=http://localhost:3000,http://localhost:3004,http://localhost:5173
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
       - TZ=America/Guayaquil
     ports:
       - "3002:3002"

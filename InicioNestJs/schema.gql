@@ -32,19 +32,15 @@ type CondicionPago {
   id_condicion_pago: ID!
 }
 
+type CondicionPago {
+  descripcion: String!
+  id_condicion_pago: ID!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
-
-type DuracionUnidadCatalogo {
-  codigo: String!
-  descripcion: String
-  estado: Boolean
-  id_duration_unit: ID!
-  nombre: String!
-  orden: Int
-}
 
 type Empresa {
   codigo_postal: String
@@ -148,8 +144,14 @@ type EmpresaRedSocial {
   url: String
 }
 
+type FormaPago {
+  descripcion: String!
+  id_forma_pago: ID!
+}
+
 type LoginResponse {
   accessToken: String!
+  dbConnection: DbConnectionStatus!
   perfil: PerfilResponse!
   permisos: PermisosResponse!
   user: UsuarioResponse!
@@ -211,7 +213,7 @@ type Mutation {
   actualizarPermisoMenu(id_item: ID!, id_perfil: ID!, permitido: Boolean!): PerfilMenuPermiso!
   actualizarSeccion(icono: String, id_seccion: ID!, nombre: String, orden: Int): MenuSeccion
   actualizarSucursal(codigo_establecimiento: String, direccion: String, estado: Boolean, id_sucursal: ID!, nombre: String, telefono: String): Sucursal
-  actualizarUsuario(email: String, estado: Boolean, id_empresa: ID, id_perfil: ID, id_usuario: ID!, nombre_completo: String, password: String, username: String): Usuario
+  actualizarUsuario(email: String, estado: Boolean, id_empresa: ID, id_perfil: ID, id_usuario: ID!, nombre_completo: String, password: String, scope_acceso: String, username: String): Usuario
   cambiarEstadoPerfil(estado: Boolean!, id_perfil: ID!): Boolean!
   cambiarEstadoPermisosMenuItem(id_item: ID!, permitido: Boolean!): Boolean!
   cambiarEstadoPermisosPerfil(id_perfil: ID!, permitido: Boolean!): Boolean!
@@ -222,7 +224,7 @@ type Mutation {
   crearPermisosMasivos(id_perfil: ID!, ids_items: [ID!]!, permitido: Boolean! = true): [PerfilMenuPermiso!]!
   crearSeccion(icono: String, nombre: String!, orden: Int): MenuSeccion!
   crearSucursal(codigo_establecimiento: String, direccion: String, id_empresa: ID!, nombre: String!, telefono: String): Sucursal!
-  crearUsuario(email: String, id_empresa: ID!, id_perfil: ID!, nombre_completo: String, password: String!, username: String!): Usuario!
+  crearUsuario(email: String, id_empresa: ID!, id_perfil: ID!, nombre_completo: String, password: String!, scope_acceso: String, username: String!): Usuario!
   eliminarItem(id_item: ID!): Boolean!
   eliminarPerfil(id_perfil: ID!): Boolean!
   eliminarPermisoMenu(id_item: ID!, id_perfil: ID!): Boolean!
@@ -326,6 +328,7 @@ type Provincia {
 }
 
 type Query {
+  condicionesPago: [CondicionPago!]!
   empresa(id_empresa: ID!): Empresa
   empresas: [EmpresaListDto!]!
   formasPago: [FormaPago!]!
@@ -359,6 +362,7 @@ type Query {
   sucursalesPorEmpresa(id_empresa: ID!): [SucursalListDto!]!
   tamanosEmpresa: [TamanoEmpresa!]!
   test: String!
+  tiposEntidadComercial: [TipoEntidadComercial!]!
   usuario(id_usuario: ID!): Usuario
   usuarios: [UsuarioListDto!]!
   validateToken: Boolean!

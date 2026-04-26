@@ -42,6 +42,7 @@ import { CuentaContable } from './entities/cuenta-contable.entity';
 import { TipoItemCatalogo } from './entities/tipo-item-catalogo.entity';
 import { DuracionUnidadCatalogo } from './entities/duracion-unidad-catalogo.entity';
 import { AuthModule } from './auth/auth.module';
+import { sanitizeGraphQLError } from './common/graphql-format-error';
 // Resolvers
 import { UsuarioResolver } from './resolvers/usuario.resolver';
 import { EmpresaResolver } from './resolvers/empresa.resolver';
@@ -135,9 +136,10 @@ import { AutorizacionService } from './services/autorizacion.service';
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: 'schema.gql',
-      playground: true,
-      introspection: true,
+      playground: process.env.NODE_ENV !== 'production',
+      introspection: process.env.NODE_ENV !== 'production',
       sortSchema: true,
+      formatError: (formattedError, error) => sanitizeGraphQLError(formattedError, error),
     }),
     AuthModule,
     HttpModule,

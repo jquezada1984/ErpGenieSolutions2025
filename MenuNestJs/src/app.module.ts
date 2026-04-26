@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 // Entidades
 import { Perfil } from './entities/perfil.entity';
@@ -16,10 +16,13 @@ import { AutorizacionResolver } from './resolvers/autorizacion.resolver';
 // Services
 import { AutorizacionService } from './services/autorizacion.service';
 
+const menuEntities = [Perfil, MenuSeccion, MenuItem, PerfilMenuPermiso];
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env'],
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
