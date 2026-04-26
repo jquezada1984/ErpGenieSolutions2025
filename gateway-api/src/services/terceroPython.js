@@ -1,7 +1,7 @@
 // src/services/terceroPython.js
 const axios = require('axios');
 
-const BASE_URL = process.env.TERCERO_PY_BASE_URL || 'http://localhost:3004';
+const BASE_URL = process.env.TERCERO_PY_BASE_URL || 'http://erp-tercero-service:3004';
 const NESTJS_SERVICE_URL = process.env.NESTJS_SERVICE_URL || 'http://localhost:3000';
 
 const http = axios.create({
@@ -95,7 +95,7 @@ async function crearTercero(body, req) {
     // Mantenerlo en el body también por si acaso el backend lo necesita
   }
   
-  console.log('📤 Gateway -> TerceroPython: Crear tercero', { headers, body: bodyToSend });
+  console.log('🔥 BODY COMPLETO ENVIADO:', JSON.stringify(bodyToSend, null, 2));
   const res = await http.post('/api/tercero', bodyToSend, { headers });
   console.log('✅ Gateway <- TerceroPython: Tercero creado', res.data);
   return res.data;

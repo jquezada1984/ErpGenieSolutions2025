@@ -15,6 +15,7 @@ const fastify = require('fastify')({
   },
   trustProxy: true
 });
+const terceroPython = require('./services/terceroPython');
 
 // Configuración
 const config = {
@@ -60,7 +61,11 @@ if (!config.menuService) {
 // Registrar plugins
 fastify.register(require('@fastify/cors'), config.cors);
 fastify.register(require('@fastify/helmet'));
-fastify.register(require('@fastify/multipart'));
+fastify.register(require('@fastify/multipart'), {
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+  },
+});
 
 // Registrar rutas
 fastify.register(require('./routes/empresas'), { prefix: '/api' });
@@ -74,6 +79,11 @@ fastify.register(require('./routes/usuarios'), { prefix: '/api' });
 fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/graphql'), { prefix: '' });
 fastify.register(require('./routes/media'), { prefix: '/api' });
+fastify.register(require('./routes/directorio'), { prefix: '/api' });
+
+fastify.post('/api/terceros', async (request, reply) => {
+  return terceroPython.crearTercero(request.body, request);
+});
 
 // Serializador personalizado para respuestas consistentes
 fastify.setSerializerCompiler(({ schema, method, url, httpStatus }) => {

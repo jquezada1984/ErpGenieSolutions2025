@@ -123,6 +123,21 @@ module.exports = async function (fastify, opts) {
     }
   );
 
+  fastify.post(
+    '/api/terceros',
+    { schema: { body: terceroCreateSchema } },
+    async (request, reply) => {
+      try {
+        const data = await terceroPython.crearTercero(request.body, request);
+        return reply.code(201).send(data);
+      } catch (err) {
+        const status = err.response?.status || 500;
+        const payload = err.response?.data || { error: err.message };
+        return reply.code(status).send(payload);
+      }
+    }
+  );
+
   fastify.put(
     '/tercero/:id',
     {

@@ -7,7 +7,7 @@ import {
   Alert, Spinner, FormGroup, Label, Input
 } from 'reactstrap';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
+import { useLazyQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import classnames from 'classnames';
 import './ConfiguracionTercero.scss';
@@ -35,7 +35,7 @@ const initialForm: NuevoTerceroFormValues = {
   poblacion: '',
   codigo_postal: '',
   id_pais: '',
-  provincia: '',
+  id_provincia: '',
   telefono: '',
   movil: '',
   fax: '',
@@ -48,6 +48,7 @@ const initialForm: NuevoTerceroFormValues = {
   id_profesional_1: '',
   id_profesional_2: '',
   cif_intra: '',
+  id_tamano_empresa: '',
   sede_central: '',
   asignado_a: '',
 };
@@ -80,6 +81,7 @@ const GET_TERCERO = gql`
       fax
       correo
       web
+      logo
       id_profesional_1
       id_profesional_2
       cif_intra
@@ -102,6 +104,9 @@ const EditarClientePotencial: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [terceroData, setTerceroData] = useState<any | null>(null);
+  const [consultaRealizada, setConsultaRealizada] = useState(false);
+  const [logoOriginal, setLogoOriginal] = useState<string | null>(null);
 
   const {
     watch,
@@ -117,54 +122,75 @@ const EditarClientePotencial: React.FC = () => {
 
   const formData = watch();
 
-  const { data, loading: loadingQuery, error: errorQuery } = useQuery(GET_TERCERO, {
-    variables: { id_tercero: id ?? '' },
-    skip: !id,
-    fetchPolicy: 'cache-and-network',
+  const [fetchTercero, { loading: loadingQuery, error: errorQuery }] = useLazyQuery(GET_TERCERO, {
+    fetchPolicy: 'network-only',
+    errorPolicy: 'all',
   });
 
-  const tercero = data?.tercero;
+  const tercero = terceroData;
   const isClientePotencial = tercero && tercero.cliente_potencial === true;
 
   useEffect(() => {
-    if (!tercero || !isClientePotencial) return;
-    const t = tercero;
-    reset({
-      id_empresa: t.id_empresa ?? t.empresa?.id_empresa ?? '',
-      cliente_potencial: true,
-      cliente: false,
-      proveedor: false,
-      nombre: t.nombre ?? '',
-      apodo: t.apodo ?? '',
-      codigo_cliente: t.codigo_cliente ?? '',
-      codigo_proveedor: t.codigo_proveedor ?? '',
-      estado: !!t.estado,
-      sujeto_iva: t.sujeto_iva !== false,
-      id_tipo_tercero: t.id_tipo_tercero ?? t.tipo_tercero?.id_tipo_tercero ?? '',
-      id_tipo_entidad: t.id_tipo_entidad ?? '',
-      direccion: t.direccion ?? '',
-      poblacion: t.poblacion ?? '',
-      codigo_postal: t.codigo_postal ?? '',
-      id_pais: t.id_pais ?? '',
-      provincia: t.id_provincia ?? '',
-      telefono: t.telefono ?? '',
-      movil: t.movil ?? '',
-      fax: t.fax ?? '',
-      web: t.web ?? '',
-      correo: t.correo ?? '',
-      logo: '',
-      capital: t.capital != null ? Number(t.capital) : 0,
-      id_condicion_pago: t.id_condicion_pago ?? '',
-      id_forma_pago: t.id_forma_pago ?? '',
-      id_tamano_empresa: t.id_tamano_empresa ?? '',
-      id_profesional_1: t.id_profesional_1 ?? '',
-      id_profesional_2: t.id_profesional_2 ?? '',
-      cif_intra: t.cif_intra ?? '',
-      sede_central: t.sede_central ?? '',
-      asignado_a: t.asignado_a ?? '',
-    });
-    setHasChanges(false);
-  }, [tercero, isClientePotencial, reset]);
+    if (!id) return;
+
+    let cancelled = false;
+    setConsultaRealizada(false);
+    setTerceroData(null);
+    setLogoOriginal(null);
+
+    (async () => {
+      const res = await fetchTercero({ variables: { id_tercero: id } });
+      if (cancelled) return;
+
+      const terceroRes = res.data?.tercero ?? null;
+      setTerceroData(terceroRes);
+      setConsultaRealizada(true);
+
+      if (!terceroRes || terceroRes.cliente_potencial !== true) return;
+      const t = terceroRes;
+      const logoCargado = t.logo ?? '';
+      setLogoOriginal(logoCargado);
+      reset({
+        id_empresa: t.id_empresa ?? t.empresa?.id_empresa ?? '',
+        cliente_potencial: true,
+        cliente: false,
+        proveedor: false,
+        nombre: t.nombre ?? '',
+        apodo: t.apodo ?? '',
+        codigo_cliente: t.codigo_cliente ?? '',
+        codigo_proveedor: t.codigo_proveedor ?? '',
+        estado: !!t.estado,
+        sujeto_iva: t.sujeto_iva !== false,
+        id_tipo_tercero: t.id_tipo_tercero ?? t.tipo_tercero?.id_tipo_tercero ?? '',
+        id_tipo_entidad: t.id_tipo_entidad ?? '',
+        direccion: t.direccion ?? '',
+        poblacion: t.poblacion ?? '',
+        codigo_postal: t.codigo_postal ?? '',
+        id_pais: t.id_pais ?? '',
+        id_provincia: t.id_provincia ?? '',
+        telefono: t.telefono ?? '',
+        movil: t.movil ?? '',
+        fax: t.fax ?? '',
+        web: t.web ?? '',
+        correo: t.correo ?? '',
+        logo: logoCargado,
+        capital: t.capital != null ? Number(t.capital) : 0,
+        id_condicion_pago: t.id_condicion_pago ?? '',
+        id_forma_pago: t.id_forma_pago ?? '',
+        id_tamano_empresa: t.id_tamano_empresa ?? '',
+        id_profesional_1: t.id_profesional_1 ?? '',
+        id_profesional_2: t.id_profesional_2 ?? '',
+        cif_intra: t.cif_intra ?? '',
+        sede_central: t.sede_central ?? '',
+        asignado_a: t.asignado_a ?? '',
+      });
+      setHasChanges(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, fetchTercero, reset]);
 
   const toggle = (t: '1'|'2'|'3') => activeTab !== t && setActiveTab(t);
 
@@ -229,6 +255,10 @@ const EditarClientePotencial: React.FC = () => {
       cleanedData.cliente = false;
       cleanedData.proveedor = false;
 
+      if (logoOriginal !== null && values.logo === logoOriginal) {
+        (cleanedData as Record<string, unknown>).logo = null;
+      }
+
       await actualizarTercero(id, cleanedData);
       setSuccess(true);
       setHasChanges(false);
@@ -241,7 +271,7 @@ const EditarClientePotencial: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, logoOriginal]);
 
   const onInvalid = useCallback((formErrors: any) => {
     const collectMessages = (obj: any): string[] => {
@@ -316,7 +346,7 @@ const EditarClientePotencial: React.FC = () => {
             </div>
           )}
 
-          {!loadingQuery && !tercero && id && !errorQuery && (
+          {!loadingQuery && consultaRealizada && !tercero && id && !errorQuery && (
             <Alert color="warning">Cliente potencial no encontrado.</Alert>
           )}
 

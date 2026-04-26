@@ -11,7 +11,7 @@ export interface NuevoContactoFormValues {
   direccion: string;
   codigo_postal: string;
   poblacion: string;
-  provincia: string;
+  id_provincia: string;
   id_pais: string;
   telefono_trabajo: string;
   telefono_particular: string;
@@ -35,7 +35,7 @@ export const NuevoContactoSchema = yup.object({
   direccion: yup.string().optional(),
   codigo_postal: yup.string().optional(),
   poblacion: yup.string().optional(),
-  provincia: yup.string().optional(),
+  id_provincia: yup.string().optional(),
   id_pais: yup.string().optional(),
   telefono_trabajo: yup.string().optional(),
   telefono_particular: yup.string().optional(),

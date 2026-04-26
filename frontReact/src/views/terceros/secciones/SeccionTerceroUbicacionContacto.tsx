@@ -3,7 +3,6 @@ import { Card, CardBody, Row, Col, FormGroup, Label, Input } from 'reactstrap';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import CountrySelect from '../../../components/CountrySelect';
-import ImageUpload from '../../../components/common/ImageUpload';
 import SelectProvincia from '../../../components/selects/SelectProvincia';
 
 type Props = { data:any; onChange:(d:any)=>void };
@@ -11,7 +10,7 @@ type Props = { data:any; onChange:(d:any)=>void };
 const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) => {
   const [f, setF] = useState<any>({
     direccion:'', poblacion:'', codigo_postal:'', id_pais:'', provincia:'', id_provincia:'',
-    telefono:'', movil:'', fax:'', web:'', correo:'', logo:''
+    telefono:'', movil:'', fax:'', web:'', correo:'', logo:'', id_directorio_documento:''
   });
 
   useEffect(()=> setF((p:any)=>({...p,...data})),[data]);
@@ -94,6 +93,7 @@ const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) =>
             <FormGroup>
               <Label>Provincia</Label>
               <SelectProvincia
+                key={`provincia-${f.id_pais}-${f.id_provincia}`}
                 value={f.id_provincia || null}
                 onChange={(v) => {
                   const u = { ...f, id_provincia: v ?? '' };
@@ -138,20 +138,6 @@ const SeccionTerceroUbicacionContacto: React.FC<Props> = ({ data, onChange }) =>
               <Label htmlFor="web">Web</Label>
               <Input id="web" name="web" type="url" value={f.web || ''} onChange={chg}/>
             </FormGroup>
-          </Col>
-        </Row>
-
-        <Row>
-          <Col md={12}>
-            <ImageUpload
-              value={f.logo}
-              onChange={(url) => {
-                const u = { ...f, logo: url };
-                setF(u);
-                onChange(u);
-              }}
-              label="Subir Logo"
-            />
           </Col>
         </Row>
       </CardBody>

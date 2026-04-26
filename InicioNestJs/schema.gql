@@ -27,6 +27,11 @@ type CuentaContable {
   tipo_cuenta: String!
 }
 
+type CondicionPago {
+  descripcion: String!
+  id_condicion_pago: ID!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -141,17 +146,6 @@ type EmpresaRedSocial {
   updated_at: DateTime
   updated_by: String
   url: String
-}
-
-type FormaPago {
-  descripcion: String!
-  id_forma_pago: ID!
-}
-
-type Impuesto {
-  id: Int!
-  nombre: String!
-  tasa: Float!
 }
 
 type LoginResponse {
@@ -332,10 +326,6 @@ type Provincia {
 }
 
 type Query {
-  almacenes: [Almacen!]!
-  condicionesPago: [CondicionPago!]!
-  cuentasContables: [CuentaContable!]!
-  duracionUnidadesCatalogo: [DuracionUnidadCatalogo!]!
   empresa(id_empresa: ID!): Empresa
   empresas: [EmpresaListDto!]!
   formasPago: [FormaPago!]!
@@ -367,11 +357,8 @@ type Query {
   sucursal(id_sucursal: ID!): Sucursal
   sucursales: [SucursalListDto!]!
   sucursalesPorEmpresa(id_empresa: ID!): [SucursalListDto!]!
+  tamanosEmpresa: [TamanoEmpresa!]!
   test: String!
-  tiposEntidadComercial: [TipoEntidadComercial!]!
-  tiposItemCatalogo: [TipoItemCatalogo!]!
-  tiposUnidad: [TipoUnidad!]!
-  unidades(tipoCodigo: String): [Unidad!]!
   usuario(id_usuario: ID!): Usuario
   usuarios: [UsuarioListDto!]!
   validateToken: Boolean!
@@ -407,6 +394,15 @@ type SucursalListDto {
   nombre: String!
   telefono: String
   updated_at: DateTime!
+}
+
+type TamanoEmpresa {
+  codigo: String!
+  descripcion: String
+  estado: Boolean!
+  id_tamano_empresa: ID!
+  nombre: String!
+  orden: Int!
 }
 
 type TipoEntidadComercial {
@@ -453,6 +449,7 @@ type Usuario {
   nombre_completo: String
   password_hash: String!
   perfil: Perfil
+  scope_acceso: String!
   updated_at: DateTime
   username: String!
 }

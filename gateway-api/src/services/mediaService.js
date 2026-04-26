@@ -23,6 +23,64 @@ async function uploadMedia(formData, headers = {}) {
   return res.data;
 }
 
+/**
+ * Lista medios por módulo y id de entidad.
+ * @param {string} module
+ * @param {string} module_id
+ * @param {string} [directorio_id]
+ * @param {object} [headers={}]
+ * @returns {Promise<object>}
+ */
+async function getMediaByModule(module, module_id, directorio_id, headers = {}) {
+  const res = await http.get('/media', {
+    params: {
+      module,
+      module_id,
+      ...(directorio_id && { directorio_id }),
+    },
+    headers,
+  });
+  return res.data;
+}
+
+/**
+ * Elimina un medio por id.
+ * @param {string} id_media
+ * @param {object} [headers={}]
+ * @returns {Promise<object>}
+ */
+async function deleteMedia(id_media, headers = {}) {
+  const res = await http.delete(`/media/${id_media}`, { headers });
+  return res.data;
+}
+
+/**
+ * Actualiza campos puntuales de un medio (ej. estado_archivo).
+ * @param {string} id_media
+ * @param {object} body
+ * @param {object} [headers={}]
+ * @returns {Promise<object>}
+ */
+async function updateMedia(id_media, body, headers = {}) {
+  const res = await http.patch(`/media/${id_media}`, body, { headers });
+  return res.data;
+}
+
+/**
+ * Registra o actualiza metadata en media-service.
+ * @param {object} data - Cuerpo JSON tal cual lo envía el cliente.
+ * @param {object} [headers={}]
+ * @returns {Promise<object>}
+ */
+async function saveMetadata(data, headers = {}) {
+  const res = await http.post('/media/metadata', data, { headers });
+  return res.data;
+}
+
 module.exports = {
   uploadMedia,
+  getMediaByModule,
+  deleteMedia,
+  updateMedia,
+  saveMetadata,
 };

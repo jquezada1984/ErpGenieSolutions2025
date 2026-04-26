@@ -73,12 +73,12 @@ input CreateTerceroInput {
   id_pais: String
   id_profesional_1: String
   id_profesional_2: String
+  id_provincia: String
   id_tipo_tercero: String
   movil: String
   nombre: String!
   poblacion: String
   proveedor: Boolean! = false
-  provincia: String
   sede_central: String
   sujeto_iva: Boolean! = true
   telefono: String
@@ -155,6 +155,7 @@ type Tercero {
   id_tercero: ID!
   id_tipo_entidad: Float
   id_tipo_tercero: String
+  updated_by: String
   movil: String
   nombre: String!
   poblacion: String
@@ -223,13 +224,13 @@ input UpdateTerceroInput {
   id_pais: String
   id_profesional_1: String
   id_profesional_2: String
+  id_provincia: String
   id_tercero: String!
   id_tipo_tercero: String
   movil: String
   nombre: String
   poblacion: String
   proveedor: Boolean = false
-  provincia: String
   sede_central: String
   sujeto_iva: Boolean = true
   telefono: String

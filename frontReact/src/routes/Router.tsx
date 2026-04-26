@@ -69,6 +69,7 @@ const EditarProducto = Loadable(lazy(() => import('../views/items/productos/Edit
 const Servicios = Loadable(lazy(() => import('../views/items/servicios/Servicios')));
 const NuevoServicio = Loadable(lazy(() => import('../views/items/servicios/NuevoServicio')));
 const EditarServicio = Loadable(lazy(() => import('../views/items/servicios/EditarServicio')));
+const Documentos = Loadable(lazy(() => import('../views/documentos/Documentos')));
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));

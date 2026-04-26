@@ -203,7 +203,7 @@ const Terceros: React.FC = () => {
       accessor: 'id_tercero',
       sortable: false,
       filterable: false,
-      width: 120,
+      width: 190,
       Cell: ({ original }: any) => {
         const activo = !!original.estado;
         return (
@@ -227,6 +227,20 @@ const Terceros: React.FC = () => {
             disabled={!activo}
           >
             <i className="bi bi-journal-text"></i>
+          </Button>
+          <Button
+            onClick={() =>
+              navigate(
+                `/documentos?module=tercero&module_id=${original.id_tercero}&empresa_id=${original.empresa?.id_empresa}`,
+              )
+            }
+            color="info"
+            size="sm"
+            className="me-1"
+            title={activo ? 'Documentos' : 'Tercero inactivo: no se puede acceder a a documentos'}
+            disabled={!activo}
+          >
+             <i className="bi bi-archive-fill"></i>
           </Button>
           <div className="form-check form-switch">
             <input

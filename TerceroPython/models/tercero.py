@@ -43,7 +43,6 @@ class Tercero(db.Model):
     fax      = db.Column(db.String(30))
     web      = db.Column(db.String(200))
     correo   = db.Column(db.String(150))
-    logo     = db.Column(db.Text)
 
     # Identificaciones
     id_profesional_1 = db.Column(db.String(50))

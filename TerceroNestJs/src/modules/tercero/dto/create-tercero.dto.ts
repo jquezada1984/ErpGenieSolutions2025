@@ -22,7 +22,7 @@ export class CreateTerceroInput {
   @Field({ nullable: true }) @IsString() @IsOptional() poblacion?: string;
   @Field({ nullable: true }) @IsString() @IsOptional() codigo_postal?: string;
   @Field({ nullable: true }) @IsUUID() @IsOptional() id_pais?: string;
-  @Field({ nullable: true }) @IsString() @IsOptional() provincia?: string;
+  @Field({ nullable: true }) @IsUUID() @IsOptional() id_provincia?: string;
   @Field({ nullable: true }) @IsString() @IsOptional() telefono?: string;
   @Field({ nullable: true }) @IsString() @IsOptional() movil?: string;
   @Field({ nullable: true }) @IsString() @IsOptional() fax?: string;
