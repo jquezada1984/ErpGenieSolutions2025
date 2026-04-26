@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import SimpleBar from 'simplebar-react';
 import {
@@ -28,22 +28,7 @@ import { usePermissions } from '../../components/authGurad/usePermissions';
 import { useEffect } from 'react';
 import './HeaderMenu.css';
 
-const mainMenuOptions: { key: string; label: string; icon: React.ReactNode }[] = [
-  { key: 'inicio', label: 'Inicio', icon: <Home size={18} /> },
-  { key: 'terceros', label: 'Terceros', icon: <FaBuilding size={18} /> },
-  { key: 'items', label: 'Productos | Servicios', icon: <Box size={18} /> },
-  { key: 'servicios', label: 'Servicios', icon: <Box size={18} /> },
-  { key: 'proyectos', label: 'Proyectos', icon: <FaProjectDiagram size={18} /> },
-  { key: 'comercial', label: 'Comercial', icon: <ShoppingCart size={18} /> },
-  { key: 'financiera', label: 'Financiera', icon: <DollarSign size={18} /> },
-  { key: 'bancos', label: 'Bancos | Cajas', icon: <FaUniversity size={18} /> },
-  { key: 'contabilidad', label: 'Contabilidad', icon: <BookOpen size={18} /> },
-  { key: 'rrhh', label: 'RRHH', icon: <User size={18} /> },
-  { key: 'documentos', label: 'Documentos', icon: <FileText size={18} /> },
-  { key: 'agenda', label: 'Agenda', icon: <Calendar size={18} /> },
-  { key: 'tickets', label: 'Tickets', icon: <FaTicketAlt size={18} /> },
-  { key: 'utilidades', label: 'Utilidades', icon: <Tool size={18} /> },
-];
+const DEFAULT_SECTION_ICON = 'bi bi-grid';
 
 type RootState = ReturnType<typeof store.getState>;
 

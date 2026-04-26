@@ -74,13 +74,13 @@ const Sidebar = () => {
     });
 
   // Contenido 100% desde BD: caption = nombre de la sección; ítems = menu_item + hijos
-  let SidebarData: Array<{ caption?: string; title?: string; icon?: React.ReactNode; id?: string; href?: string; children?: Array<{ title: string; href: string; icon: React.ReactNode }> }> = [];
+  let sidebarItems: Array<{ caption?: string; title?: string; icon?: React.ReactNode; id?: string; href?: string; children?: Array<{ title: string; href: string; icon: React.ReactNode }> }> = [];
 
   if (esMenuDeSeccionActual && menuOrdenadoActual) {
     const caption = menuOrdenadoActual.nombre;
-    SidebarData = [{ caption }];
+    sidebarItems = [{ caption }];
     if (menuOrdenadoActual.items?.length) {
-      SidebarData.push(...convertirItemsADatosSidebar(menuOrdenadoActual.items, <Icon.Menu size={16} />));
+      sidebarItems.push(...convertirItemsADatosSidebar(menuOrdenadoActual.items, <Icon.Menu size={16} />));
     }
   }
 
@@ -107,8 +107,7 @@ const Sidebar = () => {
             </div>
           ) : (
             <Nav vertical className={activeBg === 'white' ? '' : 'lightText'}>
-              {SidebarData.map((navi, index) => {
-                // Manejar estructura del SidebarData estático (más simple y directo)
+              {sidebarItems.map((navi, index) => {
                 if (navi.caption) {
                   const key = navi.caption || `caption-${index}`;
                   return (

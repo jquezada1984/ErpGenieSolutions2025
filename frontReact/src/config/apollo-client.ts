@@ -44,7 +44,8 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
   
   if (networkError) {
     console.error(`[Network error]: ${networkError}`);
-    console.error(`[GraphQL URI]: ${mainGraphqlUri}`);
+    console.error(`[GraphQL URI]: ${GATEWAY_GRAPHQL_URL}`);
+    console.error(`[Menu GraphQL URI]: ${menuGraphqlUri}`);
   }
 });
 

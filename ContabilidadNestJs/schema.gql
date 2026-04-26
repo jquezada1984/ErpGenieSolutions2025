@@ -4,7 +4,6 @@
 
 type AsientoContable {
   concepto: String!
-  created_at: DateTime!
   empresa_id: Int
   estado: String!
   fecha: DateTime!

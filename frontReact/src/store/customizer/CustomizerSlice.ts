@@ -10,7 +10,6 @@ const initialState = {
   isTopbarFixed: true,
   isMobileSidebar: false,
   isSidebarFixed: true,
-  isLayoutHorizontal: false,
 };
 
 export const CustomizerSlice = createSlice({
@@ -44,9 +43,6 @@ export const CustomizerSlice = createSlice({
     FixedSidebar: (state) => {
       state.isSidebarFixed = !state.isSidebarFixed;
     },
-    ToggleHorizontal: (state) => {
-      state.isLayoutHorizontal = !state.isLayoutHorizontal;
-    },
   },
 });
 
@@ -60,7 +56,6 @@ export const {
   ToggleTopbar,
   ToggleMobileSidebar,
   FixedSidebar,
-  ToggleHorizontal,
 } = CustomizerSlice.actions;
 
 export default CustomizerSlice.reducer;
