@@ -183,15 +183,66 @@ export class AutorizacionService {
         throw new Error('Perfil no encontrado');
       }
 
-      const menuLateral = await this.obtenerMenuLateralPorPerfil(id_perfil);
-      const totalPermisos = menuLateral.reduce((total, seccion) => total + seccion.items.length, 0);
-      const permisosActivos = totalPermisos; // Todos los permisos retornados están activos
+      // Para edición de perfiles se requiere TODO el árbol de menú activo:
+      // ítems permitidos y no permitidos, con bandera permitido por cada item.
+      const secciones = await this.menuSeccionRepository
+        .createQueryBuilder('seccion')
+        .leftJoinAndSelect('seccion.items', 'items')
+        .where('seccion.estado = :estado', { estado: true })
+        .andWhere('items.estado = :estadoItem', { estadoItem: true })
+        .orderBy('seccion.orden', 'ASC')
+        .addOrderBy('items.orden', 'ASC')
+        .getMany();
+
+      const permisosPerfil = await this.perfilMenuPermisoRepository
+        .createQueryBuilder('pmp')
+        .leftJoinAndSelect('pmp.menuItem', 'menuItem')
+        .where('pmp.id_perfil = :id_perfil', { id_perfil })
+        .andWhere('menuItem.estado = :estadoItem', { estadoItem: true })
+        .getMany();
+
+      const permisosMap = new Map<string, boolean>();
+      permisosPerfil.forEach(permiso => {
+        permisosMap.set(permiso.id_item, !!permiso.permitido);
+      });
+
+      const seccionesConPermisos: SeccionConPermisos[] = secciones.map(seccion => {
+        const items = (seccion.items || [])
+          .sort((a, b) => a.orden - b.orden)
+          .map(item => ({
+            id_item: item.id_item,
+            etiqueta: item.etiqueta,
+            ruta: item.ruta,
+            icono: item.icono,
+            permitido: permisosMap.get(item.id_item) ?? false,
+            seccion: {
+              id_seccion: seccion.id_seccion,
+              nombre: seccion.nombre,
+              orden: seccion.orden,
+            }
+          }));
+
+        return {
+          id_seccion: seccion.id_seccion,
+          nombre: seccion.nombre,
+          orden: seccion.orden,
+          icono: seccion.icono,
+          items,
+          tienePermisos: items.some(item => item.permitido),
+        };
+      });
+
+      const totalPermisos = seccionesConPermisos.reduce((total, seccion) => total + seccion.items.length, 0);
+      const permisosActivos = seccionesConPermisos.reduce(
+        (total, seccion) => total + seccion.items.filter(item => item.permitido).length,
+        0,
+      );
 
       return {
         id_perfil: perfil.id_perfil,
         nombre: perfil.nombre,
         estado: perfil.estado,
-        secciones: menuLateral,
+        secciones: seccionesConPermisos,
         totalPermisos,
         permisosActivos
       };

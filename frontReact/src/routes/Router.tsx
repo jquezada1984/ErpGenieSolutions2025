@@ -135,6 +135,7 @@ const ThemeRoutes: RouteType[] = [
       { path: 'terceros/:id/contactos', element: <Contactos /> },
       { path: 'terceros/:id/contactos/nuevo', element: <NuevoContacto /> },
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
+      { path: 'documentos', element: <Documentos /> },
 
     ],
   },

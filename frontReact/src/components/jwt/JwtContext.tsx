@@ -180,14 +180,13 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
                     }
                   }
                 } catch (tokenError) {
-                  console.error('Error al decodificar token:', tokenError);
+                  // Sin log en consola para evitar ruido en producción.
                 }
                 
                 // NO desloguear - mantener la sesión válida
                 // El token es válido localmente, el problema puede ser del backend
               }
             } catch (error) {
-              console.error('Error cargando datos del usuario:', error);
               // NO desloguear - mantener la sesión válida
             }
           }, 100); // Pequeño delay para no bloquear la UI
@@ -201,7 +200,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } catch (err) {
-        console.error('Error en inicialización:', err);
         dispatch({
           type: 'INITIALIZE',
           payload: {
@@ -233,16 +231,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Respuesta inválida del servidor');
       }
       
-      const { accessToken, user, dbConnection } = data.login;
-
-      if (dbConnection) {
-        console.info('[Login] Validación base de datos:', {
-          ok: dbConnection.ok,
-          baseDatos: dbConnection.databaseName,
-          host: dbConnection.hostHint,
-          latenciaMs: dbConnection.latencyMs,
-        });
-      }
+      const { accessToken, user } = data.login;
 
       if (!accessToken) {
         throw new Error('No se recibió token de acceso del servidor');
@@ -267,9 +256,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user?.id_perfil) {
         try {
           await cargarOpcionesMenuSuperior(user.id_perfil);
-        } catch (error) {
-          console.error('❌ Error al cargar opciones del menú:', error);
-        }
+        } catch (error) {}
       } else {
         // Intentar obtener el perfil del usuario
         try {
@@ -277,9 +264,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           if (profileData?.me?.user?.id_perfil) {
             await cargarOpcionesMenuSuperior(profileData.me.user.id_perfil);
           }
-        } catch (error) {
-          console.error('❌ Error al obtener perfil del usuario:', error);
-        }
+        } catch (error) {}
       }
     } catch (error: any) {
       // Extraer mensaje de error específico

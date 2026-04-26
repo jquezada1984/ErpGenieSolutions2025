@@ -245,7 +245,6 @@ export const usePermissions = (): UsePermissionsReturn => {
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar permisos');
-      console.error('❌ ERROR en cargarPermisos:', err);
     }
   }, [getPermisosPorPerfil]);
 
@@ -253,14 +252,13 @@ export const usePermissions = (): UsePermissionsReturn => {
   const cargarMenuLateral = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      const { data, error } = await getMenuLateralPorPerfil({ variables: { id_perfil }, fetchPolicy: 'cache-first' });
+      const { data } = await getMenuLateralPorPerfil({ variables: { id_perfil }, fetchPolicy: 'cache-first' });
       
       if (data?.menuLateralPorPerfil) {
         setMenuLateral(data.menuLateralPorPerfil);
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar menú lateral');
-      console.error('❌ ERROR en cargarMenuLateral:', err);
     }
   }, [getMenuLateralPorPerfil]);
 
@@ -270,7 +268,6 @@ export const usePermissions = (): UsePermissionsReturn => {
       const { data } = await getIdSeccionPorNombreQuery({ variables: { nombre } });
       return data?.idSeccionPorNombre ?? null;
     } catch (err) {
-      console.error('Error al obtener id_seccion por nombre:', err);
       return null;
     }
   }, [getIdSeccionPorNombreQuery]);
@@ -288,7 +285,6 @@ export const usePermissions = (): UsePermissionsReturn => {
       if (menu) setMenuLateralOrdenado([menu]);
     } catch (err: any) {
       setError(err.message || 'Error al cargar menú lateral ordenado');
-      console.error('❌ ERROR en cargarMenuLateralOrdenado:', err);
     }
   }, [getMenuLateralOrdenadoQuery]);
 
@@ -296,14 +292,13 @@ export const usePermissions = (): UsePermissionsReturn => {
   const cargarOpcionesMenuSuperior = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      const { data, error } = await getOpcionesMenuSuperior({ variables: { id_perfil }, fetchPolicy: 'cache-first' });
+      const { data } = await getOpcionesMenuSuperior({ variables: { id_perfil }, fetchPolicy: 'cache-first' });
       
       if (data?.opcionesMenuSuperior) {
         setOpcionesMenuSuperior(data.opcionesMenuSuperior);
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar opciones del menú superior');
-      console.error('❌ ERROR en cargarOpcionesMenuSuperior:', err);
     }
   }, [getOpcionesMenuSuperior]);
 
@@ -328,7 +323,6 @@ export const usePermissions = (): UsePermissionsReturn => {
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar perfil completo');
-      console.error('❌ ERROR en cargarPerfilCompleto:', err);
     }
   }, [getPerfilConPermisos]);
 
