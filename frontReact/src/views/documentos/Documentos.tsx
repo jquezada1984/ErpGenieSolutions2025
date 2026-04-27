@@ -401,6 +401,16 @@ const Documentos: React.FC = () => {
     cargarEstados();
   }, [empresaActiva]);
 
+  useEffect(() => {
+    if (!estadoArchivo || !estadosArchivo.length) return;
+
+    const existe = estadosArchivo.some((e) => e.codigo === estadoArchivo);
+
+    if (!existe) {
+      setEstadoArchivo('');
+    }
+  }, [estadoArchivo, estadosArchivo]);
+
   const handleCrearDirectorio = async () => {
     if (!nuevoNombre.trim()) return;
     if (!moduloSeleccionado) return;
@@ -1227,21 +1237,21 @@ const Documentos: React.FC = () => {
           <FormGroup>
             <Label>Estado del archivo</Label>
             <select
-              value={estadoArchivo}
+              value={estadoArchivo || ''}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 setEstadoArchivo(e.target.value)
               }
               disabled={guardandoEdicion}
               className="form-select"
             >
+              <option value="" disabled>
+                Seleccione un estado
+              </option>
               {estadosArchivo.map((e) => (
                 <option key={e.id_estado_archivo} value={e.codigo}>
                   {e.nombre}
                 </option>
               ))}
-              {estadosArchivo.length === 0 && estadoArchivo && (
-                <option value={estadoArchivo}>{estadoArchivo}</option>
-              )}
             </select>
           </FormGroup>
         </ModalBody>
@@ -1262,8 +1272,16 @@ const Documentos: React.FC = () => {
             onClick={async () => {
               if (!mediaEditando) return;
 
+              if (!estadoArchivo) {
+                await Swal.fire({
+                  icon: 'warning',
+                  title: 'Estado requerido',
+                  text: 'Debe seleccionar un estado válido',
+                });
+                return;
+              }
+
               setGuardandoEdicion(true);
-              //console.log('Estado seleccionado:', estadoArchivo);
               try {
                 await updateMedia(mediaEditando.id_media, {
                   estado_archivo: estadoArchivo,
