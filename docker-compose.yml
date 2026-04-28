@@ -28,11 +28,18 @@ services:
       - PORT=3001
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
       - JWT_SECRET=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
       - PYTHON_SERVICE_URL=http://python-service:5000
     ports:
       - "3001:3001"
     networks:
       - erp-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "const net=require('net');const s=net.connect(3001,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),2000);"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
 
   # MenuNestJs (Servicio de Menús)
   menu-service:
@@ -82,11 +89,18 @@ services:
       - PORT=3001
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
       - JWT_SECRET=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
     # Externo 3006 para NO chocar con InicioNestJs (3001) ni ContabilidadNestJs (3005)
     ports:
       - "3006:3001"
     networks:
       - erp-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "const net=require('net');const s=net.connect(3001,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),2000);"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
 
   # =========================
   # ContabilidadPython (REST)
@@ -276,17 +290,28 @@ services:
     ports:
       - "3002:3002"
     depends_on:
-      - python-service
-      - nestjs-service
-      - menu-service
-      - tercero-python-service
-      - tercero-nestjs-service
-      - contabilidad-python-service
-      - contabilidad-nestjs-service
-      - financiero-python-service
-      - financiero-nestjs-service
-      - item-nestjs-service
-      - item-python-service
+      python-service:
+        condition: service_started
+      nestjs-service:
+        condition: service_healthy
+      menu-service:
+        condition: service_started
+      tercero-python-service:
+        condition: service_started
+      tercero-nestjs-service:
+        condition: service_healthy
+      contabilidad-python-service:
+        condition: service_started
+      contabilidad-nestjs-service:
+        condition: service_started
+      financiero-python-service:
+        condition: service_started
+      financiero-nestjs-service:
+        condition: service_started
+      item-nestjs-service:
+        condition: service_started
+      item-python-service:
+        condition: service_started
     networks:
       - erp-network
 
