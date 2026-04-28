@@ -149,6 +149,17 @@ module.exports = async function (fastify, opts) {
     }
   });
 
+  fastify.post('/inventario', async (request, reply) => {
+    try {
+      const data = await itemPython.crearInventario(request.body || {}, request);
+      return reply.code(201).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      const payload = err.response?.data || { success: false, error: err.message };
+      return reply.code(status).send(payload);
+    }
+  });
+
   // Debe declararse antes de PUT /item/:id para que "servicio" no se interprete como :id.
   fastify.put('/item/servicio/:id', async (request, reply) => {
     try {

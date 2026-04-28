@@ -15,8 +15,12 @@ const getTargetService = (query, config) => {
     return config.nestjsService;
   }
 
-  if (query && query.includes('mutation') && query.includes('actualizarEstadoItem')) {
-    console.log('🔄 Redirigiendo mutación actualizarEstadoItem a ItemNestJs');
+  if (
+    query &&
+    query.includes('mutation') &&
+    (query.includes('actualizarEstadoItem') || query.includes('actualizarEstadoInventario'))
+  ) {
+    console.log('🔄 Redirigiendo mutación de estado item/inventario a ItemNestJs');
     return config.itemNestJsService;
   }
   
@@ -39,6 +43,7 @@ const getTargetService = (query, config) => {
   if (query && (
     query.includes('itemDetalleEdicion') ||
     query.includes('itemsListado') ||
+    query.includes('inventariosListado') ||
     query.includes('estadosVentaItem') ||
     query.includes('estadosCompraItem') ||
     query.includes('naturalezasItem') ||

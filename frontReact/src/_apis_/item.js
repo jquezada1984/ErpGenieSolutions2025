@@ -164,6 +164,14 @@ export const crearItemProducto = async (body) => {
 };
 
 /**
+ * Crear cabecera de inventario → Gateway → ItemPython POST /api/inventario.
+ */
+export const crearInventario = async (body) => {
+  const response = await apiClient.post('/api/inventario', body);
+  return response.data;
+};
+
+/**
  * Actualizar ítem existente (tabla item) → Gateway → ItemPython PUT /api/item/:id_item.
  */
 export const actualizarItemProducto = async (id_item, body) => {

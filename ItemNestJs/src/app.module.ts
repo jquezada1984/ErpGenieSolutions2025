@@ -15,6 +15,7 @@ import { TipoItemCatalogo } from './modules/catalogos/entities/tipo-item-catalog
 import { DuracionUnidadCatalogo } from './modules/catalogos/entities/duracion-unidad-catalogo.entity';
 import { Item } from './modules/items/entities/item.entity';
 import { EmpresaItemRef } from './modules/items/entities/empresa-item-ref.entity';
+import { Inventario } from './modules/items/entities/inventario.entity';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { EmpresaItemRef } from './modules/items/entities/empresa-item-ref.entity
         DuracionUnidadCatalogo,
         Item,
         EmpresaItemRef,
+        Inventario,
       ],
       synchronize: false,
       logging: ['error', 'warn'],
