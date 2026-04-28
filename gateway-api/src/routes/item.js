@@ -4,6 +4,7 @@
 
 const itemNestJs = require('../services/itemNestJs');
 const itemPython = require('../services/itemPython');
+const inventarioPython = require('../services/inventarioPython');
 
 module.exports = async function (fastify, opts) {
   // ---------------------------
@@ -151,12 +152,21 @@ module.exports = async function (fastify, opts) {
 
   fastify.post('/inventario', async (request, reply) => {
     try {
-      const data = await itemPython.crearInventario(request.body || {}, request);
+      const data = await inventarioPython.crearInventario(request.body || {}, request);
       return reply.code(201).send(data);
-    } catch (err) {
-      const status = err.response?.status || 500;
-      const payload = err.response?.data || { success: false, error: err.message };
-      return reply.code(status).send(payload);
+    } catch (errInventario) {
+      // Fallback temporal para no romper el flujo actual mientras se migra Inventario.
+      try {
+        const dataFallback = await itemPython.crearInventario(request.body || {}, request);
+        return reply.code(201).send(dataFallback);
+      } catch (errItem) {
+        const status = errItem.response?.status || errInventario.response?.status || 500;
+        const payload =
+          errItem.response?.data ||
+          errInventario.response?.data ||
+          { success: false, error: errItem.message || errInventario.message };
+        return reply.code(status).send(payload);
+      }
     }
   });
 

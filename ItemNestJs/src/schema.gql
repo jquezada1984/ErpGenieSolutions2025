@@ -30,17 +30,6 @@ type EstadoVentaItem {
   orden: Int
 }
 
-type InventarioListado {
-  almacen: String
-  estado: Boolean
-  estado_inventario: String
-  etiqueta: String
-  id_almacen: ID
-  id_inventario: ID!
-  inventario_ref: String
-  product: Int!
-}
-
 type Item {
   codigo_barras: String
   duracionUnidad: DuracionUnidadCatalogo
@@ -124,7 +113,6 @@ type NaturalezaItem {
 type Query {
   estadosCompraItem: [EstadoCompraItem!]!
   estadosVentaItem: [EstadoVentaItem!]!
-  inventariosListado(estado_inventario: String, etiqueta: String, id_almacen: ID, id_empresa: ID, inventario_ref: String, product: String, warehouse: String): [InventarioListado!]!
   itemDetalleEdicion(id_item: ID!): ItemDetalleEdicion
   itemsListado(codigo_barras: String, codigo_tipo_item: String, etiqueta: String, id_empresa: ID, id_estado_compra: ID, id_estado_venta: ID, producto_ref: String): [Item!]!
   naturalezasItem: [NaturalezaItem!]!

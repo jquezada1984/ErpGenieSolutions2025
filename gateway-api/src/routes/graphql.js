@@ -20,6 +20,7 @@ const getTargetService = (query, config) => {
     query.includes('mutation') &&
     (query.includes('actualizarEstadoItem') || query.includes('actualizarEstadoInventario'))
   ) {
+    // Temporal: mantener mutación en ItemNestJs hasta mover escritura a REST InventarioPython.
     console.log('🔄 Redirigiendo mutación de estado item/inventario a ItemNestJs');
     return config.itemNestJsService;
   }
@@ -39,11 +40,16 @@ const getTargetService = (query, config) => {
     return config.terceroNestJsService;
   }
   
+  // Lectura de inventarios por GraphQL (dominio InventarioNestJs).
+  if (query && query.includes('inventariosListado')) {
+    console.log('🔄 Redirigiendo inventariosListado a InventarioNestJs');
+    return config.inventarioNestJsService;
+  }
+
   // Verificar si es una consulta de catálogos del módulo item (ItemNestJs)
   if (query && (
     query.includes('itemDetalleEdicion') ||
     query.includes('itemsListado') ||
-    query.includes('inventariosListado') ||
     query.includes('estadosVentaItem') ||
     query.includes('estadosCompraItem') ||
     query.includes('naturalezasItem') ||
@@ -139,7 +145,8 @@ async function routes(fastify, options) {
         nestjsService: process.env.NESTJS_SERVICE_URL,
         menuService: process.env.MENU_SERVICE_URL,
         terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || 'http://tercero-nestjs-service:3001',
-        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011'
+        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
+        inventarioNestJsService: process.env.INVENTARIO_NEST_GQL_URL || 'http://inventario-nestjs-service:3013'
       };
 
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);

@@ -223,6 +223,43 @@ services:
     networks:
       - erp-network
 
+  # =========================
+  # InventarioPython (REST - Escritura inventario)
+  # =========================
+  inventario-python-service:
+    build:
+      context: ./InventarioPython
+      dockerfile: Dockerfile
+    container_name: erp-inventario-python-service
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-here}
+      - FLASK_ENV=production
+      - PORT=3014
+    ports:
+      - "3014:3014"
+    networks:
+      - erp-network
+
+  # =========================
+  # InventarioNestJs (GraphQL - Lectura inventario)
+  # =========================
+  inventario-nestjs-service:
+    build:
+      context: ./InventarioNestJs
+      dockerfile: Dockerfile
+    container_name: erp-inventario-nestjs-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3013
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
+      - JWT_SECRET=${JWT_SECRET_KEY:-your-secret-key-here}
+    ports:
+      - "3013:3013"
+    networks:
+      - erp-network
+
 
 
 
@@ -249,6 +286,10 @@ services:
       - ITEM_NEST_GQL_URL=http://item-nestjs-service:3011
       # ✅ Canal específico ItemPython (escritura)
       - ITEM_PY_BASE_URL=http://item-python-service:3012
+
+      # ✅ Canales específicos Inventario
+      - INVENTARIO_PY_BASE_URL=http://inventario-python-service:3014
+      - INVENTARIO_NEST_GQL_URL=http://inventario-nestjs-service:3013
 
       # ✅ Canales específicos Tercero
       - TERCERO_PY_BASE_URL=http://tercero-python-service:3004
@@ -285,6 +326,8 @@ services:
       - financiero-nestjs-service
       - item-nestjs-service
       - item-python-service
+      - inventario-python-service
+      - inventario-nestjs-service
     networks:
       - erp-network
 

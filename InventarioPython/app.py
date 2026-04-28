@@ -4,9 +4,9 @@ from flask_jwt_extended import JWTManager
 
 from config.config import Config
 from utils.db import db
-from api.item_routes import item_bp
+from api.inventario_routes import inventario_bp
 
-import models  # Cascarón: modelos se registrarán cuando existan en models/__init__.py
+import models
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -17,7 +17,7 @@ CORS(app, origins=app.config.get('CORS_ORIGINS', ['*']))
 db.init_app(app)
 jwt = JWTManager(app)
 
-app.register_blueprint(item_bp, url_prefix='/api')
+app.register_blueprint(inventario_bp, url_prefix='/api')
 
 
 @app.route('/health', methods=['GET'])
@@ -27,5 +27,5 @@ def health():
 
 if __name__ == '__main__':
     import os
-    port = int(os.environ.get('PORT', 3005))
+    port = int(os.environ.get('PORT', 3012))
     app.run(host='0.0.0.0', port=port, debug=False)

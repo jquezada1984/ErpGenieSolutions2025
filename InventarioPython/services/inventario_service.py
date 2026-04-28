@@ -11,7 +11,17 @@ from repositories.inventario_repository import (
     create_inventario_row,
     find_inventario_by_ref_empresa,
 )
-from services.item_service import _uuid_or_none
+
+
+def _uuid_or_none(value: Optional[str]) -> Optional[str]:
+    if not value or not str(value).strip():
+        return None
+    s = str(value).strip()
+    try:
+        uuid.UUID(s)
+        return s
+    except ValueError:
+        return None
 
 
 def servicio_crear_inventario(
