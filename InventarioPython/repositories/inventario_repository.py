@@ -54,3 +54,20 @@ def create_inventario_row(row: Dict[str, Any]) -> Dict[str, Any]:
     except Exception:
         db.session.rollback()
         raise
+
+
+def update_estado_inventario(id_inventario: str, estado: bool, user_id: Optional[str]) -> bool:
+    entity = Inventario.query.filter_by(id_inventario=str(id_inventario).strip()).first()
+    if not entity:
+        return False
+
+    entity.estado = bool(estado)
+    entity.updated_at = datetime.now(timezone.utc)
+    entity.updated_by = user_id if user_id else entity.updated_by
+
+    try:
+        db.session.commit()
+        return True
+    except Exception:
+        db.session.rollback()
+        raise

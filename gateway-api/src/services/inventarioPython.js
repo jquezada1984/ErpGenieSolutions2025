@@ -16,6 +16,17 @@ async function crearInventario(body, req) {
   return res.data;
 }
 
+async function actualizarEstadoInventario(id_inventario, estado, req) {
+  const payload = {
+    id_inventario,
+    estado,
+  };
+  const headers = await ctxHeaders(req, payload);
+  const res = await http.patch('/api/inventario/estado', payload, { headers });
+  return res.data;
+}
+
 module.exports = {
   crearInventario,
+  actualizarEstadoInventario,
 };

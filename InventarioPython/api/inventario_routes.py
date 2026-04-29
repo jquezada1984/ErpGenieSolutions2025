@@ -2,7 +2,10 @@ from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from services.inventario_service import servicio_crear_inventario
+from services.inventario_service import (
+    servicio_crear_inventario,
+    servicio_actualizar_estado_inventario,
+)
 
 inventario_bp = Blueprint("inventario_bp", __name__)
 
@@ -42,6 +45,30 @@ def crear_inventario():
                 409,
             )
         return jsonify({"success": False, "error": str(e)}), 400
+    except IntegrityError as e:
+        return jsonify({"success": False, "error": "Violación de integridad en base de datos", "detail": str(e)}), 409
+    except SQLAlchemyError as e:
+        return jsonify({"success": False, "error": "Error de base de datos", "detail": str(e)}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@inventario_bp.route("/inventario/estado", methods=["PATCH", "OPTIONS"])
+@inventario_bp.route("/inventario/estado/", methods=["PATCH", "OPTIONS"])
+def actualizar_estado_inventario():
+    if request.method == "OPTIONS":
+        return "", 204
+
+    _, user_id = _ctx_empresa_user()
+    body = request.get_json(silent=True) or {}
+
+    try:
+        res = servicio_actualizar_estado_inventario(body, user_id=user_id)
+        return jsonify(res), 200
+    except ValidationError as ve:
+        return jsonify({"success": False, "errors": ve.messages}), 400
+    except LookupError:
+        return jsonify({"success": False, "error": "Inventario no encontrado"}), 404
     except IntegrityError as e:
         return jsonify({"success": False, "error": "Violación de integridad en base de datos", "detail": str(e)}), 409
     except SQLAlchemyError as e:

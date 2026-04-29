@@ -6,10 +6,11 @@ from typing import Any, Dict, Optional
 
 from marshmallow import ValidationError
 
-from schemas.inventario_schema import InventarioCreateSchema
+from schemas.inventario_schema import InventarioCreateSchema, InventarioEstadoUpdateSchema
 from repositories.inventario_repository import (
     create_inventario_row,
     find_inventario_by_ref_empresa,
+    update_estado_inventario,
 )
 
 
@@ -75,4 +76,27 @@ def servicio_crear_inventario(
         "success": True,
         "message": "Inventario creado correctamente",
         "data": created,
+    }
+
+
+def servicio_actualizar_estado_inventario(
+    raw: Dict[str, Any],
+    *,
+    user_id: Optional[str],
+) -> Dict[str, Any]:
+    data = InventarioEstadoUpdateSchema().load(raw or {})
+    id_inventario = str(data["id_inventario"]).strip()
+    estado = bool(data["estado"])
+
+    updated = update_estado_inventario(id_inventario=id_inventario, estado=estado, user_id=_uuid_or_none(user_id))
+    if not updated:
+        raise LookupError("inventario_no_encontrado")
+
+    return {
+        "success": True,
+        "message": "Estado de inventario actualizado correctamente",
+        "data": {
+            "id_inventario": id_inventario,
+            "estado": estado,
+        },
     }

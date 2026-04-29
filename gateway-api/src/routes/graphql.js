@@ -1,4 +1,5 @@
 const axios = require('axios');
+const inventarioPython = require('../services/inventarioPython');
 
 // Función para determinar el servicio objetivo basado en la consulta
 const getTargetService = (query, config) => {
@@ -18,10 +19,9 @@ const getTargetService = (query, config) => {
   if (
     query &&
     query.includes('mutation') &&
-    (query.includes('actualizarEstadoItem') || query.includes('actualizarEstadoInventario'))
+    query.includes('actualizarEstadoItem')
   ) {
-    // Temporal: mantener mutación en ItemNestJs hasta mover escritura a REST InventarioPython.
-    console.log('🔄 Redirigiendo mutación de estado item/inventario a ItemNestJs');
+    console.log('🔄 Redirigiendo mutación actualizarEstadoItem a ItemNestJs');
     return config.itemNestJsService;
   }
   
@@ -126,6 +126,48 @@ async function executeGraphQLQuery(query, variables, operationName, context, con
   }
 }
 
+/** Mensaje desde respuesta Axios (REST Flask o errores GraphQL) sin degradar texto útil */
+function downstreamErrorPayload(error) {
+  const status = error.response?.status || 500;
+  const d = error.response?.data;
+  let message =
+    error.message || 'Error interno del servidor';
+  if (d) {
+    if (typeof d.error === 'string') {
+      message = d.error;
+    } else if (Array.isArray(d.errors) && d.errors.length) {
+      const parts = d.errors.map((e) => (typeof e === 'string' ? e : e?.message)).filter(Boolean);
+      if (parts.length) message = parts.join(' | ');
+    } else if (d.errors && typeof d.errors === 'object' && !Array.isArray(d.errors)) {
+      const flat = [];
+      for (const v of Object.values(d.errors)) {
+        if (Array.isArray(v)) flat.push(...v.map(String));
+        else if (v != null) flat.push(String(v));
+      }
+      if (flat.length) message = flat.join('; ');
+    }
+  }
+  return { status, message };
+}
+
+async function handleActualizarEstadoInventario(request) {
+  const id_inventario = request.body?.variables?.id_inventario;
+  const estado = request.body?.variables?.estado;
+  if (!id_inventario || typeof estado !== 'boolean') {
+    const err = new Error('Variables requeridas: id_inventario (ID) y estado (Boolean).');
+    err.response = { status: 400, data: { errors: [{ message: err.message }] } };
+    throw err;
+  }
+
+  const py = await inventarioPython.actualizarEstadoInventario(id_inventario, estado, request);
+  const ok = py?.success !== false;
+  return {
+    data: {
+      actualizarEstadoInventario: !!ok,
+    },
+  };
+}
+
 async function routes(fastify, options) {
   // Endpoint GraphQL
   fastify.post('/graphql', async (request, reply) => {
@@ -149,15 +191,21 @@ async function routes(fastify, options) {
         inventarioNestJsService: process.env.INVENTARIO_NEST_GQL_URL || 'http://inventario-nestjs-service:3013'
       };
 
+      if (query.includes('mutation') && query.includes('actualizarEstadoInventario')) {
+        const result = await handleActualizarEstadoInventario(request);
+        return reply.send(result);
+      }
+
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);
       
       return reply.send(result);
     } catch (error) {
       fastify.log.error('Error en endpoint GraphQL:', error);
-      
-      return reply.status(500).send({
+
+      const { status, message } = downstreamErrorPayload(error);
+      return reply.status(status).send({
         success: false,
-        error: error.response?.data?.errors?.[0]?.message || error.message || 'Error interno del servidor',
+        error: message,
         timestamp: new Date().toISOString()
       });
     }
