@@ -21,8 +21,9 @@ async function bootstrap() {
   // Configurar CORS
   app.enableCors(corsConfig);
   
-  await app.listen(3004);
-  console.log('🚀 Backend Contabilidad NestJS ejecutándose en puerto 3004');
-  console.log('📊 GraphQL Playground disponible en: http://localhost:3004/graphql');
+  const port = Number(process.env.PORT || 3004);
+  await app.listen(port);
+  console.log(`🚀 Backend Contabilidad NestJS ejecutándose en puerto ${port}`);
+  console.log(`📊 GraphQL Playground disponible en: http://localhost:${port}/graphql`);
 }
 bootstrap();

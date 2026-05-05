@@ -238,7 +238,10 @@ export const usePermissions = (): UsePermissionsReturn => {
   const cargarPermisos = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      const { data } = await getPermisosPorPerfil({ variables: { id_perfil } });
+      const { data } = await getPermisosPorPerfil({
+        variables: { id_perfil },
+        fetchPolicy: 'network-only',
+      });
       
       if (data?.permisosPorPerfil) {
         setPermisos(data.permisosPorPerfil);
@@ -252,7 +255,10 @@ export const usePermissions = (): UsePermissionsReturn => {
   const cargarMenuLateral = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      const { data } = await getMenuLateralPorPerfil({ variables: { id_perfil }, fetchPolicy: 'cache-first' });
+      const { data } = await getMenuLateralPorPerfil({
+        variables: { id_perfil },
+        fetchPolicy: 'network-only',
+      });
       
       if (data?.menuLateralPorPerfil) {
         setMenuLateral(data.menuLateralPorPerfil);
@@ -292,7 +298,10 @@ export const usePermissions = (): UsePermissionsReturn => {
   const cargarOpcionesMenuSuperior = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      const { data } = await getOpcionesMenuSuperior({ variables: { id_perfil }, fetchPolicy: 'cache-first' });
+      const { data } = await getOpcionesMenuSuperior({
+        variables: { id_perfil },
+        fetchPolicy: 'network-only',
+      });
       
       if (data?.opcionesMenuSuperior) {
         setOpcionesMenuSuperior(data.opcionesMenuSuperior);
@@ -306,7 +315,10 @@ export const usePermissions = (): UsePermissionsReturn => {
   const cargarPerfilCompleto = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      const { data } = await getPerfilConPermisos({ variables: { id_perfil } });
+      const { data } = await getPerfilConPermisos({
+        variables: { id_perfil },
+        fetchPolicy: 'network-only',
+      });
       
       if (data?.perfilConPermisos) {
         setPerfilCompleto(data.perfilConPermisos);

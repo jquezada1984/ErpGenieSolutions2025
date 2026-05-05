@@ -117,6 +117,7 @@ type Mutation {
 
 type Query {
   clientes(id_empresa: ID): [Tercero!]!
+  clientesBusqueda(busqueda: String, id_empresa: ID, limite: Int = 40): [Tercero!]!
   contacto(id_contacto: String!): Contacto!
   contactosByTercero(id_tercero: String!): [Contacto!]!
   incoterms: [Incoterm!]!

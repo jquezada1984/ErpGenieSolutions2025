@@ -90,6 +90,8 @@ fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/graphql'), { prefix: '' });
 fastify.register(require('./routes/media'), { prefix: '/api' });
 fastify.register(require('./routes/directorio'), { prefix: '/api' });
+fastify.register(require('./routes/contabilidad'), { prefix: '/api' });
+fastify.register(require('./routes/financiero'), { prefix: '/api' });
 
 fastify.post('/api/terceros', async (request, reply) => {
   return terceroPython.crearTercero(request.body, request);

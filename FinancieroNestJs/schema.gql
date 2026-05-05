@@ -1,0 +1,70 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type CondicionPagoCatalogo {
+  descripcion: String!
+  id_condicion_pago: ID!
+}
+
+type CuentaBancaria {
+  estado: Boolean
+  etiqueta_cuenta: String
+  iban: String
+  id_cuenta_bancaria: ID!
+  id_empresa: String!
+  id_moneda: String
+  numero_cuenta: String
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Factura {
+  categorias: [String!]!
+  created_at: DateTime
+  estado: String
+  fecha_factura: String!
+  fecha_vencimiento: String
+  id_asiento_contable: String
+  id_condicion_pago: String
+  id_cuenta_bancaria: String
+  id_empresa: String!
+  id_factura: ID!
+  id_forma_pago: String
+  id_moneda: String
+  id_proyecto: String
+  id_tercero: String!
+  nota_privada: String
+  nota_publica: String
+  numero_factura: String
+  origen: String
+  plantilla_documento: String
+  subtotal: String
+  tipo_factura: String!
+  total_descuentos: String
+  total_factura: String
+  total_impuestos: String
+  updated_at: DateTime
+}
+
+type FormaPagoCatalogo {
+  descripcion: String!
+  id_forma_pago: ID!
+}
+
+type Moneda {
+  codigo: String!
+  id_moneda: ID!
+  nombre: String!
+}
+
+type Query {
+  condicionesPagoFin: [CondicionPagoCatalogo!]!
+  cuentasBancarias(id_empresa: String!): [CuentaBancaria!]!
+  facturaCliente(id_empresa: String!, id_factura: String!): Factura
+  formasPagoFin: [FormaPagoCatalogo!]!
+  monedasFin: [Moneda!]!
+}

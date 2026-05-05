@@ -43,7 +43,6 @@ export class AutorizacionService {
         .andWhere('seccion.estado = :estadoSeccion', { estadoSeccion: true })
         .orderBy('seccion.orden', 'ASC')
         .addOrderBy('menuItem.orden', 'ASC')
-        .cache('permisos_perfil_' + id_perfil, 300000) // Cache por 5 minutos
         .getMany();
 
       return permisos.map(permiso => ({
@@ -77,7 +76,6 @@ export class AutorizacionService {
         .andWhere('items.estado = :estadoItem', { estadoItem: true })
         .orderBy('seccion.orden', 'ASC')
         .addOrderBy('items.orden', 'ASC')
-        .cache('secciones_activas', 600000) // Cache por 10 minutos
         .getMany();
 
       // Obtener permisos del perfil
@@ -161,7 +159,6 @@ export class AutorizacionService {
         .andWhere('pmp.permitido = :permitido', { permitido: true })
         .andWhere('menuItem.ruta = :ruta', { ruta })
         .andWhere('menuItem.estado = :estado', { estado: true })
-        .cache('validar_ruta_' + id_perfil + '_' + ruta, 300000) // Cache por 5 minutos
         .getOne();
 
       return !!permiso;
@@ -358,7 +355,6 @@ export class AutorizacionService {
         .andWhere('item.parent_id IS NULL')
         .andWhere('item.estado = :estado', { estado: true })
         .orderBy('item.orden', 'ASC')
-        .cache('menu_principal_' + id_seccion, 300000) // Cache por 5 minutos
         .getMany();
 
       return items.map(item => ({
@@ -396,7 +392,6 @@ export class AutorizacionService {
         .where('item.parent_id = :parent_id', { parent_id })
         .andWhere('item.estado = :estado', { estado: true })
         .orderBy('item.orden', 'ASC')
-        .cache('submenus_' + parent_id, 300000) // Cache por 5 minutos
         .getMany();
 
       return submenus.map(item => ({

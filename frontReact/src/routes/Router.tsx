@@ -57,6 +57,7 @@ const NuevoContacto = Loadable(lazy(() => import('../views/terceros/contactos/Nu
 const EditarContacto = Loadable(lazy(() => import('../views/terceros/contactos/EditarContacto')));
 const ContabilidadGeneral = Loadable(lazy(() => import('../views/contabilidad/ContabilidadGeneral')));
 const ContabilidadConfiguracion = Loadable(lazy(() => import('../views/contabilidad/ContabilidadConfiguracion')));
+const NuevaFacturaCliente = Loadable(lazy(() => import('../views/financiero/facturas-clientes/NuevaFacturaCliente')));
 // Módulo Item (productos y servicios)
 const Productos = Loadable(lazy(() => import('../views/items/productos/Productos')));
 const ProductosStocks = Loadable(lazy(() => import('../views/items/productos/ProductosStocks')));
@@ -135,6 +136,9 @@ const ThemeRoutes: RouteType[] = [
       { path: 'terceros/:id/contactos', element: <Contactos /> },
       { path: 'terceros/:id/contactos/nuevo', element: <NuevoContacto /> },
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
+      { path: 'contabilidad', element: <ContabilidadGeneral /> },
+      { path: 'contabilidad/configuracion/general', element: <ContabilidadConfiguracion /> },
+      { path: 'financiero/facturas-clientes/nueva', element: <NuevaFacturaCliente /> },
       { path: 'documentos', element: <Documentos /> },
 
     ],

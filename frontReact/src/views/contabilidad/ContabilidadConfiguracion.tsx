@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { gql, useQuery } from '@apollo/client';
 import {
+  Alert,
   Card,
   CardBody,
   CardTitle,
@@ -9,7 +11,48 @@ import {
   Button,
   Table,
   Form,
+  Spinner,
 } from 'reactstrap';
+import axios from 'axios';
+import useJwtPayload from '../../hooks/useJwtPayload';
+
+const GATEWAY_API_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002').replace(/\/$/, '');
+
+const GET_CONFIGURACION_CONTABILIDAD = gql`
+  query GetConfiguracionContabilidad($id_empresa: String!) {
+    configuracionContabilidad(id_empresa: $id_empresa) {
+      id_configuracion_contabilidad
+      id_empresa
+      metodo_contable
+      desactivar_transacciones_directas
+      lista_combinada_subsidiaria
+      gestion_cero_final
+      longitud_cuentas_generales
+      longitud_subcuentas_terceros
+      periodo_por_defecto
+      fecha_excluir_antes
+      etiqueta_operacion_defecto
+      deshabilitar_transferencia_ventas
+      deshabilitar_transferencia_compras
+      deshabilitar_informes_gastos
+      deshabilitar_activos_fijos
+      deshabilitar_descuentos
+      usar_fecha_fin_periodo_informe_gastos
+      solo_lineas_conciliadas_extracto
+      numeracion_modelo
+      mascara_helium
+      coincidencia_contable
+      iva_revertido_compras
+      tab_libro_auxiliar_terceros
+      prefijo_exportacion
+      formato_exportacion
+      formato_archivo
+      separador_columnas
+      tipo_retorno_carro
+      formato_fecha_exportacion
+    }
+  }
+`;
 
 /**
  * Configuración del módulo contable (doble partida).
@@ -17,6 +60,9 @@ import {
  * Basado en pantallas de configuración contable tipo Dolibarr.
  */
 const ContabilidadConfiguracion = () => {
+  const payloadJwt = useJwtPayload();
+  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+
   const [metodoContable, setMetodoContable] = useState<'acumulacion' | 'caja'>('acumulacion');
   const [desactivarTransaccionesDirectas, setDesactivarTransaccionesDirectas] = useState(false);
   const [listaCombinadaSubsidiaria, setListaCombinadaSubsidiaria] = useState(false);
@@ -46,15 +92,164 @@ const ContabilidadConfiguracion = () => {
   const [separadorColumnas, setSeparadorColumnas] = useState(',');
   const [tipoRetornoCarro, setTipoRetornoCarro] = useState('unix');
   const [formatoFechaExportacion, setFormatoFechaExportacion] = useState('%Y-%m-%d');
+  const [estadoGuardado, setEstadoGuardado] = useState<{ tipo: 'ok' | 'error'; mensaje: string } | null>(null);
+  const [seccionGuardando, setSeccionGuardando] = useState<string | null>(null);
 
-  const handleGrabar = (seccion: string) => {
-    // TODO: enviar a API cuando exista backend de configuración
-    console.log('Grabar', seccion);
+  const { data, loading, error, refetch } = useQuery(GET_CONFIGURACION_CONTABILIDAD, {
+    variables: { id_empresa: idEmpresa },
+    skip: !idEmpresa,
+    fetchPolicy: 'network-only',
+  });
+
+  useEffect(() => {
+    const cfg = data?.configuracionContabilidad;
+    if (!cfg) return;
+
+    setMetodoContable(cfg.metodo_contable === 'caja' ? 'caja' : 'acumulacion');
+    setDesactivarTransaccionesDirectas(!!cfg.desactivar_transacciones_directas);
+    setListaCombinadaSubsidiaria(!!cfg.lista_combinada_subsidiaria);
+    setCerosFinalCuenta(!!cfg.gestion_cero_final);
+    setLongitudCuentasGenerales(cfg.longitud_cuentas_generales != null ? String(cfg.longitud_cuentas_generales) : '');
+    setLongitudSubcuentasTerceros(cfg.longitud_subcuentas_terceros != null ? String(cfg.longitud_subcuentas_terceros) : '');
+    setPeriodoPorDefecto(cfg.periodo_por_defecto || 'mes_anterior');
+    setFechaExcluirAntes(cfg.fecha_excluir_antes || '');
+    setEtiquetaOperacionDefecto(cfg.etiqueta_operacion_defecto || 'tercero_apunte_desc');
+    setDeshabilitarTransferenciaVentas(!!cfg.deshabilitar_transferencia_ventas);
+    setDeshabilitarTransferenciaCompras(!!cfg.deshabilitar_transferencia_compras);
+    setDeshabilitarInformesGastos(!!cfg.deshabilitar_informes_gastos);
+    setDeshabilitarActivosFijos(!!cfg.deshabilitar_activos_fijos);
+    setDeshabilitarDescuentos(!!cfg.deshabilitar_descuentos);
+    setFechaFinPeriodoInformeGastos(!!cfg.usar_fecha_fin_periodo_informe_gastos);
+    setSoloLineasConciliadas(!!cfg.solo_lineas_conciliadas_extracto);
+
+    const modelo = cfg.numeracion_modelo || 'neon';
+    setNumeracionNeon(modelo === 'neon');
+    setNumeracionArgon(modelo === 'argon');
+    setNumeracionHelium(modelo === 'helium');
+    setMascaraHelium(cfg.mascara_helium || '');
+
+    setCoincidenciaContable(!!cfg.coincidencia_contable);
+    setIvaRevertidoCompras(!!cfg.iva_revertido_compras);
+    setTabLibroAuxiliarTerceros(!!cfg.tab_libro_auxiliar_terceros);
+    setPrefijoExportacion(cfg.prefijo_exportacion || '');
+    setFormatoExportacion(cfg.formato_exportacion || 'csv_configurable');
+    setFormatoArchivo(cfg.formato_archivo || 'csv');
+    setSeparadorColumnas(cfg.separador_columnas || ',');
+    setTipoRetornoCarro(cfg.tipo_retorno_carro || 'unix');
+    setFormatoFechaExportacion(cfg.formato_fecha_exportacion || '%Y-%m-%d');
+  }, [data]);
+
+  const getNumeracionModelo = (): 'neon' | 'argon' | 'helium' => {
+    if (numeracionHelium) return 'helium';
+    if (numeracionArgon) return 'argon';
+    return 'neon';
+  };
+
+  const parseEntero = (value: string): number | null => {
+    const t = value.trim();
+    if (!t) return null;
+    const n = Number(t);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const buildPayload = (seccion: string) => {
+    switch (seccion) {
+      case 'gestion_contable':
+        return { metodo_contable: metodoContable };
+      case 'parametros':
+        return {
+          desactivar_transacciones_directas: desactivarTransaccionesDirectas,
+          lista_combinada_subsidiaria: listaCombinadaSubsidiaria,
+          gestion_cero_final: cerosFinalCuenta,
+          longitud_cuentas_generales: parseEntero(longitudCuentasGenerales),
+          longitud_subcuentas_terceros: parseEntero(longitudSubcuentasTerceros),
+        };
+      case 'transferencia':
+        return {
+          periodo_por_defecto: periodoPorDefecto,
+          fecha_excluir_antes: fechaExcluirAntes || null,
+          etiqueta_operacion_defecto: etiquetaOperacionDefecto,
+          deshabilitar_transferencia_ventas: deshabilitarTransferenciaVentas,
+          deshabilitar_transferencia_compras: deshabilitarTransferenciaCompras,
+          deshabilitar_informes_gastos: deshabilitarInformesGastos,
+          deshabilitar_activos_fijos: deshabilitarActivosFijos,
+          deshabilitar_descuentos: deshabilitarDescuentos,
+          usar_fecha_fin_periodo_informe_gastos: fechaFinPeriodoInformeGastos,
+          solo_lineas_conciliadas_extracto: soloLineasConciliadas,
+        };
+      case 'numeracion_avanzadas':
+        return {
+          numeracion_modelo: getNumeracionModelo(),
+          mascara_helium: mascaraHelium || null,
+          coincidencia_contable: coincidenciaContable,
+          iva_revertido_compras: ivaRevertidoCompras,
+          tab_libro_auxiliar_terceros: tabLibroAuxiliarTerceros,
+        };
+      case 'exportacion':
+        return {
+          prefijo_exportacion: prefijoExportacion || null,
+          formato_exportacion: formatoExportacion,
+          formato_archivo: formatoArchivo,
+          separador_columnas: separadorColumnas,
+          tipo_retorno_carro: tipoRetornoCarro,
+          formato_fecha_exportacion: formatoFechaExportacion,
+        };
+      default:
+        return {};
+    }
+  };
+
+  const handleGrabar = async (seccion: string) => {
+    if (!idEmpresa) {
+      setEstadoGuardado({ tipo: 'error', mensaje: 'No se pudo determinar la empresa del usuario.' });
+      return;
+    }
+
+    setEstadoGuardado(null);
+    setSeccionGuardando(seccion);
+    try {
+      const token = localStorage.getItem('accessToken') || '';
+      await axios.put(
+        `${GATEWAY_API_URL}/api/configuracion-contabilidad`,
+        buildPayload(seccion),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: token ? `Bearer ${token}` : '',
+            'X-Company-Id': idEmpresa,
+          },
+        },
+      );
+      setEstadoGuardado({ tipo: 'ok', mensaje: 'Configuración guardada correctamente.' });
+      await refetch();
+    } catch (e: any) {
+      const mensaje = e?.response?.data?.error || e?.message || 'Error al guardar configuración.';
+      setEstadoGuardado({ tipo: 'error', mensaje });
+    } finally {
+      setSeccionGuardando(null);
+    }
   };
 
   return (
     <div className="p-3">
       <h4 className="mb-4">Configuración del módulo contable (doble partida)</h4>
+      {!idEmpresa && (
+        <Alert color="warning">No se detectó `id_empresa` en el token de sesión.</Alert>
+      )}
+      {error && (
+        <Alert color="danger">Error cargando configuración: {error.message}</Alert>
+      )}
+      {estadoGuardado && (
+        <Alert color={estadoGuardado.tipo === 'ok' ? 'success' : 'danger'}>
+          {estadoGuardado.mensaje}
+        </Alert>
+      )}
+      {loading && (
+        <div className="mb-3 d-flex align-items-center gap-2">
+          <Spinner size="sm" />
+          <span>Cargando configuración...</span>
+        </div>
+      )}
 
       {/* Sección 1: Opción de gestión contable */}
       <Card className="mb-4">
@@ -92,7 +287,7 @@ const ContabilidadConfiguracion = () => {
               </small>
             </FormGroup>
           </FormGroup>
-          <Button color="primary" onClick={() => handleGrabar('gestion_contable')}>
+          <Button color="primary" type="button" disabled={!!seccionGuardando} onClick={() => handleGrabar('gestion_contable')}>
             Grabar
           </Button>
         </CardBody>
@@ -147,7 +342,7 @@ const ContabilidadConfiguracion = () => {
                 placeholder="Ej: 6"
               />
             </FormGroup>
-            <Button color="primary" onClick={() => handleGrabar('parametros')}>
+            <Button color="primary" type="button" disabled={!!seccionGuardando} onClick={() => handleGrabar('parametros')}>
               Grabar
             </Button>
           </Form>
@@ -222,7 +417,7 @@ const ContabilidadConfiguracion = () => {
               <Label check>Transferir a contabilidad únicamente las líneas conciliadas en los extractos bancarios</Label>
               <Input type="switch" checked={soloLineasConciliadas} onChange={(e) => setSoloLineasConciliadas(e.target.checked)} />
             </FormGroup>
-            <Button color="primary" onClick={() => handleGrabar('transferencia')}>
+            <Button color="primary" type="button" disabled={!!seccionGuardando} onClick={() => handleGrabar('transferencia')}>
               Grabar
             </Button>
           </Form>
@@ -249,7 +444,18 @@ const ContabilidadConfiguracion = () => {
                 <td><strong>Neon</strong></td>
                 <td>Código gratuito sin verificación.</td>
                 <td>
-                  <Input type="switch" checked={numeracionNeon} onChange={(e) => setNumeracionNeon(e.target.checked)} />
+                  <Input
+                    type="switch"
+                    checked={numeracionNeon}
+                    onChange={(e) => {
+                      const active = e.target.checked;
+                      setNumeracionNeon(active);
+                      if (active) {
+                        setNumeracionArgon(false);
+                        setNumeracionHelium(false);
+                      }
+                    }}
+                  />
                 </td>
                 <td><i className="bi bi-info-circle text-muted" /></td>
               </tr>
@@ -257,7 +463,18 @@ const ContabilidadConfiguracion = () => {
                 <td><strong>Argon</strong></td>
                 <td>Formato AAMMJJNNNNN (año, mes, código diario, secuencial). Ej: 2501VT00001</td>
                 <td>
-                  <Input type="switch" checked={numeracionArgon} onChange={(e) => setNumeracionArgon(e.target.checked)} />
+                  <Input
+                    type="switch"
+                    checked={numeracionArgon}
+                    onChange={(e) => {
+                      const active = e.target.checked;
+                      setNumeracionArgon(active);
+                      if (active) {
+                        setNumeracionNeon(false);
+                        setNumeracionHelium(false);
+                      }
+                    }}
+                  />
                 </td>
                 <td><i className="bi bi-info-circle text-muted" /></td>
               </tr>
@@ -273,10 +490,21 @@ const ContabilidadConfiguracion = () => {
                     className="ms-2 d-inline-block"
                     style={{ width: 200 }}
                   />
-                  <Button color="primary" size="sm" className="ms-2">Grabar</Button>
+                  <Button color="primary" size="sm" className="ms-2" type="button" disabled={!!seccionGuardando} onClick={() => handleGrabar('numeracion_avanzadas')}>Grabar</Button>
                 </td>
                 <td>
-                  <Input type="switch" checked={numeracionHelium} onChange={(e) => setNumeracionHelium(e.target.checked)} />
+                  <Input
+                    type="switch"
+                    checked={numeracionHelium}
+                    onChange={(e) => {
+                      const active = e.target.checked;
+                      setNumeracionHelium(active);
+                      if (active) {
+                        setNumeracionNeon(false);
+                        setNumeracionArgon(false);
+                      }
+                    }}
+                  />
                 </td>
                 <td><i className="bi bi-info-circle text-muted" /></td>
               </tr>
@@ -298,7 +526,7 @@ const ContabilidadConfiguracion = () => {
             <Label check>Activar una pestaña en tarjetas de terceros para ver el libro auxiliar</Label>
             <Input type="switch" checked={tabLibroAuxiliarTerceros} onChange={(e) => setTabLibroAuxiliarTerceros(e.target.checked)} />
           </FormGroup>
-          <Button color="primary" onClick={() => handleGrabar('numeracion_avanzadas')}>
+          <Button color="primary" type="button" disabled={!!seccionGuardando} onClick={() => handleGrabar('numeracion_avanzadas')}>
             Grabar
           </Button>
         </CardBody>
@@ -362,7 +590,7 @@ const ContabilidadConfiguracion = () => {
                 placeholder="%Y-%m-%d"
               />
             </FormGroup>
-            <Button color="primary" onClick={() => handleGrabar('exportacion')}>
+            <Button color="primary" type="button" disabled={!!seccionGuardando} onClick={() => handleGrabar('exportacion')}>
               Grabar
             </Button>
           </Form>

@@ -31,6 +31,45 @@ type BalanceGeneralSaldosRow {
   tipo_cuenta: String!
 }
 
+type ConfiguracionContabilidad {
+  coincidencia_contable: Boolean
+  created_at: DateTime
+  desactivar_transacciones_directas: Boolean
+  deshabilitar_activos_fijos: Boolean
+  deshabilitar_descuentos: Boolean
+  deshabilitar_informes_gastos: Boolean
+  deshabilitar_transferencia_compras: Boolean
+  deshabilitar_transferencia_ventas: Boolean
+  etiqueta_operacion_defecto: String
+  fecha_excluir_antes: String
+  formato_archivo: String
+  formato_cuenta: String
+  formato_exportacion: String
+  formato_fecha_exportacion: String
+  gestion_cero_final: Boolean
+  id_configuracion_contabilidad: String!
+  id_empresa: String!
+  id_moneda_base: String
+  iva_revertido_compras: Boolean
+  lista_combinada_subsidiaria: Boolean
+  longitud_cuentas_generales: Int
+  longitud_nivel: Int
+  longitud_subcuentas_terceros: Int
+  mascara_helium: String
+  metodo_contable: String
+  numeracion_modelo: String
+  periodo_por_defecto: String
+  prefijo_exportacion: String
+  separador_columnas: String
+  separador_cuenta: String
+  solo_lineas_conciliadas_extracto: Boolean
+  tab_libro_auxiliar_terceros: Boolean
+  tipo_retorno_carro: String
+  updated_at: DateTime
+  usar_centavos: Boolean
+  usar_fecha_fin_periodo_informe_gastos: Boolean
+}
+
 type CuentaContable {
   activa: Boolean!
   codigo: String!
@@ -78,6 +117,7 @@ type Query {
   asientosContablesPorFecha(fechaFin: String!, fechaInicio: String!): [AsientoContable!]!
   balanceComprobacion(empresaId: Int!, fechaDesde: String!, fechaHasta: String!): [BalanceComprobacionRow!]!
   balanceGeneralSaldos(empresaId: Int!, fechaCorte: String!): [BalanceGeneralSaldosRow!]!
+  configuracionContabilidad(id_empresa: String!): ConfiguracionContabilidad!
   cuentaContable(id: Int!): CuentaContable
   cuentasContables: [CuentaContable!]!
   cuentasContablesPorTipo(tipo: String!): [CuentaContable!]!

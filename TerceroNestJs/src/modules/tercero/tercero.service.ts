@@ -34,6 +34,28 @@ export class TerceroService {
     });
   }
 
+  /** Clientes marcados como cliente=true, filtro por texto (nombre, apodo, código cliente); límite acotado. */
+  async findClientesPorBusqueda(
+    id_empresa: string | undefined,
+    busqueda: string,
+    limite: number,
+  ): Promise<Tercero[]> {
+    const caps = Math.min(Math.max(limite, 5), 100);
+    const q = busqueda.trim().toLowerCase();
+    const qb = this.terceroRepo.createQueryBuilder('t').where('t.cliente = true');
+    if (id_empresa) {
+      qb.andWhere('t.id_empresa = :emp', { emp: id_empresa });
+    }
+    if (q.length > 0) {
+      qb.andWhere(
+        '(LOWER(t.nombre) LIKE :pat OR LOWER(COALESCE(t.apodo, \'\')) LIKE :pat OR LOWER(COALESCE(t.codigo_cliente, \'\')) LIKE :pat)',
+        { pat: `%${q}%` },
+      );
+    }
+    qb.orderBy('t.nombre', 'ASC').take(caps);
+    return qb.getMany();
+  }
+
   async findOne(id_tercero: string): Promise<Tercero> {
     const tercero = await this.terceroRepo.findOne({ where: { id_tercero } });
     if (!tercero) throw new NotFoundException('Tercero no encontrado');

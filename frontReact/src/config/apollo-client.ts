@@ -93,6 +93,18 @@ export const menuClient = new ApolloClient({
               return incoming;
             },
           },
+          opcionesMenuSuperior: {
+            keyArgs: ['id_perfil'],
+            merge(_existing, incoming) {
+              return incoming;
+            },
+          },
+          perfilConPermisos: {
+            keyArgs: ['id_perfil'],
+            merge(_existing, incoming) {
+              return incoming;
+            },
+          },
         },
       },
     },

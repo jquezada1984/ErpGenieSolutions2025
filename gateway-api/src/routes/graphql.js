@@ -24,6 +24,34 @@ const getTargetService = (query, config) => {
     console.log('🔄 Redirigiendo mutación actualizarEstadoItem a ItemNestJs');
     return config.itemNestJsService;
   }
+
+  // Financiero (facturas cliente, cuentas bancarias por empresa, catálogos Fin*)
+  if (query && (
+    query.includes('cuentasBancarias') ||
+    query.includes('facturaCliente') ||
+    query.includes('condicionesPagoFin') ||
+    query.includes('formasPagoFin') ||
+    query.includes('monedasFin')
+  )) {
+    console.log('🔄 Redirigiendo consulta de financiero a FinancieroNestJs');
+    return config.financieroNestJsService;
+  }
+
+  // Consultas del módulo contabilidad (solo lectura por NestJS)
+  // Debe evaluarse antes que terceros/menus para evitar falsos positivos por nombres de campos.
+  if (query && (
+    query.includes('configuracionContabilidad') ||
+    query.includes('cuentaContable') ||
+    query.includes('cuentasContables') ||
+    query.includes('asientoContable') ||
+    query.includes('libroMayor') ||
+    query.includes('balanceGeneral') ||
+    query.includes('balanceComprobacion') ||
+    query.includes('estadoResultados')
+  )) {
+    console.log('🔄 Redirigiendo consulta de contabilidad a ContabilidadNestJs');
+    return config.contabilidadNestJsService;
+  }
   
   // Verificar si es una consulta de catálogos de terceros o contactos (TerceroNestJs)
   if (query && (
@@ -124,12 +152,6 @@ async function executeGraphQLQuery(query, variables, operationName, context, con
 async function routes(fastify, options) {
   // Endpoint GraphQL
   fastify.post('/graphql', async (request, reply) => {
-    const config = {
-      nestjsService: process.env.NESTJS_SERVICE_URL,
-      menuService: process.env.MENU_SERVICE_URL,
-      terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || process.env.TERCERO_NESTJS_SERVICE_URL || 'http://localhost:3001'
-    };
-
     try {
       const { query, variables, operationName } = request.body || {};
       
@@ -141,12 +163,13 @@ async function routes(fastify, options) {
         });
       }
 
-      // Obtener configuración del gateway (catálogos generales como monedas, impuestos → InicioNestJs vía nestjsService)
       const config = {
         nestjsService: process.env.NESTJS_SERVICE_URL,
         menuService: process.env.MENU_SERVICE_URL,
         terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || 'http://tercero-nestjs-service:3001',
-        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011'
+        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
+        contabilidadNestJsService: process.env.CONTABILIDAD_NEST_GQL_URL || 'http://contabilidad-nestjs-service:3005',
+        financieroNestJsService: process.env.FINANCIERO_NEST_GQL_URL || 'http://financiero-nestjs-service:3007',
       };
 
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);

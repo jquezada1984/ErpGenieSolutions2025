@@ -23,16 +23,19 @@ import { CuentaContable } from './entities/cuenta-contable.entity';
 import { AsientoContable } from './entities/asiento-contable.entity';
 import { MovimientoContable } from './entities/movimiento-contable.entity';
 import { BalanceGeneral } from './entities/balance-general.entity';
+import { ConfiguracionContabilidad } from './entities/configuracion-contabilidad.entity';
 
 // Resolvers
 import { CuentaContableResolver } from './resolvers/cuenta-contable.resolver';
 import { AsientoContableResolver } from './resolvers/asiento-contable.resolver';
 import { ReporteContableResolver } from './resolvers/reporte-contable.resolver';
+import { ConfiguracionContabilidadResolver } from './resolvers/configuracion-contabilidad.resolver';
 
 // Services
 import { CuentaContableService } from './services/cuenta-contable.service';
 import { AsientoContableService } from './services/asiento-contable.service';
 import { ReporteContableService } from './services/reporte-contable.service';
+import { ConfiguracionContabilidadService } from './services/configuracion-contabilidad.service';
 
 @Module({
   imports: [
@@ -44,6 +47,7 @@ import { ReporteContableService } from './services/reporte-contable.service';
         AsientoContable,
         MovimientoContable,
         BalanceGeneral,
+        ConfiguracionContabilidad,
       ],
       synchronize: false, // Deshabilitado para evitar conflictos con datos existentes
       ssl: {
@@ -55,6 +59,7 @@ import { ReporteContableService } from './services/reporte-contable.service';
       AsientoContable,
       MovimientoContable,
       BalanceGeneral,
+      ConfiguracionContabilidad,
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -71,9 +76,11 @@ import { ReporteContableService } from './services/reporte-contable.service';
     CuentaContableResolver,
     AsientoContableResolver,
     ReporteContableResolver,
+    ConfiguracionContabilidadResolver,
     CuentaContableService,
     AsientoContableService,
     ReporteContableService,
+    ConfiguracionContabilidadService,
   ],
 })
 export class AppModule {}

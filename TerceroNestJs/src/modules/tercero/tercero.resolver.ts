@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, ID, ResolveField, Parent } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID, Int, ResolveField, Parent } from '@nestjs/graphql';
 import { Tercero } from './entities/tercero.entity';
 import { TerceroService } from './tercero.service';
 import { CreateTerceroInput } from './dto/create-tercero.dto';
@@ -26,6 +26,20 @@ export class TerceroResolver {
     @Args('id_empresa', { type: () => ID, nullable: true }) id_empresa?: string | null,
   ): Promise<Tercero[]> {
     return this.terceroService.findClientes(id_empresa ?? undefined);
+  }
+
+  /** Búsqueda parcial para autocompletar (no devuelve todo el catálogo). */
+  @Query(() => [Tercero], { name: 'clientesBusqueda' })
+  findClientesBusqueda(
+    @Args('id_empresa', { type: () => ID, nullable: true }) id_empresa?: string | null,
+    @Args('busqueda', { type: () => String, nullable: true }) busqueda?: string | null,
+    @Args('limite', { type: () => Int, nullable: true, defaultValue: 40 }) limite?: number,
+  ): Promise<Tercero[]> {
+    return this.terceroService.findClientesPorBusqueda(
+      id_empresa ?? undefined,
+      busqueda ?? '',
+      limite ?? 40,
+    );
   }
 
   @Query(() => Tercero, { name: 'tercero' })
