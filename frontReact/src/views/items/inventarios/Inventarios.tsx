@@ -195,10 +195,7 @@ const Inventarios: React.FC = () => {
   };
 
   const handleEditar = (idInventario: string) => {
-    // TODO FASE 2: conectar pantalla de edición de inventario cuando exista ruta/endpoint.
-    setError('Edición de inventario pendiente de endpoint backend.');
-    // eslint-disable-next-line no-console
-    console.log('Editar inventario (pendiente):', idInventario);
+    navigate(`/items/inventarios/editar/${encodeURIComponent(idInventario)}`);
   };
 
   const handleToggleEstado = (row: InventarioRow) => {

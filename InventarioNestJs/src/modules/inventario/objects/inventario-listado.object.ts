@@ -5,6 +5,9 @@ export class InventarioListado {
   @Field(() => ID)
   id_inventario: string;
 
+  @Field(() => ID, { nullable: true })
+  id_empresa?: string | null;
+
   @Field(() => String, { nullable: true })
   inventario_ref?: string | null;
 
@@ -16,6 +19,9 @@ export class InventarioListado {
 
   @Field(() => String, { nullable: true })
   almacen?: string | null;
+
+  @Field(() => String, { nullable: true })
+  observacion?: string | null;
 
   @Field(() => Int)
   product: number;

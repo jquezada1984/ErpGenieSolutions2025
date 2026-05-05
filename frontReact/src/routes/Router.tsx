@@ -83,6 +83,7 @@ const Servicios = Loadable(lazy(() => import('../views/items/servicios/Servicios
 const NuevoServicio = Loadable(lazy(() => import('../views/items/servicios/NuevoServicio')));
 const EditarServicio = Loadable(lazy(() => import('../views/items/servicios/EditarServicio')));
 const NuevoInventario = Loadable(lazy(() => import('../views/items/inventarios/NuevoInventario')));
+const EditarInventario = Loadable(lazy(() => import('../views/items/inventarios/EditarInventario')));
 const Inventarios = Loadable(lazy(() => import('../views/items/inventarios/Inventarios')));
 
 // Test component
@@ -163,6 +164,7 @@ const ThemeRoutes: RouteType[] = [
       { path: 'items/servicios/editar/:id', element: <EditarServicio /> },
       { path: 'items/inventarios', element: <Inventarios /> },
       { path: 'items/inventarios/nuevo', element: <NuevoInventario /> },
+      { path: 'items/inventarios/editar/:id', element: <EditarInventario /> },
     ],
   },
   {

@@ -18,6 +18,23 @@ def find_inventario_by_ref_empresa(id_empresa: str, inventario_ref: str) -> Opti
     )
 
 
+def find_inventario_by_id(id_inventario: str) -> Optional[Inventario]:
+    return Inventario.query.filter_by(id_inventario=str(id_inventario).strip()).first()
+
+
+def find_otro_inventario_misma_ref(
+    id_empresa: str, inventario_ref: str, excluir_id_inventario: str
+) -> Optional[Inventario]:
+    return (
+        Inventario.query.filter(
+            Inventario.id_empresa == str(id_empresa).strip(),
+            Inventario.inventario_ref == str(inventario_ref).strip(),
+            Inventario.id_inventario != str(excluir_id_inventario).strip(),
+        )
+        .first()
+    )
+
+
 def create_inventario_row(row: Dict[str, Any]) -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
     try:
@@ -38,6 +55,27 @@ def create_inventario_row(row: Dict[str, Any]) -> Dict[str, Any]:
             estado=row.get("estado") if row.get("estado") is not None else True,
         )
         db.session.add(entity)
+        db.session.commit()
+        return {
+            "id_inventario": str(entity.id_inventario),
+            "id_empresa": str(entity.id_empresa),
+            "inventario_ref": entity.inventario_ref,
+            "etiqueta": entity.etiqueta,
+            "id_almacen": str(entity.id_almacen),
+            "estado_inventario": entity.estado_inventario,
+            "fecha_inicio": entity.fecha_inicio.isoformat() if entity.fecha_inicio else None,
+            "fecha_cierre": entity.fecha_cierre.isoformat() if entity.fecha_cierre else None,
+            "observacion": entity.observacion,
+            "estado": bool(entity.estado),
+        }
+    except Exception:
+        db.session.rollback()
+        raise
+
+
+def update_inventario_row(entity: Inventario) -> Dict[str, Any]:
+    """Persiste cambios ya asignados en `entity` (commit)."""
+    try:
         db.session.commit()
         return {
             "id_inventario": str(entity.id_inventario),

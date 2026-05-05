@@ -26,7 +26,20 @@ async function actualizarEstadoInventario(id_inventario, estado, req) {
   return res.data;
 }
 
+/**
+ * Actualizar cabecera inventario → InventarioPython PUT /api/inventario/:id_inventario
+ * (sin fallback a ItemPython ni NestJS).
+ */
+async function actualizarInventario(id_inventario, body, req) {
+  const payload = body || {};
+  const id = encodeURIComponent(String(id_inventario || '').trim());
+  const headers = await ctxHeaders(req, payload);
+  const res = await http.put(`/api/inventario/${id}`, payload, { headers });
+  return res.data;
+}
+
 module.exports = {
   crearInventario,
   actualizarEstadoInventario,
+  actualizarInventario,
 };

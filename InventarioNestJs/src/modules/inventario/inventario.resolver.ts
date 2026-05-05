@@ -17,6 +17,7 @@ export class InventarioResolver {
   @Query(() => [InventarioListado], { name: 'inventariosListado' })
   async inventariosListado(
     @Args('id_empresa', { type: () => ID, nullable: true }) id_empresa?: string,
+    @Args('id_inventario', { type: () => ID, nullable: true }) id_inventario?: string,
     @Args('inventario_ref', { nullable: true }) inventario_ref?: string,
     @Args('etiqueta', { nullable: true }) etiqueta?: string,
     @Args('warehouse', { nullable: true }) warehouse?: string,
@@ -26,6 +27,7 @@ export class InventarioResolver {
   ): Promise<InventarioListado[]> {
     return this.inventarioService.inventariosListado({
       id_empresa: id_empresa ?? undefined,
+      id_inventario: id_inventario ?? undefined,
       inventario_ref: inventario_ref ?? undefined,
       etiqueta: etiqueta ?? undefined,
       warehouse: warehouse ?? undefined,

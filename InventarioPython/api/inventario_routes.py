@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from services.inventario_service import (
     servicio_crear_inventario,
     servicio_actualizar_estado_inventario,
+    servicio_actualizar_inventario,
 )
 
 inventario_bp = Blueprint("inventario_bp", __name__)
@@ -33,6 +34,43 @@ def crear_inventario():
         return jsonify(res), 201
     except ValidationError as ve:
         return jsonify({"success": False, "errors": ve.messages}), 400
+    except ValueError as e:
+        if str(e) == "inventario_ref_duplicado":
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "Ya existe un inventario con esa referencia para esta empresa.",
+                    }
+                ),
+                409,
+            )
+        return jsonify({"success": False, "error": str(e)}), 400
+    except IntegrityError as e:
+        return jsonify({"success": False, "error": "Violación de integridad en base de datos", "detail": str(e)}), 409
+    except SQLAlchemyError as e:
+        return jsonify({"success": False, "error": "Error de base de datos", "detail": str(e)}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@inventario_bp.route("/inventario/<uuid:id_inventario>", methods=["PUT", "OPTIONS"])
+@inventario_bp.route("/inventario/<uuid:id_inventario>/", methods=["PUT", "OPTIONS"])
+def actualizar_inventario(id_inventario):
+    if request.method == "OPTIONS":
+        return "", 204
+
+    _, user_id = _ctx_empresa_user()
+    body = request.get_json(silent=True) or {}
+    id_str = str(id_inventario)
+
+    try:
+        res = servicio_actualizar_inventario(id_str, body, user_id=user_id)
+        return jsonify(res), 200
+    except ValidationError as ve:
+        return jsonify({"success": False, "errors": ve.messages}), 400
+    except LookupError:
+        return jsonify({"success": False, "error": "Inventario no encontrado"}), 404
     except ValueError as e:
         if str(e) == "inventario_ref_duplicado":
             return (

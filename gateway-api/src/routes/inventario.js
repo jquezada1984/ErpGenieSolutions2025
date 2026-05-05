@@ -26,4 +26,19 @@ module.exports = async function (fastify, opts) {
       }
     }
   });
+
+  fastify.put('/inventario/:id', async (request, reply) => {
+    try {
+      const data = await inventarioPython.actualizarInventario(
+        request.params.id,
+        request.body || {},
+        request,
+      );
+      return reply.code(200).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      const payload = err.response?.data || { success: false, error: err.message };
+      return reply.code(status).send(payload);
+    }
+  });
 };
