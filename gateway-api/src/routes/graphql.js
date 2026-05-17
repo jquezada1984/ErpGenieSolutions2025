@@ -1,10 +1,9 @@
 const axios = require('axios');
 const {
-  isProduction,
-  buildGraphqlProxyErrorReply,
-  buildGraphqlHealthErrorReply,
+    isProduction,
+    buildGraphqlProxyErrorReply,
+    buildGraphqlHealthErrorReply,
 } = require('../utils/sanitize-gateway-error');
-
 // Función para determinar el servicio objetivo basado en la consulta
 const getTargetService = (query, config) => {
   // Primero verificar si es una mutación de autenticación (debe ir a InicioNestJs)
@@ -106,10 +105,7 @@ async function executeGraphQLQuery(query, variables, operationName, context, con
       variables,
       operationName
     }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': context.request.headers.authorization || '',
-      },
+      headers: forwardGraphqlHeaders(context.request),
       timeout: parseInt(process.env.GRAPHQL_SERVICE_TIMEOUT || '10000')
     });
 
@@ -146,15 +142,26 @@ async function routes(fastify, options) {
         nestjsService: process.env.NESTJS_SERVICE_URL,
         menuService: process.env.MENU_SERVICE_URL,
         terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || 'http://tercero-nestjs-service:3001',
-        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011'
+        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
+        inventarioNestJsService: process.env.INVENTARIO_NEST_GQL_URL || 'http://inventario-nestjs-service:3013'
       };
+
+      if (query.includes('mutation') && query.includes('actualizarEstadoInventario')) {
+        const result = await handleActualizarEstadoInventario(request);
+        return reply.send(result);
+      }
 
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);
       return reply.send(result);
     } catch (error) {
       fastify.log.error('Error en endpoint GraphQL:', error);
-      const { statusCode, body } = buildGraphqlProxyErrorReply(error);
-      return reply.status(statusCode).send(body);
+
+      const { status, message } = downstreamErrorPayload(error);
+      return reply.status(status).send({
+        success: false,
+        error: message,
+        timestamp: new Date().toISOString()
+      });
     }
   });
 

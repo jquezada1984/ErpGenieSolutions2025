@@ -69,8 +69,10 @@ const EditarProducto = Loadable(lazy(() => import('../views/items/productos/Edit
 const Servicios = Loadable(lazy(() => import('../views/items/servicios/Servicios')));
 const NuevoServicio = Loadable(lazy(() => import('../views/items/servicios/NuevoServicio')));
 const EditarServicio = Loadable(lazy(() => import('../views/items/servicios/EditarServicio')));
+const NuevoInventario = Loadable(lazy(() => import('../views/items/inventarios/NuevoInventario')));
+const EditarInventario = Loadable(lazy(() => import('../views/items/inventarios/EditarInventario')));
+const Inventarios = Loadable(lazy(() => import('../views/items/inventarios/Inventarios')));
 const Documentos = Loadable(lazy(() => import('../views/documentos/Documentos')));
-
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
 
@@ -137,6 +139,20 @@ const ThemeRoutes: RouteType[] = [
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
       { path: 'documentos', element: <Documentos /> },
 
+      { path: 'items/productos', element: <Productos /> },
+      { path: 'items/productos/stocks', element: <ProductosStocks /> },
+      { path: 'items/productos/stocks-lotes', element: <ProductosStocksLotes /> },
+      { path: 'items/productos/lotes', element: <ProductosLotes /> },
+      { path: 'items/productos/atributos', element: <ProductosAtributos /> },
+      { path: 'items/productos/estadisticas', element: <ProductosEstadisticas /> },
+      { path: 'items/productos/nuevo', element: <NuevoProducto /> },
+      { path: 'items/productos/editar/:id', element: <EditarProducto /> },
+      { path: 'items/servicios', element: <Servicios /> },
+      { path: 'items/servicios/nuevo', element: <NuevoServicio /> },
+      { path: 'items/servicios/editar/:id', element: <EditarServicio /> },
+      { path: 'items/inventarios', element: <Inventarios /> },
+      { path: 'items/inventarios/nuevo', element: <NuevoInventario /> },
+      { path: 'items/inventarios/editar/:id', element: <EditarInventario /> },
     ],
   },
   {

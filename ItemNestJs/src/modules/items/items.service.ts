@@ -70,6 +70,21 @@ export class ItemsService {
     return (r.affected ?? 0) > 0;
   }
 
+  async actualizarEstadoInventario(id_inventario: string, estado: boolean): Promise<boolean> {
+    const id = id_inventario?.trim();
+    if (!id) return false;
+
+    const rows: Array<{ id_inventario: string }> = await this.itemRepo.manager.query(
+      `UPDATE public.inventario
+       SET estado = $2, updated_at = NOW()
+       WHERE id_inventario = $1::uuid
+       RETURNING id_inventario`,
+      [id, estado],
+    );
+
+    return Array.isArray(rows) && rows.length > 0;
+  }
+
   private parseNum(v: unknown): number | null {
     if (v == null || v === '') return null;
     const n = typeof v === 'number' ? v : parseFloat(String(v));

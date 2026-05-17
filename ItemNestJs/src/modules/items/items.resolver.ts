@@ -46,4 +46,13 @@ export class ItemsResolver {
   ): Promise<boolean> {
     return this.itemsService.actualizarEstado(id_item, estado);
   }
+
+  @Mutation(() => Boolean, { name: 'actualizarEstadoInventario' })
+  async actualizarEstadoInventario(
+    @Args('id_inventario', { type: () => ID }) id_inventario: string,
+    @Args('estado', { type: () => Boolean }) estado: boolean,
+  ): Promise<boolean> {
+    return this.itemsService.actualizarEstadoInventario(id_inventario, estado);
+  }
+
 }
