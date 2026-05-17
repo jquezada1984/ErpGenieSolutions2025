@@ -4,7 +4,6 @@
 
 const itemNestJs = require('../services/itemNestJs');
 const itemPython = require('../services/itemPython');
-const inventarioPython = require('../services/inventarioPython');
 
 module.exports = async function (fastify, opts) {
   // ---------------------------
@@ -143,41 +142,6 @@ module.exports = async function (fastify, opts) {
     try {
       const data = await itemPython.crearItem(request.body || {}, request);
       return reply.code(201).send(data);
-    } catch (err) {
-      const status = err.response?.status || 500;
-      const payload = err.response?.data || { success: false, error: err.message };
-      return reply.code(status).send(payload);
-    }
-  });
-
-  fastify.post('/inventario', async (request, reply) => {
-    try {
-      const data = await inventarioPython.crearInventario(request.body || {}, request);
-      return reply.code(201).send(data);
-    } catch (errInventario) {
-      // Fallback temporal para no romper el flujo actual mientras se migra Inventario.
-      try {
-        const dataFallback = await itemPython.crearInventario(request.body || {}, request);
-        return reply.code(201).send(dataFallback);
-      } catch (errItem) {
-        const status = errItem.response?.status || errInventario.response?.status || 500;
-        const payload =
-          errItem.response?.data ||
-          errInventario.response?.data ||
-          { success: false, error: errItem.message || errInventario.message };
-        return reply.code(status).send(payload);
-      }
-    }
-  });
-
-  fastify.put('/inventario/:id', async (request, reply) => {
-    try {
-      const data = await inventarioPython.actualizarInventario(
-        request.params.id,
-        request.body || {},
-        request,
-      );
-      return reply.code(200).send(data);
     } catch (err) {
       const status = err.response?.status || 500;
       const payload = err.response?.data || { success: false, error: err.message };

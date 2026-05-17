@@ -16,14 +16,6 @@ async function crearItem(body, req) {
   return res.data;
 }
 
-/** Alta cabecera inventario → ItemPython POST /api/inventario */
-async function crearInventario(body, req) {
-  const headers = await ctxHeaders(req, body || {});
-  console.log('📤 Gateway -> ItemPython: POST /api/inventario');
-  const res = await http.post('/api/inventario', body || {}, { headers });
-  return res.data;
-}
-
 async function actualizarItem(idItem, body, req) {
   const headers = await ctxHeaders(req, body || {});
   console.log('📤 Gateway -> ItemPython: PUT /api/item/' + idItem);
@@ -87,7 +79,6 @@ async function cambiarEstadoEtiquetaCategoria(idEtiquetaCategoria, body, req) {
 
 module.exports = {
   crearItem,
-  crearInventario,
   actualizarItem,
   actualizarItemServicio,
   listarEtiquetasCategoria,

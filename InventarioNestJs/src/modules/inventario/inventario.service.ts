@@ -3,6 +3,30 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Inventario } from './entities/inventario.entity';
 import { InventarioListado } from './objects/inventario-listado.object';
+import { InventarioDetalle } from './objects/inventario-detalle.object';
+
+function coalesceBool(raw: unknown): boolean | null {
+  if (raw == null) return null;
+  if (raw === true || raw === 1 || raw === '1') return true;
+  if (raw === false || raw === 0 || raw === '0') return false;
+  const s = String(raw).toLowerCase();
+  if (s === 'true') return true;
+  if (s === 'false') return false;
+  return null;
+}
+
+function toIsoString(raw: unknown): string | null {
+  if (raw == null) return null;
+  if (raw instanceof Date) return raw.toISOString();
+  const s = String(raw).trim();
+  return s || null;
+}
+
+function toIdString(raw: unknown): string | null {
+  if (raw == null) return null;
+  const s = String(raw).trim();
+  return s || null;
+}
 
 export interface InventariosListadoFiltros {
   id_empresa?: string;
@@ -88,6 +112,63 @@ export class InventarioService {
           ? null
           : r.estado === true || r.estado === 1 || r.estado === '1' || String(r.estado).toLowerCase() === 'true',
     }));
+  }
+
+  /** Detalle por id; si se informa id_empresa, limita a esa empresa (multi-tenant). */
+  async inventarioPorId(
+    id_inventario: string,
+    id_empresa?: string,
+  ): Promise<InventarioDetalle | null> {
+    const id = id_inventario?.trim();
+    if (!id) return null;
+
+    const qb = this.inventarioRepo
+      .createQueryBuilder('inv')
+      .leftJoin('almacen', 'alm', 'alm.id_almacen = inv.id_almacen')
+      .select('inv.id_inventario', 'id_inventario')
+      .addSelect('inv.id_empresa', 'id_empresa')
+      .addSelect('inv.inventario_ref', 'inventario_ref')
+      .addSelect('inv.etiqueta', 'etiqueta')
+      .addSelect('inv.id_almacen', 'id_almacen')
+      .addSelect(`COALESCE(alm.nombre, '')`, 'almacen')
+      .addSelect('inv.observacion', 'observacion')
+      .addSelect('inv.estado_inventario', 'estado_inventario')
+      .addSelect('inv.estado', 'estado')
+      .addSelect('inv.fecha_inicio', 'fecha_inicio')
+      .addSelect('inv.fecha_cierre', 'fecha_cierre')
+      .addSelect('inv.created_by', 'created_by')
+      .addSelect('inv.created_at', 'created_at')
+      .addSelect('inv.updated_by', 'updated_by')
+      .addSelect('inv.updated_at', 'updated_at')
+      .addSelect('0', 'product')
+      .where('inv.id_inventario = :idInv', { idInv: id });
+
+    if (id_empresa?.trim()) {
+      qb.andWhere('inv.id_empresa = :idEmp', { idEmp: id_empresa.trim() });
+    }
+
+    const rows = await qb.getRawMany<Record<string, unknown>>();
+    const r = rows[0];
+    if (!r) return null;
+
+    return {
+      id_inventario: String(r.id_inventario),
+      id_empresa: toIdString(r.id_empresa),
+      inventario_ref: r.inventario_ref == null ? null : String(r.inventario_ref),
+      etiqueta: r.etiqueta == null ? null : String(r.etiqueta),
+      id_almacen: toIdString(r.id_almacen),
+      almacen: r.almacen == null ? null : String(r.almacen),
+      observacion: r.observacion == null ? null : String(r.observacion),
+      product: Number(r.product ?? 0) || 0,
+      estado_inventario: r.estado_inventario == null ? null : String(r.estado_inventario),
+      estado: coalesceBool(r.estado),
+      fecha_inicio: toIsoString(r.fecha_inicio),
+      fecha_cierre: toIsoString(r.fecha_cierre),
+      created_by: toIdString(r.created_by),
+      updated_by: toIdString(r.updated_by),
+      created_at: toIsoString(r.created_at),
+      updated_at: toIsoString(r.updated_at),
+    };
   }
 
   async actualizarEstadoInventario(id_inventario: string, estado: boolean): Promise<boolean> {

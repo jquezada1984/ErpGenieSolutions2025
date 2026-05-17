@@ -19,7 +19,7 @@ import SelectEmpresa from '../../../components/SelectEmpresa';
 import SearchableSelect from '../../../components/SearchableSelect';
 import useJwtPayload from '../../../hooks/useJwtPayload';
 import { listarAlmacenes } from '../../../_apis_/gateway';
-import { actualizarInventario } from '../../../_apis_/item';
+import { actualizarInventario } from '../../../_apis_/inventario';
 import '../ConfiguracionItem.scss';
 
 const GET_EMPRESAS = gql`
@@ -44,9 +44,9 @@ const GET_ITEMS_PRODUCTO = gql`
   }
 `;
 
-const INVENTARIO_PARA_EDICION = gql`
-  query InventarioParaEdicion($id_inventario: ID!, $id_empresa: ID) {
-    inventariosListado(id_inventario: $id_inventario, id_empresa: $id_empresa) {
+const INVENTARIO_POR_ID = gql`
+  query InventarioPorIdEdicion($id_inventario: ID!, $id_empresa: ID) {
+    inventarioPorId(id_inventario: $id_inventario, id_empresa: $id_empresa) {
       id_inventario
       id_empresa
       inventario_ref
@@ -57,6 +57,12 @@ const INVENTARIO_PARA_EDICION = gql`
       estado
       estado_inventario
       product
+      fecha_inicio
+      fecha_cierre
+      created_by
+      updated_by
+      created_at
+      updated_at
     }
   }
 `;
@@ -126,7 +132,7 @@ const EditarInventario: React.FC = () => {
     data: invData,
     loading: loadingInv,
     error: errorInv,
-  } = useQuery<{ inventariosListado: InventarioListadoRow[] }>(INVENTARIO_PARA_EDICION, {
+  } = useQuery<{ inventarioPorId: InventarioListadoRow | null }>(INVENTARIO_POR_ID, {
     variables: {
       id_inventario: idInventarioParam ?? '',
       id_empresa: idEmpresaFiltroConsulta,
@@ -135,7 +141,7 @@ const EditarInventario: React.FC = () => {
     fetchPolicy: 'cache-and-network',
   });
 
-  const inventarioRow = invData?.inventariosListado?.[0] ?? null;
+  const inventarioRow = invData?.inventarioPorId ?? null;
 
   useEffect(() => {
     hydratedIdRef.current = null;

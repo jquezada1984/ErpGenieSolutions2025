@@ -11,7 +11,7 @@ export class Inventario {
   @Column({ type: 'varchar', length: 100 })
   inventario_ref: string;
 
-  @Column({ type: 'varchar', length: 150 })
+  @Column({ type: 'varchar', length: 255 })
   etiqueta: string;
 
   @Column('uuid')
@@ -30,7 +30,13 @@ export class Inventario {
   observacion?: string | null;
 
   @Column({ type: 'uuid', nullable: true })
+  created_by?: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
   updated_by?: string | null;
+
+  @Column({ type: 'timestamp without time zone', nullable: true })
+  created_at?: Date | null;
 
   @Column({ type: 'timestamp without time zone', nullable: true })
   updated_at?: Date | null;

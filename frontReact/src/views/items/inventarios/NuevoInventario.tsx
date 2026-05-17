@@ -19,7 +19,7 @@ import SelectEmpresa from '../../../components/SelectEmpresa';
 import SearchableSelect from '../../../components/SearchableSelect';
 import useJwtPayload from '../../../hooks/useJwtPayload';
 import { listarAlmacenes } from '../../../_apis_/gateway';
-import { crearInventario } from '../../../_apis_/item';
+import { crearInventario } from '../../../_apis_/inventario';
 import '../ConfiguracionItem.scss';
 
 const GET_EMPRESAS = gql`

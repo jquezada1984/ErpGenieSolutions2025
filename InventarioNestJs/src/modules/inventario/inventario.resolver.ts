@@ -1,8 +1,9 @@
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { InventarioListado } from './objects/inventario-listado.object';
+import { InventarioDetalle } from './objects/inventario-detalle.object';
 import { InventarioService } from './inventario.service';
 
-@Resolver(() => InventarioListado)
+@Resolver()
 export class InventarioResolver {
   constructor(private readonly inventarioService: InventarioService) {}
 
@@ -35,5 +36,17 @@ export class InventarioResolver {
       product: product ?? undefined,
       estado_inventario: estado_inventario ?? undefined,
     });
+  }
+
+  @Query(() => InventarioDetalle, {
+    name: 'inventarioPorId',
+    nullable: true,
+    description: 'Cabecera inventario por id_inventario (opcional filtro id_empresa).',
+  })
+  async inventarioPorId(
+    @Args('id_inventario', { type: () => ID }) id_inventario: string,
+    @Args('id_empresa', { type: () => ID, nullable: true }) id_empresa?: string,
+  ): Promise<InventarioDetalle | null> {
+    return this.inventarioService.inventarioPorId(id_inventario, id_empresa);
   }
 }

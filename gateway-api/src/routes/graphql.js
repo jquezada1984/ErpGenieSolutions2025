@@ -41,8 +41,11 @@ const getTargetService = (query, config) => {
   }
   
   // Lectura de inventarios por GraphQL (dominio InventarioNestJs).
-  if (query && query.includes('inventariosListado')) {
-    console.log('🔄 Redirigiendo inventariosListado a InventarioNestJs');
+  if (
+    query &&
+    (query.includes('inventariosListado') || query.includes('inventarioPorId'))
+  ) {
+    console.log('🔄 Redirigiendo consulta inventario a InventarioNestJs');
     return config.inventarioNestJsService;
   }
 
@@ -96,6 +99,15 @@ const getTargetService = (query, config) => {
   }
 };
 
+function forwardGraphqlHeaders(request) {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: request.headers.authorization || '',
+    'X-Company-Id': request.headers['x-company-id'] || request.headers['X-Company-Id'] || '',
+    'X-User-Id': request.headers['x-user-id'] || request.headers['X-User-Id'] || '',
+  };
+}
+
 // Función para ejecutar consultas GraphQL
 async function executeGraphQLQuery(query, variables, operationName, context, config) {
   try {
@@ -111,10 +123,7 @@ async function executeGraphQLQuery(query, variables, operationName, context, con
       variables,
       operationName
     }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': context.request.headers.authorization || '',
-      },
+      headers: forwardGraphqlHeaders(context.request),
       timeout: parseInt(process.env.GRAPHQL_SERVICE_TIMEOUT || '10000')
     });
 
