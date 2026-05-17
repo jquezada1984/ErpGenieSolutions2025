@@ -45,10 +45,12 @@ const GET_FINANCIERO_CATALOGOS = gql`
     }
     condicionesPagoFin {
       id_condicion_pago
+      etiqueta
       descripcion
     }
     formasPagoFin {
       id_forma_pago
+      etiqueta
       descripcion
     }
     monedasFin {
@@ -362,9 +364,9 @@ const NuevaFacturaCliente = () => {
                 <Col {...inputCol}>
                   <Input type="select" value={idCondicionPago} onChange={(e) => setIdCondicionPago(e.target.value)}>
                     <option value="">—</option>
-                    {condiciones.map((x: { id_condicion_pago: string; descripcion: string }) => (
+                    {condiciones.map((x: { id_condicion_pago: string; etiqueta?: string; descripcion?: string }) => (
                       <option key={x.id_condicion_pago} value={x.id_condicion_pago}>
-                        {x.descripcion}
+                        {x.etiqueta || x.descripcion}
                       </option>
                     ))}
                   </Input>
@@ -378,9 +380,9 @@ const NuevaFacturaCliente = () => {
                 <Col {...inputCol}>
                   <Input type="select" value={idFormaPago} onChange={(e) => setIdFormaPago(e.target.value)}>
                     <option value="">—</option>
-                    {formas.map((x: { id_forma_pago: string; descripcion: string }) => (
+                    {formas.map((x: { id_forma_pago: string; etiqueta?: string; descripcion?: string }) => (
                       <option key={x.id_forma_pago} value={x.id_forma_pago}>
-                        {x.descripcion}
+                        {x.etiqueta || x.descripcion}
                       </option>
                     ))}
                   </Input>

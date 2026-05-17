@@ -15,4 +15,8 @@ export class TipoEntidadComercial {
   @Field({ nullable: true })
   @Column({ type: 'text', nullable: true })
   descripcion: string;
+
+  @Field()
+  @Column({ type: 'boolean', default: true })
+  activo: boolean;
 } 

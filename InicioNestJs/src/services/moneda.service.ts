@@ -10,9 +10,10 @@ export class MonedaService {
     private monedaRepository: Repository<Moneda>,
   ) {}
 
-  async findAll(): Promise<Moneda[]> {
+  async findAll(soloActivos = true): Promise<Moneda[]> {
     return this.monedaRepository.find({
-      order: { nombre: 'ASC' }
+      where: soloActivos ? { activo: true } : {},
+      order: { codigo: 'ASC' },
     });
   }
 

@@ -23,8 +23,10 @@ export class FinancieroResolver {
   }
 
   @Query(() => [FormaPagoCatalogo], { name: 'formasPagoFin' })
-  formasPagoFin(): Promise<FormaPagoCatalogo[]> {
-    return this.lectura.listarFormasPago();
+  formasPagoFin(
+    @Args('tipoUso', { type: () => String, nullable: true }) tipoUso?: string,
+  ): Promise<FormaPagoCatalogo[]> {
+    return this.lectura.listarFormasPago(true, tipoUso);
   }
 
   @Query(() => [Moneda], { name: 'monedasFin' })

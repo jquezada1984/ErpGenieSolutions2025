@@ -40,6 +40,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
     query GetCondicionesPago {
       condicionesPago {
         id_condicion_pago
+        etiqueta
         descripcion
       }
     }
@@ -49,6 +50,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
     query GetFormasPago {
       formasPago {
         id_forma_pago
+        etiqueta
         descripcion
       }
     }

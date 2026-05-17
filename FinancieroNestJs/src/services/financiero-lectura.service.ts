@@ -29,16 +29,32 @@ export class FinancieroLecturaService {
     });
   }
 
-  listarCondicionesPago(): Promise<CondicionPagoCatalogo[]> {
-    return this.condicionRepo.find({ order: { descripcion: 'ASC' } });
+  listarCondicionesPago(soloActivos = true): Promise<CondicionPagoCatalogo[]> {
+    return this.condicionRepo.find({
+      where: soloActivos ? { activo: true } : {},
+      order: { orden: 'ASC', codigo: 'ASC' },
+    });
   }
 
-  listarFormasPago(): Promise<FormaPagoCatalogo[]> {
-    return this.formaRepo.find({ order: { descripcion: 'ASC' } });
+  listarFormasPago(soloActivos = true, tipoUso?: string): Promise<FormaPagoCatalogo[]> {
+    const qb = this.formaRepo
+      .createQueryBuilder('f')
+      .orderBy('f.orden', 'ASC')
+      .addOrderBy('f.codigo', 'ASC');
+    if (soloActivos) {
+      qb.andWhere('f.activo = :activo', { activo: true });
+    }
+    if (tipoUso) {
+      qb.andWhere('f.tipo_uso = :tipoUso', { tipoUso });
+    }
+    return qb.getMany();
   }
 
-  listarMonedas(): Promise<Moneda[]> {
-    return this.monedaRepo.find({ order: { nombre: 'ASC' } });
+  listarMonedas(soloActivos = true): Promise<Moneda[]> {
+    return this.monedaRepo.find({
+      where: soloActivos ? { activo: true } : {},
+      order: { codigo: 'ASC' },
+    });
   }
 
   obtenerFacturaCliente(

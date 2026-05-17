@@ -41,6 +41,7 @@ import { Impuesto } from './entities/impuesto.entity';
 import { CuentaContable } from './entities/cuenta-contable.entity';
 import { TipoItemCatalogo } from './entities/tipo-item-catalogo.entity';
 import { DuracionUnidadCatalogo } from './entities/duracion-unidad-catalogo.entity';
+import { FormatoPapel } from './entities/formato-papel.entity';
 import { AuthModule } from './auth/auth.module';
 import { sanitizeGraphQLError } from './common/graphql-format-error';
 // Resolvers
@@ -62,6 +63,7 @@ import { ImpuestoResolver } from './resolvers/impuesto.resolver';
 import { CuentaContableResolver } from './resolvers/cuenta-contable.resolver';
 import { TipoItemCatalogoResolver } from './resolvers/tipo-item-catalogo.resolver';
 import { DuracionUnidadCatalogoResolver } from './resolvers/duracion-unidad-catalogo.resolver';
+import { FormatoPapelResolver } from './resolvers/formato-papel.resolver';
 import { AuthResolver } from './auth/auth.resolver';
 // Services
 import { PaisService } from './services/pais.service';
@@ -100,7 +102,8 @@ import { AutorizacionService } from './services/autorizacion.service';
         MenuItem,
         PerfilMenuPermiso,
         CondicionPago,
-        FormaPago
+        FormaPago,
+        FormatoPapel,
       ],
       synchronize: false, // Deshabilitado para evitar conflictos con datos existentes
       ssl: {
@@ -132,6 +135,7 @@ import { AutorizacionService } from './services/autorizacion.service';
         CuentaContable,
         TipoItemCatalogo,
         DuracionUnidadCatalogo,
+        FormatoPapel,
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -166,6 +170,7 @@ import { AutorizacionService } from './services/autorizacion.service';
       CuentaContableResolver,
       TipoItemCatalogoResolver,
       DuracionUnidadCatalogoResolver,
+      FormatoPapelResolver,
       AuthResolver,
       PaisService,
       MonedaService,

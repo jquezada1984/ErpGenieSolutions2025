@@ -15,4 +15,12 @@ export class Moneda {
   @Field()
   @Column({ type: 'varchar', length: 50 })
   nombre: string;
+
+  @Field({ nullable: true })
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  simbolo_unicode: string | null;
+
+  @Field()
+  @Column({ type: 'boolean', default: true })
+  activo: boolean;
 }

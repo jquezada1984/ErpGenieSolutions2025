@@ -1,4 +1,4 @@
-import { Resolver, Query } from '@nestjs/graphql';
+import { Args, Query, Resolver } from '@nestjs/graphql';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FormaPago } from '../entities/forma-pago.entity';
@@ -15,16 +15,37 @@ export class CatalogosPagoResolver {
   ) {}
 
   @Query(() => [FormaPago], { name: 'formasPago' })
-  async formasPago(): Promise<FormaPago[]> {
-    return this.formaPagoRepository.find({
-      order: { descripcion: 'ASC' }
-    });
+  async formasPago(
+    @Args('soloActivos', { type: () => Boolean, nullable: true, defaultValue: true })
+    soloActivos?: boolean,
+    @Args('tipoUso', { type: () => String, nullable: true })
+    tipoUso?: string,
+  ): Promise<FormaPago[]> {
+    const qb = this.formaPagoRepository
+      .createQueryBuilder('f')
+      .orderBy('f.orden', 'ASC')
+      .addOrderBy('f.codigo', 'ASC');
+    if (soloActivos !== false) {
+      qb.andWhere('f.activo = :activo', { activo: true });
+    }
+    if (tipoUso) {
+      qb.andWhere('f.tipo_uso = :tipoUso', { tipoUso });
+    }
+    return qb.getMany();
   }
 
   @Query(() => [CondicionPago], { name: 'condicionesPago' })
-  async condicionesPago(): Promise<CondicionPago[]> {
-    return this.condicionPagoRepository.find({
-      order: { descripcion: 'ASC' }
-    });
+  async condicionesPago(
+    @Args('soloActivos', { type: () => Boolean, nullable: true, defaultValue: true })
+    soloActivos?: boolean,
+  ): Promise<CondicionPago[]> {
+    const qb = this.condicionPagoRepository
+      .createQueryBuilder('c')
+      .orderBy('c.orden', 'ASC')
+      .addOrderBy('c.codigo', 'ASC');
+    if (soloActivos !== false) {
+      qb.andWhere('c.activo = :activo', { activo: true });
+    }
+    return qb.getMany();
   }
 }

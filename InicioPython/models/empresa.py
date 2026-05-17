@@ -15,6 +15,8 @@ class Moneda(db.Model):
     id_moneda = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     codigo = db.Column(db.String(3), nullable=False, unique=True)
     nombre = db.Column(db.String(50), nullable=False)
+    simbolo_unicode = db.Column(db.String(10))
+    activo = db.Column(db.Boolean, nullable=False, default=True)
 
 class Provincia(db.Model):
     __tablename__ = 'provincia'
@@ -27,6 +29,7 @@ class TipoEntidadComercial(db.Model):
     id_tipo_entidad = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(100), nullable=False, unique=True)
     descripcion = db.Column(db.Text)
+    activo = db.Column(db.Boolean, nullable=False, default=True)
 
 class SocialNetwork(db.Model):
     __tablename__ = 'social_network'

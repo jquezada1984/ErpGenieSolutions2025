@@ -17,7 +17,15 @@ export class Moneda {
   @Column({ type: 'varchar', length: 50, nullable: false })
   nombre: string;
 
+  @Field({ nullable: true })
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  simbolo_unicode: string | null;
+
+  @Field()
+  @Column({ type: 'boolean', default: true })
+  activo: boolean;
+
   @Field(() => [Empresa], { nullable: true })
   @OneToMany(() => Empresa, empresa => empresa.moneda)
   empresas: Empresa[];
-} 
+}

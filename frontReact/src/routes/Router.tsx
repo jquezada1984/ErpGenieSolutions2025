@@ -1,5 +1,5 @@
 import React, { lazy, ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import Loadable from '../layouts/loader/Loadable';
 import AuthGuard from '../components/authGurad/AuthGuard';
 import Error404 from '../views/auth/Error404';
@@ -58,6 +58,12 @@ const EditarContacto = Loadable(lazy(() => import('../views/terceros/contactos/E
 const ContabilidadGeneral = Loadable(lazy(() => import('../views/contabilidad/ContabilidadGeneral')));
 const ContabilidadConfiguracion = Loadable(lazy(() => import('../views/contabilidad/ContabilidadConfiguracion')));
 const NuevaFacturaCliente = Loadable(lazy(() => import('../views/financiero/facturas-clientes/NuevaFacturaCliente')));
+const DiccionariosIndex = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/DiccionariosIndex')));
+const CondicionesPagoDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/CondicionesPagoDiccionario')));
+const ModosPagoDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/ModosPagoDiccionario')));
+const MonedasDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/MonedasDiccionario')));
+const TipoEntidadLegalDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/TipoEntidadLegalDiccionario')));
+const FormatosPapelDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/FormatosPapelDiccionario')));
 // Módulo Item (productos y servicios)
 const Productos = Loadable(lazy(() => import('../views/items/productos/Productos')));
 const ProductosStocks = Loadable(lazy(() => import('../views/items/productos/ProductosStocks')));
@@ -139,8 +145,31 @@ const ThemeRoutes: RouteType[] = [
       { path: 'contabilidad', element: <ContabilidadGeneral /> },
       { path: 'contabilidad/configuracion/general', element: <ContabilidadConfiguracion /> },
       { path: 'financiero/facturas-clientes/nueva', element: <NuevaFacturaCliente /> },
+      { path: 'financiero/configuracion/diccionarios', element: <DiccionariosIndex /> },
+      { path: 'financiero/configuracion/diccionarios/condiciones-pago', element: <CondicionesPagoDiccionario /> },
+      { path: 'financiero/configuracion/diccionarios/modos-pago', element: <ModosPagoDiccionario /> },
+      { path: 'financiero/configuracion/diccionarios/monedas', element: <MonedasDiccionario /> },
+      { path: 'financiero/configuracion/diccionarios/tipo-entidad-legal', element: <TipoEntidadLegalDiccionario /> },
+      { path: 'financiero/configuracion/diccionarios/formatos-papel', element: <FormatosPapelDiccionario /> },
+      {
+        path: 'items',
+        element: <Outlet />,
+        children: [
+          { path: 'productos', element: <Productos /> },
+          { path: 'productos/nuevo', element: <NuevoProducto /> },
+          { path: 'productos/editar/:id', element: <EditarProducto /> },
+          { path: 'productos/stocks', element: <ProductosStocks /> },
+          { path: 'productos/stocks-lotes', element: <ProductosStocksLotes /> },
+          { path: 'productos/lotes', element: <ProductosLotes /> },
+          { path: 'productos/atributos', element: <ProductosAtributos /> },
+          { path: 'productos/estadisticas', element: <ProductosEstadisticas /> },
+          { path: 'servicios', element: <Servicios /> },
+          { path: 'servicios/nuevo', element: <NuevoServicio /> },
+          { path: 'servicios/editar/:id', element: <EditarServicio /> },
+        ],
+      },
       { path: 'documentos', element: <Documentos /> },
-
+      { path: '*', element: <Error404 /> },
     ],
   },
   {
