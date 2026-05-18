@@ -4,6 +4,18 @@ const {
     buildGraphqlProxyErrorReply,
     buildGraphqlHealthErrorReply,
 } = require('../utils/sanitize-gateway-error');
+
+function forwardGraphqlHeaders(request) {
+  const req = request || {};
+  const h = req.headers || {};
+  return {
+    'Content-Type': 'application/json',
+    'X-Company-Id': h['x-company-id'] || h['X-Company-Id'] || '',
+    'X-User-Id': h['x-user-id'] || h['X-User-Id'] || '',
+    Authorization: h.authorization || h.Authorization || '',
+  };
+}
+
 // Función para determinar el servicio objetivo basado en la consulta
 const getTargetService = (query, config) => {
   // Primero verificar si es una mutación de autenticación (debe ir a InicioNestJs)
@@ -71,6 +83,16 @@ const getTargetService = (query, config) => {
     return config.nestjsService;
   }
 
+  // Módulo inventario físico (InventarioNestJs)
+  if (query && (
+    query.includes('inventariosListado') ||
+    query.includes('inventarioPorId') ||
+    query.includes('actualizarEstadoInventario')
+  )) {
+    console.log('🔄 Redirigiendo consulta de inventario a InventarioNestJs');
+    return config.inventarioNestJsService;
+  }
+
   // Luego verificar si es una consulta específica de menús y permisos
   if (query && (
     query.includes('menu') || 
@@ -120,12 +142,6 @@ async function executeGraphQLQuery(query, variables, operationName, context, con
 async function routes(fastify, options) {
   // Endpoint GraphQL
   fastify.post('/graphql', async (request, reply) => {
-    const config = {
-      nestjsService: process.env.NESTJS_SERVICE_URL,
-      menuService: process.env.MENU_SERVICE_URL,
-      terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || process.env.TERCERO_NESTJS_SERVICE_URL || 'http://localhost:3001'
-    };
-
     try {
       const { query, variables, operationName } = request.body || {};
       
@@ -137,7 +153,6 @@ async function routes(fastify, options) {
         });
       }
 
-      // Obtener configuración del gateway (catálogos generales como monedas, impuestos → InicioNestJs vía nestjsService)
       const config = {
         nestjsService: process.env.NESTJS_SERVICE_URL,
         menuService: process.env.MENU_SERVICE_URL,
@@ -146,22 +161,13 @@ async function routes(fastify, options) {
         inventarioNestJsService: process.env.INVENTARIO_NEST_GQL_URL || 'http://inventario-nestjs-service:3013'
       };
 
-      if (query.includes('mutation') && query.includes('actualizarEstadoInventario')) {
-        const result = await handleActualizarEstadoInventario(request);
-        return reply.send(result);
-      }
-
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);
       return reply.send(result);
     } catch (error) {
       fastify.log.error('Error en endpoint GraphQL:', error);
 
-      const { status, message } = downstreamErrorPayload(error);
-      return reply.status(status).send({
-        success: false,
-        error: message,
-        timestamp: new Date().toISOString()
-      });
+      const { statusCode, body } = buildGraphqlProxyErrorReply(error);
+      return reply.status(statusCode).send(body);
     }
   });
 
