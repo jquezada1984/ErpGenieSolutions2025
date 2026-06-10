@@ -17,11 +17,11 @@ export class Sucursal {
   @Column({ length: 100 })
   nombre: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ length: 255, nullable: true })
   direccion?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ length: 20, nullable: true })
   telefono?: string;
 

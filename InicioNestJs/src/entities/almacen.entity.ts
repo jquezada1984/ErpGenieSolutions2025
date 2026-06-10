@@ -8,11 +8,11 @@ export class Almacen {
   @PrimaryGeneratedColumn('uuid')
   id_almacen: string;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   id_empresa: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 50, nullable: true })
   almacen_ref: string;
 

@@ -12,23 +12,23 @@ export class CuentaBancaria {
   @Column({ type: 'uuid' })
   id_empresa: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 50, nullable: true })
   numero_cuenta: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 255, nullable: true })
   etiqueta_cuenta: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 50, nullable: true })
   iban: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   id_moneda: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => Boolean, { nullable: true })
   @Column({ type: 'boolean', nullable: true })
   estado: boolean | null;
 }

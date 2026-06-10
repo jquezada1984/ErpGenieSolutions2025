@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { ObjectType, Field, Int, ID } from '@nestjs/graphql';
+import { ObjectType, Field, GraphQLISODateTime, ID } from '@nestjs/graphql';
 import { Empresa } from './empresa.entity';
 import { Perfil } from './perfil.entity';
 
@@ -31,11 +31,11 @@ export class Usuario {
   @Column({ length: 255 })
   password_hash: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ length: 100, nullable: true })
   nombre_completo?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ length: 100, nullable: true })
   email?: string;
 
@@ -43,11 +43,11 @@ export class Usuario {
   @Column({ default: true })
   estado: boolean;
 
-  @Field({ nullable: true })
+  @Field(() => GraphQLISODateTime, { nullable: true })
   @CreateDateColumn({ type: 'timestamp', nullable: true })
   created_at?: Date;
 
-  @Field({ nullable: true })
+  @Field(() => GraphQLISODateTime, { nullable: true })
   @UpdateDateColumn({ type: 'timestamp', nullable: true })
   updated_at?: Date;
 

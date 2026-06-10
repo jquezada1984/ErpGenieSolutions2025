@@ -28,7 +28,7 @@ export class FormaPagoCatalogo {
   @Column({ type: 'boolean', default: true })
   activo: boolean;
 
-  @Field({ name: 'descripcion' })
+  @Field(() => String, { name: 'descripcion' })
   get descripcion(): string {
     return this.etiqueta;
   }

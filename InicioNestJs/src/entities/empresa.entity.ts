@@ -24,15 +24,15 @@ export class Empresa {
   @Column({ type: 'varchar', length: 13, unique: true })
   ruc: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 255, nullable: true })
   direccion: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   telefono: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 128, unique: true, nullable: true })
   email: string;
 
@@ -49,31 +49,31 @@ export class Empresa {
   updated_at: Date;
 
   // Nuevos campos
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   id_moneda: string;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   id_pais: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   codigo_postal: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   poblacion: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   movil: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   fax: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 255, nullable: true })
   web: string;
 
@@ -84,7 +84,7 @@ export class Empresa {
   @Column({ type: 'bytea', nullable: true })
   logotipo_cuadrado: Buffer;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'text', nullable: true })
   nota: string;
 
@@ -92,7 +92,7 @@ export class Empresa {
   @Column({ type: 'boolean', default: true })
   sujeto_iva: boolean;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   id_provincia: string;
 

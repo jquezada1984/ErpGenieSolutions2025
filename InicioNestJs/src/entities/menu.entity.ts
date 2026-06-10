@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { ObjectType, Field, Int, ID } from '@nestjs/graphql';
+import { ObjectType, Field, GraphQLISODateTime, Int, ID } from '@nestjs/graphql';
 import { PerfilMenuPermiso } from './perfil-menu-permiso.entity';
 
 @ObjectType()
@@ -17,7 +17,7 @@ export class MenuSeccion {
   @Column({ default: 0 })
   orden: number;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ length: 100, nullable: true })
   icono?: string;
 
@@ -49,11 +49,11 @@ export class MenuItem {
   @Column({ length: 100 })
   etiqueta: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ length: 100, nullable: true })
   icono?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ length: 255, nullable: true })
   ruta?: string;
 
@@ -69,7 +69,7 @@ export class MenuItem {
   @Column({ default: false })
   muestra_badge: boolean;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ length: 20, nullable: true })
   badge_text?: string;
 
@@ -89,7 +89,7 @@ export class MenuItem {
   @Column({ nullable: true })
   updated_by?: string;
 
-  @Field({ nullable: true })
+  @Field(() => GraphQLISODateTime, { nullable: true })
   @Column({ type: 'timestamp', nullable: true })
   updated_at?: Date;
 

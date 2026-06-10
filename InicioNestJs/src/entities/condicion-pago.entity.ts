@@ -16,7 +16,7 @@ export class CondicionPago {
   @Column({ type: 'varchar', length: 100 })
   etiqueta: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 255, nullable: true })
   etiqueta_documento: string | null;
 
@@ -28,7 +28,7 @@ export class CondicionPago {
   @Column({ type: 'int', default: 0 })
   numero_dias: number;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, default: 'ninguno' })
   tipo_fin_mes: string;
 
@@ -45,7 +45,7 @@ export class CondicionPago {
   activo: boolean;
 
   /** Compatibilidad con front legacy */
-  @Field({ name: 'descripcion' })
+  @Field(() => String, { name: 'descripcion' })
   get descripcion(): string {
     return this.etiqueta;
   }

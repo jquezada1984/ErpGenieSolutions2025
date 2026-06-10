@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { ObjectType, Field, GraphQLISODateTime, ID } from '@nestjs/graphql';
 import { Empresa } from './empresa.entity';
 import { SocialNetwork } from './social-network.entity';
 
@@ -18,11 +18,11 @@ export class EmpresaRedSocial {
   @Column({ type: 'uuid' })
   id_red_social: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   identificador: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 255, nullable: true })
   url: string;
 
@@ -30,7 +30,7 @@ export class EmpresaRedSocial {
   @Column({ type: 'boolean', default: false })
   es_principal: boolean;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   created_by: string;
 
@@ -38,11 +38,11 @@ export class EmpresaRedSocial {
   @CreateDateColumn()
   created_at: Date;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   updated_by: string;
 
-  @Field({ nullable: true })
+  @Field(() => GraphQLISODateTime, { nullable: true })
   @UpdateDateColumn({ nullable: true })
   updated_at: Date;
 

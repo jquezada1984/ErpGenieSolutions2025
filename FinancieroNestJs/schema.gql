@@ -22,7 +22,7 @@ type CuentaBancaria {
   iban: String
   id_cuenta_bancaria: ID!
   id_empresa: String!
-  id_moneda: String
+  id_moneda: ID
   numero_cuenta: String
 }
 
@@ -37,14 +37,14 @@ type Factura {
   estado: String
   fecha_factura: String!
   fecha_vencimiento: String
-  id_asiento_contable: String
-  id_condicion_pago: String
-  id_cuenta_bancaria: String
+  id_asiento_contable: ID
+  id_condicion_pago: ID
+  id_cuenta_bancaria: ID
   id_empresa: String!
   id_factura: ID!
-  id_forma_pago: String
-  id_moneda: String
-  id_proyecto: String
+  id_forma_pago: ID
+  id_moneda: ID
+  id_proyecto: ID
   id_tercero: String!
   nota_privada: String
   nota_publica: String

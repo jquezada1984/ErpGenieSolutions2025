@@ -41,8 +41,17 @@ const getTargetService = (query, config) => {
   // Debe evaluarse antes que terceros/menus para evitar falsos positivos por nombres de campos.
   if (query && (
     query.includes('configuracionContabilidad') ||
-    query.includes('cuentaContable') ||
-    query.includes('cuentasContables') ||
+    query.includes('cuentasContablesPorPlan') ||
+    query.includes('periodosContables') ||
+    query.includes('periodoContable') ||
+    query.includes('diariosContables') ||
+    query.includes('diarioContable') ||
+    query.includes('modelosPlanesContables') ||
+    query.includes('modeloPlanContable') ||
+    query.includes('planesContablesPorModelo') ||
+    query.includes('planContableActivo') ||
+    query.includes('cuentasIndividualesLibroAuxiliar') ||
+    query.includes('cuentasContablesDefecto') ||
     query.includes('asientoContable') ||
     query.includes('libroMayor') ||
     query.includes('balanceGeneral') ||

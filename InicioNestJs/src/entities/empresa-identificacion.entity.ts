@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, ManyToOne, JoinColumn } from 'typeorm';
-import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { ObjectType, Field, Float, GraphQLISODateTime, ID, Int } from '@nestjs/graphql';
 import { Empresa } from './empresa.entity';
 import { TipoEntidadComercial } from './tipo-entidad-comercial.entity';
 
@@ -14,71 +14,71 @@ export class EmpresaIdentificacion {
   @Column({ type: 'uuid' })
   id_empresa: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 255, nullable: true })
   administradores: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 255, nullable: true })
   delegado_datos: string;
 
-  @Field({ nullable: true })
+  @Field(() => Float, { nullable: true })
   @Column({ type: 'decimal', precision: 14, scale: 2, nullable: true })
   capital: number;
 
-  @Field({ nullable: true })
+  @Field(() => Int, { nullable: true })
   @Column({ type: 'int', nullable: true })
   id_tipo_entidad: number;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'text', nullable: true })
   objeto_empresa: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 64, nullable: true })
   cif_intra: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   id_profesional1: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   id_profesional2: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   id_profesional3: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   id_profesional4: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   id_profesional5: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   id_profesional6: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   id_profesional7: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   id_profesional8: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   id_profesional9: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   id_profesional10: string;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   created_by: string;
 
@@ -86,11 +86,11 @@ export class EmpresaIdentificacion {
   @CreateDateColumn()
   created_at: Date;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   updated_by: string;
 
-  @Field({ nullable: true })
+  @Field(() => GraphQLISODateTime, { nullable: true })
   @UpdateDateColumn({ nullable: true })
   updated_at: Date;
 

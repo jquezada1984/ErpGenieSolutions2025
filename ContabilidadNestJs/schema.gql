@@ -71,22 +71,69 @@ type ConfiguracionContabilidad {
 }
 
 type CuentaContable {
-  activa: Boolean!
   codigo: String!
-  created_at: DateTime!
-  cuenta_padre_id: Int
+  codigo_padre: String
   descripcion: String
-  id: Int!
-  naturaleza: String!
+  estado: Boolean!
+  etiqueta_corta: String
+  id_cuenta_contable: ID!
+  id_cuenta_padre: ID
+  id_plan_contable: ID!
+  nivel: Int!
   nombre: String!
+  permite_movimientos: Boolean!
+  tipo_cuenta: String!
+}
+
+type CuentaDefectoConfigItem {
+  cuenta_codigo: String
+  cuenta_nombre: String
+  id_cuenta_contable: ID
+  id_cuenta_contable_defecto: ID
+  label: String!
+  seccion: String!
+  tipo_operacion: String!
+}
+
+type CuentaIndividualLibroAuxiliar {
+  codigo: String!
+  etiqueta: String!
+  id_origen: ID
   tipo: String!
-  updated_at: DateTime!
+}
+
+type CuentasContablesPaginadas {
+  items: [CuentaContable!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+type CuentasIndividualesPaginadas {
+  items: [CuentaIndividualLibroAuxiliar!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
 }
 
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
+
+type DiarioContable {
+  codigo: String!
+  descripcion: String
+  estado: Boolean!
+  etiqueta: String!
+  id_diario_contable: ID!
+  id_empresa: ID!
+  nombre: String!
+  tipo_diario: String!
+  tipo_diario_label: String!
+}
 
 type EstadoResultadosRow {
   resultado: Float
@@ -104,11 +151,53 @@ type LibroMayorRow {
   saldo_acum: Float!
 }
 
+type ModeloPlanContable {
+  codigo: String!
+  descripcion: String
+  estado: Boolean!
+  id_modelo_plan_contable: ID!
+  id_pais: ID
+  id_plan_plantilla: ID
+  nombre: String!
+  pais: Pais
+}
+
 type Mutation {
   crearAsientoContable(concepto: String!, empresaId: Int!, fecha: String!, numero: String!, usuarioId: Int): AsientoContable!
-  crearCuentaContable(codigo: String!, cuentaPadreId: Int, descripcion: String, naturaleza: String!, nombre: String!, tipo: String!): CuentaContable!
   publicarAsiento(id: Int!): AsientoContable!
   reversarAsiento(id: Int!, usuarioId: Int): AsientoContable!
+}
+
+type Pais {
+  codigo_iso: String!
+  icono: String
+  id_pais: ID!
+  nombre: String!
+}
+
+type PeriodoContable {
+  anio: Int!
+  estado: String!
+  etiqueta: String
+  fecha_cierre: DateTime
+  fecha_fin: String!
+  fecha_inicio: String!
+  id_empresa: ID!
+  id_periodo_contable: ID!
+  id_usuario_cierre: ID
+  mes: Int!
+  num_entradas: Int!
+  num_movimientos: Int!
+  ref: String!
+}
+
+type PlanContable {
+  descripcion: String
+  estado: Boolean!
+  id_empresa: ID!
+  id_modelo_plan_contable: ID
+  id_plan_contable: ID!
+  nombre: String!
 }
 
 type Query {
@@ -118,9 +207,18 @@ type Query {
   balanceComprobacion(empresaId: Int!, fechaDesde: String!, fechaHasta: String!): [BalanceComprobacionRow!]!
   balanceGeneralSaldos(empresaId: Int!, fechaCorte: String!): [BalanceGeneralSaldosRow!]!
   configuracionContabilidad(id_empresa: String!): ConfiguracionContabilidad!
-  cuentaContable(id: Int!): CuentaContable
-  cuentasContables: [CuentaContable!]!
-  cuentasContablesPorTipo(tipo: String!): [CuentaContable!]!
+  cuentaContable(id: String!): CuentaContable
+  cuentasContablesDefecto(id_empresa: String!): [CuentaDefectoConfigItem!]!
+  cuentasContablesPorPlan(busqueda: String, id_plan_contable: String!, limit: Int = 20, page: Int = 1): CuentasContablesPaginadas!
+  cuentasIndividualesLibroAuxiliar(busqueda: String, id_empresa: String!, limit: Int = 20, page: Int = 1, tipo: String): CuentasIndividualesPaginadas!
+  diarioContable(id: String!): DiarioContable
+  diariosContables(id_empresa: String!): [DiarioContable!]!
   estadoResultados(empresaId: Int!, fechaDesde: String!, fechaHasta: String!): [EstadoResultadosRow!]!
   libroMayor(cuentaId: Int!, empresaId: Int!, fechaDesde: String!, fechaHasta: String!): [LibroMayorRow!]!
+  modeloPlanContable(id: String!): ModeloPlanContable
+  modelosPlanesContables(id_pais: String): [ModeloPlanContable!]!
+  periodoContable(id: String!): PeriodoContable
+  periodosContables(id_empresa: String!): [PeriodoContable!]!
+  planContableActivo(id_empresa: String!): PlanContable
+  planesContablesPorModelo(id_modelo: String!): [PlanContable!]!
 }

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { ObjectType, Field, GraphQLISODateTime, ID } from '@nestjs/graphql';
 import { Empresa } from './empresa.entity';
 
 @ObjectType()
@@ -17,11 +17,11 @@ export class EmpresaHorarioApertura {
   @Column({ type: 'int' })
   dia: number;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 50, nullable: true })
   valor: string;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   created_by: string;
 
@@ -29,11 +29,11 @@ export class EmpresaHorarioApertura {
   @CreateDateColumn()
   created_at: Date;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   updated_by: string;
 
-  @Field({ nullable: true })
+  @Field(() => GraphQLISODateTime, { nullable: true })
   @UpdateDateColumn({ nullable: true })
   updated_at: Date;
 

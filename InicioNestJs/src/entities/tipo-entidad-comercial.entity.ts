@@ -12,7 +12,7 @@ export class TipoEntidadComercial {
   @Column({ type: 'varchar', length: 100, unique: true })
   nombre: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'text', nullable: true })
   descripcion: string;
 

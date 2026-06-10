@@ -17,7 +17,7 @@ export class Moneda {
   @Column({ type: 'varchar', length: 50, nullable: false })
   nombre: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 10, nullable: true })
   simbolo_unicode: string | null;
 

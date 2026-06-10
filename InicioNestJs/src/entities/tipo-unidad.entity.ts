@@ -8,7 +8,7 @@ export class TipoUnidad {
   @PrimaryGeneratedColumn('uuid')
   id_tipo_unidad: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 50, nullable: true })
   codigo: string;
 

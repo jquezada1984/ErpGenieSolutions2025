@@ -8,12 +8,105 @@ const http = axios.create({
   timeout: 30000,
 });
 
-async function actualizarConfiguracionContabilidad(body, req) {
-  const headers = await ctxHeaders(req, body || {});
-  const res = await http.put('/api/configuracion-contabilidad', body || {}, { headers });
+async function proxy(method, path, body, req) {
+  const headers = {
+    ...(await ctxHeaders(req, body || {})),
+    ...(req.headers.authorization && { Authorization: req.headers.authorization }),
+    'Content-Type': 'application/json',
+  };
+  const res = await http.request({ method, url: path, data: body, headers });
   return res.data;
+}
+
+async function actualizarConfiguracionContabilidad(body, req) {
+  return proxy('PUT', '/api/configuracion-contabilidad', body, req);
+}
+
+async function crearPeriodoContable(body, req) {
+  return proxy('POST', '/api/periodos-contables', body, req);
+}
+
+async function cerrarPeriodoContable(id, req) {
+  return proxy('PATCH', `/api/periodos-contables/${id}/cerrar`, {}, req);
+}
+
+async function inicializarDiariosContablesDefecto(req) {
+  return proxy('POST', '/api/diarios-contables/inicializar-defecto', {}, req);
+}
+
+async function crearDiarioContable(body, req) {
+  return proxy('POST', '/api/diarios-contables', body, req);
+}
+
+async function actualizarDiarioContable(id, body, req) {
+  return proxy('PUT', `/api/diarios-contables/${id}`, body, req);
+}
+
+async function patchActivoDiarioContable(id, activo, req) {
+  return proxy('PATCH', `/api/diarios-contables/${id}/activo`, { activo }, req);
+}
+
+async function eliminarDiarioContable(id, req) {
+  return proxy('DELETE', `/api/diarios-contables/${id}`, {}, req);
+}
+
+async function crearModeloPlanContable(body, req) {
+  return proxy('POST', '/api/modelos-planes-contables', body, req);
+}
+
+async function actualizarModeloPlanContable(id, body, req) {
+  return proxy('PUT', `/api/modelos-planes-contables/${id}`, body, req);
+}
+
+async function patchActivoModeloPlanContable(id, activo, req) {
+  return proxy('PATCH', `/api/modelos-planes-contables/${id}/activo`, { activo }, req);
+}
+
+async function eliminarModeloPlanContable(id, req) {
+  return proxy('DELETE', `/api/modelos-planes-contables/${id}`, {}, req);
+}
+
+async function crearCuentaContable(body, req) {
+  return proxy('POST', '/api/cuentas-contables', body, req);
+}
+
+async function actualizarCuentaContable(id, body, req) {
+  return proxy('PUT', `/api/cuentas-contables/${id}`, body, req);
+}
+
+async function patchActivoCuentaContable(id, activo, req) {
+  return proxy('PATCH', `/api/cuentas-contables/${id}/activo`, { activo }, req);
+}
+
+async function eliminarCuentaContable(id, req) {
+  return proxy('DELETE', `/api/cuentas-contables/${id}`, {}, req);
+}
+
+async function inicializarCuentasContablesDefecto(req) {
+  return proxy('POST', '/api/cuentas-contables-defecto/inicializar', {}, req);
+}
+
+async function guardarCuentasContablesDefecto(body, req) {
+  return proxy('PUT', '/api/cuentas-contables-defecto', body, req);
 }
 
 module.exports = {
   actualizarConfiguracionContabilidad,
+  crearPeriodoContable,
+  cerrarPeriodoContable,
+  inicializarDiariosContablesDefecto,
+  crearDiarioContable,
+  actualizarDiarioContable,
+  patchActivoDiarioContable,
+  eliminarDiarioContable,
+  crearModeloPlanContable,
+  actualizarModeloPlanContable,
+  patchActivoModeloPlanContable,
+  eliminarModeloPlanContable,
+  crearCuentaContable,
+  actualizarCuentaContable,
+  patchActivoCuentaContable,
+  eliminarCuentaContable,
+  inicializarCuentasContablesDefecto,
+  guardarCuentasContablesDefecto,
 };

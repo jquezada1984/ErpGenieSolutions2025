@@ -13,7 +13,7 @@ export class MenuSeccion {
   @Column({ length: 100 })
   nombre: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ length: 50, nullable: true })
   icono?: string;
 

@@ -5,13 +5,22 @@
 type Almacen {
   almacen_ref: String
   id_almacen: ID!
-  id_empresa: String
+  id_empresa: ID
   nombre: String!
 }
 
 type CondicionPago {
+  activo: Boolean!
+  codigo: String!
+  decalaje_dias: Int
   descripcion: String!
+  etiqueta: String!
+  etiqueta_documento: String
   id_condicion_pago: ID!
+  numero_dias: Int
+  orden: Int
+  porcentaje_deposito: Float
+  tipo_fin_mes: String
 }
 
 type CuentaContable {
@@ -59,9 +68,9 @@ type Empresa {
   fiscal_year_start_month: Float!
   horarios_apertura: [EmpresaHorarioApertura!]
   id_empresa: ID!
-  id_moneda: String
-  id_pais: String
-  id_provincia: String
+  id_moneda: ID
+  id_pais: ID
+  id_provincia: ID
   identificacion: EmpresaIdentificacion
   moneda: Moneda
   movil: String
@@ -88,13 +97,13 @@ type EmpresaBasicDto {
 
 type EmpresaHorarioApertura {
   created_at: DateTime!
-  created_by: String
+  created_by: ID
   dia: Float!
   empresa: Empresa
   id_empresa: String!
   id_horario: ID!
   updated_at: DateTime
-  updated_by: String
+  updated_by: ID
   valor: String
 }
 
@@ -103,7 +112,7 @@ type EmpresaIdentificacion {
   capital: Float
   cif_intra: String
   created_at: DateTime!
-  created_by: String
+  created_by: ID
   delegado_datos: String
   empresa: Empresa
   id_empresa: String!
@@ -118,11 +127,11 @@ type EmpresaIdentificacion {
   id_profesional8: String
   id_profesional9: String
   id_profesional10: String
-  id_tipo_entidad: Float
+  id_tipo_entidad: Int
   objeto_empresa: String
   tipo_entidad: TipoEntidadComercial
   updated_at: DateTime
-  updated_by: String
+  updated_by: ID
 }
 
 type EmpresaListDto {
@@ -137,7 +146,7 @@ type EmpresaListDto {
 
 type EmpresaRedSocial {
   created_at: DateTime!
-  created_by: String
+  created_by: ID
   empresa: Empresa
   es_principal: Boolean!
   id: ID!
@@ -146,13 +155,29 @@ type EmpresaRedSocial {
   identificador: String
   red_social: SocialNetwork
   updated_at: DateTime
-  updated_by: String
+  updated_by: ID
   url: String
 }
 
 type FormaPago {
+  activo: Boolean!
+  codigo: String!
   descripcion: String!
+  etiqueta: String!
   id_forma_pago: ID!
+  orden: Int
+  tipo_uso: String!
+}
+
+type FormatoPapel {
+  activo: Boolean!
+  alto: Float!
+  codigo: String!
+  etiqueta: String!
+  id_formato_papel: ID!
+  largo: Float!
+  orden: Int
+  unidad_medida: String!
 }
 
 type Impuesto {
@@ -213,10 +238,12 @@ type MenuSeccion {
 }
 
 type Moneda {
+  activo: Boolean!
   codigo: String!
   empresas: [Empresa!]
   id_moneda: ID!
   nombre: String!
+  simbolo_unicode: String
 }
 
 type Mutation {
@@ -341,19 +368,20 @@ type Provincia {
 
 type Query {
   almacenes: [Almacen!]!
-  condicionesPago: [CondicionPago!]!
+  condicionesPago(soloActivos: Boolean = true): [CondicionPago!]!
   cuentasContables: [CuentaContable!]!
   duracionUnidadesCatalogo: [DuracionUnidadCatalogo!]!
   empresa(id_empresa: ID!): Empresa
   empresas: [EmpresaListDto!]!
-  formasPago: [FormaPago!]!
+  formasPago(soloActivos: Boolean = true, tipoUso: String): [FormaPago!]!
+  formatosPapel(soloActivos: Boolean = true): [FormatoPapel!]!
   getUserProfile: LoginResponse
   impuestos: [Impuesto!]!
   item(id_item: ID!): MenuItem
   items: [MenuItem!]!
   itemsPorSeccion(id_seccion: ID!): [MenuItem!]!
   me: MeResponse
-  monedas: [Moneda!]!
+  monedas(soloActivos: Boolean = true): [Moneda!]!
   paises: [Pais!]!
   perfil(id_perfil: ID!): Perfil
   perfiles: [PerfilListDto!]!
@@ -376,7 +404,7 @@ type Query {
   sucursales: [SucursalListDto!]!
   sucursalesPorEmpresa(id_empresa: ID!): [SucursalListDto!]!
   test: String!
-  tiposEntidadComercial: [TipoEntidadComercial!]!
+  tiposEntidadComercial(soloActivos: Boolean = true): [TipoEntidadComercial!]!
   tiposItemCatalogo: [TipoItemCatalogo!]!
   tiposUnidad: [TipoUnidad!]!
   unidades(tipoCodigo: String): [Unidad!]!
@@ -418,6 +446,7 @@ type SucursalListDto {
 }
 
 type TipoEntidadComercial {
+  activo: Boolean!
   descripcion: String
   id_tipo_entidad: ID!
   nombre: String!

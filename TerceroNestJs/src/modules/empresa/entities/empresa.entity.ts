@@ -16,15 +16,15 @@ export class Empresa {
   @Column({ type: 'varchar', length: 13, unique: true })
   ruc: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 255, nullable: true })
   direccion?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   telefono?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 128, unique: true, nullable: true })
   email?: string;
 

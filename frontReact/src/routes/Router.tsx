@@ -57,6 +57,13 @@ const NuevoContacto = Loadable(lazy(() => import('../views/terceros/contactos/Nu
 const EditarContacto = Loadable(lazy(() => import('../views/terceros/contactos/EditarContacto')));
 const ContabilidadGeneral = Loadable(lazy(() => import('../views/contabilidad/ContabilidadGeneral')));
 const ContabilidadConfiguracion = Loadable(lazy(() => import('../views/contabilidad/ContabilidadConfiguracion')));
+const PeriodosContables = Loadable(lazy(() => import('../views/contabilidad/PeriodosContables')));
+const NuevoPeriodoContable = Loadable(lazy(() => import('../views/contabilidad/NuevoPeriodoContable')));
+const DiariosContables = Loadable(lazy(() => import('../views/contabilidad/DiariosContables')));
+const ModelosPlanesContables = Loadable(lazy(() => import('../views/contabilidad/ModelosPlanesContables')));
+const ListadoCuentasContables = Loadable(lazy(() => import('../views/contabilidad/ListadoCuentasContables')));
+const CuentasIndividuales = Loadable(lazy(() => import('../views/contabilidad/CuentasIndividuales')));
+const CuentasContablesDefecto = Loadable(lazy(() => import('../views/contabilidad/CuentasContablesDefecto')));
 const NuevaFacturaCliente = Loadable(lazy(() => import('../views/financiero/facturas-clientes/NuevaFacturaCliente')));
 const DiccionariosIndex = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/DiccionariosIndex')));
 const CondicionesPagoDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/CondicionesPagoDiccionario')));
@@ -144,6 +151,13 @@ const ThemeRoutes: RouteType[] = [
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
       { path: 'contabilidad', element: <ContabilidadGeneral /> },
       { path: 'contabilidad/configuracion/general', element: <ContabilidadConfiguracion /> },
+      { path: 'contabilidad/configuracion/periodo', element: <PeriodosContables /> },
+      { path: 'contabilidad/configuracion/periodo/nuevo', element: <NuevoPeriodoContable /> },
+      { path: 'contabilidad/configuracion/diarios', element: <DiariosContables /> },
+      { path: 'contabilidad/configuracion/modelos-planes', element: <ModelosPlanesContables /> },
+      { path: 'contabilidad/configuracion/plan-contable', element: <ListadoCuentasContables /> },
+      { path: 'contabilidad/configuracion/cuentas-individuales', element: <CuentasIndividuales /> },
+      { path: 'contabilidad/configuracion/cuentas-defecto', element: <CuentasContablesDefecto /> },
       { path: 'financiero/facturas-clientes/nueva', element: <NuevaFacturaCliente /> },
       { path: 'financiero/configuracion/diccionarios', element: <DiccionariosIndex /> },
       { path: 'financiero/configuracion/diccionarios/condiciones-pago', element: <CondicionesPagoDiccionario /> },

@@ -30,48 +30,48 @@ import {
     @JoinColumn({ name: 'id_empresa' })
     empresa: Empresa;
   
-    @Field({ nullable: true })
-    @Column({ type: 'uuid', nullable: true })
+  @Field(() => ID, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
     id_pais?: string;
   
     @ManyToOne(() => Pais, { nullable: true })
     @JoinColumn({ name: 'id_pais' })
     pais?: Pais;
   
-    @Field({ nullable: true })
-    @Column({ type: 'uuid', nullable: true })
+  @Field(() => ID, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
     id_condicion_pago?: string;
   
     @ManyToOne(() => CondicionPago, { nullable: true })
     @JoinColumn({ name: 'id_condicion_pago' })
     condicion_pago?: CondicionPago;
   
-    @Field({ nullable: true })
-    @Column({ type: 'uuid', nullable: true })
+  @Field(() => ID, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
     id_forma_pago?: string;
   
     @ManyToOne(() => FormaPago, { nullable: true })
     @JoinColumn({ name: 'id_forma_pago' })
     forma_pago?: FormaPago;
   
-    @Field({ nullable: true })
-    @Column({ type: 'uuid', nullable: true })
+  @Field(() => ID, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
     id_incoterm?: string;
   
     @ManyToOne(() => Incoterm, { nullable: true })
     @JoinColumn({ name: 'id_incoterm' })
     incoterm?: Incoterm;
   
-    @Field({ nullable: true })
-    @Column({ type: 'uuid', nullable: true })
+  @Field(() => ID, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
     id_tipo_tercero?: string;
   
     @ManyToOne(() => TipoTercero, { nullable: true })
     @JoinColumn({ name: 'id_tipo_tercero' })
     tipo_tercero?: TipoTercero;
   
-    @Field({ nullable: true })
-    @Column({ type: 'uuid', nullable: true })
+  @Field(() => ID, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
     sede_central?: string;
   
     @ManyToOne(() => Tercero, { nullable: true })
@@ -96,74 +96,74 @@ import {
     @Column({ type: 'varchar', length: 150 })
     nombre: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 150, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 150, nullable: true })
     apodo?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 20, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
     codigo_cliente?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 20, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
     codigo_proveedor?: string;
   
     @Field({ defaultValue: true })
     @Column({ type: 'boolean', default: true })
     activo: boolean;
   
-    @Field({ nullable: true })
+    @Field(() => Boolean, { nullable: true })
     @Column({ type: 'boolean', nullable: true })
     personal?: boolean;
   
     // ---- Contacto ----
-    @Field({ nullable: true })
-    @Column({ type: 'text', nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'text', nullable: true })
     direccion?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 100, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
     poblacion?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 20, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
     codigo_postal?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 100, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
     provincia?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 20, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
     telefono?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 20, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
     movil?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 20, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
     fax?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 150, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 150, nullable: true })
     correo?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 150, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 150, nullable: true })
     web?: string;
   
     // ---- Identificaciones ----
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 50, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
     id_profesional_1?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 50, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
     id_profesional_2?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'varchar', length: 50, nullable: true })
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
     cif_intra?: string;
   
     // ---- Comercial ----
@@ -171,23 +171,23 @@ import {
     @Column({ type: 'boolean', default: true })
     sujeto_iva: boolean;
   
-    @Field({ nullable: true })
+    @Field(() => String, { nullable: true })
     @Column({ type: 'numeric', precision: 18, scale: 2, nullable: true })
     capital?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'uuid', nullable: true })
+  @Field(() => ID, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
     asignado_a?: string;
   
     // logo BYTEA -> no lo exponemos en GQL, se recomienda URL pública
   
     // ---- Auditoría ----
-    @Field({ nullable: true })
-    @Column({ type: 'uuid', nullable: true })
+  @Field(() => ID, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
     created_by?: string;
   
-    @Field({ nullable: true })
-    @Column({ type: 'uuid', nullable: true })
+  @Field(() => ID, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
     updated_by?: string;
   
     @Field(() => GraphQLISODateTime, { nullable: true })

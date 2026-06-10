@@ -1,46 +1,58 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { ObjectType, Field, Int, GraphQLISODateTime } from '@nestjs/graphql';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
 
 @ObjectType()
 @Entity('cuenta_contable')
 export class CuentaContable {
-  @Field(() => Int)
-  @PrimaryGeneratedColumn()
-  id: number;
+  @Field(() => ID)
+  @PrimaryColumn('uuid')
+  id_cuenta_contable: string;
+
+  @Field(() => ID)
+  @Column({ type: 'uuid' })
+  id_plan_contable: string;
 
   @Field(() => String)
-  @Column({ length: 20, unique: true })
+  @Column({ type: 'varchar', length: 50 })
   codigo: string;
 
   @Field(() => String)
-  @Column({ length: 200 })
+  @Column({ type: 'varchar', length: 200 })
   nombre: string;
 
   @Field(() => String, { nullable: true })
-  @Column({ length: 500, nullable: true })
+  @Column({ type: 'text', nullable: true })
   descripcion: string | null;
 
-  @Field(() => String)
-  @Column({ type: 'enum', enum: ['ACTIVO', 'PASIVO', 'PATRIMONIO', 'INGRESO', 'GASTO'] })
-  tipo: string;
+  @Field(() => String, { nullable: true })
+  etiqueta_corta: string | null;
 
   @Field(() => String)
-  @Column({ type: 'enum', enum: ['DEUDORA', 'ACREEDORA'] })
-  naturaleza: string;
+  @Column({ type: 'varchar', length: 50 })
+  tipo_cuenta: string;
+
+  @Field(() => Int)
+  @Column({ type: 'int', default: 1 })
+  nivel: number;
+
+  @Field(() => ID, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  id_cuenta_padre: string | null;
+
+  @Field(() => String, { nullable: true })
+  codigo_padre: string | null;
 
   @Field(() => Boolean)
-  @Column({ default: true })
-  activa: boolean;
+  @Column({ type: 'boolean', default: true })
+  permite_movimientos: boolean;
 
-  @Field(() => Int, { nullable: true })
-  @Column({ nullable: true })
-  cuenta_padre_id: number | null;
+  @Field(() => Boolean)
+  @Column({ type: 'boolean', default: true })
+  estado: boolean;
 
-  @Field(() => GraphQLISODateTime)
   @CreateDateColumn()
   created_at: Date;
 
-  @Field(() => GraphQLISODateTime)
   @UpdateDateColumn()
   updated_at: Date;
 }

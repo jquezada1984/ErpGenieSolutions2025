@@ -12,11 +12,11 @@ export class Pais {
   @Column({ type: 'varchar', length: 100, unique: true })
   nombre: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'char', length: 2, nullable: true })
   codigo_iso2?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'char', length: 3, nullable: true })
   codigo_iso3?: string;
 }

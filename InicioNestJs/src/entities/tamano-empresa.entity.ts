@@ -16,7 +16,7 @@ export class TamanoEmpresa {
   @Column({ type: 'varchar', length: 50 })
   nombre: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 150, nullable: true })
   descripcion?: string;
 

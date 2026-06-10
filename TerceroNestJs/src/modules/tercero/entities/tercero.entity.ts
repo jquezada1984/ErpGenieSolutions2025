@@ -31,7 +31,7 @@ export class Tercero {
   @JoinColumn({ name: 'id_empresa' })
   empresa: Empresa;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   id_pais?: string;
 
@@ -39,7 +39,7 @@ export class Tercero {
   @JoinColumn({ name: 'id_pais' })
   pais?: Pais;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   id_condicion_pago?: string;
 
@@ -47,7 +47,7 @@ export class Tercero {
   @JoinColumn({ name: 'id_condicion_pago' })
   condicion_pago?: CondicionPago;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   id_forma_pago?: string;
 
@@ -55,11 +55,11 @@ export class Tercero {
   @JoinColumn({ name: 'id_forma_pago' })
   forma_pago?: FormaPago;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   id_tamano_empresa?: string;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   id_tipo_tercero?: string;
 
@@ -77,7 +77,7 @@ export class Tercero {
   @JoinColumn({ name: 'id_tipo_entidad' })
   tipoEntidadComercial?: TipoEntidadComercial;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   sede_central?: string;
 
@@ -103,15 +103,15 @@ export class Tercero {
   @Column({ type: 'varchar', length: 150 })
   nombre: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 150, nullable: true })
   apodo?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   codigo_cliente?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   codigo_proveedor?: string;
 
@@ -120,15 +120,15 @@ export class Tercero {
   estado: boolean;
 
   // ---- Contacto ----
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'text', nullable: true })
   direccion?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   poblacion?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   codigo_postal?: string;
 
@@ -136,36 +136,36 @@ export class Tercero {
   @Column({ type: 'uuid', nullable: true })
   id_provincia?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   telefono?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   movil?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   fax?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 150, nullable: true })
   correo?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 150, nullable: true })
   web?: string;
 
   // ---- Identificaciones ----
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 50, nullable: true })
   id_profesional_1?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 50, nullable: true })
   id_profesional_2?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 50, nullable: true })
   cif_intra?: string;
 
@@ -174,11 +174,11 @@ export class Tercero {
   @Column({ type: 'boolean', default: true })
   sujeto_iva: boolean;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'numeric', precision: 18, scale: 2, nullable: true })
   capital?: string;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   asignado_a?: string;
 
@@ -186,11 +186,11 @@ export class Tercero {
   logo?: string;
 
   // ---- Auditoría ----
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   created_by?: string;
 
-  @Field({ nullable: true })
+  @Field(() => ID, { nullable: true })
   @Column({ type: 'uuid', nullable: true })
   updated_by?: string;
 

@@ -13,7 +13,7 @@ export class Unidad {
   @Column({ type: 'uuid', nullable: false })
   id_tipo_unidad: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 50, nullable: true })
   codigo: string;
 
@@ -21,7 +21,7 @@ export class Unidad {
   @Column({ type: 'varchar', length: 150, nullable: false })
   nombre: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   abreviatura: string;
 

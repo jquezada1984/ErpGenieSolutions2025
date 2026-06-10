@@ -12,7 +12,7 @@ export class Incoterm {
   @Column({ type: 'varchar', length: 10, unique: true })
   codigo: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'varchar', length: 100, nullable: true })
   descripcion?: string;
 }

@@ -14,7 +14,7 @@ export class Perfil {
   @Column({ length: 50 })
   nombre: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @Column({ type: 'text', nullable: true })
   descripcion?: string;
 

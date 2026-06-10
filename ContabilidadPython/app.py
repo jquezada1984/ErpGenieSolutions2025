@@ -6,6 +6,11 @@ import os
 from config.config import Config
 from utils.db import db
 from api.configuracion_contabilidad_routes import configuracion_contabilidad_bp
+from api.periodo_contable_routes import periodo_contable_bp
+from api.diario_contable_routes import diario_contable_bp
+from api.modelo_plan_contable_routes import modelo_plan_contable_bp
+from api.cuenta_contable_routes import cuenta_contable_bp
+from api.cuenta_contable_defecto_routes import cuenta_contable_defecto_bp
 import models
 
 app = Flask(__name__)
@@ -25,6 +30,11 @@ jwt = JWTManager(app)
 
 # Blueprints
 app.register_blueprint(configuracion_contabilidad_bp, url_prefix='/api')
+app.register_blueprint(periodo_contable_bp, url_prefix='/api')
+app.register_blueprint(diario_contable_bp, url_prefix='/api')
+app.register_blueprint(modelo_plan_contable_bp, url_prefix='/api')
+app.register_blueprint(cuenta_contable_bp, url_prefix='/api')
+app.register_blueprint(cuenta_contable_defecto_bp, url_prefix='/api')
 
 @app.route('/health', methods=['GET'])
 def health():
