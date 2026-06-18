@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-// URL base del Gateway API
-const API_URL = `${import.meta.env.VITE_GATEWAY_URL}/api/sucursales`;
+const API_URL = `${import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002'}/api/sucursales`;
 
 // Configurar axios para el microservicio Python
 const apiClient = axios.create({

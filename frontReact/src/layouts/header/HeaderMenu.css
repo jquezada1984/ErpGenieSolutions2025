@@ -1,3 +1,18 @@
+.topbar-main-nav {
+  gap: 0.25rem;
+}
+
+.topbar-main-nav .main-menu-item {
+  min-width: 4.25rem;
+  padding: 0.25rem 0.35rem !important;
+}
+
+.topbar-main-nav .main-menu-item span {
+  max-width: 6.5rem;
+  white-space: normal;
+  word-break: break-word;
+}
+
 .main-menu-active {
   background: #fff !important;
   color: #1976d2 !important;
