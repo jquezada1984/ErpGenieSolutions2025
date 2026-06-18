@@ -1,0 +1,126 @@
+---
+description: Contexto del módulo Banco/Cajas (ERP Genie) — leer al decir "sigamos con el proyecto"
+alwaysApply: true
+---
+
+# Proyecto en curso: módulo Banco / Cajas
+
+## Cómo retomar
+
+Si el usuario dice **"sigamos con el proyecto"**, **"continuemos"** o similar, asume que se refiere a este trabajo. No pedir contexto desde cero salvo que falte información crítica pendiente (ver abajo).
+
+## Objetivo
+
+Crear un módulo **Banco–Cajas** inspirado en el módulo bancario/caja de **Dolibarr** (cuentas, movimientos, cajas, conciliación, etc., según se defina).
+
+## Estado actual (mayo 2026)
+
+- **Tablas en BD**: `banco`, `cuenta_bancaria`, `movimiento_bancario` (PostgreSQL, UUID). Esquemas documentados abajo.
+- **Código**: MVP cuentas + movimientos — servicios, gateway, front bajo `banco-cajas/`.
+- **Servicios**: `BancoCajaPython` + `BancoCajaNestJs` + gateway (patrón Terceros).
+- **MVP**: CRUD `banco` + `cuenta_bancaria` + movimientos (alta/listado/conciliado/anular; actualiza `saldo_actual`).
+- **UI**: sin etiquetas/categorías en v1; pestaña 3 = select `banco` + SWIFT readonly; pestaña 4 = select `id_tercero` (Terceros).
+- **Menú BD**: scripts en `MenuNestJs/migrations/menu-banco-cajas.sql` + `permisos-banco-cajas-para-perfil.sql` (ejecutar en Supabase/pgAdmin).
+- **Provincia por país**: implementado en `SelectProvincia` + `SeccionCuentaGeneral`.
+- **Patrón GLOBAL/EMPRESA**: `SeccionCuentaEmpresa` integrada en formularios nuevo/editar; terceros en pestaña Propietario usan `id_empresa` del formulario.
+- **Validación UI**: Yup + `onInvalid` (alerta resumen estilo Terceros) + `FormText`/`invalid` por campo; cambio automático de pestaña al primer error.
+- **Pendiente**: ejecutar en BD del entorno: `menu-banco-cajas.sql`, permisos, y **`BancoCajaPython/migrations/01_movimiento_bancario.sql`**; conciliación avanzada / vínculo contabilidad.
+- **Puertos Docker**: Python `3013`, Nest `3014`.
+- **Rutas UI**: `/banco-cajas/cuentas`, `/banco-cajas/cuentas/nuevo`, `/banco-cajas/bancos`, `/banco-cajas/cuentas/:id/movimientos`, `.../movimientos/nuevo`.
+
+### `tipo_cuenta` (igual que Dolibarr)
+
+| Código en BD (`varchar(20)`) | Etiqueta en UI (Dolibarr) |
+|------------------------------|---------------------------|
+| `ahorro` | Cuenta bancaria de ahorros |
+| `corriente` | Cuenta corriente, cheque o tarjeta de crédito |
+| `caja_efectivo` | Cuenta caja/efectivo |
+
+Select obligatorio en formulario; validar en Python (Marshmallow) y Yup en front.
+
+## Esquema documentado (contexto usuario)
+
+### Tabla `banco`
+
+| Columna | Tipo | Notas |
+|---------|------|--------|
+| `id_banco` | uuid PK | `gen_random_uuid()` |
+| `nombre` | varchar(150) | NOT NULL |
+| `codigo` | varchar(30) | |
+| `swift` | varchar(20) | |
+| `web` | varchar(200) | |
+| `estado` | boolean | NOT NULL, default `true` |
+| `created_by` | uuid | |
+| `updated_by` | uuid | |
+| `created_at` | timestamp | default `now()` |
+| `updated_at` | timestamp | default `now()` |
+
+### Tabla `cuenta_bancaria`
+
+| Columna | Tipo | Notas |
+|---------|------|--------|
+| `id_cuenta_bancaria` | uuid PK | `gen_random_uuid()` |
+| `id_empresa` | uuid | NOT NULL |
+| `id_banco` | uuid | NOT NULL → `banco` |
+| `numero_cuenta` | varchar(50) | NOT NULL |
+| `tipo_cuenta` | varchar(20) | NOT NULL |
+| `id_moneda` | uuid | NOT NULL |
+| `id_cuenta_contable` | uuid | opcional |
+| `saldo_inicial` | numeric(15,2) | default 0 |
+| `saldo_actual` | numeric(15,2) | default 0 |
+| `estado` | boolean | default `true` |
+| `created_at` | timestamp | default `now()` |
+| `updated_at` | timestamp | default `now()` |
+| `created_by` | uuid | |
+| `updated_by` | uuid | |
+| `id_tercero` | uuid | |
+| `referencia` | varchar(50) | |
+| `etiqueta_cuenta` | varchar(255) | |
+| `estado_cuenta` | varchar(20) | default `'abierta'` |
+| `id_pais` | uuid | |
+| `id_provincia` | uuid | |
+| `direccion_banco` | text | |
+| `web` | varchar(500) | |
+| `comentario` | text | |
+| `comentario_html` | text | |
+| `fecha_saldo_inicial` | date | esquema `public` |
+| `saldo_minimo_autorizado` | numeric(15,2) | default 0 |
+| `saldo_minimo_deseado` | numeric(15,2) | default 0 |
+| `iban` | varchar(50) | |
+| `bic_swift` | varchar(20) | |
+| `codigo_contable` | varchar(50) | |
+
+**FKs implícitas**: `id_empresa`, `id_banco`, `id_moneda`, `id_cuenta_contable`, `id_tercero`, `id_pais`, `id_provincia` (tablas maestras del ERP).
+
+### Tabla `movimiento_bancario`
+
+| Columna | Tipo | Notas |
+|---------|------|--------|
+| `id_movimiento_bancario` | uuid PK | `gen_random_uuid()` |
+| `id_cuenta_bancaria` | uuid | NOT NULL → `cuenta_bancaria` |
+| `id_empresa` | uuid | NOT NULL |
+| `fecha_operacion` | date | NOT NULL |
+| `fecha_valor` | date | opcional |
+| `importe` | numeric(15,2) | NOT NULL; **+ ingreso, − egreso** (Dolibarr) |
+| `concepto` | varchar(500) | |
+| `referencia` | varchar(100) | |
+| `id_tercero` | uuid | opcional |
+| `conciliado` | boolean | default `false` |
+| `estado` | boolean | default `true`; anular = `false` y revierte saldo |
+| `created_by` / `updated_by` | uuid | |
+| `created_at` / `updated_at` | timestamp | |
+
+**Reglas**: al crear movimiento, `saldo_actual += importe`; al anular (DELETE lógico), `saldo_actual -= importe`. No editar importe en v1 (solo metadatos y `conciliado`).
+
+## Stack del ERP (referencia)
+
+- Frontend: `http://localhost:3000` — React en `frontReact/`
+- API Gateway: `http://localhost:3002` — GraphQL en `/graphql`
+- Patrón habitual: microservicios Python (REST) + NestJS (GraphQL) por dominio, enrutados por gateway
+
+## Instrucciones para el agente
+
+1. Responder en **español**.
+2. Al retomar, **actualizar esta regla** con tablas, decisiones de arquitectura y checklist de avance.
+3. No ampliar alcance ni refactorizar módulos ajenos sin pedirlo.
+4. Cuando haya esquema de tablas, buscarlo en migraciones/SQL del repo antes de asumir nombres de columnas.

@@ -70,6 +70,14 @@ const Servicios = Loadable(lazy(() => import('../views/items/servicios/Servicios
 const NuevoServicio = Loadable(lazy(() => import('../views/items/servicios/NuevoServicio')));
 const EditarServicio = Loadable(lazy(() => import('../views/items/servicios/EditarServicio')));
 const Documentos = Loadable(lazy(() => import('../views/documentos/Documentos')));
+const CuentasBancarias = Loadable(lazy(() => import('../views/banco-cajas/CuentasBancarias')));
+const NuevoCuentaBancaria = Loadable(lazy(() => import('../views/banco-cajas/NuevoCuentaBancaria')));
+const EditarCuentaBancaria = Loadable(lazy(() => import('../views/banco-cajas/EditarCuentaBancaria')));
+const BancosCatalogo = Loadable(lazy(() => import('../views/banco-cajas/Bancos')));
+const MovimientosCuenta = Loadable(lazy(() => import('../views/banco-cajas/MovimientosCuenta')));
+const NuevoMovimientoBancario = Loadable(
+  lazy(() => import('../views/banco-cajas/NuevoMovimientoBancario')),
+);
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
@@ -136,6 +144,15 @@ const ThemeRoutes: RouteType[] = [
       { path: 'terceros/:id/contactos/nuevo', element: <NuevoContacto /> },
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
       { path: 'documentos', element: <Documentos /> },
+      { path: 'banco-cajas/cuentas', element: <CuentasBancarias /> },
+      { path: 'banco-cajas/cuentas/nuevo', element: <NuevoCuentaBancaria /> },
+      { path: 'banco-cajas/cuentas/editar/:id', element: <EditarCuentaBancaria /> },
+      { path: 'banco-cajas/bancos', element: <BancosCatalogo /> },
+      { path: 'banco-cajas/cuentas/:id/movimientos', element: <MovimientosCuenta /> },
+      {
+        path: 'banco-cajas/cuentas/:id/movimientos/nuevo',
+        element: <NuevoMovimientoBancario />,
+      },
 
     ],
   },

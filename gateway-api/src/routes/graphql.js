@@ -24,6 +24,17 @@ const getTargetService = (query, config) => {
     console.log('🔄 Redirigiendo mutación actualizarEstadoItem a ItemNestJs');
     return config.itemNestJsService;
   }
+
+  // Catálogos generales en InicioNestJs (países, provincias, monedas)
+  if (query && (
+    query.includes('provinciasByPais') ||
+    query.includes('provincias') ||
+    query.includes('paises') ||
+    query.includes('monedas')
+  )) {
+    console.log('🔄 Redirigiendo catálogo países/provincias/monedas a InicioNestJs');
+    return config.nestjsService;
+  }
   
   // Verificar si es una consulta de catálogos de terceros o contactos (TerceroNestJs)
   if (query && (
@@ -40,6 +51,19 @@ const getTargetService = (query, config) => {
     return config.terceroNestJsService;
   }
   
+  // Banco / Cajas (BancoCajaNestJs)
+  if (query && (
+    query.includes('bancos') ||
+    query.includes('banco(') ||
+    query.includes('cuentasBancarias') ||
+    query.includes('cuentaBancaria(') ||
+    query.includes('movimientosBancarios') ||
+    query.includes('movimientoBancario(')
+  )) {
+    console.log('🔄 Redirigiendo consulta banco-caja a BancoCajaNestJs');
+    return config.bancoCajaNestJsService;
+  }
+
   // Verificar si es una consulta de catálogos del módulo item (ItemNestJs)
   if (query && (
     query.includes('itemDetalleEdicion') ||
@@ -146,7 +170,9 @@ async function routes(fastify, options) {
         nestjsService: process.env.NESTJS_SERVICE_URL,
         menuService: process.env.MENU_SERVICE_URL,
         terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || 'http://tercero-nestjs-service:3001',
-        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011'
+        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
+        bancoCajaNestJsService:
+          process.env.BANCO_CAJA_NEST_GQL_URL || 'http://banco-caja-nestjs-service:3014',
       };
 
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);

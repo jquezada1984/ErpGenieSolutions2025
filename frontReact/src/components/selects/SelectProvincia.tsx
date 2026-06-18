@@ -53,6 +53,8 @@ const SelectProvincia: React.FC<SelectProvinciaProps> = ({
   }>(GET_PROVINCIAS_BY_PAIS, {
     variables: { idPais: id_pais ?? '' },
     skip: !useByPais,
+    fetchPolicy: 'network-only',
+    notifyOnNetworkStatusChange: true,
   });
 
   const provincias = useByPais
