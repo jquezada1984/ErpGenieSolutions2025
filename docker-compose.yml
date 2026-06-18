@@ -52,6 +52,7 @@ services:
       - PORT=3003
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
       - JWT_SECRET=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
     ports:
       - "3003:3003"
     networks:
@@ -123,8 +124,7 @@ services:
     volumes:
       - contabilidad_python_data:/app/data
 
-
-# =========================
+  # =========================
   # NUEVO: MediaServiceNestJs (Servicio de contenido multimedia)
   # =========================
   media-service:
@@ -143,7 +143,6 @@ services:
       - erp-network
     volumes:
       - media_uploads:/app/uploads
-
 
   # =========================
   # ContabilidadNestJs (GraphQL)
@@ -202,7 +201,7 @@ services:
     networks:
       - erp-network
 
-# =========================
+  # =========================
   # ItemNestJs (GraphQL - Lectura catálogos item)
   # =========================
   item-nestjs-service:
@@ -276,12 +275,6 @@ services:
     networks:
       - erp-network
 
-
-
-
-
-
-
   # Gateway API (Fastify)
   gateway-api:
     build:
@@ -295,38 +288,32 @@ services:
       - PYTHON_SERVICE_URL=http://python-service:5000
       - NESTJS_SERVICE_URL=http://nestjs-service:3001
       - MENU_SERVICE_URL=http://menu-service:3003
-      # ✅ Canales específicos Item (lectura catálogos = ItemNestJs; escritura = ItemPython)
       - MEDIA_SERVICE_BASE_URL=http://media-service:3010
 
-      # ✅ Canal ItemNestJs (base URL sin /graphql; el cliente añade /graphql)
+      # Canal ItemNestJs (base URL sin /graphql; el cliente añade /graphql)
       - ITEM_NEST_GQL_URL=http://item-nestjs-service:3011
-      # ✅ Canal específico ItemPython (escritura)
       - ITEM_PY_BASE_URL=http://item-python-service:3012
 
-      # ✅ Canales específicos Inventario
+      # Canales Inventario
       - INVENTARIO_PY_BASE_URL=http://inventario-python-service:3014
       - INVENTARIO_NEST_GQL_URL=http://inventario-nestjs-service:3013
 
-      # ✅ Canales específicos Tercero
+      # Canales Tercero
       - TERCERO_PY_BASE_URL=http://tercero-python-service:3004
       - TERCERO_PY_TIMEOUT=15000
-
-      # ✅ TerceroNestJs por GraphQL (lectura/presentación)
       - TERCERO_NEST_GQL_URL=http://tercero-nestjs-service:3001
 
-      # ✅ Canales específicos Contabilidad
+      # Canales Contabilidad
       - CONTABILIDAD_PY_BASE_URL=http://contabilidad-python-service:5002
       - CONTABILIDAD_NEST_GQL_URL=http://contabilidad-nestjs-service:3005
 
-      # ✅ Canales específicos Financiero
+      # Canales Financiero
       - FINANCIERO_PY_BASE_URL=http://financiero-python-service:5001
       - FINANCIERO_NEST_GQL_URL=http://financiero-nestjs-service:3007
 
-      # ✅ Canales específicos Media
-      - MEDIA_SERVICE_BASE_URL=http://media-service:3010
       # Gateway
       - GATEWAY_PORT=3002
-      - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3002,http://localhost:5173
       - LOG_LEVEL=info
     ports:
       - "3002:3002"
@@ -353,8 +340,10 @@ services:
         condition: service_started
       item-python-service:
         condition: service_started
-      - inventario-python-service
-      - inventario-nestjs-service
+      inventario-python-service:
+        condition: service_started
+      inventario-nestjs-service:
+        condition: service_started
     networks:
       - erp-network
 
@@ -380,5 +369,3 @@ volumes:
 networks:
   erp-network:
     driver: bridge
-
-  
