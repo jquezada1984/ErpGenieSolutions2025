@@ -28,6 +28,7 @@ import 'sweetalert2/dist/sweetalert2.min.css';
 import './Documentos.css';
 import apiClient, { getMediaByModule, deleteMedia, updateMedia } from '../../_apis_/media';
 import { getDirectorios, createDirectorio } from '../../_apis_/directorio';
+import { getEstadosArchivo } from '../../_apis_/estadoArchivo';
 import SelectEmpresa from '../../components/SelectEmpresa';
 import SearchableSelect from '../../components/SearchableSelect';
 import type { SearchableSelectOption } from '../../components/SearchableSelect';
@@ -79,6 +80,15 @@ interface DirectorioItem {
   tipo_directorio?: string | null;
   id_directorio_padre?: string | null;
   padre?: { id_directorio_documento?: string } | null;
+}
+
+interface EstadoArchivoItem {
+  id_estado_archivo: string;
+  id_empresa: string;
+  nombre: string;
+  codigo: string;
+  orden: number;
+  estado: boolean;
 }
 
 function esDirectorioManual(d: DirectorioItem): boolean {
@@ -139,6 +149,7 @@ const Documentos: React.FC = () => {
   const [modalEditar, setModalEditar] = useState(false);
   const [mediaEditando, setMediaEditando] = useState<MediaItem | null>(null);
   const [estadoArchivo, setEstadoArchivo] = useState('');
+  const [estadosArchivo, setEstadosArchivo] = useState<EstadoArchivoItem[]>([]);
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [uploadingArchivo, setUploadingArchivo] = useState(false);
   const [actualizandoPrincipalId, setActualizandoPrincipalId] = useState<string | null>(null);
@@ -371,6 +382,34 @@ const Documentos: React.FC = () => {
   useEffect(() => {
     loadDirectorios();
   }, [loadDirectorios]);
+
+  useEffect(() => {
+    if (!empresaActiva) {
+      setEstadosArchivo([]);
+      return;
+    }
+
+    const cargarEstados = async () => {
+      try {
+        const data = await getEstadosArchivo(empresaActiva);
+        setEstadosArchivo(data || []);
+      } catch (error) {
+        console.error('Error cargando estados archivo', error);
+      }
+    };
+
+    cargarEstados();
+  }, [empresaActiva]);
+
+  useEffect(() => {
+    if (!estadoArchivo || !estadosArchivo.length) return;
+
+    const existe = estadosArchivo.some((e) => e.codigo === estadoArchivo);
+
+    if (!existe) {
+      setEstadoArchivo('');
+    }
+  }, [estadoArchivo, estadosArchivo]);
 
   const handleCrearDirectorio = async () => {
     if (!nuevoNombre.trim()) return;
@@ -741,7 +780,8 @@ const Documentos: React.FC = () => {
                             options={opcionesModulo}
                             value={moduleIdSeleccionado || null}
                             onChange={(val) => {
-                              setModuleIdSeleccionado(val || '');
+                              const value = Array.isArray(val) ? val[0] || '' : val || '';
+                              setModuleIdSeleccionado(value);
                               resetCarpetas();
                             }}
                             isDisabled={!moduloSeleccionado || !empresaActiva}
@@ -1021,7 +1061,7 @@ const Documentos: React.FC = () => {
                                     }
                                     onClick={() => {
                                       setMediaEditando(doc);
-                                      setEstadoArchivo(doc.estado_archivo || 'ACTIVO');
+                                      setEstadoArchivo(doc.estado_archivo || '');
                                       setModalEditar(true);
                                     }}
                                   >
@@ -1196,18 +1236,23 @@ const Documentos: React.FC = () => {
         <ModalBody>
           <FormGroup>
             <Label>Estado del archivo</Label>
-            <Input
-              type="select"
-              value={estadoArchivo}
-              onChange={(e) => setEstadoArchivo(e.target.value)}
+            <select
+              value={estadoArchivo || ''}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setEstadoArchivo(e.target.value)
+              }
               disabled={guardandoEdicion}
+              className="form-select"
             >
-              <option value="ACTIVO">ACTIVO</option>
-              <option value="EN_PROCESO">EN PROCESO</option>
-              <option value="CANCELADO">CANCELADO</option>
-              <option value="ACEPTADO">ACEPTADO</option>
-              <option value="COMPLETADO">COMPLETADO</option>
-            </Input>
+              <option value="" disabled>
+                Seleccione un estado
+              </option>
+              {estadosArchivo.map((e) => (
+                <option key={e.id_estado_archivo} value={e.codigo}>
+                  {e.nombre}
+                </option>
+              ))}
+            </select>
           </FormGroup>
         </ModalBody>
         <ModalFooter>
@@ -1226,6 +1271,15 @@ const Documentos: React.FC = () => {
             disabled={guardandoEdicion}
             onClick={async () => {
               if (!mediaEditando) return;
+
+              if (!estadoArchivo) {
+                await Swal.fire({
+                  icon: 'warning',
+                  title: 'Estado requerido',
+                  text: 'Debe seleccionar un estado válido',
+                });
+                return;
+              }
 
               setGuardandoEdicion(true);
               try {

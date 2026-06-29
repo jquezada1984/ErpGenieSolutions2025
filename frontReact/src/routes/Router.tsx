@@ -52,6 +52,8 @@ const EditarClientePotencial = Loadable(lazy(() => import('../views/terceros/Edi
 const Proveedores = Loadable(lazy(() => import('../views/terceros/Proveedores')));
 const NuevoProveedor = Loadable(lazy(() => import('../views/terceros/NuevoProveedor')));
 const EditarProveedor = Loadable(lazy(() => import('../views/terceros/EditarProveedor')));
+const Socios = Loadable(lazy(() => import('../views/socios/Socios')));
+const SocioForm = Loadable(lazy(() => import('../views/socios/SocioForm')));
 const Contactos = Loadable(lazy(() => import('../views/terceros/contactos/Contactos')));
 const NuevoContacto = Loadable(lazy(() => import('../views/terceros/contactos/NuevoContacto')));
 const EditarContacto = Loadable(lazy(() => import('../views/terceros/contactos/EditarContacto')));
@@ -134,6 +136,9 @@ const ThemeRoutes: RouteType[] = [
       { path: 'proveedores', element: <Proveedores /> },
       { path: 'proveedores/nuevo', element: <NuevoProveedor /> },
       { path: 'proveedores/editar/:id', element: <EditarProveedor /> },
+      { path: 'socios', element: <Socios /> },
+      { path: 'socios/nuevo', element: <SocioForm /> },
+      { path: 'socios/:id/editar', element: <SocioForm /> },
       { path: 'terceros/:id/contactos', element: <Contactos /> },
       { path: 'terceros/:id/contactos/nuevo', element: <NuevoContacto /> },
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },

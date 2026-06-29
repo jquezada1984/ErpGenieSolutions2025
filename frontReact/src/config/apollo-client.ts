@@ -23,14 +23,23 @@ const menuHttpLink = createHttpLink({
 // Middleware para agregar token de autenticación
 const authLink = setContext((_, { headers }) => {
   const token = localStorage.getItem('accessToken');
-  
-  const authHeaders = {
-    ...headers,
-    authorization: token ? `Bearer ${token}` : "",
-  };
-  
+
+  let companyId = '';
+
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      companyId = payload.id_empresa || '';
+    } catch {}
+  }
+
   return {
-    headers: authHeaders,
+    headers: {
+      ...headers,
+      authorization: token ? `Bearer ${token}` : '',
+      // 🔥 SOLO poner si NO viene ya definido
+      'X-Company-Id': headers?.['X-Company-Id'] || companyId,
+    },
   };
 });
 

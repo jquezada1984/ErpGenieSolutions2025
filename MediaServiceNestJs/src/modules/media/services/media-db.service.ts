@@ -156,19 +156,6 @@ export class MediaDbService {
       const raw =
         typeof data.estado_archivo === 'string' ? data.estado_archivo.trim() : '';
       if (raw) {
-        const allowedEstados = [
-          'ACTIVO',
-          'INACTIVO',
-          'EN_PROCESO',
-          'CANCELADO',
-          'ACEPTADO',
-          'COMPLETADO',
-        ];
-        if (!allowedEstados.includes(raw)) {
-          throw new BadRequestException(
-            `estado_archivo debe ser uno de: ${allowedEstados.join(', ')}`,
-          );
-        }
         patch.estado_archivo = raw;
       }
     }

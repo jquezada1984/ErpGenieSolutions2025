@@ -41,6 +41,10 @@ const getTargetService = (query, config) => {
     query.includes('incoterms') ||
     query.includes('tiposTercero') ||
     query.includes('representantesPorEmpresa') ||
+    query.includes('rolesSocio') ||
+    query.includes('tercerosDisponiblesParaSocio') ||
+    query.includes('socios') ||
+    query.includes('socio(') ||
     query.includes('terceros') ||
     query.includes('tercero(') ||
     query.includes('clientes') ||
@@ -127,7 +131,11 @@ async function executeGraphQLQuery(query, variables, operationName, context, con
       variables,
       operationName
     }, {
-      headers: forwardGraphqlHeaders(context.request),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': context.request.headers.authorization || '',
+        'X-Company-Id': context.request.headers['x-company-id'] || '',
+      },
       timeout: parseInt(process.env.GRAPHQL_SERVICE_TIMEOUT || '10000')
     });
 
