@@ -52,6 +52,7 @@ services:
       - PORT=3003
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
       - JWT_SECRET=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
     ports:
       - "3003:3003"
     networks:
@@ -353,8 +354,10 @@ services:
         condition: service_started
       item-python-service:
         condition: service_started
-      - inventario-python-service
-      - inventario-nestjs-service
+      inventario-python-service:
+        condition: service_started
+      inventario-nestjs-service:
+        condition: service_started
     networks:
       - erp-network
 

@@ -17,14 +17,16 @@ export class CatalogosPagoResolver {
   @Query(() => [FormaPago], { name: 'formasPago' })
   async formasPago(): Promise<FormaPago[]> {
     return this.formaPagoRepository.find({
-      order: { descripcion: 'ASC' }
+      where: { activo: true },
+      order: { orden: 'ASC', etiqueta: 'ASC' },
     });
   }
 
   @Query(() => [CondicionPago], { name: 'condicionesPago' })
   async condicionesPago(): Promise<CondicionPago[]> {
     return this.condicionPagoRepository.find({
-      order: { descripcion: 'ASC' }
+      where: { activo: true },
+      order: { orden: 'ASC', etiqueta: 'ASC' },
     });
   }
 }

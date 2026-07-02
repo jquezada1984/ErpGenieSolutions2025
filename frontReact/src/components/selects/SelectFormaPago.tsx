@@ -6,7 +6,7 @@ export interface SelectFormaPagoProps {
   onChange: (value: string | null) => void;
   formas: {
     id_forma_pago: string;
-    descripcion: string;
+    etiqueta: string;
   }[];
   isLoading?: boolean;
   isDisabled?: boolean;
@@ -25,7 +25,7 @@ const SelectFormaPago: React.FC<SelectFormaPagoProps> = ({
 }) => {
   const options = formas.map((f) => ({
     value: f.id_forma_pago,
-    label: f.descripcion,
+    label: f.etiqueta,
   }));
 
   return (

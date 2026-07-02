@@ -55,7 +55,16 @@ module.exports = async function (fastify, opts) {
 
   fastify.get('/tercero/selects/condicion-pago', async (request, reply) => {
     try {
-      const data = await terceroNestJs.listarCondicionesPago(request);
+      const response = await nestjsService.executeQuery(`
+        query {
+          condicionesPago {
+            id_condicion_pago
+            codigo
+            etiqueta
+          }
+        }
+      `);
+      const data = response?.data?.condicionesPago ?? [];
       return reply.code(200).send(data);
     } catch (err) {
       const status = err.response?.status || 500;
@@ -66,7 +75,16 @@ module.exports = async function (fastify, opts) {
 
   fastify.get('/tercero/selects/forma-pago', async (request, reply) => {
     try {
-      const data = await terceroNestJs.listarFormasPago(request);
+      const response = await nestjsService.executeQuery(`
+        query {
+          formasPago {
+            id_forma_pago
+            codigo
+            etiqueta
+          }
+        }
+      `);
+      const data = response?.data?.formasPago ?? [];
       return reply.code(200).send(data);
     } catch (err) {
       const status = err.response?.status || 500;
