@@ -58,7 +58,9 @@ const getTargetService = (query, config) => {
     query.includes('cuentasBancarias') ||
     query.includes('cuentaBancaria(') ||
     query.includes('movimientosBancarios') ||
-    query.includes('movimientoBancario(')
+    query.includes('movimientoBancario(') ||
+    query.includes('transferenciasBancarias') ||
+    query.includes('transferenciaBancaria(')
   )) {
     console.log('🔄 Redirigiendo consulta banco-caja a BancoCajaNestJs');
     return config.bancoCajaNestJsService;

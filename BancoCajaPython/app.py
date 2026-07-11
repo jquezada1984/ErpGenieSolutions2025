@@ -9,6 +9,7 @@ from utils.db import db
 from api.banco_routes import banco_bp
 from api.cuenta_bancaria_routes import cuenta_bp
 from api.movimiento_bancario_routes import movimiento_bp
+from api.transferencia_bancaria_routes import transferencia_bp
 
 import models  # noqa: F401
 
@@ -29,6 +30,7 @@ JWTManager(app)
 app.register_blueprint(banco_bp, url_prefix='/api')
 app.register_blueprint(cuenta_bp, url_prefix='/api')
 app.register_blueprint(movimiento_bp, url_prefix='/api')
+app.register_blueprint(transferencia_bp, url_prefix='/api')
 
 
 @app.route('/health', methods=['GET'])

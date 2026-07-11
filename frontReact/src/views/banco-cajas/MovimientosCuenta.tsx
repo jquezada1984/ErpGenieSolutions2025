@@ -31,37 +31,37 @@ const GET_CUENTA = gql`
       tipo_cuenta
       saldo_actual
       estado
-      banco {
-        nombre
-      }
+      banco { nombre }
     }
   }
 `;
 
 const GET_MOVIMIENTOS = gql`
-  query GetMovimientos($id_cuenta: ID!, $id_empresa: ID) {
-    movimientosBancarios(id_cuenta_bancaria: $id_cuenta, id_empresa: $id_empresa) {
+  query GetMovimientos($id_cuenta: ID!, $id_empresa: ID, $soloActivos: Boolean) {
+    movimientosBancarios(id_cuenta_bancaria: $id_cuenta, id_empresa: $id_empresa, soloActivos: $soloActivos) {
       id_movimiento_bancario
-      fecha_operacion
-      fecha_valor
-      importe
+      fecha_movimiento
+      monto
       concepto
-      referencia
+      numero_documento
+      tipo_movimiento
+      id_transferencia_bancaria
+      id_movimiento_reversado
       conciliado
-      estado
     }
   }
 `;
 
 interface MovRow {
   id_movimiento_bancario: string;
-  fecha_operacion: string;
-  fecha_valor?: string;
-  importe: number;
+  fecha_movimiento: string;
+  monto: number;
   concepto?: string;
-  referencia?: string;
+  numero_documento?: string;
+  tipo_movimiento?: string;
+  id_transferencia_bancaria?: string;
+  id_movimiento_reversado?: string;
   conciliado: boolean;
-  estado: boolean;
 }
 
 const labelTipo = (v: string) => TIPOS_CUENTA.find((t) => t.value === v)?.label || v;
@@ -90,7 +90,7 @@ const MovimientosCuenta: React.FC = () => {
       setCuentaLabel(`${ref}${banco} (${labelTipo(c.tipo_cuenta)})`);
       setSaldo(Number(c.saldo_actual ?? 0));
       if (id) {
-        loadMov({ variables: { id_cuenta: id, id_empresa: c.id_empresa } });
+        loadMov({ variables: { id_cuenta: id, id_empresa: c.id_empresa, soloActivos: false } });
       }
     },
     onError: (e) => setError(e.message),
@@ -104,7 +104,7 @@ const MovimientosCuenta: React.FC = () => {
 
   const reload = useCallback(() => {
     if (!id || !idEmpresa) return;
-    loadMov({ variables: { id_cuenta: id, id_empresa: idEmpresa } });
+    loadMov({ variables: { id_cuenta: id, id_empresa: idEmpresa, soloActivos: false } });
     loadCuenta({ variables: { id } });
   }, [id, idEmpresa, loadMov, loadCuenta]);
 
@@ -113,6 +113,7 @@ const MovimientosCuenta: React.FC = () => {
   }, [id, loadCuenta, location.key]);
 
   const handleToggleConciliado = async (mov: MovRow) => {
+    if (mov.id_movimiento_reversado || mov.tipo_movimiento === 'reversa') return;
     try {
       setError(null);
       await actualizarMovimientoBancario(mov.id_movimiento_bancario, {
@@ -121,39 +122,45 @@ const MovimientosCuenta: React.FC = () => {
       });
       reload();
     } catch (err: unknown) {
-      const ax = err as { response?: { data?: { error?: string } }; message?: string };
-      setError(ax?.response?.data?.error || ax?.message || 'Error al actualizar');
+      const ax = err as { response?: { data?: { error?: string; _schema?: string[] } }; message?: string };
+      const d = ax?.response?.data;
+      setError(
+        (Array.isArray(d?._schema) ? d._schema[0] : null) ||
+          d?.error ||
+          ax?.message ||
+          'Error al actualizar',
+      );
     }
   };
 
   const handleAnular = async (mov: MovRow) => {
-    if (!window.confirm('¿Anular este movimiento? Se revertirá el importe en el saldo.')) return;
+    if (!window.confirm('¿Anular este movimiento? Se creará una línea de reversa.')) return;
     try {
       setError(null);
       await eliminarMovimientoBancario(mov.id_movimiento_bancario);
       reload();
     } catch (err: unknown) {
-      const ax = err as { response?: { data?: { error?: string } }; message?: string };
-      setError(ax?.response?.data?.error || ax?.message || 'Error al anular');
+      const ax = err as { response?: { data?: { error?: string; _schema?: string[] } }; message?: string };
+      const d = ax?.response?.data;
+      setError(
+        (Array.isArray(d?._schema) ? d._schema[0] : null) ||
+          d?.error ||
+          ax?.message ||
+          'Error al anular',
+      );
     }
   };
 
   const columns = [
     {
-      Header: 'Fecha op.',
-      accessor: 'fecha_operacion',
+      Header: 'Fecha',
+      accessor: 'fecha_movimiento',
       width: 110,
       Cell: ({ value }: { value: string }) => value?.slice(0, 10) || '—',
     },
     {
-      Header: 'Fecha valor',
-      accessor: 'fecha_valor',
-      width: 110,
-      Cell: ({ value }: { value?: string }) => (value ? value.slice(0, 10) : '—'),
-    },
-    {
-      Header: 'Importe',
-      accessor: 'importe',
+      Header: 'Monto',
+      accessor: 'monto',
       width: 120,
       Cell: ({ value }: { value: number }) => {
         const n = Number(value || 0);
@@ -161,8 +168,29 @@ const MovimientosCuenta: React.FC = () => {
         return <span className={`text-${color}`}>{n.toFixed(2)}</span>;
       },
     },
-    { Header: 'Concepto', accessor: 'concepto', filterable: true },
-    { Header: 'Ref.', accessor: 'referencia', filterable: true, width: 100 },
+    {
+      Header: 'Tipo',
+      accessor: 'tipo_movimiento',
+      width: 130,
+      Cell: ({ value }: { value?: string }) => value || '—',
+    },
+    {
+      Header: 'Concepto',
+      accessor: 'concepto',
+      filterable: true,
+      Cell: ({ original }: { original: MovRow }) => (
+        <span>
+          {original.concepto || '—'}
+          {original.id_transferencia_bancaria && (
+            <Badge color="info" className="ms-2">Transferencia</Badge>
+          )}
+          {original.id_movimiento_reversado && (
+            <Badge color="warning" className="ms-2">Reversa</Badge>
+          )}
+        </span>
+      ),
+    },
+    { Header: 'Nº doc.', accessor: 'numero_documento', filterable: true, width: 100 },
     {
       Header: 'Conciliado',
       accessor: 'conciliado',
@@ -179,26 +207,38 @@ const MovimientosCuenta: React.FC = () => {
       sortable: false,
       filterable: false,
       width: 140,
-      Cell: ({ original }: { original: MovRow }) => (
-        <div className="d-flex gap-1 justify-content-center">
-          <Button
-            size="sm"
-            color="outline-primary"
-            title={original.conciliado ? 'Marcar no conciliado' : 'Marcar conciliado'}
-            onClick={() => handleToggleConciliado(original)}
-          >
-            <i className="bi bi-check2-square" />
-          </Button>
-          <Button
-            size="sm"
-            color="outline-danger"
-            title="Anular movimiento"
-            onClick={() => handleAnular(original)}
-          >
-            <i className="bi bi-x-circle" />
-          </Button>
-        </div>
-      ),
+      Cell: ({ original }: { original: MovRow }) => {
+        const esReversa = !!original.id_movimiento_reversado;
+        const esTransferencia = !!original.id_transferencia_bancaria;
+        return (
+          <div className="d-flex gap-1 justify-content-center">
+            <Button
+              size="sm"
+              color="outline-primary"
+              title={original.conciliado ? 'Marcar no conciliado' : 'Marcar conciliado'}
+              disabled={esReversa}
+              onClick={() => handleToggleConciliado(original)}
+            >
+              <i className="bi bi-check2-square" />
+            </Button>
+            <Button
+              size="sm"
+              color="outline-danger"
+              title={
+                esTransferencia
+                  ? 'Anule la transferencia desde el listado de transferencias'
+                  : esReversa
+                    ? 'Línea de reversa'
+                    : 'Anular movimiento (reversa)'
+              }
+              disabled={esTransferencia || esReversa}
+              onClick={() => handleAnular(original)}
+            >
+              <i className="bi bi-x-circle" />
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 

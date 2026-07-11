@@ -104,3 +104,13 @@ export const eliminarMovimientoBancario = (id) =>
 
   apiClient.delete(`/api/movimiento-bancario/${id}`).then((r) => r.data);
 
+
+
+export const crearTransferenciaBancaria = (body) =>
+
+  apiClient.post('/api/transferencia-bancaria', body).then((r) => r.data);
+
+export const eliminarTransferenciaBancaria = (id) =>
+
+  apiClient.delete(`/api/transferencia-bancaria/${id}`).then((r) => r.data);
+

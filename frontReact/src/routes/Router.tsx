@@ -78,6 +78,10 @@ const MovimientosCuenta = Loadable(lazy(() => import('../views/banco-cajas/Movim
 const NuevoMovimientoBancario = Loadable(
   lazy(() => import('../views/banco-cajas/NuevoMovimientoBancario')),
 );
+const Transferencias = Loadable(lazy(() => import('../views/banco-cajas/Transferencias')));
+const NuevaTransferencia = Loadable(
+  lazy(() => import('../views/banco-cajas/NuevaTransferencia')),
+);
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
@@ -153,6 +157,8 @@ const ThemeRoutes: RouteType[] = [
         path: 'banco-cajas/cuentas/:id/movimientos/nuevo',
         element: <NuevoMovimientoBancario />,
       },
+      { path: 'banco-cajas/transferencias', element: <Transferencias /> },
+      { path: 'banco-cajas/transferencias/nuevo', element: <NuevaTransferencia /> },
 
     ],
   },

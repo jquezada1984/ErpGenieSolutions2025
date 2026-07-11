@@ -1,15 +1,16 @@
+from datetime import date
 from decimal import Decimal
 from typing import Any, Dict, Optional
+
+from sqlalchemy.sql import func
 
 from utils.db import db
 from models.cuenta_bancaria import CuentaBancaria
 from models.movimiento_bancario import MovimientoBancario
-
-
-def _uuid_str(value) -> Optional[str]:
-    if value is None:
-        return None
-    return str(value)
+from repositories.movimiento_helpers import (
+    crear_linea_movimiento,
+    movimiento_fue_reversado,
+)
 
 
 def create_movimiento_bancario(
@@ -28,26 +29,26 @@ def create_movimiento_bancario(
     if not cuenta:
         raise ValueError('Cuenta bancaria no encontrada o inactiva')
 
-    importe = Decimal(str(payload['importe']))
-    if importe == 0:
-        raise ValueError('El importe no puede ser cero')
+    monto = Decimal(str(payload['monto']))
+    if monto == 0:
+        raise ValueError('El monto no puede ser cero')
 
-    mov = MovimientoBancario(
-        id_cuenta_bancaria=str(payload['id_cuenta_bancaria']),
+    tipo = payload.get('tipo_movimiento')
+    if not tipo:
+        tipo = 'ingreso' if monto > 0 else 'egreso'
+
+    mov = crear_linea_movimiento(
+        cuenta=cuenta,
         id_empresa=cuenta.id_empresa,
-        fecha_operacion=payload['fecha_operacion'],
-        fecha_valor=payload.get('fecha_valor'),
-        importe=importe,
+        fecha_movimiento=payload['fecha_movimiento'],
+        monto=monto,
+        tipo_movimiento=tipo,
         concepto=(payload.get('concepto') or '').strip() or None,
-        referencia=(payload.get('referencia') or '').strip() or None,
-        id_tercero=_uuid_str(payload.get('id_tercero')),
-        conciliado=bool(payload.get('conciliado', False)),
-        created_by=user_id,
-        updated_by=user_id,
+        numero_documento=(payload.get('numero_documento') or '').strip() or None,
     )
-    cuenta.saldo_actual = Decimal(str(cuenta.saldo_actual or 0)) + importe
+    if payload.get('conciliado'):
+        mov.conciliado = True
     cuenta.updated_by = user_id
-    db.session.add(mov)
     db.session.commit()
     return mov
 
@@ -59,26 +60,24 @@ def update_movimiento_bancario(
     user_id: Optional[str],
     scope_acceso: str = 'EMPRESA',
 ) -> Optional[MovimientoBancario]:
-    q = MovimientoBancario.query.filter_by(
-        id_movimiento_bancario=id_movimiento,
-        estado=True,
-    )
+    q = MovimientoBancario.query.filter_by(id_movimiento_bancario=id_movimiento)
     if scope_acceso != 'GLOBAL':
         q = q.filter_by(id_empresa=id_empresa)
     mov = q.first()
     if not mov:
         return None
+    if mov.id_movimiento_reversado:
+        raise ValueError('No se puede editar una línea de reversa')
+    if movimiento_fue_reversado(mov.id_movimiento_bancario):
+        raise ValueError('No se puede editar un movimiento ya reversado')
 
-    for key in ('fecha_operacion', 'fecha_valor', 'concepto', 'referencia', 'conciliado'):
+    for key in ('fecha_movimiento', 'concepto', 'numero_documento', 'conciliado'):
         if key in payload:
             val = payload[key]
-            if key in ('concepto', 'referencia') and val is not None:
+            if key in ('concepto', 'numero_documento') and val is not None:
                 val = str(val).strip() or None
             setattr(mov, key, val)
-    if 'id_tercero' in payload:
-        mov.id_tercero = _uuid_str(payload['id_tercero'])
 
-    mov.updated_by = user_id
     db.session.commit()
     return mov
 
@@ -88,25 +87,41 @@ def delete_movimiento_bancario(
     id_empresa: str,
     user_id: Optional[str],
     scope_acceso: str = 'EMPRESA',
+    fecha_reversa: Optional[date] = None,
 ) -> bool:
-    q = MovimientoBancario.query.filter_by(
-        id_movimiento_bancario=id_movimiento,
-        estado=True,
-    )
+    q = MovimientoBancario.query.filter_by(id_movimiento_bancario=id_movimiento)
     if scope_acceso != 'GLOBAL':
         q = q.filter_by(id_empresa=id_empresa)
     mov = q.first()
     if not mov:
         return False
 
+    if mov.id_transferencia_bancaria:
+        raise ValueError(
+            'Este movimiento pertenece a una transferencia; anule la transferencia asociada',
+        )
+    if mov.id_movimiento_reversado:
+        raise ValueError('Esta línea es una reversa y no se anula individualmente')
+    if movimiento_fue_reversado(mov.id_movimiento_bancario):
+        raise ValueError('El movimiento ya fue reversado')
+
     cuenta = CuentaBancaria.query.filter_by(
         id_cuenta_bancaria=mov.id_cuenta_bancaria,
     ).first()
-    if cuenta:
-        cuenta.saldo_actual = Decimal(str(cuenta.saldo_actual or 0)) - Decimal(str(mov.importe))
-        cuenta.updated_by = user_id
+    if not cuenta:
+        raise ValueError('Cuenta bancaria no encontrada')
 
-    mov.estado = False
-    mov.updated_by = user_id
+    fecha_rev = fecha_reversa or date.today()
+    crear_linea_movimiento(
+        cuenta=cuenta,
+        id_empresa=mov.id_empresa,
+        fecha_movimiento=fecha_rev,
+        monto=-Decimal(str(mov.monto)),
+        tipo_movimiento='reversa',
+        concepto=f'Reversa: {mov.concepto or ""}'.strip() or 'Reversa de movimiento',
+        numero_documento=mov.numero_documento,
+        id_movimiento_reversado=mov.id_movimiento_bancario,
+    )
+    cuenta.updated_by = user_id
     db.session.commit()
     return True

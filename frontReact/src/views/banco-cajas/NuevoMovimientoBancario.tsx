@@ -26,10 +26,9 @@ const NuevoMovimientoBancario: React.FC = () => {
 
   const [tipo, setTipo] = useState<'ingreso' | 'egreso'>('ingreso');
   const [monto, setMonto] = useState('');
-  const [fechaOperacion, setFechaOperacion] = useState(today());
-  const [fechaValor, setFechaValor] = useState('');
+  const [fechaMovimiento, setFechaMovimiento] = useState(today());
   const [concepto, setConcepto] = useState('');
-  const [referencia, setReferencia] = useState('');
+  const [numeroDocumento, setNumeroDocumento] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [errMonto, setErrMonto] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -37,34 +36,35 @@ const NuevoMovimientoBancario: React.FC = () => {
   const save = async () => {
     const m = parseFloat(monto.replace(',', '.'));
     if (!monto.trim() || Number.isNaN(m) || m <= 0) {
-      setErrMonto('Indique un importe mayor que cero');
+      setErrMonto('Indique un monto mayor que cero');
       setError('Revise el formulario');
       return;
     }
     setErrMonto(null);
-    const importe = tipo === 'ingreso' ? m : -m;
+    const montoSigned = tipo === 'ingreso' ? m : -m;
     setSaving(true);
     setError(null);
     try {
       const body: Record<string, unknown> = {
         id_cuenta_bancaria: id,
-        fecha_operacion: fechaOperacion,
-        importe,
+        fecha_movimiento: fechaMovimiento,
+        monto: montoSigned,
+        tipo_movimiento: tipo,
         concepto: concepto.trim() || undefined,
-        referencia: referencia.trim() || undefined,
+        numero_documento: numeroDocumento.trim() || undefined,
       };
-      if (fechaValor) body.fecha_valor = fechaValor;
       if (idEmpresa) body.id_empresa = idEmpresa;
       await crearMovimientoBancario(body);
       navigate(`/banco-cajas/cuentas/${id}/movimientos`);
     } catch (err: unknown) {
       const ax = err as {
-        response?: { data?: { error?: string; importe?: string[] } };
+        response?: { data?: { error?: string; monto?: string[]; _schema?: string[] } };
         message?: string;
       };
       const d = ax?.response?.data;
       setError(
-        (Array.isArray(d?.importe) ? d.importe[0] : null) ||
+        (Array.isArray(d?._schema) ? d._schema[0] : null) ||
+          (Array.isArray(d?.monto) ? d.monto[0] : null) ||
           d?.error ||
           ax?.message ||
           'Error al guardar',
@@ -100,7 +100,7 @@ const NuevoMovimientoBancario: React.FC = () => {
               </FormGroup>
 
               <FormGroup>
-                <Label>Importe *</Label>
+                <Label>Monto *</Label>
                 <Input
                   type="number"
                   min="0.01"
@@ -116,20 +116,11 @@ const NuevoMovimientoBancario: React.FC = () => {
               </FormGroup>
 
               <FormGroup>
-                <Label>Fecha operación *</Label>
+                <Label>Fecha movimiento *</Label>
                 <Input
                   type="date"
-                  value={fechaOperacion}
-                  onChange={(e) => setFechaOperacion(e.target.value)}
-                />
-              </FormGroup>
-
-              <FormGroup>
-                <Label>Fecha valor</Label>
-                <Input
-                  type="date"
-                  value={fechaValor}
-                  onChange={(e) => setFechaValor(e.target.value)}
+                  value={fechaMovimiento}
+                  onChange={(e) => setFechaMovimiento(e.target.value)}
                 />
               </FormGroup>
 
@@ -144,8 +135,8 @@ const NuevoMovimientoBancario: React.FC = () => {
               </FormGroup>
 
               <FormGroup>
-                <Label>Referencia</Label>
-                <Input value={referencia} onChange={(e) => setReferencia(e.target.value)} />
+                <Label>Nº documento</Label>
+                <Input value={numeroDocumento} onChange={(e) => setNumeroDocumento(e.target.value)} />
               </FormGroup>
 
               <div className="d-flex gap-2 mt-3">

@@ -134,26 +134,28 @@ async function obtenerCuentaBancaria(id_cuenta_bancaria, req) {
 
 async function listarMovimientosBancarios(req, id_cuenta_bancaria, id_empresa) {
   const query = `
-    query($id_cuenta_bancaria: ID!, $id_empresa: ID) {
-      movimientosBancarios(id_cuenta_bancaria: $id_cuenta_bancaria, id_empresa: $id_empresa) {
+    query($id_cuenta_bancaria: ID!, $id_empresa: ID, $soloActivos: Boolean) {
+      movimientosBancarios(id_cuenta_bancaria: $id_cuenta_bancaria, id_empresa: $id_empresa, soloActivos: $soloActivos) {
         id_movimiento_bancario
         id_cuenta_bancaria
         id_empresa
-        fecha_operacion
-        fecha_valor
-        importe
+        fecha_movimiento
+        numero_documento
         concepto
-        referencia
-        id_tercero
+        tipo_movimiento
+        monto
+        saldo_anterior
+        saldo_nuevo
+        id_transferencia_bancaria
+        id_movimiento_reversado
         conciliado
-        estado
         created_at
       }
     }
   `;
   const data = await gqlRequest(
     query,
-    { id_cuenta_bancaria, id_empresa: id_empresa || null },
+    { id_cuenta_bancaria, id_empresa: id_empresa || null, soloActivos: false },
     req,
   );
   return data.movimientosBancarios || [];
@@ -166,19 +168,94 @@ async function obtenerMovimientoBancario(id_movimiento_bancario, req) {
         id_movimiento_bancario
         id_cuenta_bancaria
         id_empresa
-        fecha_operacion
-        fecha_valor
-        importe
+        fecha_movimiento
+        numero_documento
         concepto
-        referencia
-        id_tercero
+        tipo_movimiento
+        monto
+        id_transferencia_bancaria
+        id_movimiento_reversado
         conciliado
-        estado
       }
     }
   `;
   const data = await gqlRequest(query, { id: id_movimiento_bancario }, req);
   return data.movimientoBancario;
+}
+
+async function listarTransferenciasBancarias(req, id_empresa) {
+  const query = `
+    query($id_empresa: ID, $soloActivos: Boolean) {
+      transferenciasBancarias(id_empresa: $id_empresa, soloActivos: $soloActivos) {
+        id_transferencia_bancaria
+        id_empresa
+        id_cuenta_origen
+        id_cuenta_destino
+        monto
+        fecha_movimiento
+        numero_documento
+        concepto
+        tipo_movimiento
+        estado
+        created_at
+        cuentaOrigen {
+          id_cuenta_bancaria
+          referencia
+          etiqueta_cuenta
+          numero_cuenta
+          banco { nombre }
+        }
+        cuentaDestino {
+          id_cuenta_bancaria
+          referencia
+          etiqueta_cuenta
+          numero_cuenta
+          banco { nombre }
+        }
+      }
+    }
+  `;
+  const data = await gqlRequest(
+    query,
+    { id_empresa: id_empresa || null, soloActivos: false },
+    req,
+  );
+  return data.transferenciasBancarias || [];
+}
+
+async function obtenerTransferenciaBancaria(id_transferencia_bancaria, req) {
+  const query = `
+    query($id: ID!) {
+      transferenciaBancaria(id_transferencia_bancaria: $id) {
+        id_transferencia_bancaria
+        id_empresa
+        id_cuenta_origen
+        id_cuenta_destino
+        monto
+        fecha_movimiento
+        numero_documento
+        concepto
+        tipo_movimiento
+        estado
+        cuentaOrigen {
+          id_cuenta_bancaria
+          referencia
+          etiqueta_cuenta
+          numero_cuenta
+          banco { nombre }
+        }
+        cuentaDestino {
+          id_cuenta_bancaria
+          referencia
+          etiqueta_cuenta
+          numero_cuenta
+          banco { nombre }
+        }
+      }
+    }
+  `;
+  const data = await gqlRequest(query, { id: id_transferencia_bancaria }, req);
+  return data.transferenciaBancaria;
 }
 
 module.exports = {
@@ -188,4 +265,6 @@ module.exports = {
   obtenerCuentaBancaria,
   listarMovimientosBancarios,
   obtenerMovimientoBancario,
+  listarTransferenciasBancarias,
+  obtenerTransferenciaBancaria,
 };

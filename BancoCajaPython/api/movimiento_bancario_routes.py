@@ -71,5 +71,7 @@ def eliminar_movimiento(id_movimiento):
         if not ok:
             return jsonify({'error': 'Movimiento no encontrado'}), 404
         return jsonify({'message': 'Movimiento anulado'}), 200
+    except ValidationError as ve:
+        return jsonify(ve.messages), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500

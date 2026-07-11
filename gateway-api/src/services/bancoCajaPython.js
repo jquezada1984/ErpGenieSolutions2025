@@ -121,6 +121,20 @@ async function eliminarMovimientoBancario(id, req) {
   return res.data;
 }
 
+async function crearTransferenciaBancaria(body, req) {
+  const res = await http.post('/api/transferencia-bancaria', body, {
+    headers: await ctxHeaders(req, body),
+  });
+  return res.data;
+}
+
+async function eliminarTransferenciaBancaria(id, req) {
+  const res = await http.delete(`/api/transferencia-bancaria/${id}`, {
+    headers: await ctxHeaders(req, {}),
+  });
+  return res.data;
+}
+
 module.exports = {
   crearBanco,
   actualizarBanco,
@@ -131,4 +145,6 @@ module.exports = {
   crearMovimientoBancario,
   actualizarMovimientoBancario,
   eliminarMovimientoBancario,
+  crearTransferenciaBancaria,
+  eliminarTransferenciaBancaria,
 };

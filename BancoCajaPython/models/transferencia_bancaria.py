@@ -12,13 +12,13 @@ from models.pg_uuid import PGUUID
 
 
 
-class MovimientoBancario(db.Model):
+class TransferenciaBancaria(db.Model):
 
-    __tablename__ = 'movimiento_bancario'
+    __tablename__ = 'transferencia_bancaria'
 
 
 
-    id_movimiento_bancario = db.Column(
+    id_transferencia_bancaria = db.Column(
 
         PGUUID,
 
@@ -30,7 +30,13 @@ class MovimientoBancario(db.Model):
 
     id_empresa = db.Column(PGUUID, nullable=False)
 
-    id_cuenta_bancaria = db.Column(
+    id_cuenta_origen = db.Column(
+
+        PGUUID, db.ForeignKey('cuenta_bancaria.id_cuenta_bancaria'), nullable=False,
+
+    )
+
+    id_cuenta_destino = db.Column(
 
         PGUUID, db.ForeignKey('cuenta_bancaria.id_cuenta_bancaria'), nullable=False,
 
@@ -42,27 +48,19 @@ class MovimientoBancario(db.Model):
 
     concepto = db.Column(db.Text)
 
-    tipo_movimiento = db.Column(db.String(30))
+    tipo_movimiento = db.Column(db.String(30), nullable=False, default='transferencia_bancaria')
 
     monto = db.Column(db.Numeric(15, 2), nullable=False)
 
-    saldo_anterior = db.Column(db.Numeric(15, 2))
-
-    saldo_nuevo = db.Column(db.Numeric(15, 2))
-
-    conciliado = db.Column(db.Boolean, default=False, nullable=False)
-
-    id_conciliacion_bancaria = db.Column(PGUUID)
+    estado = db.Column(db.Boolean, default=True, nullable=False)
 
     id_asiento_contable = db.Column(PGUUID)
 
-    id_transferencia_bancaria = db.Column(
+    created_by = db.Column(PGUUID)
 
-        PGUUID, db.ForeignKey('transferencia_bancaria.id_transferencia_bancaria'),
-
-    )
-
-    id_movimiento_reversado = db.Column(PGUUID)
+    updated_by = db.Column(PGUUID)
 
     created_at = db.Column(db.DateTime, server_default=func.now())
+
+    updated_at = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now())
 

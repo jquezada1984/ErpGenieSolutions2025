@@ -178,4 +178,48 @@ module.exports = async function (fastify) {
       return reply.code(status).send(err.response?.data || { error: err.message });
     }
   });
+
+  fastify.get('/transferencia-bancaria', async (request, reply) => {
+    try {
+      const idEmpresa =
+        request.query.id_empresa ||
+        request.headers['x-company-id'] ||
+        request.headers['X-Company-Id'];
+      const data = await bancoCajaNestJs.listarTransferenciasBancarias(request, idEmpresa);
+      return reply.code(200).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      return reply.code(status).send(err.response?.data || { error: err.message });
+    }
+  });
+
+  fastify.get('/transferencia-bancaria/:id', async (request, reply) => {
+    try {
+      const data = await bancoCajaNestJs.obtenerTransferenciaBancaria(request.params.id, request);
+      return reply.code(200).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      return reply.code(status).send(err.response?.data || { error: err.message });
+    }
+  });
+
+  fastify.post('/transferencia-bancaria', async (request, reply) => {
+    try {
+      const data = await bancoCajaPython.crearTransferenciaBancaria(request.body, request);
+      return reply.code(201).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      return reply.code(status).send(err.response?.data || { error: err.message });
+    }
+  });
+
+  fastify.delete('/transferencia-bancaria/:id', async (request, reply) => {
+    try {
+      const data = await bancoCajaPython.eliminarTransferenciaBancaria(request.params.id, request);
+      return reply.code(200).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      return reply.code(status).send(err.response?.data || { error: err.message });
+    }
+  });
 };
