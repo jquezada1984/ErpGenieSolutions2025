@@ -1,6 +1,6 @@
-// Proxy de escritura ítem → ItemPython (Flask). Mismo patrón de contexto que TerceroPython.
+// Proxy de escritura ítem → ItemPython (Flask).
 const axios = require('axios');
-const { ctxHeaders } = require('./terceroPython');
+const { ctxHeaders } = require('../utils/requestContext');
 
 const BASE_URL = process.env.ITEM_PY_BASE_URL || 'http://localhost:3012';
 

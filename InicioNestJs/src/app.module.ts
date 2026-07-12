@@ -104,7 +104,11 @@ import { AutorizacionService } from './services/autorizacion.service';
         PerfilMenuPermiso,
         CondicionPago,
         FormaPago,
-        TamanoEmpresa
+        TamanoEmpresa,
+        Impuesto,
+        CuentaContable,
+        TipoItemCatalogo,
+        DuracionUnidadCatalogo,
       ],
       synchronize: false, // Deshabilitado para evitar conflictos con datos existentes
       ssl: {

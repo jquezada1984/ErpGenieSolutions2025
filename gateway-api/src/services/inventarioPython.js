@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { ctxHeaders } = require('./terceroPython');
+const { ctxHeaders } = require('../utils/requestContext');
 
 const BASE_URL = process.env.INVENTARIO_PY_BASE_URL || 'http://inventario-python-service:3014';
 const TIMEOUT = parseInt(process.env.INVENTARIO_PY_TIMEOUT || '15000', 10);
