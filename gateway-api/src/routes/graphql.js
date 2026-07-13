@@ -193,7 +193,7 @@ async function routes(fastify, options) {
         terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || 'http://tercero-nestjs-service:3001',
         itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
         bancoCajaNestJsService:
-          process.env.BANCO_CAJA_NEST_GQL_URL || 'http://banco-caja-nestjs-service:3014',
+          process.env.BANCO_CAJA_NEST_GQL_URL || 'http://banco-caja-nestjs-service:3016',
         itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
         inventarioNestJsService: process.env.INVENTARIO_NEST_GQL_URL || 'http://inventario-nestjs-service:3013'
       };

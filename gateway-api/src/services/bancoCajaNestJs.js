@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const BASE_URL = process.env.BANCO_CAJA_NEST_GQL_URL || 'http://banco-caja-nestjs-service:3014';
+const BASE_URL = process.env.BANCO_CAJA_NEST_GQL_URL || 'http://banco-caja-nestjs-service:3016';
 const TIMEOUT = parseInt(process.env.BANCO_CAJA_NEST_TIMEOUT || '10000', 10);
 
 const http = axios.create({ baseURL: BASE_URL, timeout: TIMEOUT });

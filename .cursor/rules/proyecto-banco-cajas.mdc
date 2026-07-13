@@ -26,7 +26,7 @@ Crear un módulo **Banco–Cajas** inspirado en el módulo bancario/caja de **Do
 - **Patrón GLOBAL/EMPRESA**: `SeccionCuentaEmpresa` integrada en formularios nuevo/editar; terceros en pestaña Propietario usan `id_empresa` del formulario.
 - **Validación UI**: Yup + `onInvalid` (alerta resumen estilo Terceros) + `FormText`/`invalid` por campo; cambio automático de pestaña al primer error.
 - **Pendiente en BD (entorno)**: ejecutar **`05_transferencia_bancaria_recrear.sql`** si aún no está aplicado; `menu-banco-cajas-transferencias.sql` + permisos; conciliación avanzada / vínculo contabilidad.
-- **Puertos Docker**: Python `3013`, Nest `3014`.
+- **Puertos Docker**: Python `3015`, Nest `3016` (3013/3014 reservados por Inventario).
 - **Rutas UI**: `/banco-cajas/cuentas`, `/banco-cajas/cuentas/nuevo`, `/banco-cajas/bancos`, `/banco-cajas/cuentas/:id/movimientos`, `.../movimientos/nuevo`, `/banco-cajas/transferencias`, `/banco-cajas/transferencias/nuevo`.
 
 ### Patrón ERP moderno (acordado jun 2026)

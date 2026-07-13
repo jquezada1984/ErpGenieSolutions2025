@@ -11,6 +11,6 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm install --legacy-peer-deps --omit=dev
 COPY --from=build /app/dist ./dist
-EXPOSE 3014
-ENV PORT=3014
+EXPOSE 3016
+ENV PORT=3016
 CMD ["node", "dist/main.js"]

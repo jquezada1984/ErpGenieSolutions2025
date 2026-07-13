@@ -10,9 +10,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 3013
+EXPOSE 3015
 ENV FLASK_ENV=production
 ENV PYTHONPATH=/app
-ENV PORT=3013
+ENV PORT=3015
 
 CMD ["python", "app.py"]

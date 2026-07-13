@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const BASE_URL = process.env.BANCO_CAJA_PY_BASE_URL || 'http://banco-caja-python-service:3013';
+const BASE_URL = process.env.BANCO_CAJA_PY_BASE_URL || 'http://banco-caja-python-service:3015';
 const NESTJS_SERVICE_URL = process.env.NESTJS_SERVICE_URL || 'http://nestjs-service:3001';
 
 const http = axios.create({ baseURL: BASE_URL, timeout: 15000 });

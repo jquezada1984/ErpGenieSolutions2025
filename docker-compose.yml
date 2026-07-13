@@ -177,9 +177,9 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
       - FLASK_ENV=production
-      - PORT=3013
+      - PORT=3015
     ports:
-      - "3013:3013"
+      - "3015:3015"
     networks:
       - erp-network
 
@@ -193,16 +193,16 @@ services:
     container_name: erp-banco-caja-nestjs-service
     environment:
       - NODE_ENV=production
-      - PORT=3014
+      - PORT=3016
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/database.db}
       - JWT_SECRET=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
     ports:
-      - "3014:3014"
+      - "3016:3016"
     networks:
       - erp-network
     healthcheck:
-      test: ["CMD", "node", "-e", "const net=require('net');const s=net.connect(3014,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),2000);"]
+      test: ["CMD", "node", "-e", "const net=require('net');const s=net.connect(3016,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),2000);"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -368,8 +368,8 @@ services:
       - FINANCIERO_NEST_GQL_URL=http://financiero-nestjs-service:3007
 
       # ✅ Canales específicos Banco-Caja
-      - BANCO_CAJA_PY_BASE_URL=http://banco-caja-python-service:3013
-      - BANCO_CAJA_NEST_GQL_URL=http://banco-caja-nestjs-service:3014
+      - BANCO_CAJA_PY_BASE_URL=http://banco-caja-python-service:3015
+      - BANCO_CAJA_NEST_GQL_URL=http://banco-caja-nestjs-service:3016
 
       # ✅ Canales específicos Media
       - MEDIA_SERVICE_BASE_URL=http://media-service:3010
