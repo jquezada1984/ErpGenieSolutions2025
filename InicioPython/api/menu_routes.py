@@ -9,6 +9,14 @@ menu_secciones_schema = MenuSeccionSchema(many=True)
 menu_item_schema = MenuItemSchema()
 menu_items_schema = MenuItemSchema(many=True)
 
+
+def _optional_uuid(value):
+    """Cadena vacía → None (PostgreSQL UUID no acepta '')."""
+    if value is None or value == '':
+        return None
+    return value
+
+
 # SOLO MUTACIONES - Las consultas van por GraphQL a InicioNestJS
 
 @menu_routes.route('/menu-secciones', methods=['POST'])
@@ -206,14 +214,14 @@ def create_menu_item():
         # Crear el item
         nuevo_item = MenuItem(
             id_seccion=data['id_seccion'],
-            parent_id=data.get('parent_id'),
+            parent_id=_optional_uuid(data.get('parent_id')),
             etiqueta=data['etiqueta'],
-            icono=data.get('icono'),
-            ruta=data.get('ruta'),
+            icono=data.get('icono') or None,
+            ruta=data.get('ruta') or None,
             es_clickable=data.get('es_clickable', True),
             orden=data.get('orden', 0),
             muestra_badge=data.get('muestra_badge', False),
-            badge_text=data.get('badge_text'),
+            badge_text=data.get('badge_text') or None,
             estado=data.get('estado', True)
         )
         
@@ -264,7 +272,7 @@ def update_menu_item(item_id):
         if 'id_seccion' in data:
             item_existente.id_seccion = data['id_seccion']
         if 'parent_id' in data:
-            item_existente.parent_id = data['parent_id']
+            item_existente.parent_id = _optional_uuid(data['parent_id'])
         if 'icono' in data:
             item_existente.icono = data['icono']
         if 'ruta' in data:

@@ -180,7 +180,11 @@ const EditarItem: React.FC = () => {
     setError(null);
 
     try {
-      const response = await actualizarItem(id!, formData);
+      const itemData: Record<string, unknown> = { ...formData };
+      if (!itemData.parent_id) delete itemData.parent_id;
+      if (!itemData.badge_text) delete itemData.badge_text;
+
+      const response = await actualizarItem(id!, itemData);
       // El backend puede devolver { success: true } o directamente el item actualizado (id_item, etiqueta, etc.)
       const ok = response && (response.success === true || response.id_item != null || response.etiqueta != null);
       if (ok) {

@@ -132,11 +132,13 @@ const NuevoItem: React.FC = () => {
       const maxOrden = itemsSeccion.length > 0 ? Math.max(...itemsSeccion.map(item => item.orden)) : 0;
       const nuevoOrden = maxOrden + 1;
       
-      const itemData = {
+      const itemData: Record<string, unknown> = {
         ...formData,
         orden: nuevoOrden
       };
-      
+      if (!itemData.parent_id) delete itemData.parent_id;
+      if (!itemData.badge_text) delete itemData.badge_text;
+
       const response = await crearItem(itemData);
       // El backend puede devolver { success: true } o directamente el item creado (id_item, etiqueta, etc.)
       const ok = response && (response.success === true || response.id_item != null || response.etiqueta != null);
