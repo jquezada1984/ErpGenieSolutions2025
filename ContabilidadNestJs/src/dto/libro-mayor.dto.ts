@@ -1,15 +1,21 @@
-import { ObjectType, Field, Float } from '@nestjs/graphql';
+import { ObjectType, Field, Float, ID } from '@nestjs/graphql';
 
 @ObjectType()
 export class LibroMayorRow {
-  @Field(() => Number)
-  asiento_id: number;
+  @Field(() => ID)
+  asiento_id: string;
 
   @Field()
   numero: string;
 
+  @Field({ nullable: true })
+  codigo_diario: string | null;
+
   @Field()
   fecha: string;
+
+  @Field({ nullable: true })
+  referencia: string | null;
 
   @Field()
   concepto: string;

@@ -3,21 +3,30 @@
 # ------------------------------------------------------
 
 type AsientoContable {
+  codigo_diario: String
   concepto: String!
-  empresa_id: Int
   estado: String!
-  fecha: DateTime!
-  id: Int!
-  numero: String!
+  fecha_aprobacion: DateTime
+  fecha_asiento: String!
+  fecha_exportacion: DateTime
+  id_asiento_contable: ID!
+  id_diario_contable: ID!
+  id_empresa: ID!
+  id_usuario_aprobacion: ID
+  id_usuario_creacion: ID
+  movimientos: [MovimientoContable!]
+  nombre_diario: String
+  numero_asiento: String!
+  referencia: String
+  reversed_entry_id: ID
   total_debe: Float!
   total_haber: Float!
   updated_at: DateTime!
-  usuario_id: Int
 }
 
 type BalanceComprobacionRow {
   codigo: String!
-  cuenta_id: Float!
+  cuenta_id: ID!
   naturaleza: String!
   nombre: String!
   saldo: Float!
@@ -47,7 +56,12 @@ type ConfiguracionContabilidad {
   formato_exportacion: String
   formato_fecha_exportacion: String
   gestion_cero_final: Boolean
+  grupos_cuenta_balance: String
+  grupos_cuenta_resultado: String
   id_configuracion_contabilidad: String!
+  id_cuenta_resultado_ganancia: String
+  id_cuenta_resultado_perdida: String
+  id_diario_cierre: String
   id_empresa: String!
   id_moneda_base: String
   iva_revertido_compras: Boolean
@@ -68,6 +82,18 @@ type ConfiguracionContabilidad {
   updated_at: DateTime
   usar_centavos: Boolean
   usar_fecha_fin_periodo_informe_gastos: Boolean
+}
+
+type CuentaBancariaContabilidad {
+  cuenta_codigo: String
+  cuenta_nombre: String
+  diario_codigo: String
+  etiqueta_cuenta: String
+  iban: String
+  id_cuenta_bancaria: String!
+  id_cuenta_contable: String
+  id_diario_contable: String
+  numero_cuenta: String
 }
 
 type CuentaContable {
@@ -95,11 +121,29 @@ type CuentaDefectoConfigItem {
   tipo_operacion: String!
 }
 
+type CuentaImpuestoRow {
+  cuenta_codigo: String
+  cuenta_nombre: String
+  id_cuenta_contable: String!
+  id_cuenta_impuesto: String!
+  porcentaje: Float!
+  tipo_impuesto: String!
+}
+
 type CuentaIndividualLibroAuxiliar {
   codigo: String!
   etiqueta: String!
   id_origen: ID
   tipo: String!
+}
+
+type CuentaIvaRow {
+  cuenta_codigo: String
+  cuenta_nombre: String
+  id_cuenta_contable: String!
+  id_cuenta_iva: String!
+  porcentaje: Float!
+  tipo_iva: String!
 }
 
 type CuentasContablesPaginadas {
@@ -135,20 +179,54 @@ type DiarioContable {
   tipo_diario_label: String!
 }
 
+type EstadoAreaContabilidad {
+  paso1_diarios: Boolean!
+  paso2_modelos: Boolean!
+  paso3_plan: Boolean!
+  paso4_periodo: Boolean!
+  paso5_cuentas_defecto: Boolean!
+  paso6_cuentas_bancarias: Boolean!
+  paso7_cuentas_iva: Boolean!
+  paso8_cuentas_impuestos: Boolean!
+  paso9_cuentas_productos: Boolean!
+  plan_activo_nombre: String
+}
+
 type EstadoResultadosRow {
   resultado: Float
   tipo_cuenta: String!
   total: Float!
 }
 
+type GrupoCuentaRow {
+  codigo: String
+  etiqueta: String
+  id_grupo_cuenta_personalizado: String!
+  nombre: String!
+  posicion: Int
+}
+
 type LibroMayorRow {
-  asiento_id: Float!
+  asiento_id: ID!
+  codigo_diario: String
   concepto: String!
   debe: Float!
   fecha: String!
   haber: Float!
   numero: String!
+  referencia: String
   saldo_acum: Float!
+}
+
+type LineaRegistroRow {
+  cuenta_codigo: String
+  debe: Float
+  doc_ref: String
+  etiqueta: String
+  fecha: String
+  forma_pago: String
+  haber: Float
+  subcuenta: String
 }
 
 type ModeloPlanContable {
@@ -162,10 +240,32 @@ type ModeloPlanContable {
   pais: Pais
 }
 
-type Mutation {
-  crearAsientoContable(concepto: String!, empresaId: Int!, fecha: String!, numero: String!, usuarioId: Int): AsientoContable!
-  publicarAsiento(id: Int!): AsientoContable!
-  reversarAsiento(id: Int!, usuarioId: Int): AsientoContable!
+type MovimientoContable {
+  codigo_cuenta: String
+  concepto: String!
+  debe: Float!
+  fecha_exportacion: DateTime
+  haber: Float!
+  id_asiento_contable: ID!
+  id_cuenta_contable: ID!
+  id_movimiento_contable: ID!
+  nombre_cuenta: String
+  orden: Int!
+}
+
+type OperacionDiarioRow {
+  asiento_id: ID!
+  codigo_cuenta: String!
+  codigo_diario: String!
+  concepto: String!
+  debe: Float!
+  fecha_asiento: String!
+  fecha_exportacion: String
+  haber: Float!
+  id_movimiento_contable: ID!
+  numero_asiento: String!
+  referencia: String
+  subcuenta: String
 }
 
 type Pais {
@@ -201,24 +301,55 @@ type PlanContable {
 }
 
 type Query {
-  asientoContable(id: Int!): AsientoContable
-  asientosContables: [AsientoContable!]!
-  asientosContablesPorFecha(fechaFin: String!, fechaInicio: String!): [AsientoContable!]!
-  balanceComprobacion(empresaId: Int!, fechaDesde: String!, fechaHasta: String!): [BalanceComprobacionRow!]!
-  balanceGeneralSaldos(empresaId: Int!, fechaCorte: String!): [BalanceGeneralSaldosRow!]!
+  asientoContable(id: String!): AsientoContable
+  asientosContablesPorEmpresa(fecha_desde: String, fecha_hasta: String, id_diario: String, id_empresa: String!): [AsientoContable!]!
+  balanceComprobacion(fecha_desde: String!, fecha_hasta: String!, id_empresa: String!): [BalanceComprobacionRow!]!
+  balanceGeneralSaldos(fecha_corte: String!, id_empresa: String!): [BalanceGeneralSaldosRow!]!
   configuracionContabilidad(id_empresa: String!): ConfiguracionContabilidad!
   cuentaContable(id: String!): CuentaContable
+  cuentasBancariasContabilidad(id_empresa: String!): [CuentaBancariaContabilidad!]!
   cuentasContablesDefecto(id_empresa: String!): [CuentaDefectoConfigItem!]!
   cuentasContablesPorPlan(busqueda: String, id_plan_contable: String!, limit: Int = 20, page: Int = 1): CuentasContablesPaginadas!
+  cuentasImpuesto(id_empresa: String!): [CuentaImpuestoRow!]!
   cuentasIndividualesLibroAuxiliar(busqueda: String, id_empresa: String!, limit: Int = 20, page: Int = 1, tipo: String): CuentasIndividualesPaginadas!
+  cuentasIva(id_empresa: String!): [CuentaIvaRow!]!
   diarioContable(id: String!): DiarioContable
   diariosContables(id_empresa: String!): [DiarioContable!]!
-  estadoResultados(empresaId: Int!, fechaDesde: String!, fechaHasta: String!): [EstadoResultadosRow!]!
-  libroMayor(cuentaId: Int!, empresaId: Int!, fechaDesde: String!, fechaHasta: String!): [LibroMayorRow!]!
+  estadoAreaContabilidad(id_empresa: String!): EstadoAreaContabilidad!
+  estadoResultados(fecha_desde: String!, fecha_hasta: String!, id_empresa: String!): [EstadoResultadosRow!]!
+  gruposCuentaPersonalizado(id_empresa: String!): [GrupoCuentaRow!]!
+  libroMayor(fecha_desde: String!, fecha_hasta: String!, id_cuenta: String!, id_empresa: String!): [LibroMayorRow!]!
+  lineasRegistroContable(fecha_desde: String!, fecha_hasta: String!, id_empresa: String!, origen: String!): [LineaRegistroRow!]!
   modeloPlanContable(id: String!): ModeloPlanContable
   modelosPlanesContables(id_pais: String): [ModeloPlanContable!]!
+  movimientosPendientesExportar(fecha_desde: String!, fecha_hasta: String!, id_empresa: String!, incluir_exportados: Boolean): [OperacionDiarioRow!]!
+  operacionesDiarios(fecha_desde: String!, fecha_hasta: String!, id_cuenta: String, id_diario: String, id_empresa: String!, incluir_exportados: Boolean): [OperacionDiarioRow!]!
   periodoContable(id: String!): PeriodoContable
   periodosContables(id_empresa: String!): [PeriodoContable!]!
   planContableActivo(id_empresa: String!): PlanContable
   planesContablesPorModelo(id_modelo: String!): [PlanContable!]!
+  resumenVinculacionFacturas(anio: Int!, id_empresa: String!, tipo: String!): ResumenVinculacion!
+  saldosPorCuenta(cuenta_desde: String, cuenta_hasta: String, fecha_desde: String!, fecha_hasta: String!, id_diario: String, id_empresa: String!, subtotal_por_nivel: Boolean): [SaldoCuentaRow!]!
+}
+
+type ResumenVinculacion {
+  no_vinculadas: [ResumenVinculacionItem!]!
+  vinculadas: [ResumenVinculacionItem!]!
+}
+
+type ResumenVinculacionItem {
+  cuenta: String!
+  mes: Int!
+  num_lineas: Int!
+  total: Float!
+}
+
+type SaldoCuentaRow {
+  codigo: String!
+  cuenta_id: ID!
+  nivel: Int!
+  nombre: String!
+  saldo: Float!
+  total_debe: Float!
+  total_haber: Float!
 }

@@ -53,6 +53,17 @@ const getTargetService = (query, config) => {
     query.includes('cuentasIndividualesLibroAuxiliar') ||
     query.includes('cuentasContablesDefecto') ||
     query.includes('asientoContable') ||
+    query.includes('asientosContablesPorEmpresa') ||
+    query.includes('estadoAreaContabilidad') ||
+    query.includes('operacionesDiarios') ||
+    query.includes('movimientosPendientesExportar') ||
+    query.includes('saldosPorCuenta') ||
+    query.includes('resumenVinculacionFacturas') ||
+    query.includes('lineasRegistroContable') ||
+    query.includes('cuentasBancariasContabilidad') ||
+    query.includes('cuentasIva') ||
+    query.includes('cuentasImpuesto') ||
+    query.includes('gruposCuentaPersonalizado') ||
     query.includes('libroMayor') ||
     query.includes('balanceGeneral') ||
     query.includes('balanceComprobacion') ||

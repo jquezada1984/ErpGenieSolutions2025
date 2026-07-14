@@ -90,6 +90,35 @@ async function guardarCuentasContablesDefecto(body, req) {
   return proxy('PUT', '/api/cuentas-contables-defecto', body, req);
 }
 
+async function listarMovimientosExportar(query, req) {
+  const qs = new URLSearchParams(query).toString();
+  return proxy('GET', `/api/contabilidad/exportar?${qs}`, {}, req);
+}
+
+async function ejecutarExportacionContabilidad(body, req) {
+  return proxy('POST', '/api/contabilidad/exportar/ejecutar', body, req);
+}
+
+async function proxyGet(path, req) {
+  return proxy('GET', path, {}, req);
+}
+
+async function proxyPost(path, body, req) {
+  return proxy('POST', path, body, req);
+}
+
+async function proxyPatch(path, body, req) {
+  return proxy('PATCH', path, body, req);
+}
+
+async function proxyPut(path, body, req) {
+  return proxy('PUT', path, body, req);
+}
+
+async function proxyDelete(path, req) {
+  return proxy('DELETE', path, {}, req);
+}
+
 module.exports = {
   actualizarConfiguracionContabilidad,
   crearPeriodoContable,
@@ -109,4 +138,11 @@ module.exports = {
   eliminarCuentaContable,
   inicializarCuentasContablesDefecto,
   guardarCuentasContablesDefecto,
+  listarMovimientosExportar,
+  ejecutarExportacionContabilidad,
+  proxyGet,
+  proxyPost,
+  proxyPatch,
+  proxyPut,
+  proxyDelete,
 };

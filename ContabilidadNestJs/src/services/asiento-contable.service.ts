@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { AsientoContable } from '../entities/asiento-contable.entity';
@@ -14,184 +14,97 @@ export class AsientoContableService {
     private dataSource: DataSource,
   ) {}
 
-  async findAll(): Promise<AsientoContable[]> {
-    return this.asientoContableRepository.find({
-      order: { fecha: 'DESC', numero: 'DESC' },
-    });
-  }
+  async findByEmpresa(
+    id_empresa: string,
+    fecha_desde?: string,
+    fecha_hasta?: string,
+    id_diario?: string,
+  ): Promise<AsientoContable[]> {
+    const params: unknown[] = [id_empresa];
+    let extra = '';
+    if (fecha_desde) {
+      params.push(fecha_desde);
+      extra += ` AND a.fecha_asiento >= $${params.length}`;
+    }
+    if (fecha_hasta) {
+      params.push(fecha_hasta);
+      extra += ` AND a.fecha_asiento <= $${params.length}`;
+    }
+    if (id_diario) {
+      params.push(id_diario);
+      extra += ` AND a.id_diario_contable = $${params.length}`;
+    }
 
-  async findOne(id: number): Promise<AsientoContable> {
-    return this.asientoContableRepository.findOne({ where: { id } });
-  }
-
-  async findMovimientosByAsiento(asientoId: number): Promise<MovimientoContable[]> {
-    return this.movimientoRepository.find({
-      where: { asiento_contable_id: asientoId },
-      order: { id: 'ASC' },
-    });
-  }
-
-  async findByDateRange(fechaInicio: string, fechaFin: string): Promise<AsientoContable[]> {
-    return this.asientoContableRepository
-      .createQueryBuilder('asiento')
-      .where('asiento.fecha >= :fechaInicio', { fechaInicio })
-      .andWhere('asiento.fecha <= :fechaFin', { fechaFin })
-      .orderBy('asiento.fecha', 'DESC')
-      .addOrderBy('asiento.numero', 'DESC')
-      .getMany();
-  }
-
-  async create(asientoData: Partial<AsientoContable>): Promise<AsientoContable> {
-    const asiento = this.asientoContableRepository.create(asientoData);
-    return this.asientoContableRepository.save(asiento);
-  }
-
-  async update(id: number, asientoData: Partial<AsientoContable>): Promise<AsientoContable> {
-    await this.asientoContableRepository.update(id, asientoData);
-    return this.findOne(id);
-  }
-
-  async remove(id: number): Promise<void> {
-    await this.asientoContableRepository.update(id, { estado: 'ANULADO' });
-  }
-
-  async aprobar(id: number): Promise<AsientoContable> {
-    await this.asientoContableRepository.update(id, { estado: 'APROBADO' });
-    return this.findOne(id);
-  }
-
-  /** Obtiene el siguiente número de asiento (usa función BD si existe). */
-  async obtenerSiguienteNumero(empresaId: number, prefijo: string, fecha: Date): Promise<string> {
-    const raw = await this.dataSource.query<{ obtener_siguiente_numero_asiento: string }[]>(
-      'SELECT obtener_siguiente_numero_asiento($1, $2, $3) AS obtener_siguiente_numero_asiento',
-      [empresaId, prefijo || 'GEN', fecha],
+    const raw = await this.dataSource.query(
+      `SELECT a.*, d.codigo AS codigo_diario, d.nombre AS nombre_diario
+       FROM asiento_contable a
+       LEFT JOIN diario_contable d ON d.id_diario_contable = a.id_diario_contable
+       WHERE a.id_empresa = $1 ${extra}
+       ORDER BY a.fecha_asiento DESC, a.numero_asiento DESC`,
+      params,
     );
-    if (raw?.[0]?.obtener_siguiente_numero_asiento) {
-      return raw[0].obtener_siguiente_numero_asiento;
-    }
-    const anio = fecha.getFullYear();
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-    const count = await this.asientoContableRepository.count({
-      where: { empresa_id: empresaId },
-    });
-    return `${prefijo || 'GEN'}-${anio}-${mes}-${String(count + 1).padStart(6, '0')}`;
+    return raw.map((r: Record<string, unknown>) => this.mapAsiento(r));
   }
 
-  /**
-   * Publicar asiento (BORRADOR → APROBADO). Valida: partida doble, al menos 2 líneas,
-   * ninguna línea con debe y haber en cero, ninguna con ambos > 0.
-   */
-  async publicarAsiento(id: number): Promise<AsientoContable> {
-    const asiento = await this.findOne(id);
-    if (!asiento) throw new BadRequestException('Asiento no encontrado');
-    if (asiento.estado !== 'BORRADOR') {
-      throw new BadRequestException('Solo se puede publicar un asiento en estado BORRADOR');
-    }
-
-    const lineas = await this.findMovimientosByAsiento(id);
-    if (lineas.length < 2) {
-      throw new BadRequestException('El asiento debe tener al menos 2 líneas para publicar');
-    }
-
-    const totalDebe = Number(asiento.total_debe);
-    const totalHaber = Number(asiento.total_haber);
-    if (Math.abs(totalDebe - totalHaber) > 0.01) {
-      throw new BadRequestException('Partida doble no cuadra: total debe debe ser igual a total haber');
-    }
-
-    for (const lin of lineas) {
-      const d = Number(lin.debe);
-      const h = Number(lin.haber);
-      if (d === 0 && h === 0) {
-        throw new BadRequestException('No puede haber líneas con debe y haber en cero');
-      }
-      if (d > 0 && h > 0) {
-        throw new BadRequestException('Una línea no puede tener debe y haber mayores a cero');
-      }
-    }
-
-    await this.asientoContableRepository.update(id, { estado: 'APROBADO' });
-    return this.findOne(id);
+  async findOne(id: string): Promise<AsientoContable | null> {
+    const raw = await this.dataSource.query(
+      `SELECT a.*, d.codigo AS codigo_diario, d.nombre AS nombre_diario
+       FROM asiento_contable a
+       LEFT JOIN diario_contable d ON d.id_diario_contable = a.id_diario_contable
+       WHERE a.id_asiento_contable = $1`,
+      [id],
+    );
+    return raw[0] ? this.mapAsiento(raw[0]) : null;
   }
 
-  /**
-   * Reversar asiento (APROBADO → genera asiento reverso y marca original REVERSED).
-   */
-  async reversarAsiento(id: number, usuarioId?: number): Promise<AsientoContable> {
-    const asiento = await this.findOne(id);
-    if (!asiento) throw new BadRequestException('Asiento no encontrado');
-    if (asiento.estado !== 'APROBADO') {
-      throw new BadRequestException('Solo se puede reversar un asiento en estado APROBADO');
-    }
+  async findMovimientosByAsiento(asientoId: string): Promise<MovimientoContable[]> {
+    const raw = await this.dataSource.query(
+      `SELECT m.*, c.codigo AS codigo_cuenta, c.nombre AS nombre_cuenta
+       FROM movimiento_contable m
+       INNER JOIN cuenta_contable c ON c.id_cuenta_contable = m.id_cuenta_contable
+       WHERE m.id_asiento_contable = $1
+       ORDER BY m.orden ASC`,
+      [asientoId],
+    );
+    return raw.map((r: Record<string, unknown>) => this.mapMovimiento(r));
+  }
 
-    const lineas = await this.findMovimientosByAsiento(id);
-    if (lineas.length === 0) {
-      throw new BadRequestException('Asiento sin movimientos');
-    }
+  private mapAsiento(r: Record<string, unknown>): AsientoContable {
+    const a = new AsientoContable();
+    a.id_asiento_contable = String(r.id_asiento_contable);
+    a.id_empresa = String(r.id_empresa);
+    a.id_diario_contable = String(r.id_diario_contable);
+    a.numero_asiento = String(r.numero_asiento);
+    a.fecha_asiento =
+      r.fecha_asiento instanceof Date
+        ? r.fecha_asiento.toISOString().slice(0, 10)
+        : String(r.fecha_asiento);
+    a.concepto = String(r.concepto);
+    a.referencia = r.referencia != null ? String(r.referencia) : null;
+    a.total_debe = Number(r.total_debe);
+    a.total_haber = Number(r.total_haber);
+    a.estado = String(r.estado);
+    a.id_usuario_creacion = r.id_usuario_creacion != null ? String(r.id_usuario_creacion) : null;
+    a.id_usuario_aprobacion = r.id_usuario_aprobacion != null ? String(r.id_usuario_aprobacion) : null;
+    a.reversed_entry_id = r.reversed_entry_id != null ? String(r.reversed_entry_id) : null;
+    a.fecha_exportacion = r.fecha_exportacion as Date | null;
+    a.codigo_diario = r.codigo_diario != null ? String(r.codigo_diario) : null;
+    a.nombre_diario = r.nombre_diario != null ? String(r.nombre_diario) : null;
+    return a;
+  }
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const fechaReverso = new Date();
-      const numeroReverso = await this.obtenerSiguienteNumero(
-        asiento.empresa_id!,
-        'REV',
-        fechaReverso,
-      );
-
-      let totalDebe = 0;
-      let totalHaber = 0;
-      const lineasReverso: Array<{ cuenta_contable_id: number; debe: number; haber: number; concepto: string | null }> = [];
-      for (const lin of lineas) {
-        const d = Number(lin.debe);
-        const h = Number(lin.haber);
-        lineasReverso.push({
-          cuenta_contable_id: lin.cuenta_contable_id,
-          debe: h,
-          haber: d,
-          concepto: lin.concepto,
-        });
-        totalDebe += h;
-        totalHaber += d;
-      }
-
-      const repoAsiento = queryRunner.manager.getRepository(AsientoContable);
-      const repoMov = queryRunner.manager.getRepository(MovimientoContable);
-
-      const reverso = repoAsiento.create({
-        numero: numeroReverso,
-        fecha: fechaReverso,
-        concepto: `Reversión de asiento ${asiento.numero}`,
-        total_debe: totalDebe,
-        total_haber: totalHaber,
-        estado: 'APROBADO',
-        empresa_id: asiento.empresa_id,
-        usuario_id: usuarioId ?? asiento.usuario_id,
-        reversed_entry_id: asiento.id,
-      });
-      const savedReverso = await repoAsiento.save(reverso);
-
-      for (const lin of lineasReverso) {
-        await repoMov.save(
-          repoMov.create({
-            asiento_contable_id: savedReverso.id,
-            cuenta_contable_id: lin.cuenta_contable_id,
-            debe: lin.debe,
-            haber: lin.haber,
-            concepto: lin.concepto,
-          }),
-        );
-      }
-
-      await repoAsiento.update(asiento.id, { estado: 'REVERSED' });
-      await queryRunner.commitTransaction();
-      return (await this.findOne(savedReverso.id))!;
-    } catch (e) {
-      await queryRunner.rollbackTransaction();
-      throw e;
-    } finally {
-      await queryRunner.release();
-    }
+  private mapMovimiento(r: Record<string, unknown>): MovimientoContable {
+    const m = new MovimientoContable();
+    m.id_movimiento_contable = String(r.id_movimiento_contable);
+    m.id_asiento_contable = String(r.id_asiento_contable);
+    m.id_cuenta_contable = String(r.id_cuenta_contable);
+    m.concepto = String(r.concepto);
+    m.debe = Number(r.debe);
+    m.haber = Number(r.haber);
+    m.orden = Number(r.orden);
+    m.fecha_exportacion = r.fecha_exportacion as Date | null;
+    m.codigo_cuenta = r.codigo_cuenta != null ? String(r.codigo_cuenta) : null;
+    m.nombre_cuenta = r.nombre_cuenta != null ? String(r.nombre_cuenta) : null;
+    return m;
   }
 }

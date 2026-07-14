@@ -140,6 +140,26 @@ export class ConfiguracionContabilidad {
   @Column({ type: 'varchar', length: 20, nullable: true })
   formato_fecha_exportacion: string | null;
 
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  id_cuenta_resultado_ganancia: string | null;
+
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  id_cuenta_resultado_perdida: string | null;
+
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  id_diario_cierre: string | null;
+
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'text', nullable: true })
+  grupos_cuenta_balance: string | null;
+
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'text', nullable: true })
+  grupos_cuenta_resultado: string | null;
+
   @Field(() => GraphQLISODateTime, { nullable: true })
   @CreateDateColumn({ type: 'timestamp', nullable: true })
   created_at: Date | null;

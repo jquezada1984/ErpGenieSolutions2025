@@ -1,5 +1,6 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ResolveField, Parent } from '@nestjs/graphql';
 import { AsientoContable } from '../entities/asiento-contable.entity';
+import { MovimientoContable } from '../entities/movimiento-contable.entity';
 import { AsientoContableService } from '../services/asiento-contable.service';
 
 @Resolver(() => AsientoContable)
@@ -7,53 +8,27 @@ export class AsientoContableResolver {
   constructor(private readonly asientoContableService: AsientoContableService) {}
 
   @Query(() => [AsientoContable])
-  async asientosContables(): Promise<AsientoContable[]> {
-    return this.asientoContableService.findAll();
+  async asientosContablesPorEmpresa(
+    @Args('id_empresa') id_empresa: string,
+    @Args('fecha_desde', { nullable: true }) fecha_desde?: string,
+    @Args('fecha_hasta', { nullable: true }) fecha_hasta?: string,
+    @Args('id_diario', { nullable: true }) id_diario?: string,
+  ): Promise<AsientoContable[]> {
+    return this.asientoContableService.findByEmpresa(
+      id_empresa,
+      fecha_desde,
+      fecha_hasta,
+      id_diario,
+    );
   }
 
   @Query(() => AsientoContable, { nullable: true })
-  async asientoContable(@Args('id', { type: () => Int }) id: number): Promise<AsientoContable> {
+  async asientoContable(@Args('id') id: string): Promise<AsientoContable | null> {
     return this.asientoContableService.findOne(id);
   }
 
-  @Query(() => [AsientoContable])
-  async asientosContablesPorFecha(
-    @Args('fechaInicio') fechaInicio: string,
-    @Args('fechaFin') fechaFin: string,
-  ): Promise<AsientoContable[]> {
-    return this.asientoContableService.findByDateRange(fechaInicio, fechaFin);
-  }
-
-  @Mutation(() => AsientoContable)
-  async crearAsientoContable(
-    @Args('numero') numero: string,
-    @Args('fecha') fecha: string,
-    @Args('concepto') concepto: string,
-    @Args('empresaId', { type: () => Int }) empresaId: number,
-    @Args('usuarioId', { type: () => Int, nullable: true }) usuarioId?: number,
-  ): Promise<AsientoContable> {
-    return this.asientoContableService.create({
-      numero,
-      fecha: new Date(fecha),
-      concepto,
-      total_debe: 0,
-      total_haber: 0,
-      estado: 'BORRADOR',
-      empresa_id: empresaId,
-      usuario_id: usuarioId,
-    });
-  }
-
-  @Mutation(() => AsientoContable)
-  async publicarAsiento(@Args('id', { type: () => Int }) id: number): Promise<AsientoContable> {
-    return this.asientoContableService.publicarAsiento(id);
-  }
-
-  @Mutation(() => AsientoContable)
-  async reversarAsiento(
-    @Args('id', { type: () => Int }) id: number,
-    @Args('usuarioId', { type: () => Int, nullable: true }) usuarioId?: number,
-  ): Promise<AsientoContable> {
-    return this.asientoContableService.reversarAsiento(id, usuarioId);
+  @ResolveField(() => [MovimientoContable])
+  async movimientos(@Parent() asiento: AsientoContable): Promise<MovimientoContable[]> {
+    return this.asientoContableService.findMovimientosByAsiento(asiento.id_asiento_contable);
   }
 }

@@ -34,7 +34,8 @@ import { CuentaContableDefecto } from './entities/cuenta-contable-defecto.entity
 // Resolvers
 import { CuentaContableResolver } from './resolvers/cuenta-contable.resolver';
 import { AsientoContableResolver } from './resolvers/asiento-contable.resolver';
-import { ReporteContableResolver } from './resolvers/reporte-contable.resolver';
+import { TransferenciaContableResolver } from './resolvers/transferencia-contable.resolver';
+import { OperativaContableResolver } from './resolvers/operativa-contable.resolver';
 import { ConfiguracionContabilidadResolver } from './resolvers/configuracion-contabilidad.resolver';
 import { PeriodoContableResolver } from './resolvers/periodo-contable.resolver';
 import { DiarioContableResolver } from './resolvers/diario-contable.resolver';
@@ -45,6 +46,8 @@ import { CuentaContableDefectoResolver } from './resolvers/cuenta-contable-defec
 // Services
 import { CuentaContableService } from './services/cuenta-contable.service';
 import { AsientoContableService } from './services/asiento-contable.service';
+import { TransferenciaContableService } from './services/transferencia-contable.service';
+import { OperativaContableService } from './services/operativa-contable.service';
 import { ReporteContableService } from './services/reporte-contable.service';
 import { ConfiguracionContabilidadService } from './services/configuracion-contabilidad.service';
 import { PeriodoContableService } from './services/periodo-contable.service';
@@ -104,7 +107,8 @@ import { CuentaContableDefectoService } from './services/cuenta-contable-defecto
     AppService,
     CuentaContableResolver,
     AsientoContableResolver,
-    ReporteContableResolver,
+    OperativaContableResolver,
+    TransferenciaContableResolver,
     ConfiguracionContabilidadResolver,
     PeriodoContableResolver,
     DiarioContableResolver,
@@ -113,6 +117,8 @@ import { CuentaContableDefectoService } from './services/cuenta-contable-defecto
     CuentaContableDefectoResolver,
     CuentaContableService,
     AsientoContableService,
+    OperativaContableService,
+    TransferenciaContableService,
     ReporteContableService,
     ConfiguracionContabilidadService,
     PeriodoContableService,

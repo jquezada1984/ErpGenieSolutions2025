@@ -55,7 +55,15 @@ const EditarProveedor = Loadable(lazy(() => import('../views/terceros/EditarProv
 const Contactos = Loadable(lazy(() => import('../views/terceros/contactos/Contactos')));
 const NuevoContacto = Loadable(lazy(() => import('../views/terceros/contactos/NuevoContacto')));
 const EditarContacto = Loadable(lazy(() => import('../views/terceros/contactos/EditarContacto')));
-const ContabilidadGeneral = Loadable(lazy(() => import('../views/contabilidad/ContabilidadGeneral')));
+const ContabilidadGeneral = Loadable(lazy(() => import('../views/contabilidad/operativa/AreaContabilidad')));
+const AreaContabilidad = ContabilidadGeneral;
+const AsientosContables = Loadable(lazy(() => import('../views/contabilidad/operativa/AsientosContables')));
+const LibroMayor = Loadable(lazy(() => import('../views/contabilidad/operativa/LibroMayor')));
+const DiariosOperativa = Loadable(lazy(() => import('../views/contabilidad/operativa/DiariosOperativa')));
+const SaldoCuenta = Loadable(lazy(() => import('../views/contabilidad/operativa/SaldoCuenta')));
+const ExportarContabilidad = Loadable(lazy(() => import('../views/contabilidad/operativa/ExportarContabilidad')));
+const CerrarPeriodo = Loadable(lazy(() => import('../views/contabilidad/operativa/CerrarPeriodo')));
+const InformesContables = Loadable(lazy(() => import('../views/contabilidad/informes/InformesContables')));
 const ContabilidadConfiguracion = Loadable(lazy(() => import('../views/contabilidad/ContabilidadConfiguracion')));
 const PeriodosContables = Loadable(lazy(() => import('../views/contabilidad/PeriodosContables')));
 const NuevoPeriodoContable = Loadable(lazy(() => import('../views/contabilidad/NuevoPeriodoContable')));
@@ -64,6 +72,22 @@ const ModelosPlanesContables = Loadable(lazy(() => import('../views/contabilidad
 const ListadoCuentasContables = Loadable(lazy(() => import('../views/contabilidad/ListadoCuentasContables')));
 const CuentasIndividuales = Loadable(lazy(() => import('../views/contabilidad/CuentasIndividuales')));
 const CuentasContablesDefecto = Loadable(lazy(() => import('../views/contabilidad/CuentasContablesDefecto')));
+const CuentasBancarias = Loadable(lazy(() => import('../views/contabilidad/configuracion/CuentasBancarias')));
+const CuentasIva = Loadable(lazy(() => import('../views/contabilidad/configuracion/CuentasIva')));
+const CuentasImpuestos = Loadable(lazy(() => import('../views/contabilidad/configuracion/CuentasImpuestos')));
+const CuentasProductos = Loadable(lazy(() => import('../views/contabilidad/configuracion/CuentasProductos')));
+const CerrarCuentas = Loadable(lazy(() => import('../views/contabilidad/configuracion/CerrarCuentas')));
+const GruposPersonalizados = Loadable(lazy(() => import('../views/contabilidad/configuracion/GruposPersonalizados')));
+const FacturasClientesHub = Loadable(lazy(() => import('../views/contabilidad/transferencia/facturas-clientes/FacturasClientesHub')));
+const LineasClientesAContabilizar = Loadable(lazy(() => import('../views/contabilidad/transferencia/facturas-clientes/LineasAContabilizar')));
+const LineasClientesContabilizadas = Loadable(lazy(() => import('../views/contabilidad/transferencia/facturas-clientes/LineasContabilizadas')));
+const FacturasProveedoresHub = Loadable(lazy(() => import('../views/contabilidad/transferencia/facturas-proveedores/FacturasProveedoresHub')));
+const LineasProveedoresAContabilizar = Loadable(lazy(() => import('../views/contabilidad/transferencia/facturas-proveedores/LineasAContabilizar')));
+const LineasProveedoresContabilizadas = Loadable(lazy(() => import('../views/contabilidad/transferencia/facturas-proveedores/LineasContabilizadas')));
+const RegistroVentas = Loadable(lazy(() => import('../views/contabilidad/transferencia/registro/RegistroVentas')));
+const RegistroCompras = Loadable(lazy(() => import('../views/contabilidad/transferencia/registro/RegistroCompras')));
+const RegistroBanco = Loadable(lazy(() => import('../views/contabilidad/transferencia/registro/RegistroBanco')));
+const ExportarDocumentosOrigen = Loadable(lazy(() => import('../views/contabilidad/transferencia/ExportarDocumentosOrigen')));
 const NuevaFacturaCliente = Loadable(lazy(() => import('../views/financiero/facturas-clientes/NuevaFacturaCliente')));
 const DiccionariosIndex = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/DiccionariosIndex')));
 const CondicionesPagoDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/CondicionesPagoDiccionario')));
@@ -149,7 +173,14 @@ const ThemeRoutes: RouteType[] = [
       { path: 'terceros/:id/contactos', element: <Contactos /> },
       { path: 'terceros/:id/contactos/nuevo', element: <NuevoContacto /> },
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
-      { path: 'contabilidad', element: <ContabilidadGeneral /> },
+      { path: 'contabilidad', element: <AreaContabilidad /> },
+      { path: 'contabilidad/asientos', element: <AsientosContables /> },
+      { path: 'contabilidad/libro-mayor', element: <LibroMayor /> },
+      { path: 'contabilidad/diarios', element: <DiariosOperativa /> },
+      { path: 'contabilidad/saldo-cuenta', element: <SaldoCuenta /> },
+      { path: 'contabilidad/exportar', element: <ExportarContabilidad /> },
+      { path: 'contabilidad/cerrar', element: <CerrarPeriodo /> },
+      { path: 'contabilidad/informes', element: <InformesContables /> },
       { path: 'contabilidad/configuracion/general', element: <ContabilidadConfiguracion /> },
       { path: 'contabilidad/configuracion/periodo', element: <PeriodosContables /> },
       { path: 'contabilidad/configuracion/periodo/nuevo', element: <NuevoPeriodoContable /> },
@@ -158,6 +189,22 @@ const ThemeRoutes: RouteType[] = [
       { path: 'contabilidad/configuracion/plan-contable', element: <ListadoCuentasContables /> },
       { path: 'contabilidad/configuracion/cuentas-individuales', element: <CuentasIndividuales /> },
       { path: 'contabilidad/configuracion/cuentas-defecto', element: <CuentasContablesDefecto /> },
+      { path: 'contabilidad/configuracion/cuentas-bancarias', element: <CuentasBancarias /> },
+      { path: 'contabilidad/configuracion/cuentas-iva', element: <CuentasIva /> },
+      { path: 'contabilidad/configuracion/cuentas-impuestos', element: <CuentasImpuestos /> },
+      { path: 'contabilidad/configuracion/cuentas-productos', element: <CuentasProductos /> },
+      { path: 'contabilidad/configuracion/cerrar-cuentas', element: <CerrarCuentas /> },
+      { path: 'contabilidad/configuracion/grupos-personalizados', element: <GruposPersonalizados /> },
+      { path: 'contabilidad/transferencia/facturas-clientes', element: <FacturasClientesHub /> },
+      { path: 'contabilidad/transferencia/facturas-clientes/lineas-a-contabilizar', element: <LineasClientesAContabilizar /> },
+      { path: 'contabilidad/transferencia/facturas-clientes/lineas-contabilizadas', element: <LineasClientesContabilizadas /> },
+      { path: 'contabilidad/transferencia/facturas-proveedores', element: <FacturasProveedoresHub /> },
+      { path: 'contabilidad/transferencia/facturas-proveedores/lineas-a-contabilizar', element: <LineasProveedoresAContabilizar /> },
+      { path: 'contabilidad/transferencia/facturas-proveedores/lineas-contabilizadas', element: <LineasProveedoresContabilizadas /> },
+      { path: 'contabilidad/transferencia/registro/ventas', element: <RegistroVentas /> },
+      { path: 'contabilidad/transferencia/registro/compras', element: <RegistroCompras /> },
+      { path: 'contabilidad/transferencia/registro/banco', element: <RegistroBanco /> },
+      { path: 'contabilidad/transferencia/exportar-documentos', element: <ExportarDocumentosOrigen /> },
       { path: 'financiero/facturas-clientes/nueva', element: <NuevaFacturaCliente /> },
       { path: 'financiero/configuracion/diccionarios', element: <DiccionariosIndex /> },
       { path: 'financiero/configuracion/diccionarios/condiciones-pago', element: <CondicionesPagoDiccionario /> },

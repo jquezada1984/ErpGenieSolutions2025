@@ -176,4 +176,65 @@ module.exports = async function (fastify, opts) {
       reply,
     );
   });
+
+  fastify.get('/contabilidad/exportar', async (request, reply) => {
+    return handle(
+      (req) =>
+        contabilidadPython.listarMovimientosExportar(
+          {
+            desde: req.query.desde,
+            hasta: req.query.hasta,
+            incluir_exportados: req.query.incluir_exportados,
+          },
+          req,
+        ),
+      request,
+      reply,
+    );
+  });
+
+  fastify.post('/contabilidad/exportar/ejecutar', async (request, reply) => {
+    return handle(
+      (req) => contabilidadPython.ejecutarExportacionContabilidad(req.body || {}, req),
+      request,
+      reply,
+    );
+  });
+
+  // Fase 1 — IVA, impuestos, grupos, bancos
+  fastify.get('/cuentas-iva', (req, reply) => handle((r) => contabilidadPython.proxyGet('/api/cuentas-iva', r), req, reply));
+  fastify.post('/cuentas-iva', (req, reply) => handle((r) => contabilidadPython.proxyPost('/api/cuentas-iva', req.body, r), req, reply));
+  fastify.put('/cuentas-iva/:id', (req, reply) => handle((r) => contabilidadPython.proxyPut(`/api/cuentas-iva/${req.params.id}`, req.body, r), req, reply));
+  fastify.delete('/cuentas-iva/:id', (req, reply) => handle((r) => contabilidadPython.proxyDelete(`/api/cuentas-iva/${req.params.id}`, r), req, reply));
+
+  fastify.get('/cuentas-impuestos', (req, reply) => handle((r) => contabilidadPython.proxyGet('/api/cuentas-impuestos', r), req, reply));
+  fastify.post('/cuentas-impuestos', (req, reply) => handle((r) => contabilidadPython.proxyPost('/api/cuentas-impuestos', req.body, r), req, reply));
+  fastify.put('/cuentas-impuestos/:id', (req, reply) => handle((r) => contabilidadPython.proxyPut(`/api/cuentas-impuestos/${req.params.id}`, req.body, r), req, reply));
+  fastify.delete('/cuentas-impuestos/:id', (req, reply) => handle((r) => contabilidadPython.proxyDelete(`/api/cuentas-impuestos/${req.params.id}`, r), req, reply));
+
+  fastify.get('/grupos-cuentas-personalizados', (req, reply) => handle((r) => contabilidadPython.proxyGet('/api/grupos-cuentas-personalizados', r), req, reply));
+  fastify.post('/grupos-cuentas-personalizados', (req, reply) => handle((r) => contabilidadPython.proxyPost('/api/grupos-cuentas-personalizados', req.body, r), req, reply));
+  fastify.put('/grupos-cuentas-personalizados/:id', (req, reply) => handle((r) => contabilidadPython.proxyPut(`/api/grupos-cuentas-personalizados/${req.params.id}`, req.body, r), req, reply));
+  fastify.delete('/grupos-cuentas-personalizados/:id', (req, reply) => handle((r) => contabilidadPython.proxyDelete(`/api/grupos-cuentas-personalizados/${req.params.id}`, r), req, reply));
+  fastify.put('/grupos-cuentas-personalizados/:id/cuentas', (req, reply) => handle((r) => contabilidadPython.proxyPut(`/api/grupos-cuentas-personalizados/${req.params.id}/cuentas`, req.body, r), req, reply));
+
+  fastify.get('/cuentas-bancarias-contables', (req, reply) => handle((r) => contabilidadPython.proxyGet('/api/cuentas-bancarias-contables', r), req, reply));
+  fastify.put('/cuentas-bancarias-contables/:id', (req, reply) => handle((r) => contabilidadPython.proxyPut(`/api/cuentas-bancarias-contables/${req.params.id}`, req.body, r), req, reply));
+
+  // Fase 2-3 — transferencia
+  const transfGet = (path, req) => {
+    const qs = new URLSearchParams(req.query || {}).toString();
+    return contabilidadPython.proxyGet(qs ? `${path}?${qs}` : path, req);
+  };
+  fastify.get('/transferencia-contable/facturas-clientes/resumen', (req, reply) => handle((r) => transfGet('/api/transferencia-contable/facturas-clientes/resumen', r), req, reply));
+  fastify.get('/transferencia-contable/facturas-proveedores/resumen', (req, reply) => handle((r) => transfGet('/api/transferencia-contable/facturas-proveedores/resumen', r), req, reply));
+  fastify.get('/transferencia-contable/facturas-clientes/lineas', (req, reply) => handle((r) => transfGet('/api/transferencia-contable/facturas-clientes/lineas', r), req, reply));
+  fastify.get('/transferencia-contable/facturas-proveedores/lineas', (req, reply) => handle((r) => transfGet('/api/transferencia-contable/facturas-proveedores/lineas', r), req, reply));
+  fastify.post('/transferencia-contable/facturas-clientes/vincular-automatico', (req, reply) => handle((r) => contabilidadPython.proxyPost('/api/transferencia-contable/facturas-clientes/vincular-automatico', req.body, r), req, reply));
+  fastify.post('/transferencia-contable/facturas-proveedores/vincular-automatico', (req, reply) => handle((r) => contabilidadPython.proxyPost('/api/transferencia-contable/facturas-proveedores/vincular-automatico', req.body, r), req, reply));
+  fastify.patch('/transferencia-contable/lineas/vincular', (req, reply) => handle((r) => contabilidadPython.proxyPatch('/api/transferencia-contable/lineas/vincular', req.body, r), req, reply));
+  fastify.patch('/transferencia-contable/lineas/cambiar-cuenta', (req, reply) => handle((r) => contabilidadPython.proxyPatch('/api/transferencia-contable/lineas/cambiar-cuenta', req.body, r), req, reply));
+  fastify.get('/transferencia-contable/registro/:origen/preview', (req, reply) => handle((r) => transfGet(`/api/transferencia-contable/registro/${req.params.origen}/preview`, r), req, reply));
+  fastify.post('/transferencia-contable/registro/:origen', (req, reply) => handle((r) => contabilidadPython.proxyPost(`/api/transferencia-contable/registro/${req.params.origen}`, req.body, r), req, reply));
+  fastify.get('/transferencia-contable/exportar-documentos', (req, reply) => handle((r) => transfGet('/api/transferencia-contable/exportar-documentos', r), req, reply));
 };

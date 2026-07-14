@@ -1,31 +1,47 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn } from 'typeorm';
+import { ObjectType, Field, ID, Float, GraphQLISODateTime, Int } from '@nestjs/graphql';
 
+@ObjectType()
 @Entity('movimiento_contable')
 export class MovimientoContable {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @Field(() => ID)
+  @PrimaryColumn('uuid')
+  id_movimiento_contable: string;
 
-  @Column()
-  asiento_contable_id: number;
+  @Field(() => ID)
+  @Column({ type: 'uuid' })
+  id_asiento_contable: string;
 
-  @Column()
-  cuenta_contable_id: number;
+  @Field(() => ID)
+  @Column({ type: 'uuid' })
+  id_cuenta_contable: string;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
-  debe: number;
-
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
-  haber: number;
-
-  @Column({ length: 500, nullable: true })
+  @Field(() => String)
+  @Column({ type: 'text' })
   concepto: string;
 
-  @Column({ nullable: true })
-  documento_referencia: string;
+  @Field(() => Float)
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  debe: number;
+
+  @Field(() => Float)
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  haber: number;
+
+  @Field(() => Int)
+  @Column({ type: 'int' })
+  orden: number;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  @Column({ type: 'timestamp without time zone', nullable: true })
+  fecha_exportacion: Date | null;
+
+  @Field(() => String, { nullable: true })
+  codigo_cuenta?: string | null;
+
+  @Field(() => String, { nullable: true })
+  nombre_cuenta?: string | null;
 
   @CreateDateColumn()
   created_at: Date;
-
-  @UpdateDateColumn()
-  updated_at: Date;
 }

@@ -1,9 +1,9 @@
-import { ObjectType, Field, Float } from '@nestjs/graphql';
+import { ObjectType, Field, Float, ID } from '@nestjs/graphql';
 
 @ObjectType()
 export class BalanceComprobacionRow {
-  @Field(() => Number)
-  cuenta_id: number;
+  @Field(() => ID)
+  cuenta_id: string;
 
   @Field()
   codigo: string;

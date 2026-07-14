@@ -37,6 +37,11 @@ UPDATABLE_FIELDS = {
     'separador_columnas',
     'tipo_retorno_carro',
     'formato_fecha_exportacion',
+    'id_cuenta_resultado_ganancia',
+    'id_cuenta_resultado_perdida',
+    'id_diario_cierre',
+    'grupos_cuenta_balance',
+    'grupos_cuenta_resultado',
 }
 
 

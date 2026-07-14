@@ -78,3 +78,67 @@ export const inicializarCuentasContablesDefecto = async () =>
 
 export const guardarCuentasContablesDefecto = async (items) =>
   unwrap(await apiClient.put('/cuentas-contables-defecto', { items }));
+
+export const listarMovimientosExportar = async (params = {}) => {
+  const res = await apiClient.get('/contabilidad/exportar', { params });
+  const body = unwrap(res);
+  if (Array.isArray(body)) return body;
+  return body?.data ?? [];
+};
+
+export const ejecutarExportacionContabilidad = async (payload) =>
+  unwrap(await apiClient.post('/contabilidad/exportar/ejecutar', payload));
+
+export const actualizarConfiguracionContabilidad = async (payload) =>
+  unwrap(await apiClient.put('/configuracion-contabilidad', payload));
+
+export const listarCuentasIva = async () => unwrap(await apiClient.get('/cuentas-iva'));
+export const crearCuentaIva = async (payload) => unwrap(await apiClient.post('/cuentas-iva', payload));
+export const actualizarCuentaIva = async (id, payload) => unwrap(await apiClient.put(`/cuentas-iva/${id}`, payload));
+export const eliminarCuentaIva = async (id) => unwrap(await apiClient.delete(`/cuentas-iva/${id}`));
+
+export const listarCuentasImpuestos = async () => unwrap(await apiClient.get('/cuentas-impuestos'));
+export const crearCuentaImpuesto = async (payload) => unwrap(await apiClient.post('/cuentas-impuestos', payload));
+export const actualizarCuentaImpuesto = async (id, payload) => unwrap(await apiClient.put(`/cuentas-impuestos/${id}`, payload));
+export const eliminarCuentaImpuesto = async (id) => unwrap(await apiClient.delete(`/cuentas-impuestos/${id}`));
+
+export const listarGruposCuentas = async () => unwrap(await apiClient.get('/grupos-cuentas-personalizados'));
+export const crearGrupoCuentas = async (payload) => unwrap(await apiClient.post('/grupos-cuentas-personalizados', payload));
+export const actualizarGrupoCuentas = async (id, payload) => unwrap(await apiClient.put(`/grupos-cuentas-personalizados/${id}`, payload));
+export const eliminarGrupoCuentas = async (id) => unwrap(await apiClient.delete(`/grupos-cuentas-personalizados/${id}`));
+export const asignarCuentasGrupo = async (id, ids_cuentas_contables) =>
+  unwrap(await apiClient.put(`/grupos-cuentas-personalizados/${id}/cuentas`, { ids_cuentas_contables }));
+
+export const actualizarCuentaBancariaContable = async (id, payload) =>
+  unwrap(await apiClient.put(`/cuentas-bancarias-contables/${id}`, payload));
+
+export const vincularAutomaticoClientes = async (anio) =>
+  unwrap(await apiClient.post('/transferencia-contable/facturas-clientes/vincular-automatico', { anio }));
+export const vincularAutomaticoProveedores = async (anio) =>
+  unwrap(await apiClient.post('/transferencia-contable/facturas-proveedores/vincular-automatico', { anio }));
+export const vincularLineasFactura = async (ids_lineas, id_cuenta_contable) =>
+  unwrap(await apiClient.patch('/transferencia-contable/lineas/vincular', { ids_lineas, id_cuenta_contable }));
+export const cambiarCuentaLineas = async (ids_lineas, id_cuenta_contable) =>
+  unwrap(await apiClient.patch('/transferencia-contable/lineas/cambiar-cuenta', { ids_lineas, id_cuenta_contable }));
+export const ejecutarRegistroContable = async (origen, payload) =>
+  unwrap(await apiClient.post(`/transferencia-contable/registro/${origen}`, payload));
+export const exportarDocumentosOrigen = async (params) =>
+  unwrap(await apiClient.get('/transferencia-contable/exportar-documentos', { params }));
+
+export const listarLineasFacturaClientes = async (anio, vinculadas = false) => {
+  const res = await apiClient.get('/transferencia-contable/facturas-clientes/lineas', {
+    params: { anio, vinculadas },
+  });
+  const body = unwrap(res);
+  if (Array.isArray(body)) return body;
+  return body?.data ?? [];
+};
+
+export const listarLineasFacturaProveedores = async (anio, vinculadas = false) => {
+  const res = await apiClient.get('/transferencia-contable/facturas-proveedores/lineas', {
+    params: { anio, vinculadas },
+  });
+  const body = unwrap(res);
+  if (Array.isArray(body)) return body;
+  return body?.data ?? [];
+};

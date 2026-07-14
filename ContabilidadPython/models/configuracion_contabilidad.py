@@ -46,5 +46,11 @@ class ConfiguracionContabilidad(db.Model):
     tipo_retorno_carro = db.Column(db.String(10), nullable=False, default='unix')
     formato_fecha_exportacion = db.Column(db.String(20), nullable=False, default='%Y-%m-%d')
 
+    id_cuenta_resultado_ganancia = db.Column(db.String(36), nullable=True)
+    id_cuenta_resultado_perdida = db.Column(db.String(36), nullable=True)
+    id_diario_cierre = db.Column(db.String(36), nullable=True)
+    grupos_cuenta_balance = db.Column(db.Text, nullable=True)
+    grupos_cuenta_resultado = db.Column(db.Text, nullable=True)
+
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
