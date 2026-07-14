@@ -201,6 +201,7 @@ export interface UsePermissionsReturn {
   cargarPermisos: (id_perfil: string) => Promise<void>;
   cargarMenuLateral: (id_perfil: string) => Promise<void>;
   cargarMenuLateralOrdenado: (id_seccion: string) => Promise<void>;
+  limpiarMenuLateralOrdenado: () => void;
   cargarOpcionesMenuSuperior: (id_perfil: string) => Promise<void>;
   cargarPerfilCompleto: (id_perfil: string) => Promise<void>;
   
@@ -222,10 +223,21 @@ export const usePermissions = (): UsePermissionsReturn => {
 
 
   // Queries GraphQL usando el cliente específico para permisos (MenuNestJs)
-  const [getPermisosPorPerfil, { loading: loadingPermisos }] = useLazyQuery(GET_PERMISOS_POR_PERFIL, { client: menuClient });
-  const [getMenuLateralPorPerfil, { loading: loadingMenuLateral }] = useLazyQuery(GET_MENU_LATERAL_POR_PERFIL, { client: menuClient });
-  const [getMenuLateralOrdenadoQuery, { loading: loadingMenuLateralOrdenado }] = useLazyQuery(GET_MENU_LATERAL_ORDENADO, { client: menuClient });
-  const [getOpcionesMenuSuperior, { loading: loadingOpciones }] = useLazyQuery(GET_OPCIONES_MENU_SUPERIOR, { client: menuClient });
+  const [getPermisosPorPerfil, { loading: loadingPermisos }] = useLazyQuery(GET_PERMISOS_POR_PERFIL, {
+    client: menuClient,
+  });
+  const [getMenuLateralPorPerfil, { loading: loadingMenuLateral }] = useLazyQuery(GET_MENU_LATERAL_POR_PERFIL, {
+    client: menuClient,
+    fetchPolicy: 'network-only',
+  });
+  const [getMenuLateralOrdenadoQuery, { loading: loadingMenuLateralOrdenado }] = useLazyQuery(GET_MENU_LATERAL_ORDENADO, {
+    client: menuClient,
+    fetchPolicy: 'network-only',
+  });
+  const [getOpcionesMenuSuperior, { loading: loadingOpciones }] = useLazyQuery(GET_OPCIONES_MENU_SUPERIOR, {
+    client: menuClient,
+    fetchPolicy: 'network-only',
+  });
   const [getPerfilConPermisos, { loading: loadingPerfil }] = useLazyQuery(GET_PERFIL_CON_PERMISOS, { client: menuClient });
   const [getIdSeccionPorNombreQuery] = useLazyQuery(GET_ID_SECCION_POR_NOMBRE, { client: menuClient });
 
@@ -248,17 +260,20 @@ export const usePermissions = (): UsePermissionsReturn => {
     }
   }, [getPermisosPorPerfil]);
 
-  // Cargar menú lateral por perfil (usa caché si está disponible)
+  // Cargar menú lateral por perfil (no vacía el árbol ordenado: eso lo controla el Sidebar)
   const cargarMenuLateral = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      const { data } = await getMenuLateralPorPerfil({ variables: { id_perfil }, fetchPolicy: 'cache-first' });
+      const { data } = await getMenuLateralPorPerfil({ variables: { id_perfil } });
       
       if (data?.menuLateralPorPerfil) {
         setMenuLateral(data.menuLateralPorPerfil);
+      } else {
+        setMenuLateral([]);
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar menú lateral');
+      setMenuLateral([]);
     }
   }, [getMenuLateralPorPerfil]);
 
@@ -278,27 +293,35 @@ export const usePermissions = (): UsePermissionsReturn => {
       setError(null);
       const { data, error } = await getMenuLateralOrdenadoQuery({
         variables: { id_seccion },
-        fetchPolicy: 'cache-first'
       });
       if (error) throw new Error(error.message);
       const menu = data?.menuLateralOrdenado;
       if (menu) setMenuLateralOrdenado([menu]);
+      else setMenuLateralOrdenado([]);
     } catch (err: any) {
       setError(err.message || 'Error al cargar menú lateral ordenado');
+      setMenuLateralOrdenado([]);
     }
   }, [getMenuLateralOrdenadoQuery]);
 
-  // Cargar opciones del menú superior (usa caché si está disponible)
+  const limpiarMenuLateralOrdenado = useCallback(() => {
+    setMenuLateralOrdenado([]);
+  }, []);
+
+  // Cargar opciones del menú superior
   const cargarOpcionesMenuSuperior = useCallback(async (id_perfil: string) => {
     try {
       setError(null);
-      const { data } = await getOpcionesMenuSuperior({ variables: { id_perfil }, fetchPolicy: 'cache-first' });
+      const { data } = await getOpcionesMenuSuperior({ variables: { id_perfil } });
       
       if (data?.opcionesMenuSuperior) {
         setOpcionesMenuSuperior(data.opcionesMenuSuperior);
+      } else {
+        setOpcionesMenuSuperior([]);
       }
     } catch (err: any) {
       setError(err.message || 'Error al cargar opciones del menú superior');
+      setOpcionesMenuSuperior([]);
     }
   }, [getOpcionesMenuSuperior]);
 
@@ -363,6 +386,7 @@ export const usePermissions = (): UsePermissionsReturn => {
     cargarMenuLateral,
     getIdSeccionPorNombre,
     cargarMenuLateralOrdenado,
+    limpiarMenuLateralOrdenado,
     cargarOpcionesMenuSuperior,
     cargarPerfilCompleto,
     

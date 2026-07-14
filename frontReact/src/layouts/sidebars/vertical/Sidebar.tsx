@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Button, Nav } from 'reactstrap';
 import { useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -8,11 +8,31 @@ import { ToggleMobileSidebar } from '../../../store/customizer/CustomizerSlice';
 import NavItemContainer from './NavItemContainer';
 import NavSubMenu from './NavSubMenu';
 import store from '../../../store/Store';
-import { usePermissions } from '../../../components/authGurad/usePermissions';
+import {
+  usePermissions,
+  type MenuItemOrdenado,
+} from '../../../components/authGurad/usePermissions';
 import useAuth from '../../../components/authGurad/useAuth';
 import * as Icon from "react-feather";
 
 type RootState = ReturnType<typeof store.getState>;
+
+/** Filtra el árbol del sidebar a ítems permitidos (perfil_menu_permiso vía menuLateralPorPerfil). */
+function filtrarItemsPorPermiso(
+  items: MenuItemOrdenado[],
+  permitidos: Set<string>
+): MenuItemOrdenado[] {
+  return items
+    .map((item) => {
+      const children = item.children?.length
+        ? filtrarItemsPorPermiso(item.children, permitidos)
+        : [];
+      const selfOk = permitidos.has(item.id_item);
+      if (!selfOk && children.length === 0) return null;
+      return { ...item, children };
+    })
+    .filter((item): item is MenuItemOrdenado => item != null);
+}
 
 const Sidebar = () => {
   const location = useLocation();
@@ -24,23 +44,79 @@ const Sidebar = () => {
   const dispatch = useDispatch();
   const selectedMenu = useSelector((state: RootState) => state.mainMenu.selected);
 
-  // selectedMenu = id_seccion (UUID). Todo el contenido viene de BD.
+  // selectedMenu = id_seccion (UUID). Ítems solo si la sección está permitida por perfil.
   const {
+    menuLateral,
     menuLateralOrdenado,
+    cargarMenuLateral,
     cargarMenuLateralOrdenado,
+    limpiarMenuLateralOrdenado,
     loading: loadingPermisos
   } = usePermissions();
 
-  // Cargar ítems y submenús de la sección seleccionada (100% desde BD)
+  // Secciones con permiso para este perfil (solo al cambiar perfil)
   useEffect(() => {
-    if (!user?.id_perfil || !selectedMenu) return;
+    if (!user?.id_perfil) {
+      limpiarMenuLateralOrdenado();
+      return;
+    }
+    // Evitar ítems del perfil anterior mientras llega menuLateralPorPerfil
+    limpiarMenuLateralOrdenado();
+    cargarMenuLateral(user.id_perfil);
+    // Intencionalmente solo id_perfil: evitar re-fetch por identidad inestable de useLazyQuery
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id_perfil]);
+
+  const seccionPermitida = useMemo(
+    () => (selectedMenu ? menuLateral.find((s) => s.id_seccion === selectedMenu) : undefined),
+    [menuLateral, selectedMenu]
+  );
+
+  const idsPermitidos = useMemo(() => {
+    if (!seccionPermitida?.items?.length) return new Set<string>();
+    return new Set(seccionPermitida.items.map((i) => i.id_item));
+  }, [seccionPermitida]);
+
+  // Cargar árbol solo cuando hay sección seleccionada Y está en el menú permitido del perfil.
+  // No depender de `loading`: eso re-disparaba la query en bucle (spinner eterno).
+  useEffect(() => {
+    if (!user?.id_perfil || !selectedMenu) {
+      limpiarMenuLateralOrdenado();
+      return;
+    }
+    // Aún no llegó menuLateralPorPerfil: esperar (sin limpiar en bucle)
+    if (menuLateral.length === 0) return;
+
+    const permitida = menuLateral.some((s) => s.id_seccion === selectedMenu);
+    if (!permitida) {
+      limpiarMenuLateralOrdenado();
+      return;
+    }
     cargarMenuLateralOrdenado(selectedMenu);
-  }, [selectedMenu, user?.id_perfil, cargarMenuLateralOrdenado]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMenu, user?.id_perfil, menuLateral]);
 
   const menuOrdenadoActual = menuLateralOrdenado[0];
-  const esMenuDeSeccionActual = menuOrdenadoActual && menuOrdenadoActual.id_seccion === selectedMenu;
+  const esMenuDeSeccionActual =
+    !!selectedMenu &&
+    !!seccionPermitida &&
+    !!menuOrdenadoActual &&
+    menuOrdenadoActual.id_seccion === selectedMenu;
 
-  const convertirItemsADatosSidebar = (items: typeof menuOrdenadoActual.items, iconoDefault: React.ReactNode) =>
+  const itemsFiltrados = useMemo(() => {
+    if (!esMenuDeSeccionActual || !menuOrdenadoActual?.items?.length) return [];
+    return filtrarItemsPorPermiso(menuOrdenadoActual.items, idsPermitidos);
+  }, [esMenuDeSeccionActual, menuOrdenadoActual, idsPermitidos]);
+
+  // Spinner solo mientras falta contenido de una sección que sí está permitida
+  const mostrarCargandoMenu =
+    !!user?.id_perfil &&
+    !!selectedMenu &&
+    !!seccionPermitida &&
+    !esMenuDeSeccionActual &&
+    loadingPermisos;
+
+  const convertirItemsADatosSidebar = (items: MenuItemOrdenado[], iconoDefault: React.ReactNode) =>
     items.map(item => {
       const hasChildren = item.children && item.children.length > 0;
       if (hasChildren) {
@@ -73,14 +149,14 @@ const Sidebar = () => {
       };
     });
 
-  // Contenido 100% desde BD: caption = nombre de la sección; ítems = menu_item + hijos
+  // Caption + ítems filtrados por permiso; layout del sidebar sigue visible
   let sidebarItems: Array<{ caption?: string; title?: string; icon?: React.ReactNode; id?: string; href?: string; children?: Array<{ title: string; href: string; icon: React.ReactNode }> }> = [];
 
   if (esMenuDeSeccionActual && menuOrdenadoActual) {
     const caption = menuOrdenadoActual.nombre;
     sidebarItems = [{ caption }];
-    if (menuOrdenadoActual.items?.length) {
-      sidebarItems.push(...convertirItemsADatosSidebar(menuOrdenadoActual.items, <Icon.Menu size={16} />));
+    if (itemsFiltrados.length) {
+      sidebarItems.push(...convertirItemsADatosSidebar(itemsFiltrados, <Icon.Menu size={16} />));
     }
   }
 
@@ -98,7 +174,7 @@ const Sidebar = () => {
         </div>
         {/********Sidebar Content*******/}
         <div className="p-3 pt-1 mt-2">
-          {loadingPermisos ? (
+          {mostrarCargandoMenu ? (
             <div className="text-center py-4">
               <div className="spinner-border text-primary" role="status">
                 <span className="visually-hidden">Cargando...</span>
