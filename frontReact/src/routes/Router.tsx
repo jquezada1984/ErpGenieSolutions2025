@@ -52,6 +52,8 @@ const EditarClientePotencial = Loadable(lazy(() => import('../views/terceros/Edi
 const Proveedores = Loadable(lazy(() => import('../views/terceros/Proveedores')));
 const NuevoProveedor = Loadable(lazy(() => import('../views/terceros/NuevoProveedor')));
 const EditarProveedor = Loadable(lazy(() => import('../views/terceros/EditarProveedor')));
+const Socios = Loadable(lazy(() => import('../views/socios/Socios')));
+const SocioForm = Loadable(lazy(() => import('../views/socios/SocioForm')));
 const Contactos = Loadable(lazy(() => import('../views/terceros/contactos/Contactos')));
 const NuevoContacto = Loadable(lazy(() => import('../views/terceros/contactos/NuevoContacto')));
 const EditarContacto = Loadable(lazy(() => import('../views/terceros/contactos/EditarContacto')));
@@ -107,7 +109,22 @@ const EditarProducto = Loadable(lazy(() => import('../views/items/productos/Edit
 const Servicios = Loadable(lazy(() => import('../views/items/servicios/Servicios')));
 const NuevoServicio = Loadable(lazy(() => import('../views/items/servicios/NuevoServicio')));
 const EditarServicio = Loadable(lazy(() => import('../views/items/servicios/EditarServicio')));
+const NuevoInventario = Loadable(lazy(() => import('../views/items/inventarios/NuevoInventario')));
+const EditarInventario = Loadable(lazy(() => import('../views/items/inventarios/EditarInventario')));
+const Inventarios = Loadable(lazy(() => import('../views/items/inventarios/Inventarios')));
 const Documentos = Loadable(lazy(() => import('../views/documentos/Documentos')));
+const CuentasBancarias = Loadable(lazy(() => import('../views/banco-cajas/CuentasBancarias')));
+const NuevoCuentaBancaria = Loadable(lazy(() => import('../views/banco-cajas/NuevoCuentaBancaria')));
+const EditarCuentaBancaria = Loadable(lazy(() => import('../views/banco-cajas/EditarCuentaBancaria')));
+const BancosCatalogo = Loadable(lazy(() => import('../views/banco-cajas/Bancos')));
+const MovimientosCuenta = Loadable(lazy(() => import('../views/banco-cajas/MovimientosCuenta')));
+const NuevoMovimientoBancario = Loadable(
+  lazy(() => import('../views/banco-cajas/NuevoMovimientoBancario')),
+);
+const Transferencias = Loadable(lazy(() => import('../views/banco-cajas/Transferencias')));
+const NuevaTransferencia = Loadable(
+  lazy(() => import('../views/banco-cajas/NuevaTransferencia')),
+);
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
@@ -170,6 +187,9 @@ const ThemeRoutes: RouteType[] = [
       { path: 'proveedores', element: <Proveedores /> },
       { path: 'proveedores/nuevo', element: <NuevoProveedor /> },
       { path: 'proveedores/editar/:id', element: <EditarProveedor /> },
+      { path: 'socios', element: <Socios /> },
+      { path: 'socios/nuevo', element: <SocioForm /> },
+      { path: 'socios/:id/editar', element: <SocioForm /> },
       { path: 'terceros/:id/contactos', element: <Contactos /> },
       { path: 'terceros/:id/contactos/nuevo', element: <NuevoContacto /> },
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
@@ -230,7 +250,32 @@ const ThemeRoutes: RouteType[] = [
         ],
       },
       { path: 'documentos', element: <Documentos /> },
-      { path: '*', element: <Error404 /> },
+      { path: 'banco-cajas/cuentas', element: <CuentasBancarias /> },
+      { path: 'banco-cajas/cuentas/nuevo', element: <NuevoCuentaBancaria /> },
+      { path: 'banco-cajas/cuentas/editar/:id', element: <EditarCuentaBancaria /> },
+      { path: 'banco-cajas/bancos', element: <BancosCatalogo /> },
+      { path: 'banco-cajas/cuentas/:id/movimientos', element: <MovimientosCuenta /> },
+      {
+        path: 'banco-cajas/cuentas/:id/movimientos/nuevo',
+        element: <NuevoMovimientoBancario />,
+      },
+      { path: 'banco-cajas/transferencias', element: <Transferencias /> },
+      { path: 'banco-cajas/transferencias/nuevo', element: <NuevaTransferencia /> },
+
+      { path: 'items/productos', element: <Productos /> },
+      { path: 'items/productos/stocks', element: <ProductosStocks /> },
+      { path: 'items/productos/stocks-lotes', element: <ProductosStocksLotes /> },
+      { path: 'items/productos/lotes', element: <ProductosLotes /> },
+      { path: 'items/productos/atributos', element: <ProductosAtributos /> },
+      { path: 'items/productos/estadisticas', element: <ProductosEstadisticas /> },
+      { path: 'items/productos/nuevo', element: <NuevoProducto /> },
+      { path: 'items/productos/editar/:id', element: <EditarProducto /> },
+      { path: 'items/servicios', element: <Servicios /> },
+      { path: 'items/servicios/nuevo', element: <NuevoServicio /> },
+      { path: 'items/servicios/editar/:id', element: <EditarServicio /> },
+      { path: 'items/inventarios', element: <Inventarios /> },
+      { path: 'items/inventarios/nuevo', element: <NuevoInventario /> },
+      { path: 'items/inventarios/editar/:id', element: <EditarInventario /> },      { path: '*', element: <Error404 /> },
     ],
   },
   {

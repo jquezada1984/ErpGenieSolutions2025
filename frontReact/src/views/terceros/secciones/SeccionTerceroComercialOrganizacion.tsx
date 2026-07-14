@@ -41,7 +41,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
       condicionesPago {
         id_condicion_pago
         etiqueta
-        descripcion
+        etiqueta
       }
     }
   `;
@@ -51,7 +51,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
       formasPago {
         id_forma_pago
         etiqueta
-        descripcion
+        etiqueta
       }
     }
   `;
@@ -98,7 +98,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
   const { data: condicionesData, loading: loadingCondiciones, error: errorCondiciones } = useQuery(GET_CONDICIONES_PAGO);
   const { data: formasData, loading: loadingFormas, error: errorFormas } = useQuery(GET_FORMAS_PAGO);
   const { data: empresasData, loading: loadingEmpresas, error: errorEmpresas } = useQuery(GET_EMPRESAS);
-  const { data: tamanosEmpresaData } = useQuery(GET_TAMANOS_EMPRESA);
+  const { data: tamanosEmpresaData, loading: loadingTamanosEmpresa, error: errorTamanosEmpresa } = useQuery(GET_TAMANOS_EMPRESA);
   const {
     data: representantesData,
     loading: loadingRepresentantes,
@@ -212,6 +212,11 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
             </FormGroup>
           </Col>
           <Col md={4}>
+            {errorTamanosEmpresa && (
+              <div className="alert alert-danger">
+                <strong>Error cargando tamaños de empresa:</strong> {errorTamanosEmpresa.message}
+              </div>
+            )}
             <FormGroup>
               <Label htmlFor="id_tamano_empresa">Tamaño de empresa</Label>
               <SelectTamanoEmpresa
@@ -222,6 +227,8 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
                   onChange(u);
                 }}
                 tamanos={tamanosEmpresa}
+                isLoading={loadingTamanosEmpresa}
+                isDisabled={loadingTamanosEmpresa}
                 placeholder="Seleccionar"
               />
             </FormGroup>

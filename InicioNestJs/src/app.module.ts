@@ -37,6 +37,7 @@ import { MenuSeccion, MenuItem } from './entities/menu.entity';
 import { PerfilMenuPermiso } from './entities/perfil-menu-permiso.entity';
 import { CondicionPago } from './entities/condicion-pago.entity';
 import { FormaPago } from './entities/forma-pago.entity';
+import { TamanoEmpresa } from './entities/tamano-empresa.entity';
 import { Impuesto } from './entities/impuesto.entity';
 import { CuentaContable } from './entities/cuenta-contable.entity';
 import { TipoItemCatalogo } from './entities/tipo-item-catalogo.entity';
@@ -58,6 +59,7 @@ import { ProvinciaResolver } from './resolvers/provincia.resolver';
 import { AlmacenResolver } from './resolvers/almacen.resolver';
 import { UnidadResolver } from './resolvers/unidad.resolver';
 import { CatalogosPagoResolver } from './resolvers/catalogos-pago.resolver';
+import { TamanoEmpresaResolver } from './resolvers/tamano-empresa.resolver';
 import { TipoEntidadComercialResolver } from './resolvers/tipo-entidad-comercial.resolver';
 import { ImpuestoResolver } from './resolvers/impuesto.resolver';
 import { CuentaContableResolver } from './resolvers/cuenta-contable.resolver';
@@ -75,6 +77,7 @@ import { ImpuestoService } from './services/impuesto.service';
 import { CuentaContableService } from './services/cuenta-contable.service';
 import { TipoItemCatalogoService } from './services/tipo-item-catalogo.service';
 import { DuracionUnidadCatalogoService } from './services/duracion-unidad-catalogo.service';
+import { TamanoEmpresaService } from './services/tamano-empresa.service';
 import { AutorizacionService } from './services/autorizacion.service';
 
 @Module({
@@ -104,6 +107,11 @@ import { AutorizacionService } from './services/autorizacion.service';
         CondicionPago,
         FormaPago,
         FormatoPapel,
+        TamanoEmpresa,
+        Impuesto,
+        CuentaContable,
+        TipoItemCatalogo,
+        DuracionUnidadCatalogo,
       ],
       synchronize: false, // Deshabilitado para evitar conflictos con datos existentes
       ssl: {
@@ -131,6 +139,7 @@ import { AutorizacionService } from './services/autorizacion.service';
       PerfilMenuPermiso,
       CondicionPago,
       FormaPago,
+      TamanoEmpresa,
         Impuesto,
         CuentaContable,
         TipoItemCatalogo,
@@ -165,6 +174,7 @@ import { AutorizacionService } from './services/autorizacion.service';
       AlmacenResolver,
       UnidadResolver,
       CatalogosPagoResolver,
+      TamanoEmpresaResolver,
       TipoEntidadComercialResolver,
       ImpuestoResolver,
       CuentaContableResolver,
@@ -181,6 +191,7 @@ import { AutorizacionService } from './services/autorizacion.service';
       CuentaContableService,
       TipoItemCatalogoService,
       DuracionUnidadCatalogoService,
+      TamanoEmpresaService,
       AutorizacionService,
     ],
 })

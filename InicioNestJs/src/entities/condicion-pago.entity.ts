@@ -1,5 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { Field, Float, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, ID, Int, Int, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 @Entity('condicion_pago_catalogo')

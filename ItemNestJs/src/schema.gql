@@ -1,0 +1,146 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type DuracionUnidadCatalogo {
+  codigo: String!
+  id_duration_unit: ID!
+  nombre: String!
+  orden: Int
+}
+
+type EmpresaItemRef {
+  id_empresa: ID!
+  nombre: String!
+}
+
+type EstadoCompraItem {
+  codigo: String!
+  descripcion: String
+  id_estado_compra: ID!
+  nombre: String!
+  orden: Int
+}
+
+type EstadoVentaItem {
+  codigo: String!
+  descripcion: String
+  id_estado_venta: ID!
+  nombre: String!
+  orden: Int
+}
+
+type Item {
+  codigo_barras: String
+  duracionUnidad: DuracionUnidadCatalogo
+  duration_value: Int
+  empresa: EmpresaItemRef
+  estado: Boolean!
+  estadoCompra: EstadoCompraItem
+  estadoVenta: EstadoVentaItem
+  etiqueta: String!
+  id_empresa: ID!
+  id_item: ID!
+  precio_compra: Float
+  precio_venta: Float
+  producto_ref: String
+  stock_deseado: Float
+  stock_minimo_alerta: Float
+}
+
+type ItemDetalleEdicion {
+  altura: Float
+  anchura: Float
+  codigo_barras: String
+  descripcion: String
+  estado: Boolean!
+  etiqueta: String!
+  id_almacen_defecto: ID
+  id_categoria_item: ID
+  id_cuenta_compra: ID
+  id_cuenta_compra_importacion: ID
+  id_cuenta_compra_intracomunitaria: ID
+  id_cuenta_venta: ID
+  id_cuenta_venta_exportacion: ID
+  id_cuenta_venta_intracomunitaria: ID
+  id_empresa: ID!
+  id_estado_compra: ID
+  id_estado_venta: ID
+  id_item: ID!
+  id_naturaleza_item: ID
+  id_pais: ID
+  id_provincia: ID
+  id_tipo_comportamiento: ID
+  id_tipo_control_caducidad: ID
+  id_tipo_control_inventario: ID
+  id_tipo_item: ID
+  id_unidad_longitud: ID
+  id_unidad_medida: ID
+  id_unidad_peso: ID
+  id_unidad_superficie: ID
+  id_unidad_volumen: ID
+  impuesto_id: String
+  inventariable: Boolean
+  longitud: Float
+  nomenclatura_aduanera: String
+  nota_interna: String
+  peso: Float
+  poblacion: String
+  precio_compra: Float
+  precio_minimo: Float
+  precio_venta: Float
+  producto_ref: String
+  stock_deseado: Float
+  stock_minimo_alerta: Float
+  superficie: Float
+  url_publica: String
+  volumen: Float
+}
+
+type Mutation {
+  actualizarEstadoInventario(estado: Boolean!, id_inventario: ID!): Boolean!
+  actualizarEstadoItem(estado: Boolean!, id_item: ID!): Boolean!
+}
+
+type NaturalezaItem {
+  codigo: String!
+  descripcion: String
+  id_naturaleza_item: ID!
+  nombre: String!
+  orden: Int
+}
+
+type Query {
+  estadosCompraItem: [EstadoCompraItem!]!
+  estadosVentaItem: [EstadoVentaItem!]!
+  itemDetalleEdicion(id_item: ID!): ItemDetalleEdicion
+  itemsListado(codigo_barras: String, codigo_tipo_item: String, etiqueta: String, id_empresa: ID, id_estado_compra: ID, id_estado_venta: ID, producto_ref: String): [Item!]!
+  naturalezasItem: [NaturalezaItem!]!
+  tiposComportamientoItem: [TipoComportamientoItem!]!
+  tiposControlCaducidadItem: [TipoControlCaducidadItem!]!
+  tiposControlInventarioItem: [TipoControlInventarioItem!]!
+}
+
+type TipoComportamientoItem {
+  codigo: String!
+  descripcion: String
+  id_tipo_comportamiento: ID!
+  nombre: String!
+  orden: Int
+}
+
+type TipoControlCaducidadItem {
+  codigo: String!
+  descripcion: String
+  id_tipo_control_caducidad: ID!
+  nombre: String!
+  orden: Int!
+}
+
+type TipoControlInventarioItem {
+  codigo: String!
+  descripcion: String
+  id_tipo_control_inventario: ID!
+  nombre: String!
+  orden: Int!
+}

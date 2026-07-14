@@ -1,9 +1,20 @@
 const axios = require('axios');
 const {
-  isProduction,
-  buildGraphqlProxyErrorReply,
-  buildGraphqlHealthErrorReply,
+    isProduction,
+    buildGraphqlProxyErrorReply,
+    buildGraphqlHealthErrorReply,
 } = require('../utils/sanitize-gateway-error');
+
+function forwardGraphqlHeaders(request) {
+  const req = request || {};
+  const h = req.headers || {};
+  return {
+    'Content-Type': 'application/json',
+    'X-Company-Id': h['x-company-id'] || h['X-Company-Id'] || '',
+    'X-User-Id': h['x-user-id'] || h['X-User-Id'] || '',
+    Authorization: h.authorization || h.Authorization || '',
+  };
+}
 
 // Función para determinar el servicio objetivo basado en la consulta
 const getTargetService = (query, config) => {
@@ -24,6 +35,18 @@ const getTargetService = (query, config) => {
     console.log('🔄 Redirigiendo mutación actualizarEstadoItem a ItemNestJs');
     return config.itemNestJsService;
   }
+
+  // Catálogos generales en InicioNestJs (países, provincias, monedas)
+  if (query && (
+    query.includes('provinciasByPais') ||
+    query.includes('provincias') ||
+    query.includes('paises') ||
+    query.includes('monedas')
+  )) {
+    console.log('🔄 Redirigiendo catálogo países/provincias/monedas a InicioNestJs');
+    return config.nestjsService;
+  }
+  
 
   // Financiero (facturas cliente, cuentas bancarias por empresa, catálogos Fin*)
   if (query && (
@@ -78,6 +101,10 @@ const getTargetService = (query, config) => {
     query.includes('incoterms') ||
     query.includes('tiposTercero') ||
     query.includes('representantesPorEmpresa') ||
+    query.includes('rolesSocio') ||
+    query.includes('tercerosDisponiblesParaSocio') ||
+    query.includes('socios') ||
+    query.includes('socio(') ||
     query.includes('terceros') ||
     query.includes('tercero(') ||
     query.includes('clientes') ||
@@ -88,6 +115,21 @@ const getTargetService = (query, config) => {
     return config.terceroNestJsService;
   }
   
+  // Banco / Cajas (BancoCajaNestJs)
+  if (query && (
+    query.includes('bancos') ||
+    query.includes('banco(') ||
+    query.includes('cuentasBancarias') ||
+    query.includes('cuentaBancaria(') ||
+    query.includes('movimientosBancarios') ||
+    query.includes('movimientoBancario(') ||
+    query.includes('transferenciasBancarias') ||
+    query.includes('transferenciaBancaria(')
+  )) {
+    console.log('🔄 Redirigiendo consulta banco-caja a BancoCajaNestJs');
+    return config.bancoCajaNestJsService;
+  }
+
   // Verificar si es una consulta de catálogos del módulo item (ItemNestJs)
   if (query && (
     query.includes('itemDetalleEdicion') ||
@@ -118,6 +160,16 @@ const getTargetService = (query, config) => {
   if (query && (query.includes('tiposUnidad') || query.includes('unidades'))) {
     console.log('🔄 Redirigiendo consulta de unidades a InicioNestJs');
     return config.nestjsService;
+  }
+
+  // Módulo inventario físico (InventarioNestJs)
+  if (query && (
+    query.includes('inventariosListado') ||
+    query.includes('inventarioPorId') ||
+    query.includes('actualizarEstadoInventario')
+  )) {
+    console.log('🔄 Redirigiendo consulta de inventario a InventarioNestJs');
+    return config.inventarioNestJsService;
   }
 
   // Luego verificar si es una consulta específica de menús y permisos
@@ -157,6 +209,7 @@ async function executeGraphQLQuery(query, variables, operationName, context, con
       headers: {
         'Content-Type': 'application/json',
         'Authorization': context.request.headers.authorization || '',
+        'X-Company-Id': context.request.headers['x-company-id'] || '',
       },
       timeout: parseInt(process.env.GRAPHQL_SERVICE_TIMEOUT || '10000')
     });
@@ -188,6 +241,11 @@ async function routes(fastify, options) {
         menuService: process.env.MENU_SERVICE_URL,
         terceroNestJsService: process.env.TERCERO_NEST_GQL_URL || 'http://tercero-nestjs-service:3001',
         itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
+        bancoCajaNestJsService:
+          process.env.BANCO_CAJA_NEST_GQL_URL || 'http://banco-caja-nestjs-service:3016',
+        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
+        inventarioNestJsService: process.env.INVENTARIO_NEST_GQL_URL || 'http://inventario-nestjs-service:3013'
+        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
         contabilidadNestJsService: process.env.CONTABILIDAD_NEST_GQL_URL || 'http://contabilidad-nestjs-service:3005',
         financieroNestJsService: process.env.FINANCIERO_NEST_GQL_URL || 'http://financiero-nestjs-service:3007',
       };
@@ -196,6 +254,7 @@ async function routes(fastify, options) {
       return reply.send(result);
     } catch (error) {
       fastify.log.error('Error en endpoint GraphQL:', error);
+
       const { statusCode, body } = buildGraphqlProxyErrorReply(error);
       return reply.status(statusCode).send(body);
     }

@@ -72,7 +72,7 @@ const GET_PAISES = gql`
 `;
 
 const GET_PROVINCIAS_BY_PAIS = gql`
-  query provinciasByPais($idPais: ID!) {
+  query provinciasByPais($idPais: String!) {
     provinciasByPais(idPais: $idPais) {
       id_provincia
       nombre

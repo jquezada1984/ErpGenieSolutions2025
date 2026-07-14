@@ -6,7 +6,7 @@ export interface SelectCondicionPagoProps {
   onChange: (value: string | null) => void;
   condiciones: {
     id_condicion_pago: string;
-    descripcion?: string;
+    etiqueta?: string;
     etiqueta?: string;
   }[];
   isLoading?: boolean;
@@ -26,7 +26,7 @@ const SelectCondicionPago: React.FC<SelectCondicionPagoProps> = ({
 }) => {
   const options = condiciones.map((c) => ({
     value: c.id_condicion_pago,
-    label: c.etiqueta || c.descripcion || c.id_condicion_pago,
+    label: c.etiqueta || c.etiqueta || c.id_condicion_pago,
   }));
 
   return (

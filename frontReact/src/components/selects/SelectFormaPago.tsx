@@ -6,7 +6,7 @@ export interface SelectFormaPagoProps {
   onChange: (value: string | null) => void;
   formas: {
     id_forma_pago: string;
-    descripcion?: string;
+    etiqueta?: string;
     etiqueta?: string;
   }[];
   isLoading?: boolean;
