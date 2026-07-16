@@ -1,9 +1,10 @@
 # Plan único: Módulo Contabilidad (ErpGenieSolutions2025)
 
-> **Estado:** Pendiente de ejecución  
-> **Creado / actualizado:** 2026-05-28  
-> **Documento maestro** — reemplaza planes parciales en esta carpeta  
-> **Bloquea:** [PLAN_CONFIG_GLOBAL_DICCIONARIOS.md](./PLAN_CONFIG_GLOBAL_DICCIONARIOS.md) hasta completar Fases 1–4
+> **Estado:** Implementación en código (Fases 1–5); validar migraciones 11–13 en BD del entorno  
+> **Actualizado:** 2026-07-14  
+> **Documento maestro** de Contabilidad  
+> **Siguiente:** [PLAN_CONFIG_GLOBAL_DICCIONARIOS.md](./PLAN_CONFIG_GLOBAL_DICCIONARIOS.md) tras validar Contabilidad en entorno  
+> **Resumen operativo:** [../MODULO_CONTABILIDAD.md](../MODULO_CONTABILIDAD.md)
 
 ---
 
@@ -20,11 +21,13 @@ flowchart TD
 
 | Fase | Nombre | Menú BD | Estado |
 |------|--------|---------|--------|
-| **1** | Configuración contable | `/contabilidad/configuracion/*` | 7 hechas, 6 pendientes |
-| **2** | Transferencia — vincular facturas | `/contabilidad/transferencia/facturas-*` | Pendiente |
-| **3** | Transferencia — registro + exportar | `/contabilidad/transferencia/registro/*` + `exportar-documentos` | Pendiente |
-| **4** | Contabilidad operativa | `/contabilidad` + libro mayor, diarios, saldo, exportar, cerrar | Pendiente |
-| **5** | Informes contables | `/contabilidad/informes` | Fase posterior |
+| **1** | Configuración contable | `/contabilidad/configuracion/*` | Implementado en código |
+| **2** | Transferencia — vincular facturas | `/contabilidad/transferencia/facturas-*` | Implementado en código |
+| **3** | Transferencia — registro + exportar | `/contabilidad/transferencia/registro/*` + `exportar-documentos` | Implementado en código |
+| **4** | Contabilidad operativa | `/contabilidad` + libro mayor, diarios, saldo, exportar, cerrar | Implementado en código |
+| **5** | Informes contables | `/contabilidad/informes` | Implementado (pantallas base) |
+
+> Pendiente de entorno: aplicar migraciones SQL 11–13 y reiniciar servicios Contabilidad + gateway.
 
 ---
 
@@ -731,10 +734,6 @@ frontReact/src/views/contabilidad/
 
 ---
 
-# Documentos históricos (referencia)
+# Documentos históricos
 
-Los siguientes archivos quedan **superseded** por este plan:
-
-- `PLAN_CONTABILIDAD_CONFIG_COMPLETA.md` → Fase 1  
-- `PLAN_CONTABILIDAD_TRANSFERENCIA.md` → Fases 2 y 3  
-- `PLAN_CONTABILIDAD_MODULO_ROADMAP.md` → resumen en visión general
+Los planes parciales (`PLAN_CONTABILIDAD_CONFIG_COMPLETA`, `PLAN_CONTABILIDAD_TRANSFERENCIA`, `PLAN_CONTABILIDAD_MODULO_ROADMAP`) se **eliminaron**; este archivo es el único plan de Contabilidad.

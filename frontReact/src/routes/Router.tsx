@@ -74,7 +74,7 @@ const ModelosPlanesContables = Loadable(lazy(() => import('../views/contabilidad
 const ListadoCuentasContables = Loadable(lazy(() => import('../views/contabilidad/ListadoCuentasContables')));
 const CuentasIndividuales = Loadable(lazy(() => import('../views/contabilidad/CuentasIndividuales')));
 const CuentasContablesDefecto = Loadable(lazy(() => import('../views/contabilidad/CuentasContablesDefecto')));
-const CuentasBancarias = Loadable(lazy(() => import('../views/contabilidad/configuracion/CuentasBancarias')));
+const CuentasBancariasConfigContable = Loadable(lazy(() => import('../views/contabilidad/configuracion/CuentasBancarias')));
 const CuentasIva = Loadable(lazy(() => import('../views/contabilidad/configuracion/CuentasIva')));
 const CuentasImpuestos = Loadable(lazy(() => import('../views/contabilidad/configuracion/CuentasImpuestos')));
 const CuentasProductos = Loadable(lazy(() => import('../views/contabilidad/configuracion/CuentasProductos')));
@@ -209,7 +209,7 @@ const ThemeRoutes: RouteType[] = [
       { path: 'contabilidad/configuracion/plan-contable', element: <ListadoCuentasContables /> },
       { path: 'contabilidad/configuracion/cuentas-individuales', element: <CuentasIndividuales /> },
       { path: 'contabilidad/configuracion/cuentas-defecto', element: <CuentasContablesDefecto /> },
-      { path: 'contabilidad/configuracion/cuentas-bancarias', element: <CuentasBancarias /> },
+      { path: 'contabilidad/configuracion/cuentas-bancarias', element: <CuentasBancariasConfigContable /> },
       { path: 'contabilidad/configuracion/cuentas-iva', element: <CuentasIva /> },
       { path: 'contabilidad/configuracion/cuentas-impuestos', element: <CuentasImpuestos /> },
       { path: 'contabilidad/configuracion/cuentas-productos', element: <CuentasProductos /> },

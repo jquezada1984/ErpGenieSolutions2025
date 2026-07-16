@@ -253,7 +253,11 @@ const Transferencias: React.FC = () => {
                 </FormGroup>
               )}
 
-              {error && <Alert color="danger" className="mb-3 mt-3">{error}</Alert>}
+              {error && (
+                <Alert color="danger" className="mb-3 mt-3" fade={false} timeout={0}>
+                  {error}
+                </Alert>
+              )}
 
               <div className="grid-container mt-3">
                 <ReactTable

@@ -281,12 +281,16 @@ const CuentasBancarias: React.FC = () => {
               )}
 
               {scope === 'GLOBAL' && !selectedIdEmpresa && (
-                <Alert color="info" className="mb-3">
+                <Alert color="info" className="mb-3" fade={false} timeout={0}>
                   Seleccione una empresa para ver las cuentas bancarias
                 </Alert>
               )}
 
-              {error && <Alert color="danger" className="mb-3">{error}</Alert>}
+              {error && (
+                <Alert color="danger" className="mb-3" fade={false} timeout={0}>
+                  {error}
+                </Alert>
+              )}
 
               {showTable && (
                 <div className="grid-container mt-3">

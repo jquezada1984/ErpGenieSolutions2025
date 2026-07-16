@@ -177,8 +177,16 @@ const NuevoCuentaBancaria: React.FC = () => {
             </div>
           </div>
 
-          {ok && <Alert color="success">Cuenta creada correctamente.</Alert>}
-          {err && <Alert color="danger">{err}</Alert>}
+          {ok && (
+            <Alert color="success" fade={false} timeout={0}>
+              Cuenta creada correctamente.
+            </Alert>
+          )}
+          {err && (
+            <Alert color="danger" fade={false} timeout={0}>
+              {err}
+            </Alert>
+          )}
 
           <p className="text-muted mb-3">
             Complete la información de la cuenta y haga clic en <b>Crear cuenta</b>.

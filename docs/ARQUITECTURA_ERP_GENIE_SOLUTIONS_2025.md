@@ -10,38 +10,35 @@ El ERP es un **monorepo** con varios microservicios y un frontend único. El **g
 
 ```
                     ┌─────────────────────────────────────────────────────────────┐
-                    │                    frontReact (Vite + React)                  │
-                    │  Puerto dev: 5173  │  Producción: Nginx puerto 3000         │
+                    │              frontReact (Vite + React) :3000                  │
                     └───────────────────────────────┬─────────────────────────────┘
-                                                    │
-                                    Todas las peticiones (REST + GraphQL)
-                                                    │
+                                                    │ REST /api + GraphQL /graphql
                     ┌───────────────────────────────▼─────────────────────────────┐
-                    │                   gateway-api (Fastify)                      │
-                    │                    Puerto: 3002                               │
-                    │  REST: /api/*  │  GraphQL: POST /graphql (reenvía por query)  │
-                    └───┬────────┬────────┬────────┬────────┬────────┬────────────┘
-                        │        │        │        │        │        │
-        ┌────────────────┘        │        │        │        │        └────────────────┐
-        │                         │        │        │        │                         │
-        ▼                         ▼        ▼        ▼        ▼                         ▼
-┌───────────────┐  ┌───────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐
-│ InicioPython  │  │ InicioNestJs  │  │ MenuNestJs   │  │TerceroPython │  │  TerceroNestJs   │
-│   (Flask)     │  │  (NestJS)     │  │  (NestJS)    │  │  (Flask)     │  │   (NestJS)       │
-│   :5000       │  │   :3001       │  │   :3003      │  │   :3004      │  │   :3006→3001     │
-└───────────────┘  └───────────────┘  └──────────────┘  └──────────────┘  └──────────────────┘
-        │                   │                 │                  │                    │
-        │                   │                 │                  │                    │
-        ▼                   ▼                 ▼                  ▼                    ▼
-┌───────────────┐  ┌───────────────────────────────────────────────────────────────────────┐
-│ Contabilidad  │  │ FinancieroPython :5001  │  FinancieroNestJs :3007  │  (misma idea)    │
-│ Python :5002  │  │ ContabilidadNestJs :3005│                                              │
-│ Contabilidad  │  └───────────────────────────────────────────────────────────────────────┘
-│ NestJs :3005  │
-└───────────────┘
+                    │                   gateway-api (Fastify) :3002                 │
+                    └─┬──────┬──────┬──────┬──────┬──────┬──────┬──────┬──────────┘
+                      │      │      │      │      │      │      │      │
+           Inicio  Menu  Tercero Contab Finan BancoCaja Item Inventario Media
+           Py/Nest Nest   Py/Nest Py/Nest Py/Nest Py/Nest Py/Nest Py/Nest Nest
 ```
 
 **Regla de oro:** El frontend solo conoce la URL del gateway (`VITE_GATEWAY_URL`, ej. `http://localhost:3002`). REST a `/api/...` y GraphQL a `/graphql` pasan siempre por el gateway, que decide a qué microservicio reenviar.
+
+### Tabla de microservicios (Docker)
+
+| Dominio | Python (REST) | NestJS (GraphQL) | Front |
+|---------|---------------|------------------|-------|
+| Inicio / auth / empresas | InicioPython `:5000` | InicioNestJs `:3001` | `frontReact/` |
+| Menú / permisos | — | MenuNestJs `:3003` | layouts + hooks permisos |
+| Terceros | TerceroPython `:3004` | TerceroNestJs `:3006` | `views/terceros/` |
+| Contabilidad | ContabilidadPython `:5002` | ContabilidadNestJs `:3005` | `views/contabilidad/` |
+| Financiero | FinancieroPython `:5001` | FinancieroNestJs `:3007` | `views/financiero/` |
+| Banco / Cajas | BancoCajaPython `:3015` | BancoCajaNestJs `:3016` | `views/banco-cajas/` |
+| Items | ItemPython | ItemNestJs `:3011` | `views/items/` |
+| Inventario | InventarioPython `:3014` | InventarioNestJs `:3013` | `views/items/inventarios/` |
+| Media | — | MediaServiceNestJs | uploads / documentos |
+| Gateway | — | gateway-api `:3002` | — |
+
+Índice de documentación: [docs/README.md](./README.md).
 
 ---
 
@@ -110,13 +107,18 @@ Todas las rutas REST se montan bajo el prefijo `/api`, excepto GraphQL:
 
 ### 3.3 GraphQL (routes/graphql.js)
 
-- **POST /graphql:** recibe `{ query, variables, operationName }`. Según el **texto de la query** se elige el servicio NestJS:
-  - Si la query contiene **login, register, refreshToken, validateToken** (mutations de auth) → `config.nestjsService` (InicioNestJs).
-  - Si contiene **incoterms, tiposTercero, condicionesPago, formasPago, empresas, terceros, tercero(, clientes, contactosByTercero, contacto(** → `config.terceroNestJsService` (TerceroNestJs).
-  - Si contiene **menu, permiso, autorizacion, opcionesMenuSuperior, permisosPorPerfil, permisosPorModulo, menuLateralPorPerfil** → `config.menuService` (MenuNestJs).
-  - En cualquier otro caso → `config.nestjsService` (InicioNestJs).
+- **POST /graphql:** recibe `{ query, variables, operationName }`. Según el **texto de la query** se elige el NestJS destino (`getTargetService` en `gateway-api/src/routes/graphql.js`):
+  - Auth (login, register, refreshToken…) → InicioNestJs
+  - Contabilidad (`libroMayor`, `periodosContables`, `estadoAreaContabilidad`…) → ContabilidadNestJs
+  - Financiero (`facturaCliente`, `condicionesPagoFin`…) → FinancieroNestJs  
+    (`cuentasBancarias` de negocio bancario → **BancoCajaNestJs**, no Financiero)
+  - Banco/Cajas (`bancos`, `movimientosBancarios`, `transferenciasBancarias`…) → BancoCajaNestJs
+  - Terceros / contactos → TerceroNestJs
+  - Menú / permisos → MenuNestJs
+  - Items / inventarios / media → ItemNestJs / InventarioNestJs / MediaServiceNestJs
+  - Por defecto → InicioNestJs
 
-- Se hace **POST** a `{targetUrl}/graphql` con la misma query, variables y operationName, reenviando cabecera `Authorization`. La respuesta del microservicio se devuelve tal cual al cliente.
+- Se hace **POST** a `{targetUrl}/graphql` reenviando `Authorization`. La respuesta se devuelve al cliente.
 
 - **Config** en el handler: `nestjsService`, `menuService`, `terceroNestJsService` (con fallback `TERCERO_NEST_GQL_URL`).
 

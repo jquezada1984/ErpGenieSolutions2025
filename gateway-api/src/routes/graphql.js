@@ -48,9 +48,10 @@ const getTargetService = (query, config) => {
   }
   
 
-  // Financiero (facturas cliente, cuentas bancarias por empresa, catálogos Fin*)
+  // Financiero (facturas cliente, catálogos Fin*)
+  // Nota: `cuentasBancarias` lo atiende BancoCajaNestJs (módulo banca).
+  // Las pantallas financiero que mezclan catálogos siguen aquí por `condicionesPagoFin` / `formasPagoFin` / etc.
   if (query && (
-    query.includes('cuentasBancarias') ||
     query.includes('facturaCliente') ||
     query.includes('condicionesPagoFin') ||
     query.includes('formasPagoFin') ||
@@ -243,9 +244,7 @@ async function routes(fastify, options) {
         itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
         bancoCajaNestJsService:
           process.env.BANCO_CAJA_NEST_GQL_URL || 'http://banco-caja-nestjs-service:3016',
-        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
-        inventarioNestJsService: process.env.INVENTARIO_NEST_GQL_URL || 'http://inventario-nestjs-service:3013'
-        itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
+        inventarioNestJsService: process.env.INVENTARIO_NEST_GQL_URL || 'http://inventario-nestjs-service:3013',
         contabilidadNestJsService: process.env.CONTABILIDAD_NEST_GQL_URL || 'http://contabilidad-nestjs-service:3005',
         financieroNestJsService: process.env.FINANCIERO_NEST_GQL_URL || 'http://financiero-nestjs-service:3007',
       };

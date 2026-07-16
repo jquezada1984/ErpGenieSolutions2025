@@ -202,7 +202,11 @@ const EditarCuentaBancaria: React.FC = () => {
               {loading ? <Spinner size="sm" /> : 'Guardar'}
             </Button>
           </div>
-          {err && <Alert color="danger">{err}</Alert>}
+          {err && (
+            <Alert color="danger" fade={false} timeout={0}>
+              {err}
+            </Alert>
+          )}
           <SeccionCuentaEmpresa data={formData} onChange={merge} soloLectura errors={errorsToShow} />
           <Nav tabs>
             {(['1', '2', '3', '4'] as const).map((t, i) => (

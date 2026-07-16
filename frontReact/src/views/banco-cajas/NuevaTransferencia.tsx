@@ -240,7 +240,11 @@ const NuevaTransferencia: React.FC = () => {
                 destino, con la misma cantidad, descripción y fecha.
               </p>
 
-              {error && <Alert color="danger">{error}</Alert>}
+              {error && (
+                <Alert color="danger" fade={false} timeout={0}>
+                  {error}
+                </Alert>
+              )}
 
               {scope === 'GLOBAL' && (
                 <FormGroup className="mb-3">
@@ -257,7 +261,7 @@ const NuevaTransferencia: React.FC = () => {
               )}
 
               {scope === 'GLOBAL' && !selectedIdEmpresa && (
-                <Alert color="info" className="mb-3">
+                <Alert color="info" className="mb-3" fade={false} timeout={0}>
                   Seleccione una empresa para ver sus cuentas bancarias
                 </Alert>
               )}

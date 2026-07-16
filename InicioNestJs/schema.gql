@@ -403,6 +403,7 @@ type Query {
   sucursal(id_sucursal: ID!): Sucursal
   sucursales: [SucursalListDto!]!
   sucursalesPorEmpresa(id_empresa: ID!): [SucursalListDto!]!
+  tamanosEmpresa: [TamanoEmpresa!]!
   test: String!
   tiposEntidadComercial(soloActivos: Boolean = true): [TipoEntidadComercial!]!
   tiposItemCatalogo: [TipoItemCatalogo!]!
@@ -443,6 +444,15 @@ type SucursalListDto {
   nombre: String!
   telefono: String
   updated_at: DateTime!
+}
+
+type TamanoEmpresa {
+  codigo: String!
+  descripcion: String
+  estado: Boolean!
+  id_tamano_empresa: ID!
+  nombre: String!
+  orden: Int!
 }
 
 type TipoEntidadComercial {

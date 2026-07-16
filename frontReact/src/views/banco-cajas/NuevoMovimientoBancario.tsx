@@ -85,7 +85,11 @@ const NuevoMovimientoBancario: React.FC = () => {
                 Ingreso suma al saldo; egreso resta (convención Dolibarr).
               </p>
 
-              {error && <Alert color="danger">{error}</Alert>}
+              {error && (
+                <Alert color="danger" fade={false} timeout={0}>
+                  {error}
+                </Alert>
+              )}
 
               <FormGroup>
                 <Label>Tipo *</Label>

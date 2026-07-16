@@ -122,9 +122,35 @@ type Query {
   contactosByTercero(id_tercero: String!): [Contacto!]!
   incoterms: [Incoterm!]!
   representantesPorEmpresa(id_empresa: ID!): [Tercero!]!
+  rolesSocio: [RolSocio!]!
+  socio(id_socio: ID!): Socio!
+  socios: [Socio!]!
   tercero(id_tercero: String!): Tercero!
   terceros(id_empresa: ID): [Tercero!]!
+  tercerosDisponiblesParaSocio(id_empresa: String!, id_socio: String): [TerceroDisponibleSocioGql!]!
   tiposTercero: [TipoTercero!]!
+}
+
+type RolSocio {
+  id_rol_socio: ID!
+  nombre: String!
+}
+
+type Socio {
+  created_at: DateTime
+  estado: Boolean!
+  fecha_fin: String
+  fecha_inicio: String
+  id_socio: ID!
+  rol_socio: RolSocio
+  socioTerceros: [SocioTercero!]
+  updated_at: DateTime
+}
+
+type SocioTercero {
+  id_socio: String!
+  id_tercero: String!
+  tercero: Tercero!
 }
 
 type Tercero {
@@ -168,6 +194,11 @@ type Tercero {
   tipo_tercero: TipoTercero
   updated_by: ID
   web: String
+}
+
+type TerceroDisponibleSocioGql {
+  id_tercero: String!
+  nombre: String!
 }
 
 type TipoEntidadComercial {

@@ -19,7 +19,7 @@ Sistema ERP moderno con arquitectura de microservicios, API Gateway y frontend R
 - **Microservicio Python** (`InicioPython/`) - Gestión de base de datos (Flask)
 - **Backend NestJS** (`InicioNestJs/`) - API GraphQL (NestJS)
 
-**Documentación:** índice por componente (cada microservicio, gateway y front) en [`documentacion/README.md`](documentacion/README.md); arquitectura completa en [`documentacion/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md`](documentacion/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md).
+**Documentación:** índice en [`docs/README.md`](docs/README.md); arquitectura en [`docs/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md`](docs/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md).
 
 ---
 
@@ -513,8 +513,8 @@ docker-compose -f docker-compose.dev.yml restart frontend
 
 ## 📚 Documentación Adicional
 
-- **Índice del ERP (servicios + web):** [`documentacion/README.md`](documentacion/README.md)
-- **Arquitectura global (gateway, CORS, flujos):** [`documentacion/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md`](documentacion/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md)
+- **Índice del ERP:** [`docs/README.md`](docs/README.md)
+- **Arquitectura global:** [`docs/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md`](docs/ARQUITECTURA_ERP_GENIE_SOLUTIONS_2025.md)
 - **Arquitectura CORS:** `ARQUITECTURA_CORS.md`
 - **Gateway API:** `gateway-api/README.md`
 - **Microservicio Python:** `InicioPython/README.md`
