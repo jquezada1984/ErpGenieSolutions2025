@@ -87,6 +87,9 @@ const Transferencias = Loadable(lazy(() => import('../views/banco-cajas/Transfer
 const NuevaTransferencia = Loadable(
   lazy(() => import('../views/banco-cajas/NuevaTransferencia')),
 );
+const Gastos = Loadable(lazy(() => import('../views/gastos/Gastos')));
+const GastoForm = Loadable(lazy(() => import('../views/gastos/GastoForm')));
+const CategoriasGasto = Loadable(lazy(() => import('../views/gastos/CategoriasGasto')));
 
 // Test component
 const FlagTest = Loadable(lazy(() => import('../components/FlagTest')));
@@ -167,6 +170,11 @@ const ThemeRoutes: RouteType[] = [
       },
       { path: 'banco-cajas/transferencias', element: <Transferencias /> },
       { path: 'banco-cajas/transferencias/nuevo', element: <NuevaTransferencia /> },
+
+      { path: 'gastos', element: <Gastos /> },
+      { path: 'gastos/nuevo', element: <GastoForm /> },
+      { path: 'gastos/:id/editar', element: <GastoForm /> },
+      { path: 'gastos/categorias', element: <CategoriasGasto /> },
 
       { path: 'items/productos', element: <Productos /> },
       { path: 'items/productos/stocks', element: <ProductosStocks /> },
