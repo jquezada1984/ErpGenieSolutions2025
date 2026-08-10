@@ -18,9 +18,14 @@ export interface SearchableSelectProps {
   isLoading?: boolean;
   error?: string;
   isMulti?: boolean;
+  /** Opt-in: renderiza el menú en document.body (evita recorte por overflow). */
+  menuPortal?: boolean;
 }
 
-function getSelectStyles(error?: string): StylesConfig<SearchableSelectOption, boolean> {
+function getSelectStyles(
+  error?: string,
+  menuPortal = false,
+): StylesConfig<SearchableSelectOption, boolean> {
   return {
     control: (base, state) => ({
       ...base,
@@ -43,6 +48,14 @@ function getSelectStyles(error?: string): StylesConfig<SearchableSelectOption, b
       ...base,
       width: '100%',
     }),
+    ...(menuPortal
+      ? {
+          menuPortal: (base) => ({
+            ...base,
+            zIndex: 1060,
+          }),
+        }
+      : {}),
   };
 }
 
@@ -80,6 +93,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   isLoading = false,
   error,
   isMulti = false,
+  menuPortal = false,
 }) => {
   const useAsync = typeof loadOptions === 'function';
   const selectValue = useMemo(
@@ -87,7 +101,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     [value, options, useAsync, isMulti]
   );
 
-  const styles = useMemo(() => getSelectStyles(error), [error]);
+  const styles = useMemo(() => getSelectStyles(error, menuPortal), [error, menuPortal]);
 
   const handleChange = (option: SearchableSelectOption | SearchableSelectOption[] | null) => {
     if (isMulti) {
@@ -98,6 +112,14 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     onChange((option as SearchableSelectOption | null)?.value ?? null);
   };
 
+  const portalProps =
+    menuPortal && typeof document !== 'undefined'
+      ? {
+          menuPortalTarget: document.body,
+          menuPosition: 'fixed' as const,
+        }
+      : {};
+
   const commonProps = {
     value: selectValue,
     onChange: handleChange,
@@ -107,6 +129,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     styles,
     isClearable: true,
     isMulti,
+    ...portalProps,
   };
 
   if (useAsync) {

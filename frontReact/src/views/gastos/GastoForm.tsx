@@ -591,6 +591,7 @@ const GastoForm: React.FC = () => {
                                       options={itemOptions}
                                       isDisabled={readOnly}
                                       placeholder="Opcional"
+                                      menuPortal
                                     />
                                   )}
                                 />
@@ -683,6 +684,7 @@ const GastoForm: React.FC = () => {
                                       options={impuestoOptions}
                                       isDisabled={readOnly}
                                       placeholder="Sin impuesto"
+                                      menuPortal
                                     />
                                   )}
                                 />
