@@ -10,20 +10,11 @@ type CondicionPagoCatalogo {
   etiqueta: String!
   etiqueta_documento: String
   id_condicion_pago: ID!
+  id_empresa: ID!
   numero_dias: Int
   orden: Int
   porcentaje_deposito: Float
   tipo_fin_mes: String
-}
-
-type CuentaBancaria {
-  estado: Boolean
-  etiqueta_cuenta: String
-  iban: String
-  id_cuenta_bancaria: ID!
-  id_empresa: String!
-  id_moneda: ID
-  numero_cuenta: String
 }
 
 """
@@ -64,6 +55,7 @@ type FormaPagoCatalogo {
   codigo: String!
   descripcion: String!
   etiqueta: String!
+  id_empresa: ID!
   id_forma_pago: ID!
   orden: Int
   tipo_uso: String!
@@ -78,9 +70,8 @@ type Moneda {
 }
 
 type Query {
-  condicionesPagoFin: [CondicionPagoCatalogo!]!
-  cuentasBancarias(id_empresa: String!): [CuentaBancaria!]!
+  condicionesPagoFin(id_empresa: String): [CondicionPagoCatalogo!]!
   facturaCliente(id_empresa: String!, id_factura: String!): Factura
-  formasPagoFin(tipoUso: String): [FormaPagoCatalogo!]!
+  formasPagoFin(id_empresa: String, tipoUso: String): [FormaPagoCatalogo!]!
   monedasFin: [Moneda!]!
 }

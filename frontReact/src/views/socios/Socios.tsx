@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardBody, CardTitle, Button, Container, Row, Col, Badge, Alert, Spinner, FormGroup, Label } from 'reactstrap';
+import { Card, CardBody, CardTitle, Button, Container, Row, Col, Badge, Alert, Spinner } from 'reactstrap';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
 import { toggleEstadoSocio } from '../../_apis_/socio';
-import useJwtPayload from '../../hooks/useJwtPayload';
-import SelectEmpresa from '../../components/SelectEmpresa';
+import { useConfigEmpresaScope } from '../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../components/ConfigEmpresaBar';
 
 const GET_SOCIOS = gql`
   query GetSocios {
@@ -22,17 +22,6 @@ const GET_SOCIOS = gql`
       rol_socio {
         nombre
       }
-    }
-  }
-`;
-
-const GET_EMPRESAS = gql`
-  query GetEmpresas {
-    empresas {
-      id_empresa
-      nombre
-      ruc
-      estado
     }
   }
 `;
@@ -52,16 +41,10 @@ interface Socio {
 
 const Socios: React.FC = () => {
   const navigate = useNavigate();
-  const payload = useJwtPayload();
-  const scope = payload?.scope_acceso || 'EMPRESA';
-  const empresaToken = payload?.id_empresa || '';
-  const isGlobal = scope === 'GLOBAL';
+  const scope = useConfigEmpresaScope();
+  const { idEmpresa, ready } = scope;
 
-  const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
   const [error, setError] = useState<string | null>(null);
-
-  const { data: empresasData } = useQuery(GET_EMPRESAS, { skip: !isGlobal });
-  const empresas = empresasData?.empresas || [];
 
   const {
     data: sociosData,
@@ -71,14 +54,19 @@ const Socios: React.FC = () => {
   } = useQuery(GET_SOCIOS, {
     fetchPolicy: 'cache-and-network',
     errorPolicy: 'all',
-    skip: isGlobal && !empresaSeleccionada,
+    skip: !ready,
     context: {
       headers: {
-        'X-Company-Id': isGlobal ? empresaSeleccionada : empresaToken,
+        'X-Company-Id': idEmpresa,
       },
     },
   });
   const socios: Socio[] = sociosData?.socios || [];
+
+  useEffect(() => {
+    if (!ready) return;
+    refetchSocios();
+  }, [idEmpresa, ready, refetchSocios]);
 
   const handleNuevoSocio = () => {
     navigate('/socios/nuevo');
@@ -205,23 +193,11 @@ const Socios: React.FC = () => {
                 </div>
               </div>
 
-              {isGlobal && (
-                <FormGroup className="mb-3">
-                  <Label for="id_empresa_listado">Empresa</Label>
-                  <SelectEmpresa
-                    value={empresaSeleccionada || null}
-                    onChange={(val) => setEmpresaSeleccionada(val ?? '')}
-                    empresas={empresas}
-                    placeholder="Seleccione una empresa para ver los socios"
-                  />
-                </FormGroup>
-              )}
-
-              {isGlobal && !empresaSeleccionada && (
-                <Alert color="info" className="mb-3">
-                  Seleccione una empresa para ver los socios
-                </Alert>
-              )}
+              <ConfigEmpresaBar
+                scope={scope}
+                hideWhenEmpresa
+                emptyMessage="Seleccione una empresa para ver los socios"
+              />
 
               {queryLoading && (
                 <div className="d-flex align-items-center mb-3">

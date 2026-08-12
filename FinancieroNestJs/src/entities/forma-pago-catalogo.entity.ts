@@ -9,8 +9,12 @@ export class FormaPagoCatalogo {
   id_forma_pago: string;
 
   @Field()
-  @Column({ type: 'varchar', length: 16, unique: true })
+  @Column({ type: 'varchar', length: 16 })
   codigo: string;
+
+  @Field(() => ID)
+  @Column({ type: 'uuid' })
+  id_empresa: string;
 
   @Field()
   @Column({ type: 'varchar', length: 100 })

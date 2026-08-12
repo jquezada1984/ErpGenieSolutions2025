@@ -30,4 +30,4 @@ Gateway: `/api` banco-caja + GraphQL (`cuentasBancarias`, `movimientosBancarios`
 
 Scripts de menú/permisos: `MenuNestJs/migrations/menu-banco-cajas*.sql`.
 
-Regla de trabajo en Cursor: `.cursor/rules/proyecto-banco-cajas.mdc`.
+Regla de trabajo en Cursor: `.cursor/rules/erp-arquitectura-modulos.mdc`.

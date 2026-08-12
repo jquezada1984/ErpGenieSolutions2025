@@ -6,10 +6,12 @@ from utils.db import db
 from models.cuenta_contable_defecto import CuentaContableDefecto
 from constants.cuentas_defecto import CUENTAS_DEFECTO_CATALOGO
 
+EMPRESA_PLANTILLA = 'a0000000-0000-4000-8000-000000000001'
 TIPOS_VALIDOS = {c['tipo_operacion'] for c in CUENTAS_DEFECTO_CATALOGO}
 
 
 def _plan_activo_id(id_empresa: str) -> str | None:
+    """Plan de la empresa; si no hay, plantilla del catálogo (seed EC-SUPERCIAS)."""
     row = db.session.execute(
         text(
             """SELECT id_plan_contable FROM plan_contable
@@ -18,7 +20,17 @@ def _plan_activo_id(id_empresa: str) -> str | None:
         ),
         {'emp': id_empresa},
     ).fetchone()
-    return str(row[0]) if row else None
+    if row:
+        return str(row[0])
+    plantilla = db.session.execute(
+        text(
+            """SELECT id_plan_contable FROM plan_contable
+               WHERE id_empresa = :emp AND estado = true
+               ORDER BY created_at DESC LIMIT 1"""
+        ),
+        {'emp': EMPRESA_PLANTILLA},
+    ).fetchone()
+    return str(plantilla[0]) if plantilla else None
 
 
 def _cuenta_en_plan(id_plan: str, id_cuenta: str) -> bool:

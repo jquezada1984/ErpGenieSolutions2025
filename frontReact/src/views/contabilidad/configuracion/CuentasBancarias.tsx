@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
@@ -12,8 +12,9 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import { actualizarCuentaBancariaContable } from '../../../_apis_/contabilidad';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GET_DATA = gql`
   query CuentasBancariasData($id_empresa: String!) {
@@ -53,8 +54,7 @@ const GET_CUENTAS = gql`
 `;
 
 const CuentasBancarias: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [guardando, setGuardando] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, { id_cuenta_contable: string; id_diario_contable: string }>>({});
@@ -111,6 +111,7 @@ const CuentasBancarias: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <CardTitle tag="h4">Cuentas bancarias contables</CardTitle>
         <p className="text-muted">Asigne cuenta del plan y diario contable a cada cuenta bancaria.</p>
         {mensaje && <Alert color="info">{mensaje}</Alert>}

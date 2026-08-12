@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -25,6 +25,8 @@ import {
   listarCatalogo,
   patchActivoCatalogo,
 } from '../../../../_apis_/catalogos';
+import ConfigEmpresaBar from '../../../../components/ConfigEmpresaBar';
+import { useConfigEmpresaScope } from '../../../../hooks/useConfigEmpresaScope';
 
 export type FieldConfig = {
   name: string;
@@ -50,8 +52,15 @@ export const TIPO_USO_OPTS = [
 ];
 
 const DiccionarioCrudPage: React.FC<Props> = ({ titulo, recurso, idField, fields, emptyForm }) => {
+  const { pathname } = useLocation();
+  const indexPath = pathname.startsWith('/configuracion/')
+    ? '/configuracion/diccionarios'
+    : '/financiero/configuracion/diccionarios';
+  const empresaScope = useConfigEmpresaScope();
+  const { idEmpresa, ready } = empresaScope;
+
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -63,6 +72,10 @@ const DiccionarioCrudPage: React.FC<Props> = ({ titulo, recurso, idField, fields
   const modalFields = useMemo(() => fields.filter((f) => f.name !== 'activo'), [fields]);
 
   const cargar = useCallback(async () => {
+    if (!ready) {
+      setRows([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -74,7 +87,7 @@ const DiccionarioCrudPage: React.FC<Props> = ({ titulo, recurso, idField, fields
     } finally {
       setLoading(false);
     }
-  }, [recurso]);
+  }, [recurso, ready, idEmpresa]);
 
   useEffect(() => {
     cargar();
@@ -152,15 +165,18 @@ const DiccionarioCrudPage: React.FC<Props> = ({ titulo, recurso, idField, fields
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar scope={empresaScope} />
         <div className="d-flex flex-wrap justify-content-between align-items-start mb-3 gap-2">
           <div>
             <CardTitle tag="h4" className="mb-1">
               Diccionarios — {titulo} ({filtradas.length})
             </CardTitle>
-            <Link to="/financiero/configuracion/diccionarios">Volver al listado de diccionarios</Link>
+            <Link to={indexPath}>Volver al listado de diccionarios</Link>
           </div>
         </div>
-        {error && <Alert color="danger">{error}</Alert>}
+        {error && <Alert color="danger" fade={false} timeout={0}>{error}</Alert>}
+        {!ready ? null : (
+        <>
         <Row className="mb-3 g-2">
           <Col md={6}>
             <Input placeholder="Buscar..." value={filtro} onChange={(e) => setFiltro(e.target.value)} />
@@ -210,6 +226,8 @@ const DiccionarioCrudPage: React.FC<Props> = ({ titulo, recurso, idField, fields
               )}
             </tbody>
           </Table>
+        )}
+        </>
         )}
         <Modal isOpen={modalOpen} toggle={() => setModalOpen(false)} size="lg">
           <ModalHeader toggle={() => setModalOpen(false)}>

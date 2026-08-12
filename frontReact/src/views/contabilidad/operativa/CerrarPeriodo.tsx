@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { gql, useQuery } from '@apollo/client';
 import {
@@ -10,8 +10,9 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import { cerrarPeriodoContable } from '../../../_apis_/contabilidad';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GET_PERIODOS = gql`
   query PeriodosCerrar($id_empresa: String!) {
@@ -29,8 +30,7 @@ const GET_PERIODOS = gql`
 `;
 
 const CerrarPeriodo: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const anioActual = new Date().getFullYear();
   const [anio, setAnio] = useState(anioActual);
   const [cerrando, setCerrando] = useState<string | null>(null);
@@ -66,6 +66,7 @@ const CerrarPeriodo: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <div className="d-flex justify-content-between align-items-center mb-3">
           <CardTitle tag="h4" className="mb-0">
             Cierre anual — Periodo contable

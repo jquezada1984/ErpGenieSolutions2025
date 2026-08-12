@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { gql, useQuery } from '@apollo/client';
 import {
@@ -10,8 +10,9 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../hooks/useJwtPayload';
 import { cerrarPeriodoContable } from '../../_apis_/contabilidad';
+import { useConfigEmpresaScope } from '../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../components/ConfigEmpresaBar';
 
 const GET_PERIODOS = gql`
   query GetPeriodosContables($id_empresa: String!) {
@@ -29,8 +30,7 @@ const GET_PERIODOS = gql`
 `;
 
 const PeriodosContables: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const [cerrando, setCerrando] = React.useState<string | null>(null);
   const [mensaje, setMensaje] = React.useState<string | null>(null);
 
@@ -64,6 +64,7 @@ const PeriodosContables: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <div className="d-flex justify-content-between align-items-center mb-3">
           <CardTitle tag="h4" className="mb-0">
             Periodo contable ({periodos.length})

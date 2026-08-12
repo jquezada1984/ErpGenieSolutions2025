@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
@@ -14,7 +14,8 @@ import {
   Spinner,
 } from 'reactstrap';
 import axios from 'axios';
-import useJwtPayload from '../../hooks/useJwtPayload';
+import { useConfigEmpresaScope } from '../../hooks/useConfigEmpresaScope';
+import SelectEmpresa from '../../components/SelectEmpresa';
 
 const GATEWAY_API_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002').replace(/\/$/, '');
 
@@ -60,8 +61,14 @@ const GET_CONFIGURACION_CONTABILIDAD = gql`
  * Basado en pantallas de configuración contable tipo Dolibarr.
  */
 const ContabilidadConfiguracion = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const empresaScope = useConfigEmpresaScope();
+  const {
+    idEmpresa,
+    scopeGlobal,
+    setSelectedIdEmpresa,
+    empresas,
+    loadingEmpresas,
+  } = empresaScope;
 
   const [metodoContable, setMetodoContable] = useState<'acumulacion' | 'caja'>('acumulacion');
   const [desactivarTransaccionesDirectas, setDesactivarTransaccionesDirectas] = useState(false);
@@ -232,9 +239,29 @@ const ContabilidadConfiguracion = () => {
 
   return (
     <div className="p-3">
-      <h4 className="mb-4">Configuración del módulo contable (doble partida)</h4>
-      {!idEmpresa && (
-        <Alert color="warning">No se detectó `id_empresa` en el token de sesión.</Alert>
+      <h4 className="mb-3">Configuración del módulo contable (doble partida)</h4>
+
+      {scopeGlobal && (
+        <FormGroup className="mb-3" style={{ maxWidth: 420 }}>
+          <Label className="fw-semibold">Empresa</Label>
+          <SelectEmpresa
+            value={idEmpresa || null}
+            onChange={setSelectedIdEmpresa}
+            empresas={empresas}
+            isLoading={loadingEmpresas}
+            placeholder="Seleccione una empresa…"
+          />
+        </FormGroup>
+      )}
+      {scopeGlobal && !idEmpresa && (
+        <Alert color="warning" fade={false} timeout={0}>
+          Seleccione una empresa para ver y editar la configuración contable.
+        </Alert>
+      )}
+      {!scopeGlobal && !idEmpresa && (
+        <Alert color="warning" fade={false} timeout={0}>
+          No se detectó `id_empresa` en el token de sesión.
+        </Alert>
       )}
       {error && (
         <Alert color="danger">Error cargando configuración: {error.message}</Alert>

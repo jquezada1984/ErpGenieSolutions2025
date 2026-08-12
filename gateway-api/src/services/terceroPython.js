@@ -162,6 +162,8 @@ async function toggleEstadoSocio(idSocio, req) {
 }
 
 module.exports = {
+  getUsuarioScope,
+  ctxHeaders,
   crearTercero,
   actualizarTercero,
   eliminarTercero,

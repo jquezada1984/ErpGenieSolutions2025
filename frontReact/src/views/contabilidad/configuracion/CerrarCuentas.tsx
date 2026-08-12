@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
@@ -12,8 +12,9 @@ import {
   Label,
   Spinner,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import { actualizarConfiguracionContabilidad } from '../../../_apis_/contabilidad';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GET_CONFIG = gql`
   query ConfigCierre($id_empresa: String!) {
@@ -47,8 +48,7 @@ const GET_CUENTAS = gql`
 `;
 
 const CerrarCuentas: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const [form, setForm] = useState({
     id_cuenta_resultado_ganancia: '',
     id_cuenta_resultado_perdida: '',
@@ -105,6 +105,7 @@ const CerrarCuentas: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <CardTitle tag="h4">Cuentas de cierre de ejercicio</CardTitle>
         <p className="text-muted">
           Defina las cuentas de resultado (ganancia/pérdida) y el diario para el asiento de cierre.

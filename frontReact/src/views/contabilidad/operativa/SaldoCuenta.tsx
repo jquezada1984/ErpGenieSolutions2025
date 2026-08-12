@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
@@ -12,8 +12,9 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import { formatMoneda, rangoAnioActual } from './operativaUtils';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GET_SALDOS = gql`
   query SaldosPorCuenta(
@@ -51,8 +52,7 @@ const GET_SALDOS = gql`
 `;
 
 const SaldoCuenta: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const { desde: defDesde, hasta: defHasta } = rangoAnioActual();
 
   const [fechaDesde, setFechaDesde] = useState(defDesde);
@@ -100,6 +100,7 @@ const SaldoCuenta: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <div className="d-flex justify-content-between align-items-center mb-3">
           <CardTitle tag="h4" className="mb-0">
             Saldo de la cuenta ({filas.length})

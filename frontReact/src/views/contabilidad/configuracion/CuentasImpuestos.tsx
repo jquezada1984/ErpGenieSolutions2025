@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
@@ -16,12 +16,13 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import {
   crearCuentaImpuesto,
   actualizarCuentaImpuesto,
   eliminarCuentaImpuesto,
 } from '../../../_apis_/contabilidad';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GET_DATA = gql`
   query CuentasImpuestoData($id_empresa: String!) {
@@ -59,8 +60,7 @@ const TIPOS_IMPUESTO = [
 ];
 
 const CuentasImpuestos: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -141,6 +141,7 @@ const CuentasImpuestos: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <div className="d-flex justify-content-between align-items-center mb-3">
           <CardTitle tag="h4" className="mb-0">Cuentas de impuestos</CardTitle>
           <Button color="primary" onClick={abrirNuevo}>Añadir</Button>

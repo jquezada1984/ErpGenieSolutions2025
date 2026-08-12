@@ -12,7 +12,6 @@ dotenv.config();
 import { Moneda } from './entities/moneda.entity';
 import { CondicionPagoCatalogo } from './entities/condicion-pago-catalogo.entity';
 import { FormaPagoCatalogo } from './entities/forma-pago-catalogo.entity';
-import { CuentaBancaria } from './entities/cuenta-bancaria.entity';
 import { Factura } from './entities/factura.entity';
 import { FinancieroResolver } from './resolvers/financiero.resolver';
 import { FinancieroLecturaService } from './services/financiero-lectura.service';
@@ -28,7 +27,6 @@ import { FinancieroLecturaService } from './services/financiero-lectura.service'
         Moneda,
         CondicionPagoCatalogo,
         FormaPagoCatalogo,
-        CuentaBancaria,
         Factura,
       ],
       synchronize: false,
@@ -38,7 +36,6 @@ import { FinancieroLecturaService } from './services/financiero-lectura.service'
       Moneda,
       CondicionPagoCatalogo,
       FormaPagoCatalogo,
-      CuentaBancaria,
       Factura,
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({

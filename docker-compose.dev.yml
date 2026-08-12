@@ -203,6 +203,28 @@ services:
       - erp-network
     command: ["npm", "run", "start:dev"]
 
+  # BancoCajaNestJs (GraphQL) - Desarrollo
+  banco-caja-nestjs-service:
+    build:
+      context: ./BancoCajaNestJs
+      dockerfile: Dockerfile.dev
+    container_name: erp-banco-caja-nestjs-service-dev
+    env_file:
+      - ./InicioNestJs/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3016
+      - CORS_ORIGINS=http://localhost:3002
+      - TZ=America/Guayaquil
+    ports:
+      - "3016:3016"
+    volumes:
+      - ./BancoCajaNestJs:/app
+      - /app/node_modules
+    networks:
+      - erp-network
+    command: ["npm", "run", "start:dev"]
+
   # Gateway API (Fastify) - Desarrollo
   gateway-api:
     build:
@@ -220,6 +242,7 @@ services:
       - CONTABILIDAD_NEST_GQL_URL=http://contabilidad-nestjs-service:3005
       - FINANCIERO_PY_BASE_URL=http://financiero-python-service:5001
       - FINANCIERO_NEST_GQL_URL=http://financiero-nestjs-service:3007
+      - BANCO_CAJA_NEST_GQL_URL=http://banco-caja-nestjs-service:3016
       - GATEWAY_PORT=3002
       - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
       - TZ=America/Guayaquil
@@ -241,6 +264,7 @@ services:
       - contabilidad-nestjs-service
       - financiero-python-service
       - financiero-nestjs-service
+      - banco-caja-nestjs-service
 
   # Frontend React - Desarrollo
   frontend:

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
@@ -16,8 +16,9 @@ import {
   TabPane,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import { formatMoneda, rangoAnioActual } from '../operativa/operativaUtils';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GET_BALANCE = gql`
   query BalanceComprobacion($id_empresa: String!, $fecha_desde: String!, $fecha_hasta: String!) {
@@ -54,8 +55,7 @@ const GET_BALANCE_GENERAL = gql`
 `;
 
 const InformesContables: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const { desde: defDesde, hasta: defHasta } = rangoAnioActual();
 
   const [tab, setTab] = useState('balance');
@@ -105,6 +105,7 @@ const InformesContables: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <CardTitle tag="h4">Informes contables</CardTitle>
 
         <Nav tabs className="mb-3">

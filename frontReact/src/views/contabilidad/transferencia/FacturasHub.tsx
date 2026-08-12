@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { gql, useQuery } from '@apollo/client';
 import {
@@ -10,13 +10,14 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import {
   MESES_LABEL,
   anioActual,
   formatImporte,
   pivotResumen,
 } from './transferenciaUtils';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GET_RESUMEN = gql`
   query ResumenVinculacion($id_empresa: String!, $anio: Int!, $tipo: String!) {
@@ -86,8 +87,7 @@ const ResumenTable: React.FC<{ titulo: string; items: ReturnType<typeof pivotRes
 );
 
 const FacturasHub: React.FC<HubProps> = ({ tipo, titulo, basePath, vincularAuto }) => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const [anio, setAnio] = useState(anioActual());
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [vinculando, setVinculando] = useState(false);
@@ -119,6 +119,7 @@ const FacturasHub: React.FC<HubProps> = ({ tipo, titulo, basePath, vincularAuto 
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <CardTitle tag="h4">{titulo}</CardTitle>
         <div className="d-flex align-items-center gap-2 mb-3">
           <Button size="sm" outline onClick={() => setAnio((y) => y - 1)}>&lt;</Button>

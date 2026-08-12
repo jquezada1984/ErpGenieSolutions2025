@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
@@ -16,7 +16,6 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import {
   listarGruposCuentas,
   crearGrupoCuentas,
@@ -24,6 +23,8 @@ import {
   eliminarGrupoCuentas,
   asignarCuentasGrupo,
 } from '../../../_apis_/contabilidad';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GET_PLAN = gql`
   query PlanGrupos($id_empresa: String!) {
@@ -62,8 +63,7 @@ type GrupoRow = {
 };
 
 const GruposPersonalizados: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const [grupos, setGrupos] = useState<GrupoRow[]>([]);
   const [loadingLista, setLoadingLista] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -191,6 +191,7 @@ const GruposPersonalizados: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <div className="d-flex justify-content-between align-items-center mb-3">
           <CardTitle tag="h4" className="mb-0">Grupos de cuentas personalizados</CardTitle>
           <Button color="primary" onClick={abrirNuevo}>Nuevo grupo</Button>

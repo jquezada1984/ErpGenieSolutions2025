@@ -1,7 +1,9 @@
 """CRUD de diccionarios (sin DELETE físico; baja por activo=false)."""
 from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
+from werkzeug.exceptions import BadRequest
 from utils.db import db
+from utils.empresa_context import get_company_id
 from models.catalogos_diccionario import (
     CondicionPagoCatalogo,
     FormaPagoCatalogo,
@@ -58,7 +60,11 @@ def _ok(data, status=200, message=None):
 def listar_condiciones_pago():
     if request.method == 'OPTIONS':
         return _options()
-    q = CondicionPagoCatalogo.query
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    q = CondicionPagoCatalogo.query.filter_by(id_empresa=id_empresa)
     if _solo_activos():
         q = q.filter_by(activo=True)
     rows = q.order_by(CondicionPagoCatalogo.orden, CondicionPagoCatalogo.codigo).all()
@@ -69,7 +75,13 @@ def listar_condiciones_pago():
 def obtener_condicion_pago(id_):
     if request.method == 'OPTIONS':
         return _options()
-    row = CondicionPagoCatalogo.query.get_or_404(id_)
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = CondicionPagoCatalogo.query.filter_by(
+        id_condicion_pago=id_, id_empresa=id_empresa
+    ).first_or_404()
     return _ok(condicion_schema.dump(row))
 
 
@@ -77,11 +89,17 @@ def obtener_condicion_pago(id_):
 def crear_condicion_pago():
     if request.method == 'OPTIONS':
         return _options()
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
     data = request.get_json() or {}
     errors = condicion_schema.validate(data)
     if errors:
         return jsonify({'success': False, 'errors': errors}), 400
-    row = CondicionPagoCatalogo(**condicion_schema.load(data))
+    payload = condicion_schema.load(data)
+    payload['id_empresa'] = id_empresa
+    row = CondicionPagoCatalogo(**payload)
     db.session.add(row)
     try:
         db.session.commit()
@@ -89,33 +107,47 @@ def crear_condicion_pago():
         return _ok(condicion_schema.dump(row), 201, 'Condición de pago creada')
     except IntegrityError:
         db.session.rollback()
-        return _err('Código duplicado', 409)
+        return _err('Código duplicado para esta empresa', 409)
 
 
 @catalogos_bp.route('/catalogos/condicion-pago/<string:id_>', methods=['PUT', 'OPTIONS'])
 def actualizar_condicion_pago(id_):
     if request.method == 'OPTIONS':
         return _options()
-    row = CondicionPagoCatalogo.query.get_or_404(id_)
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = CondicionPagoCatalogo.query.filter_by(
+        id_condicion_pago=id_, id_empresa=id_empresa
+    ).first_or_404()
     data = request.get_json() or {}
     errors = condicion_schema.validate(data, partial=True)
     if errors:
         return jsonify({'success': False, 'errors': errors}), 400
     for k, v in condicion_schema.load(data, partial=True).items():
+        if k == 'id_empresa':
+            continue
         setattr(row, k, v)
     try:
         db.session.commit()
         return _ok(condicion_schema.dump(row), message='Actualizado')
     except IntegrityError:
         db.session.rollback()
-        return _err('Código duplicado', 409)
+        return _err('Código duplicado para esta empresa', 409)
 
 
 @catalogos_bp.route('/catalogos/condicion-pago/<string:id_>/activo', methods=['PATCH', 'OPTIONS'])
 def patch_activo_condicion_pago(id_):
     if request.method == 'OPTIONS':
         return _options()
-    row = CondicionPagoCatalogo.query.get_or_404(id_)
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = CondicionPagoCatalogo.query.filter_by(
+        id_condicion_pago=id_, id_empresa=id_empresa
+    ).first_or_404()
     data = request.get_json() or {}
     errors = activo_schema.validate(data)
     if errors:
@@ -132,7 +164,11 @@ def patch_activo_condicion_pago(id_):
 def listar_formas_pago():
     if request.method == 'OPTIONS':
         return _options()
-    q = FormaPagoCatalogo.query
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    q = FormaPagoCatalogo.query.filter_by(id_empresa=id_empresa)
     if _solo_activos():
         q = q.filter_by(activo=True)
     tipo = request.args.get('tipo_uso')
@@ -146,7 +182,13 @@ def listar_formas_pago():
 def obtener_forma_pago(id_):
     if request.method == 'OPTIONS':
         return _options()
-    row = FormaPagoCatalogo.query.get_or_404(id_)
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = FormaPagoCatalogo.query.filter_by(
+        id_forma_pago=id_, id_empresa=id_empresa
+    ).first_or_404()
     return _ok(forma_schema.dump(row))
 
 
@@ -154,11 +196,17 @@ def obtener_forma_pago(id_):
 def crear_forma_pago():
     if request.method == 'OPTIONS':
         return _options()
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
     data = request.get_json() or {}
     errors = forma_schema.validate(data)
     if errors:
         return jsonify({'success': False, 'errors': errors}), 400
-    row = FormaPagoCatalogo(**forma_schema.load(data))
+    payload = forma_schema.load(data)
+    payload['id_empresa'] = id_empresa
+    row = FormaPagoCatalogo(**payload)
     db.session.add(row)
     try:
         db.session.commit()
@@ -166,33 +214,47 @@ def crear_forma_pago():
         return _ok(forma_schema.dump(row), 201, 'Modo de pago creado')
     except IntegrityError:
         db.session.rollback()
-        return _err('Código duplicado', 409)
+        return _err('Código duplicado para esta empresa', 409)
 
 
 @catalogos_bp.route('/catalogos/forma-pago/<string:id_>', methods=['PUT', 'OPTIONS'])
 def actualizar_forma_pago(id_):
     if request.method == 'OPTIONS':
         return _options()
-    row = FormaPagoCatalogo.query.get_or_404(id_)
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = FormaPagoCatalogo.query.filter_by(
+        id_forma_pago=id_, id_empresa=id_empresa
+    ).first_or_404()
     data = request.get_json() or {}
     errors = forma_schema.validate(data, partial=True)
     if errors:
         return jsonify({'success': False, 'errors': errors}), 400
     for k, v in forma_schema.load(data, partial=True).items():
+        if k == 'id_empresa':
+            continue
         setattr(row, k, v)
     try:
         db.session.commit()
         return _ok(forma_schema.dump(row))
     except IntegrityError:
         db.session.rollback()
-        return _err('Código duplicado', 409)
+        return _err('Código duplicado para esta empresa', 409)
 
 
 @catalogos_bp.route('/catalogos/forma-pago/<string:id_>/activo', methods=['PATCH', 'OPTIONS'])
 def patch_activo_forma_pago(id_):
     if request.method == 'OPTIONS':
         return _options()
-    row = FormaPagoCatalogo.query.get_or_404(id_)
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = FormaPagoCatalogo.query.filter_by(
+        id_forma_pago=id_, id_empresa=id_empresa
+    ).first_or_404()
     data = request.get_json() or {}
     errors = activo_schema.validate(data)
     if errors:
@@ -354,7 +416,11 @@ def patch_activo_tipo_entidad(id_):
 def listar_formatos_papel():
     if request.method == 'OPTIONS':
         return _options()
-    q = FormatoPapelCatalogo.query
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    q = FormatoPapelCatalogo.query.filter_by(id_empresa=id_empresa)
     if _solo_activos():
         q = q.filter_by(activo=True)
     rows = q.order_by(FormatoPapelCatalogo.orden, FormatoPapelCatalogo.codigo).all()
@@ -365,7 +431,13 @@ def listar_formatos_papel():
 def obtener_formato_papel(id_):
     if request.method == 'OPTIONS':
         return _options()
-    row = FormatoPapelCatalogo.query.get_or_404(id_)
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = FormatoPapelCatalogo.query.filter_by(
+        id_formato_papel=id_, id_empresa=id_empresa
+    ).first_or_404()
     return _ok(formato_schema.dump(row))
 
 
@@ -373,11 +445,17 @@ def obtener_formato_papel(id_):
 def crear_formato_papel():
     if request.method == 'OPTIONS':
         return _options()
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
     data = request.get_json() or {}
     errors = formato_schema.validate(data)
     if errors:
         return jsonify({'success': False, 'errors': errors}), 400
-    row = FormatoPapelCatalogo(**formato_schema.load(data))
+    payload = formato_schema.load(data)
+    payload['id_empresa'] = id_empresa
+    row = FormatoPapelCatalogo(**payload)
     db.session.add(row)
     try:
         db.session.commit()
@@ -385,33 +463,47 @@ def crear_formato_papel():
         return _ok(formato_schema.dump(row), 201)
     except IntegrityError:
         db.session.rollback()
-        return _err('Código duplicado', 409)
+        return _err('Código duplicado para esta empresa', 409)
 
 
 @catalogos_bp.route('/catalogos/formato-papel/<string:id_>', methods=['PUT', 'OPTIONS'])
 def actualizar_formato_papel(id_):
     if request.method == 'OPTIONS':
         return _options()
-    row = FormatoPapelCatalogo.query.get_or_404(id_)
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = FormatoPapelCatalogo.query.filter_by(
+        id_formato_papel=id_, id_empresa=id_empresa
+    ).first_or_404()
     data = request.get_json() or {}
     errors = formato_schema.validate(data, partial=True)
     if errors:
         return jsonify({'success': False, 'errors': errors}), 400
     for k, v in formato_schema.load(data, partial=True).items():
+        if k == 'id_empresa':
+            continue
         setattr(row, k, v)
     try:
         db.session.commit()
         return _ok(formato_schema.dump(row))
     except IntegrityError:
         db.session.rollback()
-        return _err('Código duplicado', 409)
+        return _err('Código duplicado para esta empresa', 409)
 
 
 @catalogos_bp.route('/catalogos/formato-papel/<string:id_>/activo', methods=['PATCH', 'OPTIONS'])
 def patch_activo_formato_papel(id_):
     if request.method == 'OPTIONS':
         return _options()
-    row = FormatoPapelCatalogo.query.get_or_404(id_)
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = FormatoPapelCatalogo.query.filter_by(
+        id_formato_papel=id_, id_empresa=id_empresa
+    ).first_or_404()
     data = request.get_json() or {}
     errors = activo_schema.validate(data)
     if errors:

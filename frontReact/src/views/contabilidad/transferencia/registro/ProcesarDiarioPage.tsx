@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { gql, useQuery } from '@apollo/client';
 import {
@@ -13,9 +13,10 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import { ejecutarRegistroContable } from '../../../_apis_/contabilidad';
 import { formatMoneda, rangoAnioActual } from '../../operativa/operativaUtils';
+import { useConfigEmpresaScope } from '../../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../../components/ConfigEmpresaBar';
 
 const GET_PREVIEW = gql`
   query LineasRegistro(
@@ -61,8 +62,7 @@ const ProcesarDiarioPage: React.FC<ProcesarDiarioProps> = ({
   origen,
   mostrarFormaPago = false,
 }) => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const { desde: defDesde, hasta: defHasta } = rangoAnioActual();
 
   const [fechaDesde, setFechaDesde] = useState(defDesde);
@@ -107,6 +107,7 @@ const ProcesarDiarioPage: React.FC<ProcesarDiarioProps> = ({
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <CardTitle tag="h4">
           Generación de asientos contables — {codigoDiario} — {titulo}
         </CardTitle>

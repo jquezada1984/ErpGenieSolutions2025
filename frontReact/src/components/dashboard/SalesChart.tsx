@@ -43,8 +43,7 @@ const SalesChart = () => {
         </CardSubtitle>
         <Chart
           type="area"
-          width="100%"
-          height="390"
+          height={390}
           options={chartoptions.options}
           series={chartoptions.series}
         />

@@ -1,23 +1,49 @@
-const { pythonService } = require('../services');
+const axios = require('axios');
+const { ctxHeaders } = require('../utils/requestContext');
+
+const BASE_URL = process.env.PYTHON_SERVICE_URL || 'http://python-service:5000';
+const TIMEOUT = parseInt(process.env.CATALOGOS_TIMEOUT || '15000', 10);
+
+const http = axios.create({ baseURL: BASE_URL, timeout: TIMEOUT });
+
+async function proxy(method, path, body, req) {
+  const headers = {
+    ...(await ctxHeaders(req, body || {})),
+    ...(req.headers.authorization && { Authorization: req.headers.authorization }),
+    'Content-Type': 'application/json',
+  };
+  const res = await http.request({
+    method,
+    url: path,
+    data: ['GET', 'DELETE'].includes(method.toUpperCase()) ? undefined : body,
+    headers,
+  });
+  return res.data;
+}
 
 async function forward(request, reply, method, path) {
   try {
     const data = method.toLowerCase() === 'get' ? null : request.body;
-    const result = await pythonService.call(path, method.toUpperCase(), data);
+    const result = await proxy(method, path, data, request);
     return reply.send(result);
   } catch (error) {
-    const status = error.statusCode || 500;
-    return reply.code(status).send({ success: false, error: error.message });
+    const status = error.response?.status || error.statusCode || 500;
+    const msg =
+      error.response?.data?.error ||
+      error.response?.data?.message ||
+      error.message ||
+      'Error en catálogos';
+    return reply.code(status).send({ success: false, error: msg });
   }
 }
 
 module.exports = async function catalogosRoutes(fastify) {
   const resources = [
-    { key: 'condicion-pago', idType: 'string' },
-    { key: 'forma-pago', idType: 'string' },
-    { key: 'moneda', idType: 'string' },
-    { key: 'tipo-entidad-legal', idType: 'number' },
-    { key: 'formato-papel', idType: 'string' },
+    { key: 'condicion-pago' },
+    { key: 'forma-pago' },
+    { key: 'moneda' },
+    { key: 'tipo-entidad-legal' },
+    { key: 'formato-papel' },
   ];
 
   fastify.get('/catalogos/modos-pago', (req, reply) =>

@@ -1,0 +1,59 @@
+---
+description: Patrón multiempresa GLOBAL vs EMPRESA — selector de empresa y filtrado de datos
+alwaysApply: true
+---
+
+# Multiempresa: Alcance de acceso (GLOBAL / EMPRESA)
+
+## Fuente de verdad
+
+El usuario tiene en el JWT (y en edición de usuario) el campo **`scope_acceso`**:
+
+| Valor UI | Código | Comportamiento |
+|----------|--------|----------------|
+| Solo su empresa | `EMPRESA` | Solo ve/usa su `id_empresa` del JWT. **No** mostrar combo de empresas. **No** cargar ni ofrecer datos de otras empresas. |
+| Todas las empresas | `GLOBAL` | Mostrar selector de empresa. Debe elegir una antes de listar/editar. Filtrar por la empresa seleccionada. |
+
+- Helper front: `frontReact/src/utils/scopeAcceso.ts` → `isScopeGlobal(payload)`
+- Hook JWT: `useJwtPayload()`
+- Campo UI usuario: **Alcance de acceso** (`Solo su empresa` / `Todas las empresas`)
+
+## Regla UI (obligatoria en pantallas multiempresa)
+
+1. Si `scope_acceso === 'EMPRESA'`:
+   - Ocultar `SelectEmpresa` / `ConfigEmpresaBar` (o equivalente).
+   - Fijar `id_empresa = payload.id_empresa`.
+   - Cargar datos solo de esa empresa.
+
+2. Si `scope_acceso === 'GLOBAL'`:
+   - Mostrar el combo de empresas (como en Productos / Configuración).
+   - Sin empresa seleccionada: no listar; aviso “Seleccione una empresa…”.
+   - Con empresa seleccionada: filtrar todo por esa `id_empresa`.
+
+**Reutilizar (no reinventar):**
+- Listados: patrón `Terceros.tsx`, Productos.
+- Configuración: `useConfigEmpresaScope` + `ConfigEmpresaBar`.
+- Formularios: `SeccionCuentaEmpresa` / `SeccionItemEmpresa`.
+
+```tsx
+// ✅ GOOD — listado
+const scopeGlobal = isScopeGlobal(payload);
+const idEmpresa = scopeGlobal ? selectedIdEmpresa : payload?.id_empresa;
+// mostrar SelectEmpresa solo si scopeGlobal
+
+// ❌ BAD — siempre mostrar combo o listar sin filtrar por empresa
+```
+
+## Regla API / Gateway (obligatoria)
+
+- Propagar `X-Company-Id`, `X-User-Id`, `X-Scope-Acceso`.
+- Usar `gateway-api/src/utils/requestContext.js` → `ctxHeaders`:
+  - **EMPRESA**: forzar `X-Company-Id = usuario.id_empresa` (ignorar lo que mande el cliente).
+  - **GLOBAL**: aceptar empresa del header/body (selección UI); fallback al JWT.
+- Python/Nest: filtrar lecturas/escrituras por `id_empresa` del contexto. Nunca devolver catálogos/listados de otra empresa a un usuario EMPRESA.
+
+## Al implementar pantallas nuevas
+
+- Si la entidad es por empresa, aplicar este patrón desde el primer commit.
+- No hardcodear “siempre mostrar combo”.
+- No mezclar datos de varias empresas en un mismo listado para usuarios EMPRESA.

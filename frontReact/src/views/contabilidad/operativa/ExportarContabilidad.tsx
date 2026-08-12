@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Button,
@@ -11,9 +11,10 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import { ejecutarExportacionContabilidad, listarMovimientosExportar } from '../../../_apis_/contabilidad';
 import { formatMoneda, rangoAnioActual } from './operativaUtils';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 type MovExport = {
   id_movimiento_contable: string;
@@ -29,8 +30,7 @@ type MovExport = {
 };
 
 const ExportarContabilidad: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const { desde: defDesde, hasta: defHasta } = rangoAnioActual();
 
   const [fechaDesde, setFechaDesde] = useState(defDesde);
@@ -94,6 +94,7 @@ const ExportarContabilidad: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <div className="d-flex justify-content-between align-items-center mb-3">
           <CardTitle tag="h4" className="mb-0">
             Exportar contabilidad ({filas.length})

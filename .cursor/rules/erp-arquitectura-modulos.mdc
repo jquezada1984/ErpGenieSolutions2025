@@ -1,0 +1,79 @@
+---
+description: Arquitectura ERP Genie (microservicios + módulos tipo Dolibarr) — leer al retomar el proyecto
+alwaysApply: true
+---
+
+# ERP Genie — arquitectura y módulos
+
+## Cómo retomar
+
+Si el usuario dice **"sigamos con el proyecto"**, **"continuemos"** o similar, asume el trabajo en curso sobre módulos del ERP. No pedir contexto desde cero salvo que falte información crítica.
+
+## Objetivo
+
+Portar al ERP Genie **los módulos funcionales de Dolibarr** (terceros, productos/ítems, inventario, banco/cajas, facturación, contabilidad, etc.), adaptados al stack y convenciones de este monorepo — no una copia literal, sino el mismo dominio de negocio con microservicios, multiempresa y menú/permisos propios.
+
+Al implementar un módulo nuevo: inspirarse en Dolibarr para reglas de negocio y pantallas, y **replicar el patrón técnico** ya usado en Terceros / Item / Banco-Cajas.
+
+## Patrón de microservicios (obligatorio)
+
+Referencia canónica: `AUDITORIA_Y_CONEXION_ITEM.md` (flujo Terceros).
+
+```
+frontReact → gateway-api (3002) → { dominioNestJs | dominioPython }
+```
+
+| Responsabilidad | Tecnología | Canal | Ejemplo |
+|-----------------|------------|-------|---------|
+| **Lectura** (listados, detalle, selects, catálogos) | **NestJS** + GraphQL | Gateway: GET REST que consulta Nest, o Apollo → `/graphql` enrutado al Nest del dominio | `TerceroNestJs`, `ItemNestJs`, `BancoCajaNestJs` |
+| **Escritura** (crear, actualizar, eliminar / anular) | **Python (Flask)** + REST | Gateway: POST/PUT/PATCH/DELETE → Python del dominio | `TerceroPython`, `ItemPython`, `BancoCajaPython` |
+
+### Capas al crear un dominio nuevo
+
+1. **`{Dominio}Python/`** — models, schemas (Marshmallow), repositories, services, `api/*_routes.py`, Dockerfile.
+2. **`{Dominio}NestJs/`** — entities TypeORM, resolvers GraphQL (solo lectura), services que leen BD, Dockerfile.
+3. **`gateway-api`**:
+   - `services/{dominio}NestJs.js` + `services/{dominio}Python.js`
+   - `routes/{dominio}.js`: **GET → Nest**, **POST/PUT/DELETE → Python**
+   - En `graphql.js` / `getTargetService()`: enrutar queries del dominio al Nest correspondiente
+   - Env: `{DOMINIO}_NEST_GQL_URL`, `{DOMINIO}_PY_BASE_URL` (+ docker-compose)
+4. **`frontReact`**: `_apis_/{dominio}.js` (REST vía gateway) + vistas; lecturas GraphQL con Apollo contra el gateway.
+5. **Menú / permisos**: scripts SQL en `MenuNestJs/migrations/` (menú + permisos por perfil).
+
+### Convenciones
+
+- Front **nunca** llama directo a Python/Nest; solo al gateway.
+- Auditoría típica en tablas: `created_by`, `updated_by`, `created_at`, `updated_at` (inglés).
+- Preferir **soft-delete / anulación** sobre DELETE físico cuando el dominio lo requiera.
+- Esquemas de tablas: buscarlos en migraciones/SQL del repo; no inventar columnas.
+- Multiempresa: ver regla `.cursor/rules/multiempresa-scope.mdc`.
+
+## Permisos y `scope_acceso`
+
+Detalle ejecutado: `Plan/PLAN_SCOPE_ACCESO_USUARIOS.md`. Resumen:
+
+| `scope_acceso` | Efecto |
+|----------------|--------|
+| **EMPRESA** | Solo datos de su `id_empresa`. Sin combo de otras empresas. No puede asignar `GLOBAL` a usuarios. |
+| **GLOBAL** | Puede elegir empresa; listar/administrar across empresas según pantalla; sí ve control “Alcance de acceso” al crear/editar usuario. |
+
+**Seguridad en servidor (no confiar solo en el front):**
+
+1. **Nest**: solo GLOBAL aplica/cambia `scope_acceso` en crear/actualizar usuario; si no, forzar EMPRESA / no modificar alcance.
+2. **Gateway**: si el JWT no es GLOBAL, quitar `scope_acceso` del body antes de enviar a Python.
+3. **Python**: POST fuerza EMPRESA si el caller no es GLOBAL; PUT no sobrescribe `scope_acceso` si el caller no es GLOBAL.
+
+UI: `isScopeGlobal` + mostrar selector de alcance solo a GLOBAL (`NuevoUsuario` / `EditarUsuario`). Pantallas de negocio: regla `multiempresa-scope.mdc`.
+
+## Stack (referencia)
+
+- Frontend: `http://localhost:3000` — `frontReact/`
+- API Gateway: `http://localhost:3002` — GraphQL `/graphql` + REST `/api/...`
+- BD: PostgreSQL (Supabase / local); menú y permisos vía `MenuNestJs`
+
+## Instrucciones para el agente
+
+1. Responder en **español**.
+2. Al retomar o cerrar un módulo, actualizar esta regla solo con decisiones de arquitectura o checklist útil (sin volcar esquemas enteros).
+3. No ampliar alcance ni refactorizar módulos ajenos sin pedirlo.
+4. Ante duda de columnas/tablas: buscar en `**/migrations/**` y `docs/sql/` antes de asumir.

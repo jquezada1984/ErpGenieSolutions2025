@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { gql, useApolloClient, useQuery } from '@apollo/client';
 import AsyncSelect from 'react-select/async';
 import type { SingleValue, StylesConfig, GroupBase } from 'react-select';
@@ -19,6 +19,8 @@ import {
 } from 'reactstrap';
 import axios from 'axios';
 import useJwtPayload from '../../../hooks/useJwtPayload';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GATEWAY_API_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002').replace(/\/$/, '');
 
@@ -36,19 +38,13 @@ const GET_CLIENTES_BUSQUEDA = gql`
 `;
 
 const GET_FINANCIERO_CATALOGOS = gql`
-  query FinancieroCatalogosNuevaFactura($id_empresa: String!) {
-    cuentasBancarias(id_empresa: $id_empresa) {
-      id_cuenta_bancaria
-      etiqueta_cuenta
-      numero_cuenta
-      iban
-    }
-    condicionesPagoFin {
+  query FinancieroCatalogosNuevaFactura($id_empresa: String) {
+    condicionesPagoFin(id_empresa: $id_empresa) {
       id_condicion_pago
       etiqueta
       descripcion
     }
-    formasPagoFin {
+    formasPagoFin(id_empresa: $id_empresa) {
       id_forma_pago
       etiqueta
       descripcion
@@ -57,6 +53,18 @@ const GET_FINANCIERO_CATALOGOS = gql`
       id_moneda
       codigo
       nombre
+    }
+  }
+`;
+
+/** Cuentas bancarias desde BancoCajaNestJs (no Financiero). */
+const GET_CUENTAS_BANCARIAS = gql`
+  query CuentasBancariasNuevaFactura($id_empresa: ID) {
+    cuentasBancarias(id_empresa: $id_empresa) {
+      id_cuenta_bancaria
+      etiqueta_cuenta
+      numero_cuenta
+      iban
     }
   }
 `;
@@ -87,12 +95,23 @@ const NuevaFacturaCliente = () => {
   const navigate = useNavigate();
   const client = useApolloClient();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevIdEmpresaRef = useRef<string | null>(null);
 
   const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const scope = useConfigEmpresaScope();
+  const { idEmpresa } = scope;
   const idUsuario = useMemo(() => (payloadJwt as any)?.sub || (payloadJwt as any)?.userId || '', [payloadJwt]);
 
   const { data: catData, loading: loadingCat, error: errorCat } = useQuery(GET_FINANCIERO_CATALOGOS, {
+    variables: { id_empresa: idEmpresa || undefined },
+    skip: !idEmpresa,
+  });
+
+  const {
+    data: cuentasData,
+    loading: loadingCuentas,
+    error: errorCuentas,
+  } = useQuery(GET_CUENTAS_BANCARIAS, {
     variables: { id_empresa: idEmpresa },
     skip: !idEmpresa,
   });
@@ -114,13 +133,26 @@ const NuevaFacturaCliente = () => {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
 
-  const cuentas = catData?.cuentasBancarias || [];
+  useEffect(() => {
+    if (prevIdEmpresaRef.current === null) {
+      prevIdEmpresaRef.current = idEmpresa;
+      return;
+    }
+    if (prevIdEmpresaRef.current === idEmpresa) return;
+    prevIdEmpresaRef.current = idEmpresa;
+    setClienteOpcion(null);
+    setIdCondicionPago('');
+    setIdFormaPago('');
+    setIdCuentaBancaria('');
+  }, [idEmpresa]);
+
+  const cuentas = cuentasData?.cuentasBancarias || [];
   const condiciones = catData?.condicionesPagoFin || [];
   const formas = catData?.formasPagoFin || [];
   const monedas = catData?.monedasFin || [];
 
-  const loading = loadingCat;
-  const errorGql = errorCat;
+  const loading = Boolean(idEmpresa) && (loadingCat || loadingCuentas);
+  const errorGql = errorCat || errorCuentas;
 
   const selectStyles = useMemo<StylesConfig<ClienteOpcion, false, GroupBase<ClienteOpcion>>>(
     () => ({
@@ -192,7 +224,7 @@ const NuevaFacturaCliente = () => {
     e.preventDefault();
     setMensaje(null);
     if (!idEmpresa) {
-      setMensaje({ tipo: 'error', texto: 'No se detectó empresa en la sesión.' });
+      setMensaje({ tipo: 'error', texto: 'Seleccione una empresa para crear la factura.' });
       return;
     }
     if (!clienteOpcion?.value) {
@@ -259,9 +291,22 @@ const NuevaFacturaCliente = () => {
             <i className="bi bi-file-earmark-text" /> Nueva factura cliente
           </CardTitle>
 
-          {!idEmpresa && <Alert color="warning">No se detectó id_empresa en el token.</Alert>}
-          {errorGql && <Alert color="danger">Error cargando datos: {errorGql.message}</Alert>}
-          {mensaje && <Alert color={mensaje.tipo === 'ok' ? 'success' : 'danger'}>{mensaje.texto}</Alert>}
+          <ConfigEmpresaBar
+            scope={scope}
+            hideWhenEmpresa
+            emptyMessage="Seleccione una empresa para crear la factura."
+          />
+
+          {errorGql && (
+            <Alert color="danger" fade={false} timeout={0}>
+              Error cargando datos: {errorGql.message}
+            </Alert>
+          )}
+          {mensaje && (
+            <Alert color={mensaje.tipo === 'ok' ? 'success' : 'danger'} fade={false} timeout={0}>
+              {mensaje.texto}
+            </Alert>
+          )}
 
           {loading && (
             <div className="text-center py-5">
@@ -298,6 +343,7 @@ const NuevaFacturaCliente = () => {
                     styles={selectStyles}
                     menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
                     menuPosition="fixed"
+                    isDisabled={!idEmpresa}
                     loadingMessage={() => 'Buscando…'}
                     noOptionsMessage={(p) =>
                       idEmpresa
@@ -362,7 +408,7 @@ const NuevaFacturaCliente = () => {
                   <Label className="fw-semibold text-primary">Condiciones de pago</Label>
                 </Col>
                 <Col {...inputCol}>
-                  <Input type="select" value={idCondicionPago} onChange={(e) => setIdCondicionPago(e.target.value)}>
+                  <Input type="select" value={idCondicionPago} onChange={(e) => setIdCondicionPago(e.target.value)} disabled={!idEmpresa}>
                     <option value="">—</option>
                     {condiciones.map((x: { id_condicion_pago: string; etiqueta?: string; descripcion?: string }) => (
                       <option key={x.id_condicion_pago} value={x.id_condicion_pago}>
@@ -378,7 +424,7 @@ const NuevaFacturaCliente = () => {
                   <Label className="fw-semibold text-primary">Forma de pago</Label>
                 </Col>
                 <Col {...inputCol}>
-                  <Input type="select" value={idFormaPago} onChange={(e) => setIdFormaPago(e.target.value)}>
+                  <Input type="select" value={idFormaPago} onChange={(e) => setIdFormaPago(e.target.value)} disabled={!idEmpresa}>
                     <option value="">—</option>
                     {formas.map((x: { id_forma_pago: string; etiqueta?: string; descripcion?: string }) => (
                       <option key={x.id_forma_pago} value={x.id_forma_pago}>
@@ -394,7 +440,7 @@ const NuevaFacturaCliente = () => {
                   <Label className="fw-semibold text-primary">Cuenta bancaria predeterminada</Label>
                 </Col>
                 <Col {...inputCol}>
-                  <Input type="select" value={idCuentaBancaria} onChange={(e) => setIdCuentaBancaria(e.target.value)}>
+                  <Input type="select" value={idCuentaBancaria} onChange={(e) => setIdCuentaBancaria(e.target.value)} disabled={!idEmpresa}>
                     <option value="">—</option>
                     {cuentas.map((c: { id_cuenta_bancaria: string; etiqueta_cuenta?: string; numero_cuenta?: string }) => (
                       <option key={c.id_cuenta_bancaria} value={c.id_cuenta_bancaria}>

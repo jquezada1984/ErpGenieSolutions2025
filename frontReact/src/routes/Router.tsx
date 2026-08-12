@@ -97,6 +97,10 @@ const ModosPagoDiccionario = Loadable(lazy(() => import('../views/financiero/con
 const MonedasDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/MonedasDiccionario')));
 const TipoEntidadLegalDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/TipoEntidadLegalDiccionario')));
 const FormatosPapelDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/FormatosPapelDiccionario')));
+const ConfigPaneles = Loadable(lazy(() => import('../views/configuracion/Paneles')));
+const ConfigAlertas = Loadable(lazy(() => import('../views/configuracion/Alertas')));
+const ConfigSeguridad = Loadable(lazy(() => import('../views/configuracion/Seguridad')));
+const ConfigEmails = Loadable(lazy(() => import('../views/configuracion/Emails')));
 // Módulo Item (productos y servicios)
 const Productos = Loadable(lazy(() => import('../views/items/productos/Productos')));
 const ProductosStocks = Loadable(lazy(() => import('../views/items/productos/ProductosStocks')));
@@ -232,6 +236,16 @@ const ThemeRoutes: RouteType[] = [
       { path: 'financiero/configuracion/diccionarios/monedas', element: <MonedasDiccionario /> },
       { path: 'financiero/configuracion/diccionarios/tipo-entidad-legal', element: <TipoEntidadLegalDiccionario /> },
       { path: 'financiero/configuracion/diccionarios/formatos-papel', element: <FormatosPapelDiccionario /> },
+      { path: 'configuracion/diccionarios', element: <DiccionariosIndex /> },
+      { path: 'configuracion/diccionarios/condiciones-pago', element: <CondicionesPagoDiccionario /> },
+      { path: 'configuracion/diccionarios/modos-pago', element: <ModosPagoDiccionario /> },
+      { path: 'configuracion/diccionarios/monedas', element: <MonedasDiccionario /> },
+      { path: 'configuracion/diccionarios/tipo-entidad-legal', element: <TipoEntidadLegalDiccionario /> },
+      { path: 'configuracion/diccionarios/formatos-papel', element: <FormatosPapelDiccionario /> },
+      { path: 'configuracion/paneles', element: <ConfigPaneles /> },
+      { path: 'configuracion/alertas', element: <ConfigAlertas /> },
+      { path: 'configuracion/seguridad', element: <ConfigSeguridad /> },
+      { path: 'configuracion/emails', element: <ConfigEmails /> },
       {
         path: 'items',
         element: <Outlet />,

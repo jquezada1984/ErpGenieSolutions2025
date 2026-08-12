@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
@@ -11,7 +11,6 @@ import {
   Label,
   Spinner,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import {
   guardarCuentasContablesDefecto,
   inicializarCuentasContablesDefecto,
@@ -20,6 +19,8 @@ import {
   CATALOGO_CUENTAS_DEFECTO,
   SECCIONES_CUENTA_DEFECTO,
 } from '../constants/tiposCuentaDefecto';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GET_PLAN_ACTIVO = gql`
   query GetPlanContableActivoProductos($id_empresa: String!) {
@@ -58,8 +59,7 @@ const GET_CUENTAS_PLAN = gql`
 const ITEMS_PRODUCTO = CATALOGO_CUENTAS_DEFECTO.filter((c) => c.seccion === 'PRODUCTO');
 
 const CuentasProductos: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const [valores, setValores] = useState<Record<string, string>>({});
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; text: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -140,6 +140,7 @@ const CuentasProductos: React.FC = () => {
   return (
     <div className="p-3">
       <h4 className="mb-4">Cuentas contables de productos</h4>
+      <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
       <p className="text-muted">{SECCIONES_CUENTA_DEFECTO.PRODUCTO}</p>
       {mensaje && <Alert color={mensaje.tipo === 'ok' ? 'success' : 'danger'}>{mensaje.text}</Alert>}
       {!idPlan && !loading && <Alert color="warning">Configure un plan contable activo.</Alert>}

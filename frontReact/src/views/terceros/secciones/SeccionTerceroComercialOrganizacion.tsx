@@ -10,12 +10,13 @@ import SelectTamanoEmpresa from '../../../components/selects/SelectTamanoEmpresa
 import SelectDirectorioDocumento from '../../../components/selects/SelectDirectorioDocumento';
 import ImageUpload from '../../../components/common/ImageUpload';
 import useJwtPayload from '../../../hooks/useJwtPayload';
+import { isScopeGlobal } from '../../../utils/scopeAcceso';
 
 type Props = { data:any; onChange:(d:any)=>void };
 
 const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }) => {
   const payload = useJwtPayload();
-  const scope = payload?.scope_acceso || 'EMPRESA';
+  const scopeGlobal = isScopeGlobal(payload);
   const empresaUsuario = payload?.id_empresa;
 
   const [f, setF] = useState<any>({
@@ -29,28 +30,26 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
 
   // Si scope EMPRESA, asegurar que id_empresa del usuario se envía en el formulario cuando esté vacío
   useEffect(() => {
-    if (scope === 'EMPRESA' && empresaUsuario && !data.id_empresa) {
+    if (!scopeGlobal && empresaUsuario && !data.id_empresa) {
       setF((p: any) => ({ ...p, id_empresa: empresaUsuario }));
       onChange({ ...data, id_empresa: empresaUsuario });
     }
-  }, [scope, empresaUsuario, data.id_empresa]);
+  }, [scopeGlobal, empresaUsuario, data.id_empresa]);
 
   // Queries GraphQL para obtener catálogos (igual que en SeccionEmpresa)
   const GET_CONDICIONES_PAGO = gql`
-    query GetCondicionesPago {
-      condicionesPago {
+    query GetCondicionesPago($id_empresa: String) {
+      condicionesPago(id_empresa: $id_empresa) {
         id_condicion_pago
-        etiqueta
         etiqueta
       }
     }
   `;
 
   const GET_FORMAS_PAGO = gql`
-    query GetFormasPago {
-      formasPago {
+    query GetFormasPago($id_empresa: String) {
+      formasPago(id_empresa: $id_empresa) {
         id_forma_pago
-        etiqueta
         etiqueta
       }
     }
@@ -95,9 +94,20 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
   `;
 
   // Obtener datos maestros con manejo de errores
-  const { data: condicionesData, loading: loadingCondiciones, error: errorCondiciones } = useQuery(GET_CONDICIONES_PAGO);
-  const { data: formasData, loading: loadingFormas, error: errorFormas } = useQuery(GET_FORMAS_PAGO);
-  const { data: empresasData, loading: loadingEmpresas, error: errorEmpresas } = useQuery(GET_EMPRESAS);
+  const { data: condicionesData, loading: loadingCondiciones, error: errorCondiciones } = useQuery(
+    GET_CONDICIONES_PAGO,
+    {
+      variables: { id_empresa: data.id_empresa || undefined },
+      skip: !data.id_empresa,
+    },
+  );
+  const { data: formasData, loading: loadingFormas, error: errorFormas } = useQuery(GET_FORMAS_PAGO, {
+    variables: { id_empresa: data.id_empresa || undefined },
+    skip: !data.id_empresa,
+  });
+  const { data: empresasData, loading: loadingEmpresas, error: errorEmpresas } = useQuery(GET_EMPRESAS, {
+    skip: !scopeGlobal,
+  });
   const { data: tamanosEmpresaData, loading: loadingTamanosEmpresa, error: errorTamanosEmpresa } = useQuery(GET_TAMANOS_EMPRESA);
   const {
     data: representantesData,
@@ -135,7 +145,7 @@ const SeccionTerceroComercialOrganizacion: React.FC<Props> = ({ data, onChange }
         <h5 className="mb-4"><i className="fas fa-briefcase text-primary me-2" />Comercial y organización</h5>
 
         <Row>
-          {scope === 'GLOBAL' && (
+          {scopeGlobal && (
           <Col md={4}>
             {errorEmpresas && (
               <div className="alert alert-danger">

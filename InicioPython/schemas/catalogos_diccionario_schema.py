@@ -6,6 +6,7 @@ class CondicionPagoSchema(Schema):
         unknown = EXCLUDE
 
     id_condicion_pago = fields.UUID(dump_only=True)
+    id_empresa = fields.UUID(dump_only=True)
     codigo = fields.Str(required=True, validate=validate.Length(max=32))
     etiqueta = fields.Str(required=True, validate=validate.Length(max=100))
     etiqueta_documento = fields.Str(allow_none=True, validate=validate.Length(max=255))
@@ -22,6 +23,7 @@ class FormaPagoSchema(Schema):
         unknown = EXCLUDE
 
     id_forma_pago = fields.UUID(dump_only=True)
+    id_empresa = fields.UUID(dump_only=True)
     codigo = fields.Str(required=True, validate=validate.Length(max=16))
     etiqueta = fields.Str(required=True, validate=validate.Length(max=100))
     tipo_uso = fields.Str(
@@ -58,6 +60,7 @@ class FormatoPapelSchema(Schema):
         unknown = EXCLUDE
 
     id_formato_papel = fields.UUID(dump_only=True)
+    id_empresa = fields.UUID(dump_only=True)
     codigo = fields.Str(required=True, validate=validate.Length(max=32))
     etiqueta = fields.Str(required=True, validate=validate.Length(max=100))
     largo = fields.Decimal(as_string=True, required=True)

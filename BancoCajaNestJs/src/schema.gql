@@ -1,0 +1,97 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Banco {
+  codigo: String
+  created_at: DateTime
+  estado: Boolean!
+  id_banco: ID!
+  nombre: String!
+  swift: String
+  updated_at: DateTime
+  web: String
+}
+
+type CuentaBancaria {
+  banco: Banco
+  bic_swift: String
+  codigo_contable: String
+  comentario: String
+  comentario_html: String
+  created_at: DateTime
+  direccion_banco: String
+  estado: Boolean!
+  estado_cuenta: String
+  etiqueta_cuenta: String
+  fecha_saldo_inicial: String
+  iban: String
+  id_banco: ID!
+  id_cuenta_bancaria: ID!
+  id_cuenta_contable: ID
+  id_empresa: ID!
+  id_moneda: ID!
+  id_pais: ID
+  id_provincia: ID
+  id_tercero: ID
+  numero_cuenta: String!
+  referencia: String
+  saldo_actual: Float!
+  saldo_inicial: Float!
+  saldo_minimo_autorizado: Float
+  saldo_minimo_deseado: Float
+  tipo_cuenta: String!
+  updated_at: DateTime
+  web: String
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type MovimientoBancario {
+  concepto: String
+  conciliado: Boolean!
+  created_at: DateTime
+  cuenta: CuentaBancaria
+  fecha_movimiento: String!
+  id_cuenta_bancaria: ID!
+  id_empresa: ID!
+  id_movimiento_bancario: ID!
+  id_movimiento_reversado: ID
+  id_transferencia_bancaria: ID
+  monto: Float!
+  numero_documento: String
+  saldo_anterior: Float
+  saldo_nuevo: Float
+  tipo_movimiento: String
+}
+
+type Query {
+  banco(id_banco: ID!): Banco!
+  bancos(soloActivos: Boolean = true): [Banco!]!
+  cuentaBancaria(id_cuenta_bancaria: ID!): CuentaBancaria!
+  cuentasBancarias(id_empresa: ID): [CuentaBancaria!]!
+  movimientoBancario(id_movimiento_bancario: ID!): MovimientoBancario!
+  movimientosBancarios(id_cuenta_bancaria: ID!, id_empresa: ID, soloActivos: Boolean): [MovimientoBancario!]!
+  transferenciaBancaria(id_transferencia_bancaria: ID!): TransferenciaBancaria!
+  transferenciasBancarias(id_empresa: ID, soloActivos: Boolean): [TransferenciaBancaria!]!
+}
+
+type TransferenciaBancaria {
+  concepto: String
+  created_at: DateTime
+  cuentaDestino: CuentaBancaria
+  cuentaOrigen: CuentaBancaria
+  estado: Boolean!
+  fecha_movimiento: String!
+  id_cuenta_destino: ID!
+  id_cuenta_origen: ID!
+  id_empresa: ID!
+  id_transferencia_bancaria: ID!
+  monto: Float!
+  numero_documento: String
+  tipo_movimiento: String!
+  updated_at: DateTime
+}

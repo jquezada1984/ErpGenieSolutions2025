@@ -17,6 +17,7 @@ type CondicionPago {
   etiqueta: String!
   etiqueta_documento: String
   id_condicion_pago: ID!
+  id_empresa: ID!
   numero_dias: Int
   orden: Int
   porcentaje_deposito: Float
@@ -164,6 +165,7 @@ type FormaPago {
   codigo: String!
   descripcion: String!
   etiqueta: String!
+  id_empresa: ID!
   id_forma_pago: ID!
   orden: Int
   tipo_uso: String!
@@ -174,6 +176,7 @@ type FormatoPapel {
   alto: Float!
   codigo: String!
   etiqueta: String!
+  id_empresa: ID!
   id_formato_papel: ID!
   largo: Float!
   orden: Int
@@ -368,12 +371,12 @@ type Provincia {
 
 type Query {
   almacenes: [Almacen!]!
-  condicionesPago(soloActivos: Boolean = true): [CondicionPago!]!
+  condicionesPago(id_empresa: String, soloActivos: Boolean = true): [CondicionPago!]!
   cuentasContables: [CuentaContable!]!
   duracionUnidadesCatalogo: [DuracionUnidadCatalogo!]!
   empresa(id_empresa: ID!): Empresa
   empresas: [EmpresaListDto!]!
-  formasPago(soloActivos: Boolean = true, tipoUso: String): [FormaPago!]!
+  formasPago(id_empresa: String, soloActivos: Boolean = true, tipoUso: String): [FormaPago!]!
   formatosPapel(soloActivos: Boolean = true): [FormatoPapel!]!
   getUserProfile: LoginResponse
   impuestos: [Impuesto!]!

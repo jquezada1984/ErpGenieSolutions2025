@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
@@ -11,7 +11,8 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../hooks/useJwtPayload';
+import { useConfigEmpresaScope } from '../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../components/ConfigEmpresaBar';
 
 const PAGE_SIZE_OPTS = [20, 50, 100];
 
@@ -52,8 +53,7 @@ const labelTipo = (tipo: string) => {
 };
 
 const CuentasIndividuales: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
 
   const [tipo, setTipo] = useState('');
   const [busqueda, setBusqueda] = useState('');
@@ -94,6 +94,7 @@ const CuentasIndividuales: React.FC = () => {
       <h4 className="mb-3">
         Plan de cuentas individuales del libro auxiliar ({total})
       </h4>
+      <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
 
       {!idEmpresa && (
         <Alert color="warning">No se detectó empresa en la sesión.</Alert>

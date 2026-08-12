@@ -20,6 +20,8 @@ export class CatalogosPagoResolver {
     soloActivos?: boolean,
     @Args('tipoUso', { type: () => String, nullable: true })
     tipoUso?: string,
+    @Args('id_empresa', { type: () => String, nullable: true })
+    id_empresa?: string,
   ): Promise<FormaPago[]> {
     const qb = this.formaPagoRepository
       .createQueryBuilder('f')
@@ -31,6 +33,9 @@ export class CatalogosPagoResolver {
     if (tipoUso) {
       qb.andWhere('f.tipo_uso = :tipoUso', { tipoUso });
     }
+    if (id_empresa) {
+      qb.andWhere('f.id_empresa = :id_empresa', { id_empresa });
+    }
     return qb.getMany();
   }
 
@@ -38,6 +43,8 @@ export class CatalogosPagoResolver {
   async condicionesPago(
     @Args('soloActivos', { type: () => Boolean, nullable: true, defaultValue: true })
     soloActivos?: boolean,
+    @Args('id_empresa', { type: () => String, nullable: true })
+    id_empresa?: string,
   ): Promise<CondicionPago[]> {
     const qb = this.condicionPagoRepository
       .createQueryBuilder('c')
@@ -45,6 +52,9 @@ export class CatalogosPagoResolver {
       .addOrderBy('c.codigo', 'ASC');
     if (soloActivos !== false) {
       qb.andWhere('c.activo = :activo', { activo: true });
+    }
+    if (id_empresa) {
+      qb.andWhere('c.id_empresa = :id_empresa', { id_empresa });
     }
     return qb.getMany();
   }

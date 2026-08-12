@@ -11,7 +11,6 @@ import {
   Label,
   Spinner,
 } from 'reactstrap';
-import useJwtPayload from '../../hooks/useJwtPayload';
 import {
   guardarCuentasContablesDefecto,
   inicializarCuentasContablesDefecto,
@@ -20,6 +19,8 @@ import {
   CATALOGO_CUENTAS_DEFECTO,
   SECCIONES_CUENTA_DEFECTO,
 } from './constants/tiposCuentaDefecto';
+import { useConfigEmpresaScope } from '../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../components/ConfigEmpresaBar';
 
 const GET_PLAN_ACTIVO = gql`
   query GetPlanContableActivo($id_empresa: String!) {
@@ -58,8 +59,7 @@ const GET_CUENTAS_PLAN = gql`
 type ValoresMap = Record<string, string>;
 
 const CuentasContablesDefecto: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
 
   const [valores, setValores] = useState<ValoresMap>({});
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; text: string } | null>(null);
@@ -164,6 +164,7 @@ const CuentasContablesDefecto: React.FC = () => {
   return (
     <div className="p-3">
       <h4 className="mb-4">Cuentas contables por defecto</h4>
+      <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
 
       {!idEmpresa && <Alert color="warning">No se detectó empresa en la sesión.</Alert>}
       {!loadingPlan && !idPlan && (

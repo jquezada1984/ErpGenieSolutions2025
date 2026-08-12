@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
@@ -12,8 +12,9 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import { formatMoneda, rangoAnioActual } from './operativaUtils';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GET_ASIENTOS = gql`
   query AsientosContables(
@@ -57,8 +58,7 @@ const GET_ASIENTOS = gql`
 `;
 
 const AsientosContables: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
   const { desde: defDesde, hasta: defHasta } = rangoAnioActual();
 
   const [fechaDesde, setFechaDesde] = useState(defDesde);
@@ -83,6 +83,7 @@ const AsientosContables: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <CardTitle tag="h4">Asientos Contables ({asientos.length})</CardTitle>
 
         <div className="row g-2 mb-3">

@@ -220,7 +220,12 @@ const ListadoCuentasContables: React.FC = () => {
         </div>
 
         {planLabel && (
-          <p className="text-muted small mb-2">Plan activo: {planLabel}</p>
+          <p className="text-muted small mb-2">
+            Catálogo / plantilla: {planLabel}
+            <span className="d-block">
+              (Si la empresa aún no tiene plan propio, las cuentas por defecto usan esta plantilla.)
+            </span>
+          </p>
         )}
 
         {idPlan && (

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -11,13 +11,13 @@ import {
   Input,
   Label,
 } from 'reactstrap';
-import useJwtPayload from '../../hooks/useJwtPayload';
 import { crearPeriodoContable } from '../../_apis_/contabilidad';
+import { useConfigEmpresaScope } from '../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../components/ConfigEmpresaBar';
 
 const NuevoPeriodoContable: React.FC = () => {
   const navigate = useNavigate();
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
 
   const [etiqueta, setEtiqueta] = useState('');
   const [fechaInicio, setFechaInicio] = useState('');
@@ -52,6 +52,7 @@ const NuevoPeriodoContable: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
         <CardTitle tag="h4">Nuevo año fiscal</CardTitle>
         {error && <Alert color="danger">{error}</Alert>}
         <Form onSubmit={handleSubmit}>

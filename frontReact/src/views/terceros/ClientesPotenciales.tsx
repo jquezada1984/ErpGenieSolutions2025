@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardBody, CardTitle, Button, Container, Row, Col, Badge, Alert, FormGroup, Label } from 'reactstrap';
+import { Card, CardBody, CardTitle, Button, Container, Row, Col, Badge, Alert } from 'reactstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useLazyQuery, useQuery } from '@apollo/client';
+import { useLazyQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
 import { actualizarTercero } from '../../_apis_/tercero';
-import useJwtPayload from '../../hooks/useJwtPayload';
-import SelectEmpresa from '../../components/SelectEmpresa';
+import { useConfigEmpresaScope } from '../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../components/ConfigEmpresaBar';
 
 const GET_TERCEROS = gql`
   query GetTerceros($id_empresa: ID) {
@@ -29,17 +29,6 @@ const GET_TERCEROS = gql`
         nombre
       }
       asignado_a
-    }
-  }
-`;
-
-const GET_EMPRESAS = gql`
-  query GetEmpresas {
-    empresas {
-      id_empresa
-      nombre
-      ruc
-      estado
     }
   }
 `;
@@ -67,46 +56,19 @@ interface ClientePotencial {
 const ClientesPotenciales: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const payload = useJwtPayload();
-  const scope = payload?.scope_acceso || 'EMPRESA';
-  const idEmpresaUsuario = payload?.id_empresa;
+  const scope = useConfigEmpresaScope();
+  const { idEmpresa } = scope;
 
   const [lista, setLista] = useState<ClientePotencial[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedIdEmpresa, setSelectedIdEmpresa] = useState<string>('');
 
   const [getTerceros, { loading: queryLoading }] = useLazyQuery(GET_TERCEROS, {
     fetchPolicy: 'cache-and-network',
     errorPolicy: 'all',
   });
 
-  const { data: empresasData } = useQuery(GET_EMPRESAS, { skip: scope !== 'GLOBAL' });
-  const empresas = empresasData?.empresas || [];
-
-  useEffect(() => {
-    if (scope === 'EMPRESA' && idEmpresaUsuario) {
-      loadClientesPotenciales(idEmpresaUsuario);
-    } else if (scope === 'GLOBAL') {
-      setLista([]);
-      setLoading(false);
-      setError(null);
-    } else {
-      setLoading(false);
-    }
-  }, [scope, idEmpresaUsuario]);
-
-  useEffect(() => {
-    if (location.pathname === '/terceros/clientes-potenciales' || location.pathname === '/clientes_potenciales') {
-      if (scope === 'EMPRESA' && idEmpresaUsuario) {
-        loadClientesPotenciales(idEmpresaUsuario);
-      } else if (scope === 'GLOBAL' && selectedIdEmpresa) {
-        loadClientesPotenciales(selectedIdEmpresa);
-      }
-    }
-  }, [location.pathname]);
-
-  const loadClientesPotenciales = async (id_empresa: string | null) => {
+  const loadClientesPotenciales = async (id_empresa: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -128,6 +90,22 @@ const ClientesPotenciales: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (
+      location.pathname !== '/terceros/clientes-potenciales' &&
+      location.pathname !== '/clientes_potenciales'
+    ) {
+      return;
+    }
+    if (!idEmpresa) {
+      setLista([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    loadClientesPotenciales(idEmpresa);
+  }, [idEmpresa, location.pathname]);
+
   const handleNuevo = () => {
     navigate('/clientes_potenciales/nuevo');
   };
@@ -139,8 +117,7 @@ const ClientesPotenciales: React.FC = () => {
   const handleToggleEstado = async (item: ClientePotencial) => {
     try {
       await actualizarTercero(item.id_tercero, { estado: !item.estado });
-      const idToReload = scope === 'EMPRESA' ? idEmpresaUsuario : selectedIdEmpresa || null;
-      if (idToReload) await loadClientesPotenciales(idToReload);
+      if (idEmpresa) await loadClientesPotenciales(idEmpresa);
     } catch (err: any) {
       console.error('Error actualizando estado:', err);
       setError(err?.message || 'Error al actualizar el estado');
@@ -247,27 +224,11 @@ const ClientesPotenciales: React.FC = () => {
                 </div>
               </div>
 
-              {scope === 'GLOBAL' && (
-                <FormGroup className="mb-3">
-                  <Label for="id_empresa_listado">Empresa</Label>
-                  <SelectEmpresa
-                    value={selectedIdEmpresa || null}
-                    onChange={(val) => {
-                      setSelectedIdEmpresa(val ?? '');
-                      if (val) loadClientesPotenciales(val);
-                      else setLista([]);
-                    }}
-                    empresas={empresas}
-                    placeholder="Seleccione una empresa para ver los clientes potenciales"
-                  />
-                </FormGroup>
-              )}
-
-              {scope === 'GLOBAL' && !selectedIdEmpresa && (
-                <Alert color="info" className="mb-3">
-                  Seleccione una empresa para ver los clientes potenciales
-                </Alert>
-              )}
+              <ConfigEmpresaBar
+                scope={scope}
+                hideWhenEmpresa
+                emptyMessage="Seleccione una empresa para ver los clientes potenciales"
+              />
 
               {error && (
                 <Alert color="danger" className="mb-3">

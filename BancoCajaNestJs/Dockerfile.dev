@@ -1,0 +1,24 @@
+# BancoCajaNestJs — desarrollo
+FROM node:20-slim
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV TZ=America/Guayaquil
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+
+EXPOSE 3016
+
+ENV NODE_ENV=development
+ENV PORT=3016
+
+CMD ["npm", "run", "start:dev"]

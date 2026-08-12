@@ -48,6 +48,16 @@ class SafeApexChart extends Component<SafeApexChartProps, SafeApexChartState> {
 
     // Validar datos antes de renderizar
     const { series, options } = this.props;
+    const height = this.props.height ?? 200;
+    // Evitar width="100%" / NaN cuando el contenedor aún no tiene tamaño (ApexCharts SVG).
+    const width =
+      this.props.width === undefined ||
+      this.props.width === null ||
+      this.props.width === '' ||
+      this.props.width === '100%' ||
+      (typeof this.props.width === 'number' && Number.isNaN(this.props.width))
+        ? undefined
+        : this.props.width;
     
     // Validar que series sea un array válido
     if (!Array.isArray(series)) {
@@ -86,15 +96,15 @@ class SafeApexChart extends Component<SafeApexChartProps, SafeApexChartState> {
           options={options}
           series={series}
           type={this.props.type}
-          height={this.props.height}
-          width={this.props.width}
+          height={height}
+          width={width}
           className={this.props.className}
         />
       );
     } catch (error) {
       console.warn('Error rendering ApexChart:', error);
       return (
-        <div className="text-center p-4" style={{ height: this.props.height || 200 }}>
+        <div className="text-center p-4" style={{ height }}>
           <div className="alert alert-warning">
             <i className="bi bi-exclamation-triangle me-2"></i>
             Error al renderizar el gráfico

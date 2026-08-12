@@ -36,21 +36,9 @@ const getTargetService = (query, config) => {
     return config.itemNestJsService;
   }
 
-  // Catálogos generales en InicioNestJs (países, provincias, monedas)
-  if (query && (
-    query.includes('provinciasByPais') ||
-    query.includes('provincias') ||
-    query.includes('paises') ||
-    query.includes('monedas')
-  )) {
-    console.log('🔄 Redirigiendo catálogo países/provincias/monedas a InicioNestJs');
-    return config.nestjsService;
-  }
-  
-
-  // Financiero (facturas cliente, catálogos Fin*)
-  // Nota: `cuentasBancarias` lo atiende BancoCajaNestJs (módulo banca).
-  // Las pantallas financiero que mezclan catálogos siguen aquí por `condicionesPagoFin` / `formasPagoFin` / etc.
+  // Financiero (facturas cliente, catálogos Fin*) — ANTES que `monedas` de InicioNestJs:
+  // `includes('monedas')` también coincide con `monedasFin` y provocaba 500 en InicioNestJs.
+  // Las cuentas bancarias NO viven aquí: van a BancoCajaNestJs (`cuentasBancarias`).
   if (query && (
     query.includes('facturaCliente') ||
     query.includes('condicionesPagoFin') ||
@@ -59,6 +47,18 @@ const getTargetService = (query, config) => {
   )) {
     console.log('🔄 Redirigiendo consulta de financiero a FinancieroNestJs');
     return config.financieroNestJsService;
+  }
+
+  // Catálogos generales en InicioNestJs (países, provincias, monedas)
+  // No usar includes('monedas') a secas: captura monedasFin (ya enrutado arriba).
+  if (query && (
+    query.includes('provinciasByPais') ||
+    query.includes('provincias') ||
+    query.includes('paises') ||
+    (query.includes('monedas') && !query.includes('monedasFin'))
+  )) {
+    console.log('🔄 Redirigiendo catálogo países/provincias/monedas a InicioNestJs');
+    return config.nestjsService;
   }
 
   // Consultas del módulo contabilidad (solo lectura por NestJS)

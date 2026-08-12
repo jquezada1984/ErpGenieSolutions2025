@@ -9,8 +9,12 @@ export class CondicionPagoCatalogo {
   id_condicion_pago: string;
 
   @Field()
-  @Column({ type: 'varchar', length: 32, unique: true })
+  @Column({ type: 'varchar', length: 32 })
   codigo: string;
+
+  @Field(() => ID)
+  @Column({ type: 'uuid' })
+  id_empresa: string;
 
   @Field()
   @Column({ type: 'varchar', length: 100 })

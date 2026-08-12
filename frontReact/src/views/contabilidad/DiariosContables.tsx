@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
@@ -17,7 +17,6 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import useJwtPayload from '../../hooks/useJwtPayload';
 import {
   crearDiarioContable,
   actualizarDiarioContable,
@@ -26,6 +25,8 @@ import {
   inicializarDiariosContablesDefecto,
 } from '../../_apis_/contabilidad';
 import { TIPOS_DIARIO, labelTipoDiario } from './constants/tiposDiario';
+import { useConfigEmpresaScope } from '../../hooks/useConfigEmpresaScope';
+import SelectEmpresa from '../../components/SelectEmpresa';
 
 const GET_DIARIOS = gql`
   query GetDiariosContables($id_empresa: String!) {
@@ -41,8 +42,13 @@ const GET_DIARIOS = gql`
 `;
 
 const DiariosContables: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const {
+    idEmpresa,
+    scopeGlobal,
+    setSelectedIdEmpresa,
+    empresas,
+    loadingEmpresas,
+  } = useConfigEmpresaScope();
 
   const [codigo, setCodigo] = useState('');
   const [nombre, setNombre] = useState('');
@@ -144,6 +150,23 @@ const DiariosContables: React.FC = () => {
   return (
     <Card>
       <CardBody>
+        {scopeGlobal && (
+          <FormGroup className="mb-3" style={{ maxWidth: 420 }}>
+            <Label className="fw-semibold">Empresa</Label>
+            <SelectEmpresa
+              value={idEmpresa || null}
+              onChange={setSelectedIdEmpresa}
+              empresas={empresas}
+              isLoading={loadingEmpresas}
+              placeholder="Seleccione una empresa…"
+            />
+          </FormGroup>
+        )}
+        {scopeGlobal && !idEmpresa && (
+          <Alert color="warning" fade={false} timeout={0}>
+            Seleccione una empresa para ver los diarios contables.
+          </Alert>
+        )}
         <CardTitle tag="h4">Diccionarios — Diarios contables ({diarios.length})</CardTitle>
         {mensaje && <Alert color="warning">{mensaje}</Alert>}
         {error && <Alert color="danger">Error al cargar diarios</Alert>}

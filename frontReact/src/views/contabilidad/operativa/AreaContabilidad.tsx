@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { gql, useQuery } from '@apollo/client';
 import { Alert, Card, CardBody, CardTitle, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
-import useJwtPayload from '../../../hooks/useJwtPayload';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 
 const GET_ESTADO = gql`
   query EstadoAreaContabilidad($id_empresa: String!) {
@@ -56,8 +57,7 @@ const PASOS_OP: { n: string; label: string; to: string }[] = [
 ];
 
 const AreaContabilidad: React.FC = () => {
-  const payloadJwt = useJwtPayload();
-  const idEmpresa = useMemo(() => payloadJwt?.id_empresa || '', [payloadJwt]);
+  const { idEmpresa } = useConfigEmpresaScope();
 
   const { data, loading, error } = useQuery(GET_ESTADO, {
     variables: { id_empresa: idEmpresa },
@@ -72,6 +72,7 @@ const AreaContabilidad: React.FC = () => {
   return (
     <div>
       <h4 className="mb-3">Área contabilidad</h4>
+      <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
       {error && <Alert color="danger">Error al cargar el estado de configuración</Alert>}
       {loading && <Spinner />}
 
