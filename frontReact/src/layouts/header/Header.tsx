@@ -58,19 +58,26 @@ const Header = () => {
     }
   }, [user?.id_perfil, cargarOpcionesMenuSuperior, cargarMenuLateral, dispatch]);
 
-  // Seleccionar primera sección cuando menuLateral cargue o la selección actual no exista
+  // Seleccionar primera sección permitida; si no hay secciones, limpiar selección (evita menú fantasma)
   useEffect(() => {
-    if (menuLateral.length === 0) return;
-    const seleccionValida = selectedMenu && menuLateral.some(s => s.id_seccion === selectedMenu);
+    if (loadingPermisos) return;
+    if (!user?.id_perfil) {
+      if (selectedMenu) dispatch(setMainMenu(''));
+      return;
+    }
+    if (menuLateral.length === 0) {
+      if (selectedMenu) dispatch(setMainMenu(''));
+      return;
+    }
+    const seleccionValida = selectedMenu && menuLateral.some((s) => s.id_seccion === selectedMenu);
     if (!seleccionValida) {
       dispatch(setMainMenu(menuLateral[0].id_seccion));
     }
-  }, [menuLateral, selectedMenu, dispatch]);
-
-
+  }, [menuLateral, selectedMenu, dispatch, loadingPermisos, user?.id_perfil]);
 
   const handleLogout = async () => {
     try {
+      dispatch(setMainMenu(''));
       await logout();
       navigate('/');
     } catch (err) {
