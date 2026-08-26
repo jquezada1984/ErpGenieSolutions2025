@@ -101,6 +101,21 @@ const getTargetService = (query, config) => {
     return config.nestjsService;
   }
 
+  // Listado/detalle/mutation operacional AlmacenNestJs (ANTES de la regla genérica `almacenes`)
+  // Evita que "almacenesListado" / "actualizarEstadoAlmacen" sean capturados por includes('almacenes')
+  if (query && (
+    query.includes('almacenesListado') ||
+    query.includes('actualizarEstadoAlmacen') ||
+    query.includes('almacenPorId') ||
+    query.includes('movimientosInventarioListado') ||
+    query.includes('stockPorFecha') ||
+    query.includes('stockItemAlmacen') ||
+    query.includes('stockItemsAlmacenListado')
+  )) {
+    console.log('🔄 Redirigiendo consulta de almacén (listado/detalle/estado) a AlmacenNestJs');
+    return config.almacenNestJsService;
+  }
+
   // Catálogo almacenes vive en InicioNestJs (catálogo general)
   if (query && query.includes('almacenes')) {
     console.log('🔄 Redirigiendo consulta de almacenes a InicioNestJs');
@@ -195,7 +210,10 @@ async function routes(fastify, options) {
         bancoCajaNestJsService:
           process.env.BANCO_CAJA_NEST_GQL_URL || 'http://banco-caja-nestjs-service:3016',
         itemNestJsService: process.env.ITEM_NEST_GQL_URL || 'http://item-nestjs-service:3011',
-        inventarioNestJsService: process.env.INVENTARIO_NEST_GQL_URL || 'http://inventario-nestjs-service:3013'
+        inventarioNestJsService: process.env.INVENTARIO_NEST_GQL_URL || 'http://inventario-nestjs-service:3013',
+        // Base URL sin /graphql (executeGraphQLQuery concatena `/graphql`)
+        almacenNestJsService:
+          process.env.ALMACEN_NEST_GQL_URL || 'http://almacen-nestjs-service:3017',
       };
 
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);

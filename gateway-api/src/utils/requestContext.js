@@ -19,6 +19,40 @@ const USUARIO_SCOPE_QUERY = `
   }
 `;
 
+const ME_AUTH_QUERY = `
+  query {
+    me {
+      user {
+        id_usuario
+        id_empresa
+        scope_acceso
+      }
+    }
+  }
+`;
+
+function authContextError(status, message) {
+  const err = new Error(message);
+  err.response = {
+    status,
+    data: {
+      success: false,
+      error: message,
+    },
+  };
+  return err;
+}
+
+function extractBearerAuthorization(req) {
+  const auth = req.headers.authorization || req.headers.Authorization || '';
+  if (!auth || typeof auth !== 'string') return '';
+  const trimmed = auth.trim();
+  if (!trimmed.toLowerCase().startsWith('bearer ')) return '';
+  const token = trimmed.slice(7).trim();
+  if (!token) return '';
+  return `Bearer ${token}`;
+}
+
 /**
  * Obtiene id_empresa y scope_acceso del usuario desde InicioNestJs GraphQL.
  * @param {object} req - request del gateway (headers)
@@ -81,7 +115,120 @@ async function ctxHeaders(req, body = {}) {
   };
 }
 
+/**
+ * Contexto FAIL CLOSED para escrituras sensibles (STOCK INICIAL).
+ * Identidad confiable únicamente desde InicioNestJs `me` + Authorization.
+ * Ignora X-User-Id entrante como autoridad.
+ */
+async function authenticatedWriteContext(req, body = {}) {
+  const authorization = extractBearerAuthorization(req);
+  if (!authorization) {
+    throw authContextError(401, 'Sesión no válida o expirada.');
+  }
+
+  let res;
+  try {
+    res = await inicioNestHttp.post(
+      '/graphql',
+      { query: ME_AUTH_QUERY },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authorization,
+        },
+      },
+    );
+  } catch (err) {
+    const status = err.response?.status;
+    if (status === 401) {
+      throw authContextError(401, 'Sesión no válida o expirada.');
+    }
+    if (status === 403) {
+      throw authContextError(403, 'Sesión no válida o expirada.');
+    }
+    console.warn('⚠️ authenticatedWriteContext me failed:', err.response?.data || err.message);
+    throw authContextError(500, 'No se pudo completar la operación.');
+  }
+
+  const gqlErrors = res.data?.errors;
+  if (Array.isArray(gqlErrors) && gqlErrors.length > 0) {
+    const authStatus = explicitGraphqlAuthStatus(gqlErrors);
+    if (authStatus === 401) {
+      throw authContextError(401, 'Sesión no válida o expirada.');
+    }
+    if (authStatus === 403) {
+      throw authContextError(403, 'Sesión no válida o expirada.');
+    }
+    console.warn('⚠️ authenticatedWriteContext GraphQL errors:', gqlErrors);
+    throw authContextError(500, 'No se pudo completar la operación.');
+  }
+
+  const user = res.data?.data?.me?.user;
+  if (!user) {
+    throw authContextError(500, 'No se pudo completar la operación.');
+  }
+
+  const idUsuario = String(user.id_usuario || '').trim();
+  const idEmpresaUsuario = String(user.id_empresa || '').trim();
+  const scopeRaw = user.scope_acceso == null ? '' : String(user.scope_acceso).trim();
+  if (!scopeRaw) {
+    throw authContextError(500, 'No se pudo completar la operación.');
+  }
+  const scopeAcceso = scopeRaw.toUpperCase();
+
+  if (!idUsuario) {
+    throw authContextError(500, 'No se pudo completar la operación.');
+  }
+
+  let idEmpresaFinal;
+  if (scopeAcceso === 'GLOBAL') {
+    idEmpresaFinal = String(
+      body.id_empresa ||
+        req.headers['x-company-id'] ||
+        req.headers['X-Company-Id'] ||
+        idEmpresaUsuario ||
+        '',
+    ).trim();
+  } else if (scopeAcceso === 'EMPRESA') {
+    idEmpresaFinal = idEmpresaUsuario;
+  } else {
+    throw authContextError(500, 'No se pudo completar la operación.');
+  }
+
+  if (!idEmpresaFinal) {
+    throw authContextError(500, 'No se pudo completar la operación.');
+  }
+
+  return {
+    Authorization: authorization,
+    'X-User-Id': idUsuario,
+    'X-Company-Id': idEmpresaFinal,
+    'X-Scope-Acceso': scopeAcceso,
+  };
+}
+
+/**
+ * Solo evidencia explícita de auth en GraphQL (código/statusCode).
+ * Sin heurísticas de mensaje.
+ * @returns {401|403|null}
+ */
+function explicitGraphqlAuthStatus(gqlErrors) {
+  for (const err of gqlErrors) {
+    const ext = err?.extensions || {};
+    const code = String(ext.code || '').toUpperCase();
+    const statusCode = Number(ext.statusCode || ext.originalError?.statusCode || 0);
+    if (code === 'UNAUTHENTICATED' || code === 'UNAUTHORIZED' || statusCode === 401) {
+      return 401;
+    }
+    if (code === 'FORBIDDEN' || statusCode === 403) {
+      return 403;
+    }
+  }
+  return null;
+}
+
 module.exports = {
   getUsuarioScope,
   ctxHeaders,
+  authenticatedWriteContext,
 };

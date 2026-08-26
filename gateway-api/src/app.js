@@ -87,6 +87,7 @@ fastify.register(require('./routes/contacto'), { prefix: '/api' });
 fastify.register(require('./routes/item'), { prefix: '/api' });
 fastify.register(require('./routes/banco-caja'), { prefix: '/api' });
 fastify.register(require('./routes/inventario'), { prefix: '/api' });
+fastify.register(require('./routes/almacen'), { prefix: '/api' });
 fastify.register(require('./routes/menu'), { prefix: '/api' });
 fastify.register(require('./routes/usuarios'), { prefix: '/api' });
 fastify.register(require('./routes/health'), { prefix: '/api' });

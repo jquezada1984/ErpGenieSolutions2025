@@ -74,6 +74,36 @@ const EditarServicio = Loadable(lazy(() => import('../views/items/servicios/Edit
 const NuevoInventario = Loadable(lazy(() => import('../views/items/inventarios/NuevoInventario')));
 const EditarInventario = Loadable(lazy(() => import('../views/items/inventarios/EditarInventario')));
 const Inventarios = Loadable(lazy(() => import('../views/items/inventarios/Inventarios')));
+const NuevoAlmacen = Loadable(lazy(() => import('../views/items/almacenes/NuevoAlmacen')));
+const EditarAlmacen = Loadable(lazy(() => import('../views/items/almacenes/EditarAlmacen')));
+const Almacenes = Loadable(lazy(() => import('../views/items/almacenes/Almacenes')));
+const MovimientosAlmacen = Loadable(
+  lazy(() => import('../views/items/almacenes/MovimientosAlmacen')),
+);
+const StockActualAlmacen = Loadable(
+  lazy(() => import('../views/items/almacenes/StockActualAlmacen')),
+);
+const StockInicialAlmacen = Loadable(
+  lazy(() => import('../views/items/almacenes/StockInicialAlmacen')),
+);
+const EntradaStockAlmacen = Loadable(
+  lazy(() => import('../views/items/almacenes/EntradaStockAlmacen')),
+);
+const SalidaStockAlmacen = Loadable(
+  lazy(() => import('../views/items/almacenes/SalidaStockAlmacen')),
+);
+const AjusteStockAlmacen = Loadable(
+  lazy(() => import('../views/items/almacenes/AjusteStockAlmacen')),
+);
+const TransferenciaStockAlmacen = Loadable(
+  lazy(() => import('../views/items/almacenes/TransferenciaStockAlmacen')),
+);
+const StockPorFechaAlmacen = Loadable(
+  lazy(() => import('../views/items/almacenes/StockPorFechaAlmacen')),
+);
+const CambioMasivoStockAlmacen = Loadable(
+  lazy(() => import('../views/items/almacenes/CambioMasivoStockAlmacen')),
+);
 const Documentos = Loadable(lazy(() => import('../views/documentos/Documentos')));
 const CuentasBancarias = Loadable(lazy(() => import('../views/banco-cajas/CuentasBancarias')));
 const NuevoCuentaBancaria = Loadable(lazy(() => import('../views/banco-cajas/NuevoCuentaBancaria')));
@@ -182,6 +212,18 @@ const ThemeRoutes: RouteType[] = [
       { path: 'items/inventarios', element: <Inventarios /> },
       { path: 'items/inventarios/nuevo', element: <NuevoInventario /> },
       { path: 'items/inventarios/editar/:id', element: <EditarInventario /> },
+      { path: 'items/almacenes', element: <Almacenes /> },
+      { path: 'items/almacenes/nuevo', element: <NuevoAlmacen /> },
+      { path: 'items/almacenes/editar/:id', element: <EditarAlmacen /> },
+      { path: 'items/almacenes/movimientos', element: <MovimientosAlmacen /> },
+      { path: 'items/almacenes/stock-actual', element: <StockActualAlmacen /> },
+      { path: 'items/almacenes/stock-inicial', element: <StockInicialAlmacen /> },
+      { path: 'items/almacenes/stock-entrada', element: <EntradaStockAlmacen /> },
+      { path: 'items/almacenes/stock-salida', element: <SalidaStockAlmacen /> },
+      { path: 'items/almacenes/stock-ajuste', element: <AjusteStockAlmacen /> },
+      { path: 'items/almacenes/stock-transferencia', element: <TransferenciaStockAlmacen /> },
+      { path: 'items/almacenes/stock-fecha', element: <StockPorFechaAlmacen /> },
+      { path: 'items/almacenes/cambio-stock', element: <CambioMasivoStockAlmacen /> },
     ],
   },
   {
