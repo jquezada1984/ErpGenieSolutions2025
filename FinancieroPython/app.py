@@ -6,6 +6,8 @@ import os
 from config.config import Config
 from utils.db import db
 from api.factura_cliente_routes import facturas_clientes_bp
+from api.factura_proveedor_routes import facturas_proveedores_bp
+from api.pago_routes import pagos_bp
 import models  # noqa: F401
 
 app = Flask(__name__)
@@ -22,6 +24,8 @@ db.init_app(app)
 JWTManager(app)
 
 app.register_blueprint(facturas_clientes_bp, url_prefix='/api')
+app.register_blueprint(facturas_proveedores_bp, url_prefix='/api')
+app.register_blueprint(pagos_bp, url_prefix='/api')
 
 
 @app.route('/health', methods=['GET'])

@@ -17,22 +17,24 @@ import {
   Row,
   Spinner,
 } from 'reactstrap';
-import axios from 'axios';
-import useJwtPayload from '../../../hooks/useJwtPayload';
 import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
 import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
-
-const GATEWAY_API_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3002').replace(/\/$/, '');
+import { crearFacturaCliente } from '../../../_apis_/financiero';
+import FacturaLineasEditor, {
+  toApiLineas,
+  type LineaFacturaDraft,
+} from '../lineas/FacturaLineasEditor';
 
 type ClienteOpcion = { value: string; label: string };
 
 const GET_CLIENTES_BUSQUEDA = gql`
-  query ClientesBusquedaNuevaFactura($id_empresa: ID, $busqueda: String, $limite: Int) {
+  query ClientesBusquedaNuevaFactura($id_empresa: ID!, $busqueda: String, $limite: Int) {
     clientesBusqueda(id_empresa: $id_empresa, busqueda: $busqueda, limite: $limite) {
       id_tercero
       nombre
       apodo
       codigo_cliente
+      id_empresa
     }
   }
 `;
@@ -97,10 +99,8 @@ const NuevaFacturaCliente = () => {
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevIdEmpresaRef = useRef<string | null>(null);
 
-  const payloadJwt = useJwtPayload();
   const scope = useConfigEmpresaScope();
   const { idEmpresa } = scope;
-  const idUsuario = useMemo(() => (payloadJwt as any)?.sub || (payloadJwt as any)?.userId || '', [payloadJwt]);
 
   const { data: catData, loading: loadingCat, error: errorCat } = useQuery(GET_FINANCIERO_CATALOGOS, {
     variables: { id_empresa: idEmpresa || undefined },
@@ -132,6 +132,7 @@ const NuevaFacturaCliente = () => {
 
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
+  const [lineas, setLineas] = useState<LineaFacturaDraft[]>([]);
 
   useEffect(() => {
     if (prevIdEmpresaRef.current === null) {
@@ -188,7 +189,13 @@ const NuevaFacturaCliente = () => {
         searchTimerRef.current = setTimeout(async () => {
           try {
             const { data } = await client.query<{
-              clientesBusqueda: Array<{ id_tercero: string; nombre: string; apodo?: string | null; codigo_cliente?: string | null }>;
+              clientesBusqueda: Array<{
+                id_tercero: string;
+                nombre: string;
+                apodo?: string | null;
+                codigo_cliente?: string | null;
+                id_empresa?: string | null;
+              }>;
             }>({
               query: GET_CLIENTES_BUSQUEDA,
               variables: {
@@ -197,13 +204,16 @@ const NuevaFacturaCliente = () => {
                 limite: 50,
               },
               fetchPolicy: 'network-only',
+              context: { headers: { 'X-Company-Id': idEmpresa } },
             });
 
             resolve(
-              (data?.clientesBusqueda || []).map((r) => ({
-                value: r.id_tercero,
-                label: etiquetaCliente(r),
-              })),
+              (data?.clientesBusqueda || [])
+                .filter((r) => !r.id_empresa || r.id_empresa === idEmpresa)
+                .map((r) => ({
+                  value: r.id_tercero,
+                  label: etiquetaCliente(r),
+                })),
             );
           } catch {
             resolve([]);
@@ -253,24 +263,22 @@ const NuevaFacturaCliente = () => {
     if (notaPublica) body.nota_publica = notaPublica;
     if (notaPrivada) body.nota_privada = notaPrivada;
 
+    const lineasPayload = toApiLineas(lineas);
+    if (!lineasPayload.length) {
+      setMensaje({ tipo: 'error', texto: 'Añada al menos una línea (AÑADIR) antes de crear el borrador.' });
+      return;
+    }
+    body.lineas = lineasPayload;
+
     setGuardando(true);
     try {
-      const token = localStorage.getItem('accessToken') || '';
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-        'X-Company-Id': idEmpresa,
-      };
-      if (idUsuario) headers['X-User-Id'] = idUsuario;
-
-      const res = await axios.post(`${GATEWAY_API_URL}/api/facturas-clientes`, body, { headers });
-      const idFactura = res.data?.data?.id_factura;
+      const data = (await crearFacturaCliente(body)) as { id_factura?: string };
+      const idFactura = data?.id_factura;
       setMensaje({
         tipo: 'ok',
-        texto: idFactura
-          ? `Borrador creado (id: ${idFactura}). Podrá añadir líneas en una siguiente iteración.`
-          : 'Borrador creado correctamente.',
+        texto: idFactura ? `Borrador creado.` : 'Borrador creado correctamente.',
       });
+      if (idFactura) navigate(`/financiero/facturas-clientes/${idFactura}`);
     } catch (err: any) {
       const texto =
         err?.response?.data?.error ||
@@ -331,11 +339,12 @@ const NuevaFacturaCliente = () => {
                 </Col>
                 <Col {...inputCol} className="d-flex gap-2 align-items-center">
                   <AsyncSelect<ClienteOpcion, false, GroupBase<ClienteOpcion>>
+                    key={idEmpresa || 'sin-empresa'}
                     instanceId="nueva-factura-cliente-tercero"
                     aria-label="Buscar cliente"
                     placeholder="Buscar cliente (mínimo 2 caracteres)…"
                     isClearable
-                    cacheOptions
+                    cacheOptions={false}
                     defaultOptions={false}
                     value={clienteOpcion}
                     loadOptions={loadClienteOptions}
@@ -541,12 +550,22 @@ const NuevaFacturaCliente = () => {
                 </Col>
               </Row>
 
+              <h5 className="mb-2">Líneas</h5>
+              <div className="mb-4">
+                <FacturaLineasEditor
+                  idEmpresa={idEmpresa}
+                  lineas={lineas}
+                  onChange={setLineas}
+                  editable
+                />
+              </div>
+
               <div className="text-center d-flex gap-3 justify-content-center flex-wrap">
                 <Button color="primary" type="submit" disabled={guardando || !idEmpresa}>
                   {guardando ? <Spinner size="sm" /> : 'CREAR BORRADOR'}
                 </Button>
-                <Button type="button" color="secondary" outline onClick={() => navigate(-1)} disabled={guardando}>
-                  ANULAR
+                <Button type="button" color="secondary" outline tag={Link} to="/financiero/facturas-clientes/listado" disabled={guardando}>
+                  LISTADO
                 </Button>
               </div>
             </Form>

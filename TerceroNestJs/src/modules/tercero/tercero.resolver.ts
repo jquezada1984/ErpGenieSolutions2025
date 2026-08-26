@@ -42,6 +42,19 @@ export class TerceroResolver {
     );
   }
 
+  @Query(() => [Tercero], { name: 'proveedoresBusqueda' })
+  findProveedoresBusqueda(
+    @Args('id_empresa', { type: () => ID, nullable: true }) id_empresa?: string | null,
+    @Args('busqueda', { type: () => String, nullable: true }) busqueda?: string | null,
+    @Args('limite', { type: () => Int, nullable: true, defaultValue: 40 }) limite?: number,
+  ): Promise<Tercero[]> {
+    return this.terceroService.findProveedoresPorBusqueda(
+      id_empresa ?? undefined,
+      busqueda ?? '',
+      limite ?? 40,
+    );
+  }
+
   @Query(() => Tercero, { name: 'tercero' })
   findOne(@Args('id_tercero') id_tercero: string): Promise<Tercero> {
     return this.terceroService.findOne(id_tercero);

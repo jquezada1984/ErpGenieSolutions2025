@@ -17,6 +17,7 @@ from api.cuenta_impuesto_routes import cuenta_impuesto_bp
 from api.grupo_cuenta_personalizado_routes import grupo_cuenta_bp
 from api.transferencia_contable_routes import transferencia_bp
 from api.cuenta_bancaria_contable_routes import cuenta_bancaria_contable_bp
+from api.asiento_contable_routes import asiento_contable_bp
 import models
 
 app = Flask(__name__)
@@ -47,6 +48,7 @@ app.register_blueprint(cuenta_impuesto_bp, url_prefix='/api')
 app.register_blueprint(grupo_cuenta_bp, url_prefix='/api')
 app.register_blueprint(transferencia_bp, url_prefix='/api')
 app.register_blueprint(cuenta_bancaria_contable_bp, url_prefix='/api')
+app.register_blueprint(asiento_contable_bp, url_prefix='/api')
 
 @app.route('/health', methods=['GET'])
 def health():

@@ -47,6 +47,7 @@ frontReact → gateway-api (3002) → { dominioNestJs | dominioPython }
 - Preferir **soft-delete / anulación** sobre DELETE físico cuando el dominio lo requiera.
 - Esquemas de tablas: buscarlos en migraciones/SQL del repo; no inventar columnas.
 - Multiempresa: ver regla `.cursor/rules/multiempresa-scope.mdc`.
+- **Python y C#/.NET**: no SQL ad-hoc; solo SP/funciones en BD (`.cursor/rules/acceso-bd-solo-sp.mdc`).
 
 ## Permisos y `scope_acceso`
 
@@ -77,3 +78,4 @@ UI: `isScopeGlobal` + mostrar selector de alcance solo a GLOBAL (`NuevoUsuario` 
 2. Al retomar o cerrar un módulo, actualizar esta regla solo con decisiones de arquitectura o checklist útil (sin volcar esquemas enteros).
 3. No ampliar alcance ni refactorizar módulos ajenos sin pedirlo.
 4. Ante duda de columnas/tablas: buscar en `**/migrations/**` y `docs/sql/` antes de asumir.
+5. Python/C#: no escribir queries SQL en código; crear SP en `docs/sql/sp/` e invocarlos.

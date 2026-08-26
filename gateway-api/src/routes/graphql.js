@@ -41,6 +41,13 @@ const getTargetService = (query, config) => {
   // Las cuentas bancarias NO viven aquí: van a BancoCajaNestJs (`cuentasBancarias`).
   if (query && (
     query.includes('facturaCliente') ||
+    query.includes('facturasCliente') ||
+    query.includes('facturaProveedor') ||
+    query.includes('facturasProveedor') ||
+    query.includes('cobrosCliente') ||
+    query.includes('cobroCliente') ||
+    query.includes('pagosProveedor') ||
+    query.includes('pagoProveedor') ||
     query.includes('condicionesPagoFin') ||
     query.includes('formasPagoFin') ||
     query.includes('monedasFin')
@@ -55,6 +62,8 @@ const getTargetService = (query, config) => {
     query.includes('provinciasByPais') ||
     query.includes('provincias') ||
     query.includes('paises') ||
+    query.includes('impuestos {') ||
+    query.includes('impuestos{') ||
     (query.includes('monedas') && !query.includes('monedasFin'))
   )) {
     console.log('🔄 Redirigiendo catálogo países/provincias/monedas a InicioNestJs');
@@ -109,6 +118,7 @@ const getTargetService = (query, config) => {
     query.includes('terceros') ||
     query.includes('tercero(') ||
     query.includes('clientes') ||
+    query.includes('proveedoresBusqueda') ||
     query.includes('contactosByTercero') ||
     query.includes('contacto(')
   )) {

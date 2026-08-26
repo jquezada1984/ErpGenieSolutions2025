@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Field, ID, ObjectType, GraphQLISODateTime } from '@nestjs/graphql';
+import { FacturaLinea } from './factura-linea.entity';
 
 @ObjectType()
 @Entity('factura')
@@ -109,4 +110,13 @@ export class Factura {
   @Field(() => GraphQLISODateTime, { nullable: true })
   @UpdateDateColumn({ type: 'timestamp' })
   updated_at: Date;
+
+  @Field(() => String, { nullable: true })
+  tercero_nombre?: string | null;
+
+  @Field(() => String, { nullable: true })
+  monto_pendiente?: string | null;
+
+  @Field(() => [FacturaLinea], { nullable: true })
+  lineas?: FacturaLinea[];
 }

@@ -1,7 +1,8 @@
 # Plan: Configuración global y diccionarios por empresa
 
-> **Estado:** Pendiente de ejecución — **BLOQUEADO**  
-> **Prerequisito:** [PLAN_CONTABILIDAD_COMPLETO.md](./PLAN_CONTABILIDAD_COMPLETO.md) (Fases 1–4 del módulo Contabilidad; Informes en Fase 5)  
+> **Estado:** **SUPERCEDIDO** por [PLAN_INICIO_CONFIGURACION_MULTIEMPRESA.md](./PLAN_INICIO_CONFIGURACION_MULTIEMPRESA.md)  
+> El menú Inicio → Configuración y los diccionarios con `id_empresa` ya existen. Lo pendiente (hub, IVA, persistencia, dashboard) vive en el plan nuevo.  
+> **Prerequisito original:** [PLAN_CONTABILIDAD_COMPLETO.md](./PLAN_CONTABILIDAD_COMPLETO.md)  
 > **Creado:** 2026-05-28  
 > **Origen:** Conversación Facturación / Diccionarios estilo Dolibarr  
 > **Copia de respaldo:** también en `.cursor/plans/config_global_diccionarios_ccf64dc4.plan.md`

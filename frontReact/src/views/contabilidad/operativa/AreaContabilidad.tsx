@@ -52,6 +52,7 @@ const PASOS_OP: { n: string; label: string; to: string }[] = [
   { n: 'A', label: 'Verificar vínculos facturas clientes', to: '/contabilidad/transferencia/facturas-clientes' },
   { n: 'B', label: 'Verificar vínculos facturas proveedores', to: '/contabilidad/transferencia/facturas-proveedores' },
   { n: 'C', label: 'Registrar transacciones en contabilidad', to: '/contabilidad/transferencia/registro/ventas' },
+  { n: 'C2', label: 'Asientos manuales / operaciones varias (OD)', to: '/contabilidad/asientos/nuevo?diario=OD' },
   { n: 'D', label: 'Leer informes o exportar contabilidad', to: '/contabilidad/exportar' },
   { n: 'E', label: 'Cerrar el periodo', to: '/contabilidad/cerrar' },
 ];

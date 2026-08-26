@@ -18,7 +18,10 @@
 | [MODULO_TERCEROS_TECNICO.md](./MODULO_TERCEROS_TECNICO.md) | Detalle técnico del módulo Terceros |
 | [TERCEROS_POR_BASE_DE_DATOS.md](./TERCEROS_POR_BASE_DE_DATOS.md) | Menú Terceros cargado desde BD |
 | [MODULO_CONTABILIDAD.md](./MODULO_CONTABILIDAD.md) | Estado actual del módulo Contabilidad |
+| [MODULO_FINANCIERO.md](./MODULO_FINANCIERO.md) | Facturas cliente/proveedor, cobros, pagos y enlace a contabilidad |
+| [DOCUMENTOS_Y_MAIL.md](./DOCUMENTOS_Y_MAIL.md) | DocumentApi (PDF) + MailWorker (SMTP / Rabbit) |
 | [MODULO_BANCO_CAJAS.md](./MODULO_BANCO_CAJAS.md) | Estado actual Banco / Cajas |
+| [ARQUITECTURA_RABBIT_WORKERS.md](./ARQUITECTURA_RABBIT_WORKERS.md) | RabbitMQ, ContabilidadWorker, eventos async |
 | [MENU_Y_PERMISOS.md](./MENU_Y_PERMISOS.md) | Menú superior/lateral y permisos por perfil |
 | [GRAPHQL_PERMISOS_MENU.md](./GRAPHQL_PERMISOS_MENU.md) | Queries GraphQL de menú y permisos |
 | [CONEXION_LOGIN.md](./CONEXION_LOGIN.md) | Flujo de login / JWT |
@@ -28,7 +31,8 @@
 | Documento | Estado |
 |-----------|--------|
 | [planes/PLAN_CONTABILIDAD_COMPLETO.md](./planes/PLAN_CONTABILIDAD_COMPLETO.md) | Plan maestro Contabilidad (Fases 1–5) |
-| [planes/PLAN_CONFIG_GLOBAL_DICCIONARIOS.md](./planes/PLAN_CONFIG_GLOBAL_DICCIONARIOS.md) | Config global / diccionarios (bloqueado hasta Contabilidad) |
+| [planes/PLAN_INICIO_CONFIGURACION_MULTIEMPRESA.md](./planes/PLAN_INICIO_CONFIGURACION_MULTIEMPRESA.md) | Inicio / Configuración vs Dolibarr (hub, IVA, dashboard) |
+| [planes/PLAN_CONFIG_GLOBAL_DICCIONARIOS.md](./planes/PLAN_CONFIG_GLOBAL_DICCIONARIOS.md) | Supercedido: diccionarios por empresa (gran parte ya hecha) |
 
 ## Datos y SQL
 
@@ -36,6 +40,8 @@
 |---------|-----|
 | [BaseDatos.sql](./BaseDatos.sql) | Dump/esquema de referencia PostgreSQL |
 | [sql/](./sql/) | Scripts SQL puntuales (menús, diccionarios, factura, config contable) |
+| [sql/sp/](./sql/sp/) | Stored procedures (Python/C# no usan SQL ad-hoc) |
+| [ACCESO_BD_SOLO_SP.md](./ACCESO_BD_SOLO_SP.md) | Convención: solo SP desde Python y C# |
 | [seeds/](./seeds/) | Semillas (p. ej. plan de cuentas Excel) |
 
 Las migraciones de microservicio viven junto al código, por ejemplo:
@@ -49,4 +55,5 @@ Las migraciones de microservicio viven junto al código, por ejemplo:
 - El front **solo** habla con el gateway (`VITE_GATEWAY_URL`, puerto **3002**).
 - Lectura habitual: NestJS GraphQL.
 - Escritura habitual: Python REST vía `/api/...` en el gateway.
+- **Python y C#/.NET**: no queries SQL en código; solo stored procedures ([ACCESO_BD_SOLO_SP.md](./ACCESO_BD_SOLO_SP.md)).
 - Documentación operativa del día a día: actualizar este índice y los docs de módulo; no acumular “auditorías” sueltas.

@@ -1,42 +1,44 @@
 # Financiero
 
-Servicios: `FinancieroNestJs` + `FinancieroPython`. Módulo **temprano**: factura cliente (borrador) y catálogos de lectura `*Fin`.
-
-Los **diccionarios** (condiciones/formas de pago, monedas, etc.) se administran vía **Inicio** (`/api/catalogos` + pantallas de configuración); FinancieroNest expone variantes de lectura `condicionesPagoFin`, `formasPagoFin`, `monedasFin` para facturación.
+Servicios: `FinancieroNestJs` + `FinancieroPython` + **ContabilidadWorker** (Rabbit).
 
 ```
-Nueva factura cliente
-  → GQL facturaCliente / *Fin → FinancieroNestJs
-  → POST /api/facturas-clientes → FinancieroPython
+Factura cliente/proveedor
+  → GQL facturasCliente / facturasProveedor → FinancieroNestJs
+  → POST/PUT facturas → FinancieroPython
+  → al validar: financiero.factura.validada → ContabilidadWorker (VT / AC)
+
+Cobro / pago proveedor
+  → GQL cobrosCliente / pagosProveedor
+  → POST cobros | pagos-proveedor → FinancieroPython
+  → al validar: movimiento banco + financiero.pago.registrado → diario BQ
 ```
+
+Doc operativa: [docs/MODULO_FINANCIERO.md](../docs/MODULO_FINANCIERO.md).
 
 ## FinancieroNestJs
 
 | Query | Uso |
 |-------|-----|
-| `facturaCliente(id_factura, id_empresa)` | Detalle factura |
-| `condicionesPagoFin` | Condiciones para factura |
-| `formasPagoFin` | Formas de pago |
-| `monedasFin` | Monedas (enrutado **antes** que `monedas` de Inicio en el gateway) |
-
-**Nota:** `cuentasBancarias` **no** vive aquí; va a BancoCajaNestJs.
+| `facturasCliente` / `facturaCliente` | Cliente (`solo_pendientes`, `id_tercero`) |
+| `facturasProveedor` / `facturaProveedor` | Proveedor |
+| `cobrosCliente` / `cobroCliente` | Cobros |
+| `pagosProveedor` / `pagoProveedor` | Pagos proveedor |
+| `condicionesPagoFin` / `formasPagoFin` / `monedasFin` | Catálogos |
 
 ## FinancieroPython
 
 | Método | Path | Acción |
 |--------|------|--------|
-| POST | `/api/facturas-clientes` | Crear borrador factura cliente |
-
-## Gateway
-
-- `routes/financiero.js`: principalmente `POST /api/facturas-clientes` → Python.
-- GraphQL: `facturaCliente` y `*Fin` → FinancieroNestJs (antes del match genérico de monedas).
+| POST | `/api/facturas-clientes` | Borrador cliente |
+| POST | `/api/facturas-proveedores` | Borrador proveedor |
+| POST | `.../validar` | Validar + Rabbit |
+| POST | `/api/cobros` | Borrador cobro |
+| POST | `/api/pagos-proveedor` | Borrador pago |
+| POST | `.../cobros|pagos-proveedor/:id/validar` | Banco + Rabbit |
 
 ## Front
 
-| Ruta | Pantalla | Flujo |
-|------|----------|-------|
-| `/financiero/facturas-clientes/nueva` | `NuevaFacturaCliente.tsx` | Axios POST directo a gateway + GQL catálogos Fin / cuentas BancoCaja |
-| `/financiero/configuracion/diccionarios/*` (alias `/configuracion/diccionarios/*`) | `views/financiero/configuracion/diccionarios/` | CRUD vía `_apis_/catalogos.js` → InicioPython; scope empresa |
+Rutas de menú bajo `/financiero/facturas-clientes/*` y `/financiero/facturas-proveedor/*` (listado, nueva, detalle, pagos/cobros).
 
-No hay `_apis_/financiero.js` dedicado aún; la creación de factura está en la vista.
+API: `_apis_/financiero.js`.

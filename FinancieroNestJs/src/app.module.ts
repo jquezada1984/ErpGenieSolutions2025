@@ -13,6 +13,9 @@ import { Moneda } from './entities/moneda.entity';
 import { CondicionPagoCatalogo } from './entities/condicion-pago-catalogo.entity';
 import { FormaPagoCatalogo } from './entities/forma-pago-catalogo.entity';
 import { Factura } from './entities/factura.entity';
+import { FacturaLinea } from './entities/factura-linea.entity';
+import { Pago } from './entities/pago.entity';
+import { PagoFactura } from './entities/pago-factura.entity';
 import { FinancieroResolver } from './resolvers/financiero.resolver';
 import { FinancieroLecturaService } from './services/financiero-lectura.service';
 
@@ -28,6 +31,9 @@ import { FinancieroLecturaService } from './services/financiero-lectura.service'
         CondicionPagoCatalogo,
         FormaPagoCatalogo,
         Factura,
+        FacturaLinea,
+        Pago,
+        PagoFactura,
       ],
       synchronize: false,
       ssl: { rejectUnauthorized: false },
@@ -37,6 +43,9 @@ import { FinancieroLecturaService } from './services/financiero-lectura.service'
       CondicionPagoCatalogo,
       FormaPagoCatalogo,
       Factura,
+      FacturaLinea,
+      Pago,
+      PagoFactura,
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,

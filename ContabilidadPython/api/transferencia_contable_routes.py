@@ -154,3 +154,45 @@ def exportar_docs():
     if not id_empresa:
         return jsonify({'error': 'Falta X-Company-Id'}), 400
     return jsonify(svc.exportar_documentos_origen(id_empresa, desde, hasta, tipos)), 200
+
+
+@transferencia_bp.route('/transferencia-contable/procesar-factura', methods=['POST', 'OPTIONS'])
+def procesar_factura():
+    """Endpoint interno para ContabilidadWorker tras validar factura."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    id_empresa = _empresa_id()
+    body = request.get_json(silent=True) or {}
+    id_factura = body.get('id_factura')
+    if not id_empresa:
+        return jsonify({'error': 'Falta X-Company-Id'}), 400
+    if not id_factura:
+        return jsonify({'error': 'Falta id_factura'}), 400
+    try:
+        tipo = (body.get('tipo') or 'cliente').lower()
+        if tipo == 'proveedor':
+            return jsonify(svc.procesar_factura_proveedor(id_empresa, str(id_factura))), 200
+        return jsonify(svc.procesar_factura_cliente(id_empresa, str(id_factura))), 200
+    except ValidationError as ve:
+        return jsonify(ve.messages), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@transferencia_bp.route('/transferencia-contable/procesar-pago', methods=['POST', 'OPTIONS'])
+def procesar_pago_route():
+    if request.method == 'OPTIONS':
+        return '', 204
+    id_empresa = _empresa_id()
+    body = request.get_json(silent=True) or {}
+    id_pago = body.get('id_pago')
+    if not id_empresa:
+        return jsonify({'error': 'Falta X-Company-Id'}), 400
+    if not id_pago:
+        return jsonify({'error': 'Falta id_pago'}), 400
+    try:
+        return jsonify(svc.procesar_pago(id_empresa, str(id_pago))), 200
+    except ValidationError as ve:
+        return jsonify(ve.messages), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

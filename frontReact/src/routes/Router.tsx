@@ -60,6 +60,7 @@ const EditarContacto = Loadable(lazy(() => import('../views/terceros/contactos/E
 const ContabilidadGeneral = Loadable(lazy(() => import('../views/contabilidad/operativa/AreaContabilidad')));
 const AreaContabilidad = ContabilidadGeneral;
 const AsientosContables = Loadable(lazy(() => import('../views/contabilidad/operativa/AsientosContables')));
+const NuevoAsientoContable = Loadable(lazy(() => import('../views/contabilidad/operativa/NuevoAsientoContable')));
 const LibroMayor = Loadable(lazy(() => import('../views/contabilidad/operativa/LibroMayor')));
 const DiariosOperativa = Loadable(lazy(() => import('../views/contabilidad/operativa/DiariosOperativa')));
 const SaldoCuenta = Loadable(lazy(() => import('../views/contabilidad/operativa/SaldoCuenta')));
@@ -89,8 +90,51 @@ const LineasProveedoresContabilizadas = Loadable(lazy(() => import('../views/con
 const RegistroVentas = Loadable(lazy(() => import('../views/contabilidad/transferencia/registro/RegistroVentas')));
 const RegistroCompras = Loadable(lazy(() => import('../views/contabilidad/transferencia/registro/RegistroCompras')));
 const RegistroBanco = Loadable(lazy(() => import('../views/contabilidad/transferencia/registro/RegistroBanco')));
+const RegistroOperacionesVarias = Loadable(
+  lazy(() => import('../views/contabilidad/transferencia/registro/RegistroOperacionesVarias')),
+);
+const RegistroContableHub = Loadable(
+  lazy(() => import('../views/contabilidad/transferencia/registro/RegistroContableHub')),
+);
+const TransferenciaContableHub = Loadable(
+  lazy(() => import('../views/contabilidad/transferencia/TransferenciaContableHub')),
+);
 const ExportarDocumentosOrigen = Loadable(lazy(() => import('../views/contabilidad/transferencia/ExportarDocumentosOrigen')));
+const ModuloPendiente = Loadable(lazy(() => import('../views/common/ModuloPendiente')));
 const NuevaFacturaCliente = Loadable(lazy(() => import('../views/financiero/facturas-clientes/NuevaFacturaCliente')));
+const ListadoFacturasCliente = Loadable(
+  lazy(() => import('../views/financiero/facturas-clientes/ListadoFacturasCliente')),
+);
+const DetalleFacturaCliente = Loadable(
+  lazy(() => import('../views/financiero/facturas-clientes/DetalleFacturaCliente')),
+);
+const ListadoCobrosCliente = Loadable(
+  lazy(() => import('../views/financiero/facturas-clientes/ListadoCobrosCliente')),
+);
+const NuevoCobroCliente = Loadable(
+  lazy(() => import('../views/financiero/facturas-clientes/NuevoCobroCliente')),
+);
+const DetalleCobroCliente = Loadable(
+  lazy(() => import('../views/financiero/facturas-clientes/DetalleCobroCliente')),
+);
+const NuevaFacturaProveedor = Loadable(
+  lazy(() => import('../views/financiero/facturas-proveedor/NuevaFacturaProveedor')),
+);
+const ListadoFacturasProveedor = Loadable(
+  lazy(() => import('../views/financiero/facturas-proveedor/ListadoFacturasProveedor')),
+);
+const DetalleFacturaProveedor = Loadable(
+  lazy(() => import('../views/financiero/facturas-proveedor/DetalleFacturaProveedor')),
+);
+const ListadoPagosProveedor = Loadable(
+  lazy(() => import('../views/financiero/facturas-proveedor/ListadoPagosProveedor')),
+);
+const NuevoPagoProveedor = Loadable(
+  lazy(() => import('../views/financiero/facturas-proveedor/NuevoPagoProveedor')),
+);
+const DetallePagoProveedor = Loadable(
+  lazy(() => import('../views/financiero/facturas-proveedor/DetallePagoProveedor')),
+);
 const DiccionariosIndex = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/DiccionariosIndex')));
 const CondicionesPagoDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/CondicionesPagoDiccionario')));
 const ModosPagoDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/ModosPagoDiccionario')));
@@ -199,6 +243,7 @@ const ThemeRoutes: RouteType[] = [
       { path: 'terceros/:id/contactos/editar/:contactoId', element: <EditarContacto /> },
       { path: 'contabilidad', element: <AreaContabilidad /> },
       { path: 'contabilidad/asientos', element: <AsientosContables /> },
+      { path: 'contabilidad/asientos/nuevo', element: <NuevoAsientoContable /> },
       { path: 'contabilidad/libro-mayor', element: <LibroMayor /> },
       { path: 'contabilidad/diarios', element: <DiariosOperativa /> },
       { path: 'contabilidad/saldo-cuenta', element: <SaldoCuenta /> },
@@ -219,17 +264,35 @@ const ThemeRoutes: RouteType[] = [
       { path: 'contabilidad/configuracion/cuentas-productos', element: <CuentasProductos /> },
       { path: 'contabilidad/configuracion/cerrar-cuentas', element: <CerrarCuentas /> },
       { path: 'contabilidad/configuracion/grupos-personalizados', element: <GruposPersonalizados /> },
+      { path: 'contabilidad/transferencia', element: <TransferenciaContableHub /> },
       { path: 'contabilidad/transferencia/facturas-clientes', element: <FacturasClientesHub /> },
       { path: 'contabilidad/transferencia/facturas-clientes/lineas-a-contabilizar', element: <LineasClientesAContabilizar /> },
       { path: 'contabilidad/transferencia/facturas-clientes/lineas-contabilizadas', element: <LineasClientesContabilizadas /> },
       { path: 'contabilidad/transferencia/facturas-proveedores', element: <FacturasProveedoresHub /> },
       { path: 'contabilidad/transferencia/facturas-proveedores/lineas-a-contabilizar', element: <LineasProveedoresAContabilizar /> },
       { path: 'contabilidad/transferencia/facturas-proveedores/lineas-contabilizadas', element: <LineasProveedoresContabilizadas /> },
+      { path: 'contabilidad/transferencia/registro', element: <RegistroContableHub /> },
       { path: 'contabilidad/transferencia/registro/ventas', element: <RegistroVentas /> },
       { path: 'contabilidad/transferencia/registro/compras', element: <RegistroCompras /> },
       { path: 'contabilidad/transferencia/registro/banco', element: <RegistroBanco /> },
+      { path: 'contabilidad/transferencia/registro/varios', element: <RegistroOperacionesVarias /> },
       { path: 'contabilidad/transferencia/exportar-documentos', element: <ExportarDocumentosOrigen /> },
       { path: 'financiero/facturas-clientes/nueva', element: <NuevaFacturaCliente /> },
+      { path: 'financiero/facturas-clientes/listado', element: <ListadoFacturasCliente /> },
+      { path: 'financiero/facturas-clientes/plantillas', element: <ModuloPendiente /> },
+      { path: 'financiero/facturas-clientes/estadisticas', element: <ModuloPendiente /> },
+      { path: 'financiero/facturas-clientes/pagos/nuevo', element: <NuevoCobroCliente /> },
+      { path: 'financiero/facturas-clientes/pagos/:id', element: <DetalleCobroCliente /> },
+      { path: 'financiero/facturas-clientes/pagos', element: <ListadoCobrosCliente /> },
+      { path: 'financiero/facturas-clientes/:id', element: <DetalleFacturaCliente /> },
+      { path: 'financiero/facturas-proveedor/nueva', element: <NuevaFacturaProveedor /> },
+      { path: 'financiero/facturas-proveedor/listado', element: <ListadoFacturasProveedor /> },
+      { path: 'financiero/facturas-proveedor/plantillas', element: <ModuloPendiente /> },
+      { path: 'financiero/facturas-proveedor/estadisticas', element: <ModuloPendiente /> },
+      { path: 'financiero/facturas-proveedor/pagos/nuevo', element: <NuevoPagoProveedor /> },
+      { path: 'financiero/facturas-proveedor/pagos/:id', element: <DetallePagoProveedor /> },
+      { path: 'financiero/facturas-proveedor/pagos', element: <ListadoPagosProveedor /> },
+      { path: 'financiero/facturas-proveedor/:id', element: <DetalleFacturaProveedor /> },
       { path: 'financiero/configuracion/diccionarios', element: <DiccionariosIndex /> },
       { path: 'financiero/configuracion/diccionarios/condiciones-pago', element: <CondicionesPagoDiccionario /> },
       { path: 'financiero/configuracion/diccionarios/modos-pago', element: <ModosPagoDiccionario /> },
@@ -246,6 +309,9 @@ const ThemeRoutes: RouteType[] = [
       { path: 'configuracion/alertas', element: <ConfigAlertas /> },
       { path: 'configuracion/seguridad', element: <ConfigSeguridad /> },
       { path: 'configuracion/emails', element: <ConfigEmails /> },
+      { path: 'gastos', element: <ModuloPendiente /> },
+      { path: 'gastos/*', element: <ModuloPendiente /> },
+      { path: 'financiero/*', element: <ModuloPendiente /> },
       {
         path: 'items',
         element: <Outlet />,

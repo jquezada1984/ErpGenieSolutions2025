@@ -121,6 +121,7 @@ type Query {
   contacto(id_contacto: String!): Contacto!
   contactosByTercero(id_tercero: String!): [Contacto!]!
   incoterms: [Incoterm!]!
+  proveedoresBusqueda(busqueda: String, id_empresa: ID, limite: Int = 40): [Tercero!]!
   representantesPorEmpresa(id_empresa: ID!): [Tercero!]!
   rolesSocio: [RolSocio!]!
   socio(id_socio: ID!): Socio!

@@ -237,4 +237,28 @@ module.exports = async function (fastify, opts) {
   fastify.get('/transferencia-contable/registro/:origen/preview', (req, reply) => handle((r) => transfGet(`/api/transferencia-contable/registro/${req.params.origen}/preview`, r), req, reply));
   fastify.post('/transferencia-contable/registro/:origen', (req, reply) => handle((r) => contabilidadPython.proxyPost(`/api/transferencia-contable/registro/${req.params.origen}`, req.body, r), req, reply));
   fastify.get('/transferencia-contable/exportar-documentos', (req, reply) => handle((r) => transfGet('/api/transferencia-contable/exportar-documentos', r), req, reply));
+  fastify.post('/transferencia-contable/procesar-factura', (req, reply) =>
+    handle((r) => contabilidadPython.proxyPost('/api/transferencia-contable/procesar-factura', req.body || {}, r), req, reply),
+  );
+  fastify.post('/transferencia-contable/procesar-pago', (req, reply) =>
+    handle((r) => contabilidadPython.proxyPost('/api/transferencia-contable/procesar-pago', req.body || {}, r), req, reply),
+  );
+
+  // Asientos manuales (diario OD / operaciones varias)
+  fastify.post('/asientos-contables', async (request, reply) => {
+    try {
+      const data = await contabilidadPython.proxyPost('/api/asientos-contables', request.body || {}, request);
+      return reply.code(201).send(data);
+    } catch (err) {
+      const status = err.response?.status || 500;
+      const payload = err.response?.data || { success: false, error: err.message };
+      return reply.code(status).send(payload);
+    }
+  });
+  fastify.patch('/asientos-contables/:id/aprobar', (req, reply) =>
+    handle((r) => contabilidadPython.proxyPatch(`/api/asientos-contables/${req.params.id}/aprobar`, {}, r), req, reply),
+  );
+  fastify.post('/asientos-contables/:id/reversar', (req, reply) =>
+    handle((r) => contabilidadPython.proxyPost(`/api/asientos-contables/${req.params.id}/reversar`, {}, r), req, reply),
+  );
 };

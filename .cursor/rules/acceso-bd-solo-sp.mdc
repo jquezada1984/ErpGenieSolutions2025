@@ -1,0 +1,43 @@
+---
+description: Python y C#/.NET no ejecutan SQL ad-hoc; solo stored procedures (o funciones nombradas en PostgreSQL)
+alwaysApply: true
+---
+
+# Acceso a BD: solo stored procedures (Python y C#/.NET)
+
+**Python** (Flask, workers, DocumentApi) y **C# / .NET** no pueden consultar PostgreSQL con SQL embebido (`SELECT`/`INSERT`/`UPDATE`/`DELETE`/`WITH` en el código).
+
+La lógica SQL vive en la base: **stored procedure** (`CALL sp_…`) o **función nombrada** ya creada (`SELECT * FROM fn_…()`). El código solo invoca el objeto y pasa parámetros.
+
+## Obligatorio
+
+- Crear/alterar el SP en `docs/sql/sp/` (o `*/migrations/` del servicio) **antes** de usarlo.
+- Nombre: `sp_{dominio}_{accion}` (ej. `sp_factura_obtener`, `sp_pago_listar`).
+- Parámetros: incluir `p_id_empresa` cuando la entidad sea multiempresa.
+- No concatenar SQL. Solo placeholders (`%s`, `:p`, `@p`).
+
+```python
+# ✅ GOOD
+cur.execute("CALL sp_factura_obtener(%s, %s)", (id_empresa, id_factura))
+cur.execute("SELECT * FROM fn_factura_lineas(%s)", (id_factura,))
+
+# ❌ BAD
+cur.execute("SELECT * FROM factura WHERE id_empresa = %s AND id_factura = %s", (...))
+```
+
+```csharp
+# ✅ GOOD
+cmd.CommandType = CommandType.StoredProcedure;
+cmd.CommandText = "sp_factura_obtener";
+
+# ❌ BAD
+cmd.CommandType = CommandType.Text;
+cmd.CommandText = "SELECT * FROM factura WHERE id_factura = @id";
+```
+
+## Fuera de alcance de esta regla
+
+- **NestJS / TypeORM / GraphQL**: lectura actual con entidades; no mezclar SQL crudo nuevo en Python/C# “porque Nest aún usa ORM”.
+- Front y gateway: no hablan con la BD.
+
+Código Python/C# legado con queries: al **tocar** ese archivo o flujo, migrar a SP; no añadir queries nuevas.

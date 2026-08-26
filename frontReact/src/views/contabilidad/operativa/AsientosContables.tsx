@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { gql, useQuery } from '@apollo/client';
 import {
   Alert,
+  Button,
   Card,
   CardBody,
   CardTitle,
@@ -15,6 +17,7 @@ import {
 import { formatMoneda, rangoAnioActual } from './operativaUtils';
 import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
 import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
+import { aprobarAsientoContable, reversarAsientoContable } from '../../../_apis_/contabilidad';
 
 const GET_ASIENTOS = gql`
   query AsientosContables(
@@ -39,6 +42,7 @@ const GET_ASIENTOS = gql`
       total_debe
       total_haber
       estado
+      reversed_entry_id
       movimientos {
         id_movimiento_contable
         codigo_cuenta
@@ -65,8 +69,11 @@ const AsientosContables: React.FC = () => {
   const [fechaHasta, setFechaHasta] = useState(defHasta);
   const [idDiario, setIdDiario] = useState('');
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [accionId, setAccionId] = useState<string | null>(null);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [errorAccion, setErrorAccion] = useState<string | null>(null);
 
-  const { data, loading, error } = useQuery(GET_ASIENTOS, {
+  const { data, loading, error, refetch } = useQuery(GET_ASIENTOS, {
     variables: {
       id_empresa: idEmpresa,
       fecha_desde: fechaDesde,
@@ -80,11 +87,44 @@ const AsientosContables: React.FC = () => {
   const asientos = data?.asientosContablesPorEmpresa || [];
   const diarios = data?.diariosContables || [];
 
+  const ejecutar = async (id: string, tipo: 'aprobar' | 'reversar') => {
+    setAccionId(id);
+    setMensaje(null);
+    setErrorAccion(null);
+    try {
+      if (tipo === 'aprobar') {
+        await aprobarAsientoContable(id);
+        setMensaje('Asiento aprobado.');
+      } else {
+        if (!window.confirm('¿Reversar este asiento? Se creará el asiento inverso.')) return;
+        await reversarAsientoContable(id);
+        setMensaje('Asiento reversado.');
+      }
+      await refetch();
+    } catch (err: unknown) {
+      const ex = err as { response?: { data?: unknown }; message?: string };
+      const d = ex.response?.data;
+      setErrorAccion(typeof d === 'string' ? d : JSON.stringify(d) || ex.message || 'Error');
+    } finally {
+      setAccionId(null);
+    }
+  };
+
   return (
     <Card>
       <CardBody>
         <ConfigEmpresaBar hideWhenEmpresa emptyMessage="Seleccione una empresa para ver la contabilidad." />
-        <CardTitle tag="h4">Asientos Contables ({asientos.length})</CardTitle>
+        <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+          <CardTitle tag="h4" className="mb-0">
+            Asientos Contables ({asientos.length})
+          </CardTitle>
+          <Button color="primary" tag={Link} to="/contabilidad/asientos/nuevo">
+            Nuevo asiento
+          </Button>
+        </div>
+
+        {mensaje && <Alert color="success">{mensaje}</Alert>}
+        {errorAccion && <Alert color="danger">{errorAccion}</Alert>}
 
         <div className="row g-2 mb-3">
           <div className="col-md-3">
@@ -130,82 +170,111 @@ const AsientosContables: React.FC = () => {
                 <th className="text-end">Debe</th>
                 <th className="text-end">Haber</th>
                 <th>Estado</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {asientos.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="text-center text-muted">
+                  <td colSpan={10} className="text-center text-muted">
                     No se han encontrado registros
                   </td>
                 </tr>
               )}
-              {asientos.map((a: {
-                id_asiento_contable: string;
-                numero_asiento: string;
-                fecha_asiento: string;
-                codigo_diario: string;
-                concepto: string;
-                referencia: string;
-                total_debe: number;
-                total_haber: number;
-                estado: string;
-                movimientos: Array<{
-                  id_movimiento_contable: string;
-                  codigo_cuenta: string;
-                  nombre_cuenta: string;
+              {asientos.map(
+                (a: {
+                  id_asiento_contable: string;
+                  numero_asiento: string;
+                  fecha_asiento: string;
+                  codigo_diario: string;
                   concepto: string;
-                  debe: number;
-                  haber: number;
-                }>;
-              }) => (
-                <React.Fragment key={a.id_asiento_contable}>
-                  <tr
-                    style={{ cursor: 'pointer' }}
-                    onClick={() =>
-                      setExpandido(expandido === a.id_asiento_contable ? null : a.id_asiento_contable)
-                    }
-                  >
-                    <td>{expandido === a.id_asiento_contable ? '▼' : '▶'}</td>
-                    <td>{a.numero_asiento}</td>
-                    <td>{a.fecha_asiento}</td>
-                    <td>{a.codigo_diario}</td>
-                    <td>{a.concepto}</td>
-                    <td>{a.referencia || '—'}</td>
-                    <td className="text-end">{formatMoneda(a.total_debe)}</td>
-                    <td className="text-end">{formatMoneda(a.total_haber)}</td>
-                    <td>{a.estado}</td>
-                  </tr>
-                  <tr>
-                    <td colSpan={9} className="p-0 border-0">
-                      <Collapse isOpen={expandido === a.id_asiento_contable}>
-                        <Table size="sm" className="mb-0 bg-light">
-                          <thead>
-                            <tr>
-                              <th>Cuenta</th>
-                              <th>Concepto</th>
-                              <th className="text-end">Debe</th>
-                              <th className="text-end">Haber</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(a.movimientos || []).map((m) => (
-                              <tr key={m.id_movimiento_contable}>
-                                <td>
-                                  {m.codigo_cuenta} — {m.nombre_cuenta}
-                                </td>
-                                <td>{m.concepto}</td>
-                                <td className="text-end">{formatMoneda(m.debe)}</td>
-                                <td className="text-end">{formatMoneda(m.haber)}</td>
+                  referencia: string;
+                  total_debe: number;
+                  total_haber: number;
+                  estado: string;
+                  reversed_entry_id?: string | null;
+                  movimientos: Array<{
+                    id_movimiento_contable: string;
+                    codigo_cuenta: string;
+                    nombre_cuenta: string;
+                    concepto: string;
+                    debe: number;
+                    haber: number;
+                  }>;
+                }) => (
+                  <React.Fragment key={a.id_asiento_contable}>
+                    <tr
+                      style={{ cursor: 'pointer' }}
+                      onClick={() =>
+                        setExpandido(
+                          expandido === a.id_asiento_contable ? null : a.id_asiento_contable,
+                        )
+                      }
+                    >
+                      <td>{expandido === a.id_asiento_contable ? '▼' : '▶'}</td>
+                      <td>{a.numero_asiento}</td>
+                      <td>{a.fecha_asiento}</td>
+                      <td>{a.codigo_diario}</td>
+                      <td>{a.concepto}</td>
+                      <td>{a.referencia || '—'}</td>
+                      <td className="text-end">{formatMoneda(a.total_debe)}</td>
+                      <td className="text-end">{formatMoneda(a.total_haber)}</td>
+                      <td>{a.estado}</td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        {a.estado === 'BORRADOR' && (
+                          <Button
+                            color="success"
+                            size="sm"
+                            className="me-1"
+                            disabled={accionId === a.id_asiento_contable}
+                            onClick={() => ejecutar(a.id_asiento_contable, 'aprobar')}
+                          >
+                            Aprobar
+                          </Button>
+                        )}
+                        {a.estado === 'APROBADO' && !a.reversed_entry_id && (
+                          <Button
+                            color="warning"
+                            size="sm"
+                            disabled={accionId === a.id_asiento_contable}
+                            onClick={() => ejecutar(a.id_asiento_contable, 'reversar')}
+                          >
+                            Reversar
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td colSpan={10} className="p-0 border-0">
+                        <Collapse isOpen={expandido === a.id_asiento_contable}>
+                          <Table size="sm" className="mb-0 bg-light">
+                            <thead>
+                              <tr>
+                                <th>Cuenta</th>
+                                <th>Concepto</th>
+                                <th className="text-end">Debe</th>
+                                <th className="text-end">Haber</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </Table>
-                      </Collapse>
-                    </td>
-                  </tr>
-                </React.Fragment>
-              ))}
+                            </thead>
+                            <tbody>
+                              {(a.movimientos || []).map((m) => (
+                                <tr key={m.id_movimiento_contable}>
+                                  <td>
+                                    {m.codigo_cuenta} — {m.nombre_cuenta}
+                                  </td>
+                                  <td>{m.concepto}</td>
+                                  <td className="text-end">{formatMoneda(m.debe)}</td>
+                                  <td className="text-end">{formatMoneda(m.haber)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </Table>
+                        </Collapse>
+                      </td>
+                    </tr>
+                  </React.Fragment>
+                ),
+              )}
             </tbody>
           </Table>
         )}

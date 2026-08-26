@@ -36,6 +36,10 @@ docker compose -f docker-compose.dev.yml down
 | InicioPython | 5000 | REST inicio |
 | FinancieroPython | 5001 | REST financiero |
 | ContabilidadPython | 5002 | REST contabilidad |
+| DocumentApi | 5010 | PDF (ReportLab) |
+| RabbitMQ | 5672 / 15672 | AMQP + Management UI (erp/erp) |
+| ContabilidadWorker | — | Consumer facturas y pagos → asientos |
+| MailWorker | — | Consumer mail.send → SMTP |
 
 \* Confirmar en `docker-compose.yml` / `docker-compose.dev.yml` si el mapeo cambia.
 
@@ -45,7 +49,10 @@ docker compose -f docker-compose.dev.yml down
 - NestJS: `nest start --watch` (SIGINT/SIGTERM al reiniciar el contenedor es normal)
 - Gateway: nodemon
 - Python: Flask debug / reloader
+- ContabilidadWorker: reiniciar contenedor tras cambios (`docker compose ... restart contabilidad-worker`)
 
-Variables típicas: `DATABASE_URL`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `VITE_GATEWAY_URL=http://localhost:3002`.
+Variables típicas: `DATABASE_URL`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `VITE_GATEWAY_URL=http://localhost:3002`, `RABBITMQ_URL=amqp://erp:erp@rabbitmq:5672/`.
+
+Workers y colas: [ARQUITECTURA_RABBIT_WORKERS.md](./ARQUITECTURA_RABBIT_WORKERS.md).
 
 Índice de docs: [README.md](./README.md).

@@ -95,6 +95,7 @@ fastify.register(require('./routes/media'), { prefix: '/api' });
 fastify.register(require('./routes/directorio'), { prefix: '/api' });
 fastify.register(require('./routes/contabilidad'), { prefix: '/api' });
 fastify.register(require('./routes/financiero'), { prefix: '/api' });
+fastify.register(require('./routes/documentos'), { prefix: '/api' });
 fastify.register(require('./routes/catalogos'), { prefix: '/api' });
 fastify.register(require('./routes/estadoArchivo'), { prefix: '/api' });
 
@@ -105,6 +106,8 @@ fastify.post('/api/terceros', async (request, reply) => {
 // Serializador personalizado para respuestas consistentes
 fastify.setSerializerCompiler(({ schema, method, url, httpStatus }) => {
   return function (data) {
+    if (Buffer.isBuffer(data)) return data;
+    if (typeof data === 'string') return data;
     // Si ya es una respuesta estructurada, devolverla tal como está
     if (data && typeof data === 'object' && data.hasOwnProperty('success')) {
       return JSON.stringify(data);

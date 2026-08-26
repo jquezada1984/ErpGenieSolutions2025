@@ -30,5 +30,9 @@ Gateway: rutas `/api/*` contables + queries GraphQL enrutadas a ContabilidadNest
 
 - Asientos con partida doble; numeración según `numeracion_modelo` en config.
 - Transferencia: vincular líneas de factura → registrar en diarios VT/AC; banco BQ desde movimientos bancarios.
+- Asiento manual: `POST /api/asientos-contables` (diario OD u otro); aprobar borrador; reversar genera asiento inverso.
+- Tras validar factura (Financiero): evento Rabbit → ContabilidadWorker → `POST /transferencia-contable/procesar-factura`.
 - Anulación / cierre de periodo vía REST de periodos.
 - Exportar contabilidad marca `fecha_exportacion` en movimientos.
+
+Ver: [MODULO_FINANCIERO.md](./MODULO_FINANCIERO.md), [ARQUITECTURA_RABBIT_WORKERS.md](./ARQUITECTURA_RABBIT_WORKERS.md).

@@ -201,24 +201,32 @@ def preview_registro(
     return [dict(r) for r in rows]
 
 
-def _preview_banco(id_empresa: str, desde: str, hasta: str) -> List[Dict[str, Any]]:
+def _preview_banco(
+    id_empresa: str, desde: str, hasta: str, numero_documento: Optional[str] = None
+) -> List[Dict[str, Any]]:
     cfg = _config(id_empresa)
     extra = ' AND mb.conciliado = true' if cfg.get('solo_lineas_conciliadas_extracto') else ''
+    if numero_documento:
+        extra = " AND mb.numero_documento = :doc"
     sql = f"""
         SELECT mb.fecha_movimiento AS fecha, mb.numero_documento AS doc_ref,
                c.codigo AS cuenta_codigo, NULL::text AS subcuenta,
                mb.concepto AS etiqueta, mb.tipo_movimiento AS forma_pago,
-               CASE WHEN mb.tipo_movimiento IN ('INGRESO', 'ABONO') THEN mb.monto ELSE 0 END AS debe,
-               CASE WHEN mb.tipo_movimiento IN ('EGRESO', 'CARGO') THEN mb.monto ELSE 0 END AS haber
+               CASE WHEN UPPER(mb.tipo_movimiento) IN ('INGRESO', 'ABONO') THEN ABS(mb.monto) ELSE 0 END AS debe,
+               CASE WHEN UPPER(mb.tipo_movimiento) IN ('EGRESO', 'CARGO') THEN ABS(mb.monto) ELSE 0 END AS haber
         FROM movimiento_bancario mb
         INNER JOIN cuenta_bancaria cb ON cb.id_cuenta_bancaria = mb.id_cuenta_bancaria
         LEFT JOIN cuenta_contable c ON c.id_cuenta_contable = cb.id_cuenta_contable
         WHERE mb.id_empresa = :emp AND mb.id_asiento_contable IS NULL
           AND mb.fecha_movimiento >= :desde AND mb.fecha_movimiento <= :hasta
+          AND COALESCE(mb.tipo_movimiento, '') <> 'reversa'
           {extra}
         ORDER BY mb.fecha_movimiento
     """
-    rows = db.session.execute(text(sql), {'emp': id_empresa, 'desde': desde, 'hasta': hasta}).mappings().all()
+    params: Dict[str, Any] = {'emp': id_empresa, 'desde': desde, 'hasta': hasta}
+    if numero_documento:
+        params['doc'] = numero_documento
+    rows = db.session.execute(text(sql), params).mappings().all()
     return [dict(r) for r in rows]
 
 
@@ -231,6 +239,124 @@ def ejecutar_registro(id_empresa: str, origen: str, desde: str, hasta: str) -> D
     if origen == 'banco':
         return _registro_banco(id_empresa, desde, hasta)
     raise ValidationError({'origen': ['Origen inválido']})
+
+
+def procesar_factura_cliente(id_empresa: str, id_factura: str) -> Dict[str, Any]:
+    return _procesar_factura(id_empresa, id_factura, es_cliente=True)
+
+
+def procesar_factura_proveedor(id_empresa: str, id_factura: str) -> Dict[str, Any]:
+    return _procesar_factura(id_empresa, id_factura, es_cliente=False)
+
+
+def _procesar_factura(id_empresa: str, id_factura: str, es_cliente: bool) -> Dict[str, Any]:
+    rol = 't.cliente = true' if es_cliente else 't.proveedor = true'
+    etiqueta = 'cliente' if es_cliente else 'proveedor'
+    fac = db.session.execute(
+        text(
+            f"""SELECT f.id_factura, f.fecha_factura, f.estado, f.numero_factura
+               FROM factura f
+               INNER JOIN tercero t ON t.id_tercero = f.id_tercero
+               WHERE f.id_factura = :f AND f.id_empresa = :e AND {rol}"""
+        ),
+        {'f': id_factura, 'e': id_empresa},
+    ).mappings().first()
+    if not fac:
+        raise ValidationError({'id_factura': [f'Factura {etiqueta} no encontrada']})
+    if fac['estado'] in ('BORRADOR', 'ANULADA'):
+        raise ValidationError({'estado': [f'Estado {fac["estado"]} no contabilizable']})
+
+    fecha = fac['fecha_factura']
+    if hasattr(fecha, 'isoformat'):
+        fecha_str = fecha.isoformat()
+    else:
+        fecha_str = str(fecha)[:10]
+
+    _validar_prerequisitos(id_empresa, fecha_str, fecha_str)
+
+    col_item = 'i.id_cuenta_venta' if es_cliente else 'i.id_cuenta_compra'
+    tipo_def = 'PRODUCTO_VENTA_NACIONAL' if es_cliente else 'PRODUCTO_COMPRA_NACIONAL'
+    lineas = db.session.execute(
+        text(
+            f"""SELECT fl.id_factura_linea, fl.id_item, fl.vinculado, fl.transferido,
+                      fl.id_cuenta_contable, {col_item} AS id_cuenta_item
+               FROM factura_linea fl
+               LEFT JOIN item i ON i.id_item = fl.id_item
+               WHERE fl.id_factura = :f AND (fl.transferido = false OR fl.transferido IS NULL)"""
+        ),
+        {'f': id_factura},
+    ).mappings().all()
+
+    vinculados = 0
+    for row in lineas:
+        if row.get('vinculado') and row.get('id_cuenta_contable'):
+            continue
+        cuenta = str(row['id_cuenta_item']) if row.get('id_cuenta_item') else None
+        if not cuenta:
+            cuenta = _cuenta_defecto(id_empresa, tipo_def)
+        if not cuenta:
+            continue
+        db.session.execute(
+            text(
+                """UPDATE factura_linea SET id_cuenta_sugerida = :sug, id_cuenta_contable = :cta,
+                   vinculado = true WHERE id_factura_linea = :id"""
+            ),
+            {'sug': cuenta, 'cta': cuenta, 'id': str(row['id_factura_linea'])},
+        )
+        vinculados += 1
+    db.session.commit()
+
+    diario = 'VT' if es_cliente else 'AC'
+    resultado = _registro_facturas(id_empresa, es_cliente, fecha_str, fecha_str, diario, id_factura=id_factura)
+    return {
+        'id_factura': id_factura,
+        'numero_factura': fac.get('numero_factura'),
+        'lineas_vinculadas': vinculados,
+        **resultado,
+    }
+
+
+def procesar_pago(id_empresa: str, id_pago: str) -> Dict[str, Any]:
+    """Registra en diario BQ el movimiento bancario del cobro/pago validado."""
+    pago = db.session.execute(
+        text(
+            """SELECT id_pago, numero_pago, fecha_pago, estado, monto, tipo_pago
+               FROM pago WHERE id_pago = :p AND id_empresa = :e"""
+        ),
+        {'p': id_pago, 'e': id_empresa},
+    ).mappings().first()
+    if not pago:
+        raise ValidationError({'id_pago': ['Pago no encontrado']})
+    if pago['estado'] != 'VALIDADA':
+        raise ValidationError({'estado': ['Solo se contabilizan pagos VALIDADA']})
+
+    fecha = pago['fecha_pago']
+    if hasattr(fecha, 'isoformat'):
+        fecha_str = fecha.isoformat()[:10]
+    else:
+        fecha_str = str(fecha)[:10]
+    _validar_prerequisitos(id_empresa, fecha_str, fecha_str)
+
+    resultado = _registro_banco(id_empresa, fecha_str, fecha_str, numero_documento=pago['numero_pago'])
+    asiento = db.session.execute(
+        text(
+            """SELECT id_asiento_contable FROM movimiento_bancario
+               WHERE id_empresa = :e AND numero_documento = :doc
+                 AND id_asiento_contable IS NOT NULL
+               ORDER BY created_at DESC LIMIT 1"""
+        ),
+        {'e': id_empresa, 'doc': pago['numero_pago']},
+    ).scalar()
+    if asiento:
+        db.session.execute(
+            text(
+                """UPDATE pago SET id_asiento_contable = :a
+                   WHERE id_pago = :p AND id_asiento_contable IS NULL"""
+            ),
+            {'a': str(asiento), 'p': id_pago},
+        )
+        db.session.commit()
+    return {'id_pago': id_pago, 'numero_pago': pago['numero_pago'], **resultado}
 
 
 def _validar_prerequisitos(id_empresa: str, desde: str, hasta: str) -> None:
@@ -256,7 +382,12 @@ def _validar_prerequisitos(id_empresa: str, desde: str, hasta: str) -> None:
 
 
 def _registro_facturas(
-    id_empresa: str, es_cliente: bool, desde: str, hasta: str, codigo_diario: str
+    id_empresa: str,
+    es_cliente: bool,
+    desde: str,
+    hasta: str,
+    codigo_diario: str,
+    id_factura: Optional[str] = None,
 ) -> Dict[str, Any]:
     id_diario = _diario_id(id_empresa, codigo_diario)
     if not id_diario:
@@ -278,9 +409,12 @@ def _registro_facturas(
           AND fl.vinculado = true AND fl.transferido = false
           AND f.fecha_factura >= :desde AND f.fecha_factura <= :hasta
     """
-    lineas = db.session.execute(
-        text(sql), {'emp': id_empresa, 'desde': desde, 'hasta': hasta}
-    ).mappings().all()
+    params: Dict[str, Any] = {'emp': id_empresa, 'desde': desde, 'hasta': hasta}
+    if id_factura:
+        sql += ' AND f.id_factura = :idf'
+        params['idf'] = id_factura
+
+    lineas = db.session.execute(text(sql), params).mappings().all()
 
     asientos_creados = 0
     for lin in lineas:
@@ -342,7 +476,9 @@ def _registro_facturas(
     return {'asientos_creados': asientos_creados}
 
 
-def _registro_banco(id_empresa: str, desde: str, hasta: str) -> Dict[str, Any]:
+def _registro_banco(
+    id_empresa: str, desde: str, hasta: str, numero_documento: Optional[str] = None
+) -> Dict[str, Any]:
     id_diario = _diario_id(id_empresa, 'BQ')
     if not id_diario:
         raise ValidationError({'diario': ['Diario BQ no encontrado']})
@@ -350,7 +486,7 @@ def _registro_banco(id_empresa: str, desde: str, hasta: str) -> Dict[str, Any]:
     if not transitoria:
         raise ValidationError({'cuenta': ['Cuenta transitoria bancaria no configurada']})
 
-    movs = _preview_banco(id_empresa, desde, hasta)
+    movs = _preview_banco(id_empresa, desde, hasta, numero_documento=numero_documento)
     asientos_creados = 0
     for m in movs:
         monto_d = Decimal(str(m.get('debe') or 0))

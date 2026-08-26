@@ -20,24 +20,35 @@ const menuHttpLink = createHttpLink({
   uri: menuGraphqlUri.includes('/graphql') ? menuGraphqlUri : `${menuGraphqlUri}/graphql`,
 });
 
-// Middleware para agregar token de autenticación
-const authLink = setContext((_, { headers }) => {
-  const token = localStorage.getItem('accessToken');
-
-  let companyId = '';
-
+function companyIdDesdeSesion(token: string | null): string {
+  let fromJwt = '';
+  let scope = 'EMPRESA';
   if (token) {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      companyId = payload.id_empresa || '';
-    } catch {}
+      fromJwt = payload.id_empresa || '';
+      scope = String(payload.scope_acceso || 'EMPRESA').trim().toUpperCase();
+    } catch {
+      /* ignore */
+    }
   }
+  if (scope !== 'GLOBAL') return fromJwt;
+  try {
+    return sessionStorage.getItem('erp.id_empresa') || fromJwt;
+  } catch {
+    return fromJwt;
+  }
+}
+
+// Middleware para agregar token de autenticación
+const authLink = setContext((_, { headers }) => {
+  const token = localStorage.getItem('accessToken');
+  const companyId = companyIdDesdeSesion(token);
 
   return {
     headers: {
       ...headers,
       authorization: token ? `Bearer ${token}` : '',
-      // 🔥 SOLO poner si NO viene ya definido
       'X-Company-Id': headers?.['X-Company-Id'] || companyId,
     },
   };

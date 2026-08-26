@@ -37,17 +37,42 @@ type Factura {
   id_moneda: ID
   id_proyecto: ID
   id_tercero: String!
+  lineas: [FacturaLinea!]
+  monto_pendiente: String
   nota_privada: String
   nota_publica: String
   numero_factura: String
   origen: String
   plantilla_documento: String
   subtotal: String
+  tercero_nombre: String
   tipo_factura: String!
   total_descuentos: String
   total_factura: String
   total_impuestos: String
   updated_at: DateTime
+}
+
+type FacturaLinea {
+  cantidad: String!
+  created_at: DateTime
+  descripcion: String!
+  descuento_porcentaje: String
+  descuento_valor: String
+  id_cuenta_contable: ID
+  id_factura: ID!
+  id_factura_linea: ID!
+  id_item: ID
+  orden: Int!
+  precio_unitario: String!
+  subtotal: String!
+}
+
+type FacturasClientePaginadas {
+  items: [Factura!]!
+  limit: Int!
+  page: Int!
+  total: Int!
 }
 
 type FormaPagoCatalogo {
@@ -69,9 +94,52 @@ type Moneda {
   simbolo_unicode: String
 }
 
+type Pago {
+  aplicaciones: [PagoFactura!]
+  concepto: String
+  created_at: DateTime
+  estado: String
+  fecha_pago: String!
+  id_asiento_contable: ID
+  id_cuenta_bancaria: ID
+  id_empresa: String!
+  id_moneda: String!
+  id_pago: ID!
+  id_tercero: String!
+  monto: String!
+  numero_pago: String!
+  tercero_nombre: String
+  tipo_cambio: String
+  tipo_pago: String!
+  updated_at: DateTime
+}
+
+type PagoFactura {
+  created_at: DateTime
+  id_factura: ID!
+  id_pago: ID!
+  id_pago_factura: ID!
+  monto_aplicado: String!
+  numero_factura: String
+}
+
+type PagosPaginados {
+  items: [Pago!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+}
+
 type Query {
+  cobroCliente(id_empresa: String!, id_pago: String!): Pago
+  cobrosCliente(busqueda: String, estado: String, id_empresa: String!, limit: Int = 50, page: Int = 1): PagosPaginados!
   condicionesPagoFin(id_empresa: String): [CondicionPagoCatalogo!]!
   facturaCliente(id_empresa: String!, id_factura: String!): Factura
+  facturaProveedor(id_empresa: String!, id_factura: String!): Factura
+  facturasCliente(busqueda: String, estado: String, id_empresa: String!, id_tercero: String, limit: Int = 50, page: Int = 1, solo_pendientes: Boolean = false): FacturasClientePaginadas!
+  facturasProveedor(busqueda: String, estado: String, id_empresa: String!, id_tercero: String, limit: Int = 50, page: Int = 1, solo_pendientes: Boolean = false): FacturasClientePaginadas!
   formasPagoFin(id_empresa: String, tipoUso: String): [FormaPagoCatalogo!]!
   monedasFin: [Moneda!]!
+  pagoProveedor(id_empresa: String!, id_pago: String!): Pago
+  pagosProveedor(busqueda: String, estado: String, id_empresa: String!, limit: Int = 50, page: Int = 1): PagosPaginados!
 }

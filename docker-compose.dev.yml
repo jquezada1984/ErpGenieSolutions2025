@@ -14,7 +14,8 @@ services:
       - FLASK_ENV=development
       - TZ=America/Guayaquil
     ports:
-      - "5000:5000"
+      # 5000 en host suele estar ocupado por otros proyectos; interno sigue en 5000
+      - "5003:5000"
     volumes:
       - ./InicioPython:/app
       - python_dev_data:/app/data
@@ -173,6 +174,8 @@ services:
       - FLASK_ENV=development
       - PORT=5001
       - TZ=America/Guayaquil
+      - RABBITMQ_URL=amqp://erp:erp@rabbitmq:5672/
+      - RABBITMQ_EXCHANGE=erp.events
     ports:
       - "5001:5001"
     volumes:
@@ -180,6 +183,8 @@ services:
       - financiero_python_dev_data:/app/data
     networks:
       - erp-network
+    depends_on:
+      - rabbitmq
     command: ["python", "app.py"]
 
   # FinancieroNestJs - Desarrollo
@@ -243,6 +248,7 @@ services:
       - FINANCIERO_PY_BASE_URL=http://financiero-python-service:5001
       - FINANCIERO_NEST_GQL_URL=http://financiero-nestjs-service:3007
       - BANCO_CAJA_NEST_GQL_URL=http://banco-caja-nestjs-service:3016
+      - DOCUMENT_API_BASE_URL=http://document-api:5010
       - GATEWAY_PORT=3002
       - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
       - TZ=America/Guayaquil
@@ -265,6 +271,102 @@ services:
       - financiero-python-service
       - financiero-nestjs-service
       - banco-caja-nestjs-service
+      - rabbitmq
+      - contabilidad-worker
+      - document-api
+      - mail-worker
+
+  # RabbitMQ — colas async (factura → contabilidad, mail, documentos)
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: erp-rabbitmq-dev
+    environment:
+      - RABBITMQ_DEFAULT_USER=erp
+      - RABBITMQ_DEFAULT_PASS=erp
+      - TZ=America/Guayaquil
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - erp-network
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_port_connectivity"]
+      interval: 5s
+      timeout: 10s
+      retries: 15
+      start_period: 45s
+    restart: unless-stopped
+
+  # ContabilidadWorker — consume financiero.factura.validada
+  contabilidad-worker:
+    build:
+      context: ./ContabilidadWorker
+      dockerfile: Dockerfile
+    container_name: erp-contabilidad-worker-dev
+    environment:
+      - RABBITMQ_URL=amqp://erp:erp@rabbitmq:5672/
+      - RABBITMQ_EXCHANGE=erp.events
+      - RABBITMQ_QUEUE=erp.accounting
+      - RABBITMQ_ROUTING_KEY=financiero.#
+      - CONTABILIDAD_PY_BASE_URL=http://contabilidad-python-service:5002
+      - TZ=America/Guayaquil
+    volumes:
+      - ./ContabilidadWorker:/app
+    networks:
+      - erp-network
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      contabilidad-python-service:
+        condition: service_started
+    command: ["python", "worker.py"]
+
+  document-api:
+    build:
+      context: ./DocumentApi
+      dockerfile: Dockerfile
+    container_name: erp-document-api-dev
+    env_file:
+      - ./InicioNestJs/.env
+    environment:
+      - PORT=5010
+      - TZ=America/Guayaquil
+      - MPLCONFIGDIR=/tmp
+      - MPLBACKEND=Agg
+    ports:
+      - "5010:5010"
+    volumes:
+      - ./DocumentApi:/app
+    networks:
+      - erp-network
+    command: ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5010", "--reload"]
+
+  mail-worker:
+    build:
+      context: ./MailWorker
+      dockerfile: Dockerfile
+    container_name: erp-mail-worker-dev
+    env_file:
+      - ./InicioNestJs/.env
+    environment:
+      - RABBITMQ_URL=amqp://erp:erp@rabbitmq:5672/
+      - RABBITMQ_EXCHANGE=erp.events
+      - RABBITMQ_QUEUE=erp.mail
+      - RABBITMQ_ROUTING_KEY=mail.#
+      - DOCUMENT_API_BASE_URL=http://document-api:5010
+      - TZ=America/Guayaquil
+    volumes:
+      - ./MailWorker:/app
+    networks:
+      - erp-network
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      document-api:
+        condition: service_started
+    command: ["python", "worker.py"]
 
   # Frontend React - Desarrollo
   frontend:

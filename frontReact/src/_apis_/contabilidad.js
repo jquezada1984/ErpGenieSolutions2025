@@ -142,3 +142,12 @@ export const listarLineasFacturaProveedores = async (anio, vinculadas = false) =
   if (Array.isArray(body)) return body;
   return body?.data ?? [];
 };
+
+export const crearAsientoContable = async (payload) =>
+  unwrap(await apiClient.post('/asientos-contables', payload));
+
+export const aprobarAsientoContable = async (id) =>
+  unwrap(await apiClient.patch(`/asientos-contables/${id}/aprobar`));
+
+export const reversarAsientoContable = async (id) =>
+  unwrap(await apiClient.post(`/asientos-contables/${id}/reversar`));

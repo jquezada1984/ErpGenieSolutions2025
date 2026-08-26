@@ -16,19 +16,18 @@ export class TerceroService {
   ) {}
 
   async findAll(id_empresa?: string): Promise<Tercero[]> {
-    const where = id_empresa ? { id_empresa } : {};
+    if (!id_empresa) return [];
     return this.terceroRepo.find({
-      where,
+      where: { id_empresa },
       relations: ['empresa', 'tipo_tercero'],
       order: { fecha_creacion: 'DESC' },
     });
   }
 
   async findClientes(id_empresa?: string): Promise<Tercero[]> {
-    const where: any = { cliente: true };
-    if (id_empresa) where.id_empresa = id_empresa;
+    if (!id_empresa) return [];
     return this.terceroRepo.find({
-      where,
+      where: { cliente: true, id_empresa },
       relations: ['empresa', 'tipo_tercero'],
       order: { fecha_creacion: 'DESC' },
     });
@@ -40,15 +39,35 @@ export class TerceroService {
     busqueda: string,
     limite: number,
   ): Promise<Tercero[]> {
+    return this.findTercerosPorBusqueda(true, id_empresa, busqueda, limite);
+  }
+
+  async findProveedoresPorBusqueda(
+    id_empresa: string | undefined,
+    busqueda: string,
+    limite: number,
+  ): Promise<Tercero[]> {
+    return this.findTercerosPorBusqueda(false, id_empresa, busqueda, limite);
+  }
+
+  private async findTercerosPorBusqueda(
+    esCliente: boolean,
+    id_empresa: string | undefined,
+    busqueda: string,
+    limite: number,
+  ): Promise<Tercero[]> {
+    const empresa = String(id_empresa || '').trim();
+    if (!empresa) return [];
     const caps = Math.min(Math.max(limite, 5), 100);
     const q = busqueda.trim().toLowerCase();
-    const qb = this.terceroRepo.createQueryBuilder('t').where('t.cliente = true');
-    if (id_empresa) {
-      qb.andWhere('t.id_empresa = :emp', { emp: id_empresa });
-    }
+    const qb = this.terceroRepo
+      .createQueryBuilder('t')
+      .where(esCliente ? 't.cliente = true' : 't.proveedor = true')
+      .andWhere('t.id_empresa = :emp', { emp: empresa });
     if (q.length > 0) {
+      const codigoCol = esCliente ? 't.codigo_cliente' : 't.codigo_proveedor';
       qb.andWhere(
-        '(LOWER(t.nombre) LIKE :pat OR LOWER(COALESCE(t.apodo, \'\')) LIKE :pat OR LOWER(COALESCE(t.codigo_cliente, \'\')) LIKE :pat)',
+        `(LOWER(t.nombre) LIKE :pat OR LOWER(COALESCE(t.apodo, '')) LIKE :pat OR LOWER(COALESCE(${codigoCol}, '')) LIKE :pat)`,
         { pat: `%${q}%` },
       );
     }

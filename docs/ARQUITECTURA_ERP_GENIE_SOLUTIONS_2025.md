@@ -33,6 +33,10 @@ El ERP es un **monorepo** con varios microservicios y un frontend único. El **g
 | Contabilidad | ContabilidadPython `:5002` | ContabilidadNestJs `:3005` | `views/contabilidad/` |
 | Financiero | FinancieroPython `:5001` | FinancieroNestJs `:3007` | `views/financiero/` |
 | Banco / Cajas | BancoCajaPython `:3015` | BancoCajaNestJs `:3016` | `views/banco-cajas/` |
+| ContabilidadWorker | — (consumer Rabbit) | — | `ContabilidadWorker/` |
+| DocumentApi | Python `:5010` | — | PDF ReportLab |
+| MailWorker | — (consumer Rabbit) | — | `MailWorker/` |
+| RabbitMQ | — | — | `:5672` / UI `:15672` |
 | Items | ItemPython | ItemNestJs `:3011` | `views/items/` |
 | Inventario | InventarioPython `:3014` | InventarioNestJs `:3013` | `views/items/inventarios/` |
 | Media | — | MediaServiceNestJs | uploads / documentos |
