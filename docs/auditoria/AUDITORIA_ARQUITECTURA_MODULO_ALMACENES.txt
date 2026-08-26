@@ -1,0 +1,528 @@
+================================================================================
+AUDITORÍA TÉCNICA — ARQUITECTURA DE MÓDULO INDEPENDIENTE (referencia Inventario)
+Fecha: 2026-08-08
+Modo: SOLO LECTURA (excepto este archivo TXT)
+Objetivo: documentar el patrón real antes de un futuro módulo ALMACENES
+NO se implementó Almacenes. NO se modificó código funcional ni BD.
+================================================================================
+
+--------------------------------------------------------------------------------
+1. ESTRUCTURA GENERAL DEL REPOSITORIO
+--------------------------------------------------------------------------------
+
+InventarioNestJs/
+  Dockerfile
+  package.json
+  nest-cli.json
+  tsconfig.json / tsconfig.build.json
+  src/
+    main.ts
+    app.module.ts
+    modules/
+      inventario/
+        inventario.module.ts
+        inventario.resolver.ts
+        inventario.service.ts
+        entities/
+          inventario.entity.ts
+        objects/
+          inventario-listado.object.ts
+          inventario-detalle.object.ts
+
+InventarioPython/
+  Dockerfile
+  requirements.txt
+  app.py
+  config/
+    config.py
+  api/
+    inventario_routes.py
+  services/
+    inventario_service.py
+  repositories/
+    inventario_repository.py
+  models/
+    __init__.py
+    inventario.py
+  schemas/
+    inventario_schema.py
+  utils/
+    db.py
+  migrations/
+    public_inventario_recommended.sql   (referencia SQL; no auto-ejecutada)
+
+ItemNestJs/ (comparación)
+  src/
+    main.ts
+    app.module.ts
+    app.controller.ts / app.service.ts
+    modules/
+      items/          (entity, resolver, service, objects)
+      catalogos/      (entities + catalogos.resolver/module)
+
+ItemPython/ (comparación)
+  app.py
+  config/
+  api/item_routes.py
+  services/item_service.py (+ etiqueta_categoria_service)
+  repositories/
+  models/item.py (+ catalogos)
+  schemas/
+  utils/db.py
+
+PATRÓN CONFIRMADO:
+- NestJS: GraphQL lectura (+ alguna mutación puntual de estado en Inventario)
+- Python/Flask: REST escritura
+- Capas Python: route → service → repository → model
+- Capas Nest: resolver → service → entity/TypeORM (objects GraphQL)
+
+--------------------------------------------------------------------------------
+2. INVENTARIONESTJS
+--------------------------------------------------------------------------------
+
+Entrada: src/main.ts
+  - NestFactory.create(AppModule)
+  - Puerto: process.env.PORT ?? 3011
+    NOTA: default en código es 3011; en docker-compose el servicio usa PORT=3013.
+    CONFIRMADO POR CONFIGURACIÓN docker: 3013.
+
+AppModule:
+  - GraphQLModule (ApolloDriver, autoSchemaFile schema.gql, playground/introspection)
+  - TypeOrmModule.forRoot: postgres, DATABASE_URL, synchronize:false
+  - InventarioModule
+
+Módulo interno: InventarioModule
+  - TypeOrmModule.forFeature([Inventario])
+  - InventarioService, InventarioResolver
+
+Entity: Inventario → tabla "inventario"
+  Columnas mapeadas: id_inventario, id_empresa, inventario_ref, etiqueta,
+  id_almacen, estado_inventario, fecha_inicio/cierre, observacion,
+  created_by/updated_by, created_at/updated_at, estado (boolean)
+
+Objects GraphQL:
+  - InventarioListado
+  - InventarioDetalle (cabecera para edición; NO es tabla inventario_detalle)
+
+Resolvers / operaciones:
+  Query inventariosListado (filtros id_empresa, ref, etiqueta, warehouse, id_almacen, product, estado_inventario)
+  Query inventarioPorId
+  Mutation actualizarEstadoInventario(id_inventario, estado: Boolean)
+
+Auth: NO hay AuthGuard/JwtStrategy en InventarioNestJs (CONFIRMADO: sin coincidencias).
+Headers: Nest no exige headers en código; Gateway reenvía Authorization, X-Company-Id, X-User-Id al proxy GraphQL.
+id_empresa: filtro opcional en queries; no valida JWT internamente.
+created_by/updated_by: en entity; la mutación de estado solo setea estado + updated_at (no updated_by en Nest).
+
+Health: no hay /health en Nest (solo log de arranque GraphQL).
+
+FLUJO LECTURA:
+  Front Apollo → Gateway POST /graphql
+    → getTargetService detecta inventariosListado | inventarioPorId | actualizarEstadoInventario
+    → INVENTARIO_NEST_GQL_URL (inventario-nestjs-service:3013)
+    → InventarioResolver/Service → PostgreSQL tabla inventario (+ JOIN almacen para nombre)
+
+--------------------------------------------------------------------------------
+3. INVENTARIOPYTHON
+--------------------------------------------------------------------------------
+
+Framework: Flask + flask_cors + flask_jwt_extended + SQLAlchemy + Marshmallow
+Entrada: app.py
+  - Blueprint inventario_bp prefix /api
+  - GET /health → {status: ok}
+  - JWTManager configurado; rutas de inventario NO usan @jwt_required (leen headers)
+
+Config: DATABASE_URL, SECRET_KEY, CORS_ORIGINS
+Puerto: env PORT; docker 3014; fallback código __main__ 3012 (distinto al compose)
+
+Routes (api/inventario_routes.py):
+  POST   /api/inventario          crear
+  PUT    /api/inventario/<uuid>   actualizar cabecera
+  PATCH  /api/inventario/estado   actualizar estado boolean
+  OPTIONS en todas
+
+Headers: X-Company-Id / X-User-Id → id_empresa (body o header), user_id auditoría
+Schemas Marshmallow: InventarioCreateSchema, InventarioUpdateSchema, InventarioEstadoUpdateSchema
+Service: validación, duplicado inventario_ref+empresa, defaults estado_inventario=ABIERTO
+Repository: create/update commit/rollback
+Respuestas: { success, message, data } o errors/error; HTTP 201/200/400/404/409/500
+
+FLUJO ESCRITURA:
+  Front axios (_apis_/inventario.js) → Gateway /api/inventario
+    → inventarioPython.js (ctxHeaders + Authorization)
+    → InventarioPython /api/inventario
+    → PostgreSQL tabla inventario
+
+--------------------------------------------------------------------------------
+4. DIVISIÓN DE RESPONSABILIDADES (Inventarios)
+--------------------------------------------------------------------------------
+
+Operación              | NestJS                         | Python
+-----------------------|--------------------------------|-------------------------------
+Listado                | SÍ inventariosListado          | NO
+Detalle por id         | SÍ inventarioPorId             | NO
+Creación               | NO                             | SÍ POST
+Actualización cabecera | NO                             | SÍ PUT
+Toggle estado (UI)     | SÍ mutation actualizarEstado   | PATCH existe; UI usa Nest
+Eliminación            | NO                             | NO
+Validaciones create/up | NO                             | SÍ Marshmallow + business
+Consultas/filtros      | SÍ                             | NO
+Escritura BD insert/up | Solo UPDATE estado (mutation)  | INSERT/UPDATE cabecera
+
+--------------------------------------------------------------------------------
+5. GATEWAY (solo Inventarios)
+--------------------------------------------------------------------------------
+
+Archivos:
+  gateway-api/src/routes/inventario.js
+  gateway-api/src/services/inventarioPython.js
+  gateway-api/src/services/inventarioNestJs.js  (helper inventariosListado; front usa Apollo proxy, no este helper)
+  gateway-api/src/routes/graphql.js            (routing por substring de query)
+  gateway-api/src/app.js                       register inventario prefix /api
+
+REST:
+  POST /api/inventario     → InventarioPython
+  PUT  /api/inventario/:id → InventarioPython
+
+GraphQL:
+  Si query incluye inventariosListado | inventarioPorId | actualizarEstadoInventario
+  → INVENTARIO_NEST_GQL_URL
+
+Env:
+  INVENTARIO_PY_BASE_URL (default http://inventario-python-service:3014)
+  INVENTARIO_NEST_GQL_URL (default http://inventario-nestjs-service:3013)
+  INVENTARIO_PY_TIMEOUT / INVENTARIO_NEST_TIMEOUT
+
+Headers reenviados:
+  REST: ctxHeaders (X-Company-Id, X-User-Id, scope…) + Authorization
+  GraphQL: X-Company-Id, X-User-Id, Authorization
+
+INFERENCIA (futuro Almacenes, NO implementar):
+  - routes/almacen.js + services/almacenPython.js
+  - env ALMACEN_PY_BASE_URL / ALMACEN_NEST_GQL_URL
+  - reglas en graphql.js para queries almacenes* del NUEVO servicio
+    CUIDADO: query "almacenes" YA se enruta a InicioNestJs (catálogo).
+    Un módulo Almacenes Nest no debe reutilizar el mismo nombre de query sin plan.
+
+--------------------------------------------------------------------------------
+6. DOCKER / PUERTOS
+--------------------------------------------------------------------------------
+
+CONFIRMADO POR CONFIGURACIÓN (docker-compose.yml):
+
+Servicio                    | Container                      | Build           | PORT | Host:Cont | Network
+----------------------------|--------------------------------|-----------------|------|-----------|----------
+item-nestjs-service         | erp-item-nestjs-service        | ./ItemNestJs    | 3011 | 3011:3011 | erp-network
+item-python-service         | erp-item-python-service        | ./ItemPython    | 3012 | 3012:3012 | erp-network
+inventario-nestjs-service   | erp-inventario-nestjs-service  | ./InventarioNestJs | 3013 | 3013:3013 | erp-network
+inventario-python-service   | erp-inventario-python-service  | ./InventarioPython | 3014 | 3014:3014 | erp-network
+
+Otros puertos ocupados (CONFIRMADO):
+  5000 InicioPython, 3001 InicioNestJs, 3002 Gateway, 3003 Menu,
+  3004 TerceroPython, 3006→3001 TerceroNest, 3005 ContabilidadNest,
+  5002 ContabilidadPython, 3010 Media, 3015 BancoPython, 3016 BancoNest,
+  5001 FinancieroPython, 3007 FinancieroNest, front típico 3000
+
+depends_on gateway: incluye item-* e inventario-* (CONFIRMADO en compose)
+
+Volumes: Inventario/Item no montan volumen de datos propio (InicioPython sí python_data)
+
+INFERENCIA DE PATRÓN de numeración:
+  Pares Nest/Python por dominio: Item 3011/3012, Inventario 3013/3014, Banco 3015/3016
+  Propuesta futura Almacenes (SOLO INFERENCIA): 3017 Nest / 3018 Python
+  No asignar sin revisar compose actualizado.
+
+--------------------------------------------------------------------------------
+7. FRONTEND DE INVENTARIOS
+--------------------------------------------------------------------------------
+
+Carpetas:
+  frontReact/src/views/items/inventarios/
+    Inventarios.tsx        listado
+    NuevoInventario.tsx    alta
+    EditarInventario.tsx   edición
+  frontReact/src/_apis_/inventario.js
+  Router.tsx rutas:
+    items/inventarios
+    items/inventarios/nuevo
+    items/inventarios/editar/:id
+
+GraphQL (Apollo → Gateway):
+  inventariosListado, inventarioPorId, actualizarEstadoInventario
+  empresas (GLOBAL), itemsListado (PRODUCT, solo UI opcional)
+
+REST (_apis_/inventario.js → Gateway):
+  POST /api/inventario
+  PUT  /api/inventario/:id
+
+Patrón UI:
+  Listado: ReactTable + filtros + SelectEmpresa GLOBAL + switch estado
+  Nuevo/Editar: Card secciones, validación local campos obligatorios,
+    listarAlmacenes (InicioNestJs), no Yup formal como Terceros en todos lados
+  Menú: bajo Producto|Servicio vía BD menu_item (no hardcode)
+
+--------------------------------------------------------------------------------
+8. ITEM COMO COMPARACIÓN
+--------------------------------------------------------------------------------
+
+IGUAL:
+  Nest lectura GraphQL + Python escritura REST
+  Gateway enruta por nombre de query / rutas /api/item vs /api/inventario
+  Docker pares de puertos
+  Multiempresa: id_empresa en entidad + SelectEmpresa / JWT en front
+  Capas route-service-repository (Python)
+
+DIFERENTE:
+  ItemNestJs: más módulos (catálogos), entity Item parcial vs detalle raw
+  ItemPython: más endpoints (CRUD item, selects, etiquetas)
+  Inventario: dominio más pequeño (cabecera inventario)
+  Toggle estado Item: mutation en ItemNestJs; Inventario similar en Nest
+  Front Item: más secciones/formularios; Inventario más simple
+
+--------------------------------------------------------------------------------
+9. MENÚ vs ARQUITECTURA BACKEND
+--------------------------------------------------------------------------------
+
+CONFIRMADO:
+  La pestaña superior "Producto|Servicio" es menu_seccion (MenuNestJs/BD).
+  Inventarios es un grupo menu_item bajo esa sección.
+  Los microservicios InventarioNestJs/Python son independientes de ItemNestJs/Python.
+
+COMPATIBLE CON FUTURO ALMACENES:
+  UI: ítems de menú bajo Producto|Servicio (ya añadidos en tarea previa de menú)
+  Backend: AlmacenNestJs + AlmacenPython independientes (como Inventario)
+  NO requiere que Almacenes viva dentro de ItemNestJs
+
+--------------------------------------------------------------------------------
+10. BASE DE DATOS (desde código; sin consultar live en esta auditoría)
+--------------------------------------------------------------------------------
+
+Tabla usada por Nest y Python: public.inventario
+Definición: entity TypeORM + model SQLAlchemy + SQL recomendado
+  InventarioPython/migrations/public_inventario_recommended.sql
+
+id_empresa: UUID NOT NULL en modelo
+id_inventario: UUID PK (gen_random_uuid / uuid4)
+timestamps: created_at/updated_at
+estado: boolean activo/inactivo
+estado_inventario: ABIERTO|BORRADOR|CERRADO
+id_almacen: UUID (JOIN a almacen en Nest; sin FK formal en SQL del repo)
+
+No hay entity inventario_detalle en estos microservicios.
+
+--------------------------------------------------------------------------------
+11. CONVENCIONES DE CÓDIGO
+--------------------------------------------------------------------------------
+
+NestJS:
+  Carpeta modules/<dominio>/
+  <dominio>.module.ts, .resolver.ts, .service.ts
+  entities/<dominio>.entity.ts
+  objects/*-listado.object.ts, *-detalle.object.ts
+  AppModule: GraphQL + TypeORM synchronize:false
+  Nombres GraphQL camelCase español (inventariosListado)
+
+Python:
+  Flask Blueprint url_prefix /api
+  api/*_routes.py → services/*_service.py → repositories/*_repository.py
+  models/*.py schema public
+  schemas Marshmallow *CreateSchema / *UpdateSchema
+  Respuesta {success, message, data} / errors
+  Headers X-Company-Id, X-User-Id
+
+Frontend:
+  views/items/<subdominio>/
+  _apis_/<dominio>.js Axios Gateway
+  Rutas /items/...
+  Apollo para lecturas Nest; REST para escrituras Python
+
+Gateway:
+  routes/<dominio>.js + services/<dominio>Python.js + opcional NestJs.js
+  graphql.js substring routing
+  Env *_PY_BASE_URL / *_NEST_GQL_URL
+
+--------------------------------------------------------------------------------
+12. DEPENDENCIAS ENTRE MÓDULOS (Inventario)
+--------------------------------------------------------------------------------
+
+InicioNestJs:
+  POR QUÉ: catálogo almacenes (query almacenes), empresas
+  CÓMO: Front → Gateway GraphQL → InicioNestJs
+  Backend Inventario NO llama a Inicio; solo JOIN SQL a tabla almacen
+
+ItemNestJs:
+  POR QUÉ: itemsListado en formulario nuevo/editar (opcional, no se persiste)
+  CÓMO: Front GraphQL
+  Backend Inventario: sin dependencia de código
+
+ItemPython: SIN dependencia
+
+MenuNestJs:
+  POR QUÉ: menú lateral Producto|Servicio / Inventarios
+  CÓMO: Front permisos; no en runtime de InventarioNest/Python
+
+Contabilidad: SIN dependencia en código Inventario
+
+--------------------------------------------------------------------------------
+13. RIESGOS PARA CREAR ALMACENES
+--------------------------------------------------------------------------------
+
+- Duplicar query GraphQL "almacenes" ya enrutada a InicioNestJs
+- Duplicar entity/tabla almacen (tabla ya existe; catálogo lectura ya en Inicio)
+- Conflicto de puertos si no se eligen libres
+- Gateway mal cableado (mezclar catálogo Inicio con CRUD AlmacenNest)
+- Romper Inventarios (id_almacen / JOIN / listarAlmacenes)
+- Romper id_almacen_defecto en Item (mismo catálogo)
+- Desviar del patrón Nest lectura / Python escritura
+- Tocar tablas stock/movimientos antes de tener CRUD almacén estable
+- Menú ya apunta a rutas /items/almacenes/* sin pantallas (404 esperable)
+
+--------------------------------------------------------------------------------
+14. PROPUESTA ARQUITECTÓNICA (SOLO DOCUMENTACIÓN — NO CREAR)
+--------------------------------------------------------------------------------
+
+Opción coherente con Inventario:
+
+AlmacenNestJs/
+  src/main.ts
+  src/app.module.ts
+  src/modules/almacen/
+    almacen.module.ts
+    almacen.resolver.ts
+    almacen.service.ts
+    entities/almacen.entity.ts   (mapear columnas reales BD)
+    objects/almacen-listado.object.ts
+    objects/almacen-detalle.object.ts
+
+AlmacenPython/
+  app.py
+  config/config.py
+  api/almacen_routes.py
+  services/almacen_service.py
+  repositories/almacen_repository.py
+  models/almacen.py
+  schemas/almacen_schema.py
+  utils/db.py
+
+Frontend (futuro):
+  views/items/almacenes/  (Listado, Nuevo, Editar…)
+  _apis_/almacen.js
+  Router paths /items/almacenes...
+
+Gateway (futuro):
+  routes/almacen.js
+  services/almacenPython.js
+  graphql.js reglas con nombres que NO choquen con query "almacenes" de Inicio
+  env ALMACEN_NEST_GQL_URL / ALMACEN_PY_BASE_URL
+
+Docker (futuro):
+  almacen-nestjs-service / almacen-python-service
+  puertos libres (inferencia 3017/3018)
+
+DECISIÓN DE DISEÑO PENDIENTE:
+  ¿CRUD de almacén reemplaza/amplía catálogo InicioNestJs o convive?
+  Riesgo alto de duplicidad si no se decide.
+
+--------------------------------------------------------------------------------
+15. PLAN DE IMPLEMENTACIÓN FUTURO (NO EJECUTAR)
+--------------------------------------------------------------------------------
+
+Fase 0: Decisión de ownership de tabla almacen (Inicio vs AlmacenNest)
+Fase 1: Scaffold AlmacenNestJs + AlmacenPython + Docker + Gateway (sin UI)
+Fase 2: Lectura listado/detalle GraphQL (Nest) alineado a columnas BD
+Fase 3: Creación REST (Python) + validaciones + multiempresa
+Fase 4: Actualización + toggle estado
+Fase 5: Frontend listado/nuevo/editar + rutas Router
+Fase 6: Integrar/selects (Inventarios/Item) al nuevo o mismo catálogo
+Fase 7: Stock (stock_item_almacen) — después de almacén estable
+Fase 8: Movimientos / transferencias — después de stock
+Fase 9: Permisos menú Empresa (si negocio lo requiere) — ya hay ítems menú Admin
+
+--------------------------------------------------------------------------------
+16. INFORME FINAL — RESPUESTAS
+--------------------------------------------------------------------------------
+
+1. ¿Inventario es módulo independiente a nivel backend?
+   SÍ (InventarioNestJs + InventarioPython).
+
+2. ¿Usa NestJS y Python separados?
+   SÍ.
+
+3. Responsabilidades:
+   Nest: lectura GraphQL + mutation estado boolean (UI)
+   Python: create/update REST (+ PATCH estado no usado por UI)
+
+4. Gateway:
+   GraphQL substring → Nest; REST /api/inventario → Python
+
+5. ¿Cómo aparece en Producto|Servicio sin ser Item?
+   Menú BD (menu_seccion/menu_item) independiente de microservicios Item
+
+6. ¿Almacenes puede seguir el mismo patrón?
+   SÍ a nivel arquitectónico; con cuidado del catálogo almacenes en InicioNestJs
+
+7. Carpetas nuevas sugeridas:
+   AlmacenNestJs/, AlmacenPython/, views/items/almacenes/, _apis_/almacen.js,
+   gateway routes/services, entradas docker-compose
+
+8. Archivos típicos por microservicio:
+   Ver sección 14
+
+9. Puertos ocupados relevantes Item/Inventario/Banco:
+   3011–3016 (CONFIRMADO compose) + muchos otros (ver §6)
+
+10. Puertos sugeridos Almacenes (INFERENCIA):
+    3017 Nest / 3018 Python — validar al implementar
+
+11. NO tocar sin pedido explícito:
+    Item*, Inventario*, InicioNestJs query almacenes (hasta decisión),
+    MenuNestJs código, tablas stock/movimientos, Docker/puertos de terceros
+
+12. Reutilizable:
+    Patrón Nest/Python/Gateway/front de Inventario
+    listarAlmacenes / tabla almacen (según ownership)
+    Menú lateral ya preparado bajo Producto|Servicio
+    SelectEmpresa / JWT / headers
+
+13. Primero al implementar:
+    Decidir ownership de `almacen` + scaffold microservicios + Gateway/puertos
+    antes de stock/movimientos o pantallas avanzadas
+
+--------------------------------------------------------------------------------
+17. ARCHIVOS REVISADOS
+--------------------------------------------------------------------------------
+
+InventarioNestJs:
+  src/main.ts, src/app.module.ts
+  src/modules/inventario/*
+
+InventarioPython:
+  app.py, config/config.py, api/inventario_routes.py
+  services/inventario_service.py, repositories/inventario_repository.py
+  models/inventario.py, schemas/inventario_schema.py
+  migrations/public_inventario_recommended.sql
+
+ItemNestJs:
+  src/app.module.ts, src/modules/items/*, src/modules/catalogos/* (estructura)
+
+ItemPython:
+  app.py, api/item_routes.py (estructura), models/item.py (referencia)
+
+Gateway:
+  src/routes/inventario.js, src/services/inventarioPython.js
+  src/services/inventarioNestJs.js, src/routes/graphql.js, src/app.js
+  docker-compose env vars relacionadas
+
+Frontend:
+  views/items/inventarios/*
+  _apis_/inventario.js
+  routes/Router.tsx (fragmento inventarios)
+
+Docker:
+  docker-compose.yml (servicios Item e Inventario y mapa de puertos)
+
+--------------------------------------------------------------------------------
+18. FIN DEL INFORME
+--------------------------------------------------------------------------------
+Fin de auditoría. Única escritura autorizada: este archivo TXT.
+================================================================================

@@ -1,0 +1,417 @@
+AUDITORÍA METADATA — MOTOR DE STOCK v1 — CIERRE FASE 0
+Fecha: 2026-08-16
+Alcance: solo documentación y validación.
+Fuente: metadata PostgreSQL confirmada manualmente por el usuario.
+Referencia de contrato: docs/auditoria/CONTRATO_MOTOR_STOCK_V1.txt
+
+NO se implementó código.
+NO se ejecutaron INSERT/UPDATE/DELETE/ALTER/CREATE/DROP.
+NO se modificaron servicios, Gateway, frontend, Docker ni BD.
+
+================================================================================
+1. CONCLUSIÓN EJECUTIVA
+================================================================================
+
+La FASE 0 queda CERRADA desde el punto de vista de metadata.
+
+public.stock_item_almacen y public.movimiento_inventario existen, están tipadas
+en NUMERIC y permiten un diseño de motor con Decimal. La UNIQUE (id_item,
+id_almacen) confirma saldo único por par. Los defaults permiten inicializar
+los cuatro saldos principales en 0.
+
+La BD NO garantiza por sí sola:
+  - pertenencia multiempresa cruzada item/almacén/saldo;
+  - idempotencia de operaciones;
+  - stock no negativo;
+  - catálogo oficial de tipo_movimiento / modulo_origen;
+  - redondeo entre cantidad NUMERIC(10,3) y saldos NUMERIC(12,2).
+
+Por tanto el contrato sigue siendo compatible a nivel estructural, pero la
+escritura del motor permanece BLOQUEADA hasta decisiones de negocio y diseño
+técnico. La próxima implementación segura es LECTURA READ-ONLY de
+stock_item_almacen.
+
+================================================================================
+2. METADATA stock_item_almacen
+================================================================================
+
+Tabla: public.stock_item_almacen
+COUNT confirmado: 0
+
+| Columna                      | Tipo                         | Nullable | Default              |
+|------------------------------|------------------------------|----------|----------------------|
+| id_stock_producto_almacen    | UUID                         | NOT NULL | gen_random_uuid()    |
+| id_empresa                   | UUID                         | NOT NULL | —                    |
+| id_item                      | UUID                         | NOT NULL | —                    |
+| id_almacen                   | UUID                         | NOT NULL | —                    |
+| stock_fisico                 | NUMERIC(12,2)                | NOT NULL | 0                    |
+| stock_reservado              | NUMERIC(12,2)                | NOT NULL | 0                    |
+| stock_virtual                | NUMERIC(12,2)                | NOT NULL | 0                    |
+| stock_disponible             | NUMERIC(12,2)                | NOT NULL | 0                    |
+| stock_alerta                 | NUMERIC(12,2)                | NULL     | —                    |
+| stock_deseado                | NUMERIC(12,2)                | NULL     | —                    |
+| created_by                   | UUID                         | NULL     | —                    |
+| updated_by                   | UUID                         | NULL     | —                    |
+| created_at                   | TIMESTAMP WITHOUT TIME ZONE  | NOT NULL | now()                |
+| updated_at                   | TIMESTAMP WITHOUT TIME ZONE  | NOT NULL | now()                |
+| estado                       | BOOLEAN                      | NOT NULL | true                 |
+
+PK:
+  id_stock_producto_almacen
+
+UNIQUE:
+  (id_item, id_almacen)
+
+FKs confirmadas:
+  id_item    → item(id_item)
+  id_almacen → almacen(id_almacen)
+
+FK NO confirmada:
+  stock_item_almacen.id_empresa → empresa
+  (no existe FK confirmada)
+
+Índices confirmados:
+  PK
+  UNIQUE(id_item, id_almacen)
+  índice sobre id_item
+  índice sobre id_almacen
+
+Índice NO confirmado:
+  id_empresa
+
+CHECK:
+  NO existen CHECKs de negocio confirmados para saldos >= 0.
+
+================================================================================
+3. METADATA movimiento_inventario
+================================================================================
+
+Tabla: public.movimiento_inventario
+COUNT confirmado: 0
+
+| Columna                 | Tipo          | Nullable | Default           |
+|-------------------------|---------------|----------|-------------------|
+| id_movimiento_inventario| UUID          | NOT NULL | gen_random_uuid() |
+| id_empresa              | UUID          | NOT NULL | —                 |
+| id_item                 | UUID          | NOT NULL | —                 |
+| tipo_movimiento         | VARCHAR       | NOT NULL | —                 |
+| cantidad                | NUMERIC(10,3) | NOT NULL | —                 |
+| costo_unitario          | NUMERIC(15,2) | NOT NULL | —                 |
+| costo_total             | NUMERIC(15,2) | NOT NULL | —                 |
+| fecha_movimiento        | DATE          | NOT NULL | —                 |
+| referencia              | VARCHAR       | NULL     | —                 |
+| concepto                | TEXT          | NULL     | —                 |
+| id_asiento_contable     | UUID          | NULL     | —                 |
+| created_at              | TIMESTAMP     | NULL     | now()             |
+| id_almacen              | UUID          | NULL     | —                 |
+| id_lote_serie           | UUID          | NULL     | —                 |
+| modulo_origen           | VARCHAR       | NULL     | —                 |
+| id_origen               | UUID          | NULL     | —                 |
+| updated_by              | UUID          | NULL     | —                 |
+| updated_at              | TIMESTAMP     | NOT NULL | now()             |
+| estado                  | BOOLEAN       | NOT NULL | true              |
+| id_almacen_destino      | UUID          | NULL     | —                 |
+
+FKs confirmadas:
+  id_empresa          → empresa
+  id_item             → item
+  id_almacen          → almacen
+  id_almacen_destino  → almacen
+  id_lote_serie       → item_lote_serie
+  id_asiento_contable → asiento_contable
+
+Índices confirmados:
+  PK
+  id_item
+  id_almacen
+  fecha_movimiento
+
+Índices / UNIQUE NO confirmados:
+  modulo_origen
+  id_origen
+  id_empresa
+
+CHECK:
+  NO existen CHECKs confirmados para cantidad > 0, tipo_movimiento ni
+  modulo_origen.
+
+DISTINCT actuales (tabla vacía):
+  tipo_movimiento → 0 valores
+  modulo_origen   → 0 valores
+  estado          → 0 valores históricos
+
+Idempotencia persistida:
+  NO HAY IDEMPOTENCIA PERSISTIDA CONFIRMADA.
+
+================================================================================
+4. METADATA ITEM / ALMACÉN
+================================================================================
+
+item.id_empresa:
+  UUID NOT NULL
+  FK hacia empresa
+
+almacen.id_empresa:
+  UUID NOT NULL
+  FK hacia empresa
+
+No existe constraint cruzada confirmada que fuerce:
+  item.id_empresa = almacen.id_empresa
+para una fila de stock o movimiento.
+
+Consecuencia:
+  la validación multiempresa debe realizarse en aplicación (motor).
+
+================================================================================
+5. CONSTRAINTS, FKs E ÍNDICES — RESUMEN
+================================================================================
+
+STOCK
+  PK confirmada.
+  UNIQUE (id_item,id_almacen) confirmada.
+  FKs a item y almacen confirmadas.
+  Sin FK confirmada de id_empresa.
+  Sin CHECK de no-negatividad.
+  Sin índice confirmado por id_empresa.
+
+MOVIMIENTO
+  PK confirmada.
+  FKs a empresa, item, almacen origen/destino, lote y asiento confirmadas.
+  Sin UNIQUE/índice confirmado sobre (modulo_origen, id_origen).
+  Sin CHECK de cantidad/tipo/módulo.
+  Índices útiles para historial: id_item, id_almacen, fecha_movimiento.
+
+================================================================================
+6. DEFAULTS Y PRECISIÓN NUMERIC
+================================================================================
+
+Defaults stock (confirmados):
+  stock_fisico / stock_reservado / stock_virtual / stock_disponible = 0
+  estado = true
+  created_at / updated_at = now()
+  PK = gen_random_uuid()
+
+Defaults movimiento (confirmados):
+  estado = true
+  updated_at = now()
+  created_at = now() (nullable)
+  PK = gen_random_uuid()
+  cantidad / costo_* / fecha_movimiento / tipo_movimiento: sin default
+
+Precisión:
+  stock_* principales          NUMERIC(12,2)
+  movimiento.cantidad          NUMERIC(10,3)
+  costo_unitario / costo_total NUMERIC(15,2)
+
+RIESGO CONFIRMADO:
+  cantidad admite 3 decimales; saldos solo 2.
+  DECISIÓN TÉCNICA / NEGOCIO PENDIENTE sobre redondeo, truncado o rechazo.
+
+Compatibilidad Decimal/NUMERIC:
+  CONFIRMADA a nivel de tipo. El motor debe usar Decimal, nunca float binario.
+
+================================================================================
+7. CAMPOS MÍNIMOS FUTUROS (SIN INSERT)
+================================================================================
+
+SALDO — mínimo técnico para INSERT futuro (inferido de NOT NULL + defaults):
+  Obligatorios sin default:
+    id_empresa, id_item, id_almacen
+  Cubiertos por default:
+    id_stock_producto_almacen, stock_fisico, stock_reservado, stock_virtual,
+    stock_disponible, created_at, updated_at, estado
+  Opcionales:
+    stock_alerta, stock_deseado, created_by, updated_by
+
+MOVIMIENTO — mínimo técnico para INSERT futuro:
+  Obligatorios sin default:
+    id_empresa
+    id_item
+    tipo_movimiento
+    cantidad
+    costo_unitario
+    costo_total
+    fecha_movimiento
+  Cubiertos por default / nullable:
+    id_movimiento_inventario, estado, updated_at, created_at
+  Opcionales:
+    referencia, concepto, id_asiento_contable, id_almacen, id_lote_serie,
+    modulo_origen, id_origen, updated_by, id_almacen_destino
+
+Nota crítica para inicialización futura:
+  Aunque id_almacen sea NULL en la tabla, el contrato del motor exige almacén
+  en operaciones de saldo. Además costo_unitario y costo_total son NOT NULL
+  sin default → cualquier movimiento de stock inicial exige decisión de
+  costo (0 u otra regla).
+
+================================================================================
+8. MULTIEMPRESA E IDEMPOTENCIA
+================================================================================
+
+A. UNIQUE (id_item,id_almacen)
+   CONFIRMADO: protege saldo único por par.
+
+B. Multiempresa cruzada
+   NO GARANTIZADA POR BD.
+   item y almacen tienen id_empresa NOT NULL + FK a empresa, pero:
+   - stock no tiene FK confirmada de id_empresa;
+   - no hay CHECK/UNIQUE que amarre empresas cruzadas.
+   DEBE VALIDARSE EN MOTOR.
+
+C. Idempotencia
+   NO HAY protección persistida confirmada sobre modulo_origen/id_origen.
+   UNIQUE de saldo no evita doble aplicación de cantidad.
+
+D. Stock negativo
+   NO PROTEGIDO POR BD (sin CHECK >= 0).
+
+E. Inicialización en 0
+   TÉCNICAMENTE POSIBLE vía defaults de los cuatro saldos principales.
+
+F. Semántica stock_fisico
+   APTITUD TÉCNICA: apto como columna de saldo materializado (NUMERIC NOT NULL
+   DEFAULT 0).
+   SEMÁNTICA DE NEGOCIO: sigue abierta.
+
+G. tipo_movimiento / modulo_origen
+   VARCHAR sin CHECK/ENUM/FK confirmados y sin DISTINCT históricos.
+   Catálogo oficial: no definido.
+
+H. Precisión 10,3 vs 12,2
+   Confirmada; debe resolverse antes de escritura.
+
+================================================================================
+9. VALIDACIÓN CONTRA CONTRATO_MOTOR_STOCK_V1.txt
+================================================================================
+
+| Propuesta del contrato                         | Clasificación                 | Evidencia |
+|------------------------------------------------|-------------------------------|-----------|
+| Saldo único item+almacén                       | CONFIRMADO                    | UNIQUE (id_item,id_almacen) |
+| stock = saldo materializado / mov = historial  | COMPATIBLE                    | Estructura permite ambos roles |
+| Atomicidad saldo+movimiento                    | COMPATIBLE                    | No contradicha; no existe en BD, es regla de app |
+| Concurrencia FOR UPDATE + UNIQUE               | COMPATIBLE                    | UNIQUE existe; locking es de app |
+| Multiempresa coincidente                       | PARCIALMENTE COMPATIBLE       | id_empresa existe; sin FK/CHECK cruzada en stock |
+| Idempotencia modulo_origen+id_origen           | BLOQUEADO / PENDIENTE         | Sin UNIQUE/índice confirmado |
+| Decimal/NUMERIC                                | CONFIRMADO                    | Tipos NUMERIC reales |
+| Primera fila / stock inicial                   | DECISIÓN DE NEGOCIO PENDIENTE | Defaults permiten 0; política abierta |
+| stock_fisico como saldo v1                     | PARCIALMENTE COMPATIBLE       | Técnicamente apto; semántica abierta |
+| stock negativo                                 | DECISIÓN DE NEGOCIO PENDIENTE | Sin CHECK BD |
+| tipo_movimiento oficial                        | DECISIÓN DE NEGOCIO PENDIENTE | VARCHAR libre, 0 valores |
+| modulo_origen oficial                          | DECISIÓN DE NEGOCIO PENDIENTE | VARCHAR libre, 0 valores |
+| Reservas / virtual / disponible en v1          | COMPATIBLE CON EXCLUSIÓN      | Columnas existen; contrato las deja fuera de v1 |
+| stock_alerta / stock_deseado                   | COMPATIBLE CON EXCLUSIÓN      | Nullable; configuración, no saldo |
+| estado boolean default true                    | CONFIRMADO (tipo/default)     | Semántica de negocio sigue abierta |
+| Motor único / no DML directo                   | COMPATIBLE (arquitectura)     | No hay escritores actuales que contradigan |
+| Contabilidad desacoplada                       | COMPATIBLE                    | id_asiento_contable nullable |
+
+Ninguna propuesta del contrato queda CONTRADICHA por la metadata.
+Varias quedan BLOQUEADAS o PENDIENTES de negocio antes de escritura.
+
+================================================================================
+10. CONCLUSIONES TÉCNICAS ESPERADAS
+================================================================================
+
+A. UNIQUE (id_item,id_almacen) protege saldo único.           → CONFIRMADO
+B. BD NO protege pertenencia multiempresa cruzada.            → CONFIRMADO
+C. BD NO protege idempotencia de operaciones.                 → CONFIRMADO
+D. BD NO protege stock negativo.                              → CONFIRMADO
+E. Defaults permiten inicializar cuatro saldos en 0.          → CONFIRMADO
+F. Semántica stock_fisico sigue siendo decisión de negocio.   → CONFIRMADO
+G. tipo_movimiento/modulo_origen sin definición oficial.      → CONFIRMADO
+H. Diferencia precisión 10,3 vs 12,2 debe resolverse.         → CONFIRMADO
+
+================================================================================
+11. BLOQUEANTES
+================================================================================
+
+BLOQUEANTES DE NEGOCIO
+  - significado exacto de stock_fisico
+  - política de primera fila (cuándo crear saldo)
+  - permitir o no fila con stock 0
+  - política de stock negativo
+  - valores oficiales de tipo_movimiento
+  - valores oficiales de modulo_origen
+  - costo_unitario / costo_total para stock inicial (NOT NULL sin default)
+  - precisión/redondeo cantidad(10,3) → saldos(12,2)
+  - campo fuente para inventario_detalle.stock_sistema
+
+BLOQUEANTES TÉCNICOS
+  - estrategia persistida de idempotencia (UNIQUE/índice/clave de operación)
+  - validación multiempresa en aplicación (sin FK cruzada)
+  - concurrencia/locking (SELECT FOR UPDATE + manejo UNIQUE)
+  - tratamiento de precisión distinta movimiento vs saldo
+  - índice por id_empresa en stock (opcional de rendimiento; no bloquea lectura
+    filtrada si el filtro se aplica en query)
+
+================================================================================
+12. APTITUD TÉCNICA DE stock_fisico
+================================================================================
+
+APTITUD TÉCNICA: SÍ
+  NUMERIC(12,2) NOT NULL DEFAULT 0 es apto como columna de saldo materializado
+  para una futura lectura y, más adelante, escritura del motor.
+
+SEMÁNTICA DE NEGOCIO: NO DETERMINADA
+  Metadata no prueba si representa existencia física real, saldo ajustable,
+  conteo u otra magnitud. No debe asumirse.
+
+================================================================================
+13. PRÓXIMA TAREA RECOMENDADA
+================================================================================
+
+NO implementar inicialización ni escritura.
+
+FASE 1 RECOMENDADA:
+
+  LECTURA READ-ONLY DE public.stock_item_almacen
+
+  Filtros obligatorios:
+    id_empresa
+    id_item
+    id_almacen
+
+  Alcance sugerido (solo recomendación):
+    - entity/model mínimo en AlmacenNestJs
+    - repository/service SELECT
+    - GraphQL read-only
+    - sin INSERT
+    - sin UPDATE
+    - sin DELETE
+    - sin movimiento_inventario
+    - sin Gateway/Frontend hasta validar backend directo
+
+Justificación:
+  - metadata confirmada y compatible;
+  - tabla vacía → lectura no rompe datos;
+  - permite probar contrato BD↔app y multiempresa de consulta;
+  - no requiere decisiones de negocio de escritura todavía;
+  - alinea el roadmap del CONTRATO_MOTOR_STOCK_V1 (Fase 1).
+
+================================================================================
+14. CIERRE FASE 0
+================================================================================
+
+Estado: CERRADA (metadata documentada y validada).
+
+Confirmado:
+  estructura, tipos, defaults, PK/UNIQUE/FK/índices, conteos cero,
+  ausencia de CHECK de negocio, ausencia de idempotencia persistida,
+  diferencia de precisión, multiempresa no garantizada por BD.
+
+Sigue bloqueado para escritura:
+  semántica de saldos, catálogo de tipos, costo de inicialización,
+  redondeo, idempotencia persistida, política negativa/cero/primera fila.
+
+Próximo paso seguro:
+  FASE 1 — lectura read-only de stock_item_almacen.
+  NO motor de escritura todavía.
+
+================================================================================
+15. ALCANCE Y GIT
+================================================================================
+
+Única escritura de esta tarea:
+  docs/auditoria/AUDITORIA_METADATA_MOTOR_STOCK_V1.txt
+
+No se modificó código funcional, Gateway, frontend, Docker, BD ni otros TXT.
+Los demás cambios del working tree son PREEXISTENTES.

@@ -1,0 +1,455 @@
+================================================================================
+CIERRE_INTEGRACION_GATEWAY_STOCK_INICIAL_V1.txt
+================================================================================
+Módulo: Almacenes / STOCK INICIAL v1
+Fase: 4G — Cierre documental integración Gateway
+Fecha de cierre documental: 2026-08-16
+Naturaleza: EXCLUSIVAMENTE DOCUMENTAL (sin nuevas pruebas en esta fase)
+================================================================================
+
+1. IDENTIFICACIÓN
+--------------------------------------------------------------------------------
+Documento: CIERRE TÉCNICO — Integración Gateway STOCK INICIAL v1
+
+Cadena validada:
+
+  Cliente de prueba
+    → Gateway :3002
+    → InicioNestJs `me` (identidad autenticada)
+    → AlmacenPython :3018
+    → STOCK INICIAL
+
+Writer único de negocio:
+  AlmacenPython
+
+Endpoint interno:
+  POST /api/almacen/stock-inicial
+  Puerto: 3018
+
+Endpoint externo (Gateway):
+  POST /api/almacen/stock-inicial
+  Puerto: 3002
+
+Tablas utilizadas (existentes):
+  public.stock_item_almacen
+  public.movimiento_inventario
+
+Tablas nuevas creadas para esta integración:
+  NINGUNA
+
+Documento de cierre backend previo (referencia):
+  docs/auditoria/CIERRE_PRUEBAS_BACKEND_STOCK_INICIAL_V1.txt
+
+Fases documentadas en este cierre:
+  4A, 4B, 4C, 4D, 4E, 4E.1, 4E.2, 4F, 4F.1, 4F.2, 4F.3
+
+
+2. OBJETIVO
+--------------------------------------------------------------------------------
+Dejar evidencia auditable de que la integración STOCK INICIAL v1
+a través del Gateway:
+
+  - enruta correctamente hacia AlmacenPython;
+  - preserva body y status HTTP downstream;
+  - resuelve identidad de forma confiable vía InicioNestJs `me`;
+  - opera FAIL CLOSED ante ausencia/invalidación de Authorization;
+  - conserva idempotencia (replay YA_PROCESADO sin mutar BD).
+
+Este documento NO autoriza frontend, producción ni generalización
+de seguridad a rutas no probadas.
+
+
+3. ALCANCE
+--------------------------------------------------------------------------------
+INCLUIDO (probado / documentado):
+
+  - Writer STOCK INICIAL en AlmacenPython (aprobado previamente).
+  - Routing Gateway POST /api/almacen/stock-inicial → AlmacenPython.
+  - Identidad autenticada solo para crearStockInicial
+    (authenticatedWriteContext).
+  - Fail-closed dinámico sin token (HTTP 401, BD intacta).
+  - Replay autenticado vía Gateway (HTTP 200 YA_PROCESADO, BD intacta).
+
+EXCLUIDO (explícitamente fuera de este GO):
+
+  - Frontend / pantallas STOCK INICIAL.
+  - Producción.
+  - Migración de crearAlmacen / actualizarAlmacen al helper seguro.
+  - Resto de movimientos de inventario (entradas, salidas, ajustes,
+    reservas, transferencias).
+  - Seguridad global de todas las rutas REST del ERP.
+
+
+4. ARQUITECTURA VALIDADA
+--------------------------------------------------------------------------------
+Gateway: Fastify (gateway-api)
+Prefijo REST: /api
+
+Patrón observado:
+
+  Lecturas stock / almacén (GraphQL) → AlmacenNestJs
+  Escrituras almacén / STOCK INICIAL (REST) → AlmacenPython
+
+Flujo STOCK INICIAL validado:
+
+  Browser/cliente
+    | Authorization: Bearer <JWT>
+    v
+  Gateway :3002
+    | consulta autenticada `me` → InicioNestJs
+    | construye headers confiables
+    | X-User-Id = me.user.id_usuario
+    | X-Company-Id según scope
+    | Authorization reenviado
+    | body de negocio intacto
+    v
+  AlmacenPython :3018
+    POST /api/almacen/stock-inicial
+
+Responsabilidad de negocio (validación Decimal, costos, idempotencia,
+concurrencia, transacción, rollback, INSERT stock/movimiento):
+  EXCLUSIVAMENTE AlmacenPython.
+
+Gateway:
+  NO duplica lógica de stock.
+
+
+5. ROUTING GATEWAY
+--------------------------------------------------------------------------------
+Archivos (implementación 4B + identidad 4D):
+
+  gateway-api/src/routes/almacen.js
+  gateway-api/src/services/almacenPython.js
+  gateway-api/src/utils/requestContext.js
+
+Registro:
+  app.js registra rutas almacén con prefix `/api`.
+
+Ruta externa:
+  POST /api/almacen/stock-inicial
+
+Destino interno:
+  http://almacen-python-service:3018/api/almacen/stock-inicial
+  (fallback ALMACEN_PY_BASE_URL o hostname Docker por defecto)
+
+Body:
+  reenviado intacto (payload = body || {}).
+
+Status downstream preservado por crearStockInicial:
+
+  AlmacenPython 201 → Gateway 201  (creación)
+  AlmacenPython 200 → Gateway 200  (replay)
+  AlmacenPython 400 → Gateway 400  (validación)
+  AlmacenPython 409 → Gateway 409  (conflicto)
+  AlmacenPython 500 → Gateway 500  (error)
+
+crearAlmacen / actualizarAlmacen:
+  intactos (no migrados al helper autenticado de STOCK INICIAL).
+
+
+6. MODELO DE IDENTIDAD
+--------------------------------------------------------------------------------
+Fuente confiable (decisión 4C, implementación 4D):
+
+  InicioNestJs — query autenticada:
+
+    me {
+      user {
+        id_usuario
+        id_empresa
+        scope_acceso
+      }
+    }
+
+JWT.sub:
+  corresponde a usuario.id_usuario.
+
+Verificación JWT:
+  InicioNestJs (GqlAuthGuard / JwtStrategy).
+
+Gateway:
+  NO verifica JWT localmente.
+  NO comparte JWT_SECRET.
+
+Helper:
+  authenticatedWriteContext(req, body)
+  Archivo: gateway-api/src/utils/requestContext.js
+  Uso limitado a: crearStockInicial
+
+Trust boundary STOCK INICIAL:
+
+  NO CONFIABLE:
+    request.headers['x-user-id'] (cliente / navegador)
+
+  CONFIABLE:
+    me.user.id_usuario
+
+Downstream:
+
+  X-User-Id     = me.user.id_usuario
+  Authorization = Bearer original (reenviado)
+  X-Company-Id:
+    EMPRESA → me.user.id_empresa
+    GLOBAL  → tras autenticar:
+              body.id_empresa
+              → header X-Company-Id
+              → me.user.id_empresa
+
+Helpers legacy (ctxHeaders / getUsuarioScope):
+  INTACTOS — no forman parte del flujo STOCK INICIAL.
+
+
+7. FAIL-CLOSED
+--------------------------------------------------------------------------------
+Sin Authorization Bearer válido estructuralmente:
+  → 401
+  → NO llamada a AlmacenPython
+
+HTTP 401 / 403 explícitos desde InicioNestJs o GraphQL
+(con evidencia inequívoca: codes UNAUTHENTICATED / UNAUTHORIZED /
+FORBIDDEN o statusCode 401/403):
+  → 401 / 403
+  → FAIL CLOSED
+
+GraphQL errors internos / indeterminados:
+  → 500
+  → FAIL CLOSED
+
+me.user null / id_usuario ausente / scope_acceso ausente /
+scope desconocido / empresa no resoluble:
+  → 500 (contexto incompleto)
+  → FAIL CLOSED
+
+Auth service down / timeout / transporte:
+  → 500
+  → FAIL CLOSED
+
+NO fallback a:
+  X-User-Id del cliente
+  body.id_empresa como sustituto de identidad
+
+Prueba dinámica observada (4F.2):
+
+  Se ejecutaron accidentalmente 2 POST vía Gateway
+  sin ERP_ACCESS_TOKEN disponible.
+
+  Ambos devolvieron:
+    HTTP 401 Unauthorized
+
+  Verificación SELECT posterior:
+
+    STOCK COUNT BEFORE / AFTER:           1 / 1
+    STOCK_FISICO BEFORE / AFTER:          1.00 / 1.00
+    ID STOCK:                             sin cambio
+    TIMESTAMPS STOCK:                     sin cambio
+    AUDITORÍA STOCK:                      sin cambio
+    MOVIMIENTO COUNT BEFORE / AFTER:      1 / 1
+    ID MOVIMIENTO:                        sin cambio
+    TIMESTAMPS MOVIMIENTO:                sin cambio
+    AUDITORÍA MOVIMIENTO:                 sin cambio
+    NUEVO STOCK:                          NO
+    NUEVO MOVIMIENTO:                     NO
+    BD MODIFICADA:                        NO
+
+  Resultado 4F.2:
+    FAIL-CLOSED 401 CORRECTO
+
+Estas solicitudes se documentan como evidencia fail-closed.
+NO se describen como escrituras exitosas.
+
+
+8. REPLAY AUTENTICADO
+--------------------------------------------------------------------------------
+Tras fail-closed, se ejecutó exactamente UN POST autenticado
+(sesión real válida; Authorization Bearer; sin X-User-Id manual).
+
+Endpoint:
+  http://localhost:3002/api/almacen/stock-inicial
+
+Resultado HTTP:
+  200
+
+Body relevante:
+  success = true
+  estado_operacion = YA_PROCESADO
+  message = Stock inicial ya procesado (replay exitoso)
+
+Payload de intención (exacto, recuperado de BD en 4F):
+
+  id_empresa:       d2600c4c-2ce7-4d01-b6e8-82f028e69d27
+  id_item:          07b90b65-5ebb-431e-a7a9-cab287aecdc3
+  id_almacen:       e0241a68-c619-4965-9b89-2402753a7678
+  id_origen:        dcff992d-69af-4f0b-aa4c-d8640c9bb35a
+  cantidad:         1.00
+  fecha_movimiento: 2026-08-16
+  referencia:       PRUEBA-STOCK-INICIAL-3C
+  concepto:         Prueba controlada STOCK INICIAL Fase 3C
+
+Identidad de filas existentes:
+
+  id_stock:      b6cc8d8b-d980-4eea-bbfd-f784736414e3
+  id_movimiento: 5ed25d80-59df-41b7-aa18-2d8699ab2702
+
+
+9. VERIFICACIÓN BEFORE / AFTER
+--------------------------------------------------------------------------------
+Fuente: FASE 4F.3 — Verificación AFTER replay Gateway (SELECT only).
+
+STOCK:
+
+  COUNT BEFORE / AFTER:                1 / 1
+  STOCK_FISICO BEFORE / AFTER:         1.00 / 1.00
+  ID STOCK BEFORE / AFTER:
+    b6cc8d8b-d980-4eea-bbfd-f784736414e3 / igual
+  CREATED_AT STOCK CAMBIÓ:             NO
+  UPDATED_AT STOCK CAMBIÓ:             NO
+  AUDITORÍA STOCK CAMBIÓ:              NO
+
+MOVIMIENTO:
+
+  COUNT BEFORE / AFTER:                1 / 1
+  ID MOVIMIENTO BEFORE / AFTER:
+    5ed25d80-59df-41b7-aa18-2d8699ab2702 / igual
+  CREATED_AT MOVIMIENTO CAMBIÓ:        NO
+  UPDATED_AT MOVIMIENTO CAMBIÓ:        NO
+  AUDITORÍA MOVIMIENTO CAMBIÓ:         NO
+
+DUPLICADOS:
+
+  SEGUNDO STOCK:                       NO
+  SEGUNDO MOVIMIENTO:                  NO
+
+BD MODIFICADA POR REPLAY:              NO
+
+Resultado 4F.3:
+  APTO — REPLAY AUTENTICADO GATEWAY CORRECTO
+
+
+10. IDEMPOTENCIA
+--------------------------------------------------------------------------------
+Idempotencia STOCK INICIAL (clave id_origen + intención) fue
+previamente validada de forma directa contra AlmacenPython
+(fases 3C–3G / CIERRE_PRUEBAS_BACKEND_STOCK_INICIAL_V1).
+
+A través de Gateway se confirmó:
+
+  - Replay autenticado → HTTP 200 YA_PROCESADO.
+  - Sin nuevas filas de stock ni movimiento.
+  - Sin cambios de stock_fisico, IDs, timestamps ni auditoría.
+
+Conclusión:
+  La idempotencia del writer continúa operativa al atravesar
+  Gateway con identidad autenticada.
+
+
+11. INTEGRIDAD DE DATOS
+--------------------------------------------------------------------------------
+Datos de evidencia (no limpiados; permanecen como rastro de prueba):
+
+  Empresa:     d2600c4c-2ce7-4d01-b6e8-82f028e69d27
+  Item:        07b90b65-5ebb-431e-a7a9-cab287aecdc3
+  Almacén:     e0241a68-c619-4965-9b89-2402753a7678
+  id_origen:   dcff992d-69af-4f0b-aa4c-d8640c9bb35a
+  Stock:       b6cc8d8b-d980-4eea-bbfd-f784736414e3
+  Movimiento:  5ed25d80-59df-41b7-aa18-2d8699ab2702
+  Cantidad:    1.00
+  Fecha:       2026-08-16
+
+Schema real relevante (confirmado en fases previas):
+
+  movimiento_inventario:
+    NO tiene columna created_by (sí updated_by, created_at, updated_at).
+
+  stock_item_almacen:
+    tiene created_by, updated_by, created_at, updated_at.
+
+
+12. COMPONENTES NO MODIFICADOS
+--------------------------------------------------------------------------------
+En el alcance de la integración Gateway STOCK INICIAL, la lógica
+de negocio no se movió fuera de AlmacenPython.
+
+NO se modificaron como parte del cierre 4G (fase documental):
+  - AlmacenPython (writer ya cerrado en 3G)
+  - AlmacenNestJs
+  - InicioNestJs (autoridad de auth; sin cambios para esta integración)
+  - frontReact (sin conexión STOCK INICIAL)
+  - InventarioPython / InventarioNestJs
+  - docker-compose.yml / Dockerfiles (rebuild aislado Gateway en 4F;
+    no alterado en 4G)
+  - BD schema (sin DDL; sin tablas nuevas)
+
+En 4G (esta tarea):
+  ÚNICO artefacto creado: este documento.
+
+
+13. RIESGOS / ALCANCE NO CUBIERTO
+--------------------------------------------------------------------------------
+1. Frontend STOCK INICIAL: NO implementado / NO conectado.
+
+2. Producción: NO autorizada por este documento.
+
+3. Otras rutas REST del Gateway (p. ej. crearAlmacen,
+   actualizarAlmacen) pueden seguir usando ctxHeaders legacy
+   con X-User-Id entrante — NO migradas ni revalidadas aquí.
+
+4. Seguridad global del ERP: NO declarada completa.
+
+5. Otros tipos de movimiento de inventario: fuera de alcance.
+
+6. Las 2 solicitudes 401 accidentales (4F.2) demuestran fail-closed
+   pero NO sustituyen una matriz completa de pruebas adversariales
+   (token expirado, scope spoofing, etc.) más allá de lo ya auditado.
+
+7. GO limitado a:
+   GO INTEGRACIÓN BACKEND + GATEWAY STOCK INICIAL v1
+
+
+14. CRITERIOS DE ACEPTACIÓN
+--------------------------------------------------------------------------------
+Cumplidos según evidencia de fases 4A–4F.3:
+
+  [x] Writer STOCK INICIAL funcional en AlmacenPython.
+  [x] Gateway enruta :3002 → AlmacenPython :3018.
+  [x] Body de negocio intacto (sin duplicar lógica).
+  [x] Status downstream preservado (201/200/400/409/500).
+  [x] Identidad desde InicioNestJs `me`.
+  [x] X-User-Id cliente NO es fuente confiable en este flujo.
+  [x] Sin Authorization → 401 y cero cambios BD (4F.2).
+  [x] Con Authorization + replay → 200 YA_PROCESADO (4F/4F.3).
+  [x] Replay sin nuevo stock / movimiento.
+  [x] Replay sin cambios de stock_fisico / IDs / timestamps / auditoría.
+  [x] Idempotencia operativa vía Gateway.
+  [x] Sin tablas adicionales.
+
+
+15. RESULTADO FINAL
+--------------------------------------------------------------------------------
+RESULTADO BACKEND STOCK INICIAL v1:     GO (previo, 3G)
+RESULTADO GATEWAY ROUTING:              GO (4B)
+RESULTADO IDENTIDAD AUTENTICADA:        GO (4D + 4E.2)
+FAIL-CLOSED 401 DINÁMICO:               OK (4F.2)
+REPLAY AUTENTICADO VÍA GATEWAY:         OK (4F / 4F.3)
+IDEMPOTENCIA VÍA GATEWAY:               OK
+DUPLICADOS:                             NO
+FRONTEND:                               NO IMPLEMENTADO
+PRODUCCIÓN:                             NO AUTORIZADA POR ESTE DOCUMENTO
+
+================================================================================
+RESULTADO FINAL:
+
+  GO INTEGRACIÓN BACKEND + GATEWAY
+  STOCK INICIAL v1
+================================================================================
+
+
+16. PRÓXIMA FASE AUTORIZABLE
+--------------------------------------------------------------------------------
+5A — Auditoría frontend STOCK INICIAL
+
+SIN implementar frontend todavía.
+SIN desplegar automáticamente.
+SIN ampliar el helper autenticado a otras rutas sin auditoría previa.
+
+Fin del documento 4G.
+================================================================================

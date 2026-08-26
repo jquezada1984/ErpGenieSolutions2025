@@ -1,0 +1,489 @@
+CIERRE TÉCNICO DE BLOQUEANTES — WRITER STOCK INICIAL v1
+Fecha: 2026-08-16
+Fase: 2D — Auditoría y diseño solamente
+Resultado: NO-GO PARA IMPLEMENTAR WRITER
+
+================================================================================
+0. ALCANCE Y PROTECCIÓN
+================================================================================
+
+Esta fase es exclusivamente read-only. No se modificó código funcional, base de
+datos, tablas, índices, constraints, migraciones, Gateway, frontend, Docker ni
+configuración. No se ejecutó DML, DDL, pruebas de escritura ni operaciones de
+contenedores.
+
+Única escritura:
+  docs/auditoria/CIERRE_BLOQUEANTES_WRITER_STOCK_INICIAL_V1.txt
+
+Los cambios detectados en docker-compose.yml, frontReact, gateway-api,
+package-lock, AlmacenNestJs, AlmacenPython, menú y auditorías son PREEXISTENTES.
+No fueron modificados, revertidos, formateados, movidos, borrados ni stageados.
+
+================================================================================
+1. FUENTES INSPECCIONADAS
+================================================================================
+
+Documentación:
+  - CONTRATO_ESCRITURA_MOTOR_STOCK_V1_APROBADO.txt
+  - AUDITORIA_IDEMPOTENCIA_CONCURRENCIA_STOCK_V1.txt
+  - AUDITORIA_WRITER_STOCK_INICIAL_ALMACEN_PYTHON.txt
+  - AUDITORIA_MOVIMIENTOS_INVENTARIO.txt
+  - AUDITORIA_METADATA_MOTOR_STOCK_V1.txt
+
+Código relevante:
+  - ItemPython/models/item.py
+  - ItemPython/services/item_service.py
+  - ItemPython/schemas/item_schema.py
+  - ItemPython/repositories/item_repository.py
+  - AlmacenPython/*
+  - BancoCajaPython/schemas/* y repositories/*
+  - frontReact/src/views/items/secciones/SeccionItemCompra.tsx
+  - frontReact/src/views/banco-cajas/NuevaTransferencia.tsx
+  - frontReact/src/views/banco-cajas/NuevoMovimientoBancario.tsx
+
+Referencia Dolibarr:
+  El repositorio contiene referencias funcionales/visuales a Dolibarr, pero no
+  contiene código fuente Dolibarr ni un patrón Dolibarr ejecutable de
+  idempotencia, costo o fecha que pueda reutilizarse como evidencia de este ERP.
+  La documentación AUDITORIA_MOVIMIENTOS_INVENTARIO.txt cataloga sus mapeos como
+  PROPUESTA, no como convención implementada.
+
+================================================================================
+2. HECHOS VS RECOMENDACIONES
+================================================================================
+
+[CONFIRMADO EN CÓDIGO]
+  - item.precio_compra se modela como Numeric(18,6), nullable.
+  - ItemPython convierte entradas con Decimal(str(value)) y no aplica quantize,
+    ROUND_HALF_UP, ROUND_HALF_EVEN, truncado ni redondeo explícito.
+  - El backend de Item acepta precio_compra como fields.Decimal sin places=2.
+  - La UI de compra usa input number, step=0.01 y Number(value), por lo que
+    presenta dos decimales pero no es una garantía del backend ni de BD.
+  - BancoCaja usa fields.Decimal(places=2) en sus schemas monetarios y Decimal
+    para sus cálculos, sin declarar una constante/política explícita de rounding.
+  - No hay cálculo de costo_unitario/costo_total ni writer de
+    movimiento_inventario en el repositorio.
+  - Los UUID encontrados se generan para PK de entidades o filas de catálogo
+    mediante uuid.uuid4()/default; no existe key de idempotencia de caller.
+  - No se encontró crypto.randomUUID/randomUUID en el frontend ni generación de
+    request/operation/correlation/idempotency id en Gateway.
+  - No se encontró id_origen usado por un writer existente.
+  - BancoCaja recibe fecha_movimiento en el payload y su schema exige
+    fields.Date(required=True).
+  - Sus pantallas inicializan la fecha editable con today() y la envían en el
+    body. created_at queda como timestamp técnico de BD.
+  - AlmacenPython usa datetime.now(timezone.utc) para timestamps de auditoría,
+    no para fecha efectiva de una operación de negocio.
+
+[CONFIRMADO EN BD / CONTEXTO]
+  - item.precio_compra: NUMERIC(18,6), nullable (modelo ItemPython y contrato).
+  - movimiento_inventario.costo_unitario: NUMERIC(15,2), NOT NULL.
+  - movimiento_inventario.costo_total: NUMERIC(15,2), NOT NULL.
+  - movimiento_inventario.fecha_movimiento: DATE NOT NULL.
+  - movimiento_inventario.created_at: timestamp con default now().
+  - Índice uq_mov_inv_stock_inicial_idempotencia ya protege STOCK_INICIAL por
+    (id_empresa, modulo_origen, id_origen) bajo su predicado confirmado.
+  - stock_item_almacen tiene UNIQUE(id_item,id_almacen).
+
+[APROBADO PREVIAMENTE]
+  - STOCK INICIAL es el único MVP de escritura.
+  - tipo_movimiento='INICIAL' y modulo_origen='STOCK_INICIAL'.
+  - cantidad > 0, máximo dos decimales y sin redondeo/truncado silencioso.
+  - costo_unitario = item.precio_compra si existe; 0.00 si es NULL.
+  - costo_total = cantidad × costo_unitario con Decimal.
+  - AlmacenPython es el único writer futuro.
+  - No usar stock_operation ni tablas auxiliares.
+  - La misma intención debe conservar id_origen durante retry.
+
+[INFERENCIA]
+  - La separación repetida en BancoCaja entre fecha_movimiento (DATE recibida)
+    y created_at (timestamp técnico) evidencia dos conceptos distintos:
+    fecha efectiva de negocio y momento de persistencia.
+
+[RECOMENDADO]
+  - No aplicar conversión silenciosa de seis a dos decimales.
+  - Para permitir el MVP sin pérdida monetaria, rechazar una inicialización si
+    precio_compra no NULL tiene más de dos decimales, hasta que una decisión
+    humana apruebe una regla explícita de redondeo o evolución de escala.
+  - Solicitar fecha_movimiento como DATE efectiva en el request, con la UI
+    proponiendo la fecha actual, como BancoCaja; created_at sigue siendo técnico.
+
+[PENDIENTE]
+  - Owner que genera y conserva id_origen para retries.
+  - Aprobación de la política de escala/rechazo de precio_compra > 2 decimales.
+  - Reglas de límites temporales de fecha (por ejemplo, fecha futura) si negocio
+    las necesita.
+  - Obligatoriedad de referencia y concepto.
+
+================================================================================
+3. BLOQUE A — precio_compra → costo_unitario
+================================================================================
+
+3.1 Evidencia encontrada
+
+ItemPython:
+  Item.precio_compra = db.Numeric(18, 6), nullable.
+  item_service._decimal_opt() retorna Decimal(str(value)); conserva escala de
+  entrada y no la cuantiza.
+  item_schema.precio_compra = fields.Decimal(allow_none=True, ...), sin
+  places=2.
+
+Frontend de Item:
+  SeccionItemCompra usa step=0.01 y Number(value). Es una ayuda/presentación de
+  dos decimales, pero Number es binario y el backend puede recibir hasta seis
+  decimales por su tipo/schema.
+
+BancoCaja:
+  TransferenciaBancariaCreateSchema usa fields.Decimal(required=True, places=2).
+  CuentaBancaria schemas usan campos Decimal(places=2).
+  BancoCaja calcula importes mediante Decimal(str(valor)).
+  No se encontró `quantize`, constante `ROUND_*`, truncado ni redondeo SQL/Python
+  explícito. Por tanto places=2 no prueba qué política de redondeo se quiso
+  adoptar para una conversión desde una escala mayor.
+
+Inventario / Almacén / Contabilidad:
+  No existe uso de costo_unitario/costo_total ni un motor de costos.
+
+POLÍTICA ENCONTRADA EN ERP:
+  NINGUNA para convertir un valor monetario NUMERIC(18,6) hacia una columna
+  NUMERIC(15,2). Solo se encontró uso de Decimal y validaciones monetarias a
+  dos decimales en BancoCaja.
+
+3.2 Compatibilidad
+
+Casos sin pérdida:
+  precio_compra NULL  → costo_unitario 0.00, conforme a 2A.
+  precio_compra 8     → costo_unitario 8.00.
+  precio_compra 8.5   → costo_unitario 8.50.
+  precio_compra 8.50  → costo_unitario 8.50.
+
+Caso incompatible sin regla:
+  precio_compra 8.123456 → costo_unitario NUMERIC(15,2).
+
+Persistir ese valor obliga a decidir entre redondear, truncar, rechazar o
+cambiar esquema. Ninguna de las tres primeras políticas se encontró en el ERP
+para este caso. Alterar esquema está fuera del MVP y de esta fase.
+
+RECOMENDACIÓN PARA STOCK INICIAL:
+  Aceptar precio_compra solo cuando sea NULL o tenga escala máxima de dos
+  decimales; rechazar la operación si aporta más de dos decimales.
+
+JUSTIFICACIÓN:
+  - evita pérdida silenciosa de costo;
+  - respeta la regla 2A contra redondeo/truncado silencioso;
+  - es compatible con la UI actual de Item y con los schemas monetarios de
+    BancoCaja, ambos orientados a dos decimales;
+  - no modifica item.precio_compra ni el esquema.
+
+Estado:
+  RECOMENDACIÓN TÉCNICA; requiere aprobación explícita antes de implementar.
+
+costo_total:
+  Una vez aceptado costo_unitario con escala máxima de dos, calcular:
+
+    Decimal(cantidad) × Decimal(costo_unitario)
+
+  El producto debe ser validado contra la escala/precisión de NUMERIC(15,2).
+  No se encontró política ERP para una fracción adicional resultante; por tanto
+  este control también requiere una regla explícita si el producto no es exacto
+  a dos decimales. Para STOCK INICIAL, cantidad tiene máximo dos decimales y el
+  producto de dos importes de dos decimales puede tener hasta cuatro; por tanto
+  el bloqueante no queda resuelto solo limitando precio_compra.
+
+Conclusión de costo:
+  NO HAY POLÍTICA ACTUAL PARA REDONDEAR costo_total a NUMERIC(15,2).
+  Se necesita decisión humana que indique, como mínimo, si se rechaza un
+  producto con más de dos decimales o cuál es la regla explícita de redondeo.
+
+================================================================================
+4. BLOQUE B — Ownership de id_origen
+================================================================================
+
+4.1 Evidencia encontrada
+
+Backend Python:
+  uuid.uuid4() se usa para PK de modelos (almacén, item, banco, transferencia,
+  cuenta y entidades de catálogo) o fallback de PK en repositories.
+  No se encontró UUID de solicitud, de operación idempotente, de correlación ni
+  id_origen recibido desde caller.
+
+Frontend:
+  No se encontró crypto.randomUUID, randomUUID ni otro generador de UUID.
+
+Gateway:
+  No se encontró generación o conservación de request_id, operation_id,
+  idempotency key o id_origen.
+
+Base de datos:
+  gen_random_uuid() genera PKs de filas; no corresponde a una clave estable
+  conocida por el caller antes de un retry.
+
+4.2 Evaluación de ownership
+
+A. Frontend genera y conserva id_origen
+  Compatible técnicamente con el requisito de retry, pero NO existe patrón
+  actual de UUID de operación en frontend. Requeriría diseño explícito de
+  persistencia de la clave durante timeout/recarga.
+
+B. Gateway genera y conserva id_origen
+  No hay patrón existente de estado de request o generación de operación en
+  Gateway. No tiene evidencia para recomendarse.
+
+C. AlmacenPython genera una vez
+  El servidor sí genera PKs, pero no existe mecanismo actual para entregar una
+  clave antes de que una solicitud potencialmente falle por timeout sea
+  reintentada. Generarla en cada POST destruye idempotencia. Generarla una vez
+  exigiría estado/persistencia adicional, prohibida en el MVP.
+
+D. Otro patrón real
+  No encontrado.
+
+OWNER RECOMENDADO DE id_origen:
+  PENDIENTE DE DECISIÓN HUMANA.
+
+GENERACIÓN:
+  No hay patrón reutilizable confirmado. La opción técnicamente compatible, que
+  debe aprobarse de forma explícita, es que el caller autorizado genere el UUID
+  antes del primer envío.
+
+TRANSMISIÓN:
+  El futuro Gateway debe transmitir el UUID sin sustituirlo. No existe
+  implementación actual que lo haga.
+
+RETRY:
+  El mismo caller debe reenviar exactamente el mismo UUID para la misma
+  intención. AlmacenPython no debe regenerarlo.
+
+VALIDACIÓN EN AlmacenPython:
+  Validar UUID no vacío; usarlo junto con id_empresa, modulo_origen fijo y
+  tipo_movimiento fijo en consulta previa e inserción de movimiento.
+
+EVIDENCIA:
+  La evidencia demuestra ausencia de owner existente, no preferencia por una
+  capa. Por ello esta auditoría no puede declarar ningún owner como aprobado.
+
+================================================================================
+5. BLOQUE C — fecha_movimiento
+================================================================================
+
+Evidencia principal:
+  - BancoCajaPython TransferenciaBancariaCreateSchema exige
+    fecha_movimiento = fields.Date(required=True).
+  - Las pantallas NuevaTransferencia y NuevoMovimientoBancario inician una
+    fecha editable con today() y la envían como fecha_movimiento.
+  - BancoCajaPython persiste la fecha recibida; para una reversa, usa
+    fecha_reversa recibida o date.today() si no se proporciona.
+  - created_at es un timestamp técnico con default now() en las tablas
+    financieras y en movimiento_inventario.
+  - AlmacenPython solo usa datetime.now(timezone.utc) para created_at/updated_at
+    técnicos de almacén.
+
+FUENTE RECOMENDADA DE fecha_movimiento:
+  Fecha efectiva de negocio proporcionada por el caller autorizado.
+
+TIPO:
+  DATE (sin hora ni zona horaria), porque la columna es DATE NOT NULL.
+
+QUIÉN LA PROPORCIONA:
+  UI/API. La UI futura puede proponer la fecha actual, pero debe permitir el
+  valor efectivo según la operación, como el patrón financiero existente.
+
+VALIDACIÓN:
+  fields.Date/Date equivalente; el valor debe ser una fecha calendario válida.
+  No se encontró política ERP que prohíba fecha pasada, futura o de importación;
+  no agregar tales límites sin decisión de negocio.
+
+EVIDENCIA:
+  Es el patrón real de BancoCaja para una operación con fecha de movimiento,
+  separado de created_at como auditoría técnica.
+
+Zona horaria:
+  No afecta al valor DATE ya recibido. La UI que proponga “hoy” debe definir su
+  zona de negocio al implementarse; no hay convención global suficiente en el
+  repositorio para imponer una nueva regla.
+
+================================================================================
+6. BLOQUE D — MATRIZ FINAL DE IDEMPOTENCIA
+================================================================================
+
+La intención original incluye únicamente valores suministrados por el caller o
+constantes del contrato. No debe recalcularse precio_compra vigente ni usar la
+hora de retry para comparar la operación ya persistida.
+
+| Campo | Parte de idempotencia | Motivo |
+|---|---|---|
+| id_empresa | Sí | Aislamiento multiempresa y clave del índice |
+| modulo_origen | Sí, constante | Debe ser STOCK_INICIAL |
+| tipo_movimiento | Sí, constante | Debe ser INICIAL y participa en índice parcial |
+| id_origen | Sí, clave de búsqueda | Identifica la intención; no se compara consigo mismo |
+| id_item | Sí | Identifica el producto inicializado |
+| id_almacen | Sí | Identifica el almacén inicializado |
+| cantidad | Sí | Es el efecto físico solicitado |
+| fecha_movimiento | Sí | Es fecha efectiva aportada por caller |
+| referencia | Sí si se envía | Parte de la intención; normalizar vacío a NULL |
+| concepto | Sí si se envía | Parte de la intención; normalizar vacío a NULL |
+| precio_compra actual | No | Puede cambiar tras commit; no es entrada estable de retry |
+| costo_unitario persistido | No para retry actual | Resultado derivado de primera ejecución, no recalcular |
+| costo_total persistido | No para retry actual | Resultado derivado de primera ejecución, no recalcular |
+| created_at/updated_at | No | Auditoría técnica, no intención de negocio |
+| updated_by | No | Puede variar entre retry y no define el efecto inicial |
+
+Misma key + misma intención:
+  replay exitoso sin escrituras.
+
+Misma key + intención distinta:
+  conflicto de idempotencia sin escrituras.
+
+Key distinta + saldo existente:
+  conflicto “stock ya inicializado” sin sumar ni actualizar.
+
+================================================================================
+7. BLOQUE E — VERIFICACIÓN DE WRITER DUPLICADO
+================================================================================
+
+Se buscaron referencias a:
+  stock_item_almacen
+  movimiento_inventario
+  stock inicial
+  ajuste
+  entrada
+  salida
+  transferencia
+  create/insert/update/saldo
+
+Resultado:
+
+  NO SE ENCONTRÓ WRITER DE STOCK EXISTENTE EN EL REPOSITORIO REVISADO.
+
+Hallazgos cercanos:
+  - AlmacenNestJs ofrece lecturas GraphQL de stock/movimientos.
+  - AlmacenPython solo realiza CRUD de cabecera almacén.
+  - InventarioPython solo maneja cabecera de inventario.
+  - BancoCajaPython actualiza saldo bancario y crea movimiento bancario; usa
+    otras tablas y no es un writer de stock.
+
+No existe lógica equivalente que deba reutilizarse ni duplicarse.
+
+================================================================================
+8. CONTRATO TÉCNICO RESULTANTE (PARCIAL)
+================================================================================
+
+El contrato no se declara completo porque existen dos decisiones bloqueantes
+pendientes: política de escala/costo_total e ownership de id_origen.
+
+INPUT CONCEPTUAL:
+  id_empresa
+  id_item
+  id_almacen
+  id_origen (UUID obligatorio; owner pendiente)
+  cantidad (>0, escala <=2)
+  fecha_movimiento (DATE efectiva proporcionada por caller)
+  referencia (opcional pendiente)
+  concepto (opcional pendiente)
+
+CONSTANTES:
+  tipo_movimiento = 'INICIAL'
+  modulo_origen = 'STOCK_INICIAL'
+
+VALIDACIONES:
+  - empresa/item/almacén coinciden;
+  - item activo e inventariable;
+  - almacén activo;
+  - cantidad válida;
+  - id_origen UUID no vacío;
+  - fecha DATE válida;
+  - precio_compra compatible con la política de escala que se apruebe.
+
+COSTOS:
+  - NULL → costo_unitario 0.00.
+  - valor presente → fuente item.precio_compra.
+  - conversión 18,6 → 15,2: PENDIENTE DE APROBACIÓN.
+  - costo_total: cantidad × costo_unitario con Decimal; escala final PENDIENTE.
+
+TRANSACCIÓN PROPUESTA (no ejecutada):
+
+  validar datos y contexto
+    ↓
+  buscar movimiento por clave idempotente
+    ↓
+  INSERT movimiento INICIAL
+    ↓
+  INSERT stock inicial
+    ↓
+  COMMIT único
+
+  cualquier fallo → ROLLBACK completo.
+
+RETRY:
+  - misma key + misma intención → replay sin escritura;
+  - misma key + intención distinta → conflicto;
+  - key distinta + stock existente → conflicto de inicialización.
+
+================================================================================
+9. RIESGOS
+================================================================================
+
+  - Aplicar redondeo implícito/por default de framework sin aprobación puede
+    alterar valoración.
+  - Un UUID regenerado en cada retry elimina idempotencia.
+  - Usar fecha del servidor en un retry en vez de la fecha efectiva del request
+    puede crear falsa diferencia de payload.
+  - Recalcular precio_compra actual para validar replay puede generar conflicto
+    falso si el maestro cambió.
+  - Frontend actual usa Number para precio_compra: es un patrón UI existente,
+    pero no es apropiado para cálculo financiero del writer.
+
+================================================================================
+10. DECISIONES CERRADAS Y PENDIENTES
+================================================================================
+
+DECISIONES CERRADAS POR EVIDENCIA / RECOMENDACIÓN TÉCNICA:
+  - fecha_movimiento debe ser fecha efectiva DATE aportada por caller, separada
+    de created_at técnico.
+  - La comparación idempotente incluye fecha efectiva y campos de intención,
+    pero no precios recalculados ni auditoría técnica.
+  - No hay writer de stock duplicado.
+  - No se requieren tablas nuevas para este MVP.
+  - Decimal es el patrón backend apropiado; no float.
+
+DECISIONES PENDIENTES DE APROBACIÓN HUMANA:
+  1. Política exacta si precio_compra o costo_total no caben exactamente en dos
+     decimales: rechazar, o una regla de redondeo explícita.
+  2. Owner que genera y conserva id_origen entre retries.
+  3. Si se requiere alguna restricción de fecha adicional.
+  4. Obligatoriedad de referencia/concepto.
+
+================================================================================
+11. GO / NO-GO Y PRÓXIMA FASE
+================================================================================
+
+RESULTADO:
+  NO-GO PARA IMPLEMENTAR WRITER.
+
+Motivo:
+  Los tres puntos solicitados no están todos cerrados con una decisión aprobada:
+
+  - Escala de costo: existe una recomendación segura de rechazo, pero falta
+    aprobación humana de la regla de costo_total/escala.
+  - id_origen: no existe owner reutilizable en el ERP; debe elegirse y aprobarse
+    quién genera y conserva la clave.
+  - fecha_movimiento: sí tiene una recomendación sólida basada en BancoCaja.
+
+PRÓXIMA FASE RECOMENDADA:
+  FASE 2E — APROBACIÓN EXPLÍCITA DE POLÍTICA DE COSTO E id_origen.
+
+Esa fase debe decidir únicamente:
+  1. rechazo o redondeo explícito para costo_unitario/costo_total;
+  2. caller/owner de id_origen y su conservación en retry.
+
+No se recomienda implementar el writer antes de esas aprobaciones.
+
+================================================================================
+12. CIERRE
+================================================================================
+
+CAMBIOS DE CÓDIGO: NINGUNO
+CAMBIOS BD: NINGUNO
+DOCKER: NO TOCADO
+TABLAS NUEVAS: NINGUNA
+WRITER IMPLEMENTADO: NO

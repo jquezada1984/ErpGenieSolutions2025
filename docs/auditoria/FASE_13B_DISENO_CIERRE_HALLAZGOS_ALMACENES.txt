@@ -1,0 +1,686 @@
+============================================================
+FASE 13B — DISEÑO CIERRE HALLAZGOS ALMACENES
+============================================================
+
+FECHA/HORA: 2026-08-25 21:23:21 -05:00
+RAMA: warehouse_may_V1
+REPOSITORIO: C:/Users/maykf/Documents/erp/ERP_ITEM_WAREHOUSE
+
+MODO: ULTRA SEGURO — SOLO LECTURA / DISEÑO / NO IMPLEMENTACIÓN
+FUENTE BASE: C:\Users\maykf\Documents\auditorias\FASE_13A_AUDITORIA_FINAL_ALMACENES.txt
+CLASIFICACIÓN 13A: B) GO CON OBSERVACIONES
+
+------------------------------------------------------------
+0. SNAPSHOT DE ESTADO
+------------------------------------------------------------
+
+Git status (resumen):
+- Tracked modificados (6):
+  docker-compose.yml
+  frontReact/src/routes/Router.tsx
+  gateway-api/src/app.js
+  gateway-api/src/routes/graphql.js
+  gateway-api/src/utils/requestContext.js
+  package-lock.json
+- Diff --stat HEAD (tracked): 6 files, +245 / -6
+- Untracked relevantes Almacenes:
+  AlmacenNestJs/
+  AlmacenPython/
+  gateway-api/src/routes/almacen.js
+  gateway-api/src/services/almacenPython.js
+  frontReact/src/_apis_/almacen.js
+  frontReact/src/views/items/almacenes/
+  MenuNestJs/migrations/menu-almacenes-producto-servicio.sql
+  docs/auditoria/* (incluye copia FASE_13A y auditorías previas)
+- Total líneas porcelain: ~37
+
+Docker relevantes (Up):
+- erp-almacen-nestjs-service :3017
+- erp-almacen-python-service :3018
+- erp-gateway-api :3002
+- erp-frontend :3000
+(+ resto ERP no modificado en esta fase)
+
+Controles de esta fase:
+- Código modificado: NINGUNO
+- BD modificada: NO
+- INSERT/UPDATE/DELETE/DDL: 0
+- POST/PUT/PATCH/DELETE HTTP de negocio: 0
+- Mutaciones GraphQL: 0
+- Docker rebuild: NO
+- Única escritura autorizada: este TXT
+
+============================================================
+1. RESUMEN
+============================================================
+
+La fase 13A dejó Almacenes en GO CON OBSERVACIONES.
+13B revalidó evidencia de código + SELECT y confirma:
+
+M1 (Nest id_empresa opcional):
+  CONFIRMADO. Riesgo real multiempresa en 4 operaciones
+  si un caller autenticado omite id_empresa.
+  Frontend mitiga; backend NO es FAIL CLOSED.
+  → Hardening mínimo recomendado antes de cierre productivo.
+
+M2 (4 filas invariante rota):
+  CONFIRMADO. TOTAL=7 OK=3 ROTAS=4.
+  En las 4: stock_fisico coincide con reconstrucción desde
+  movimiento_inventario; stock_disponible=0 incorrecto
+  (debería ser fisico - reservado = fisico).
+  Clasificación por fila: A / S1 (corrección matemática directa).
+  Origen temporal: escrituras STOCK_INICIAL (pruebas / writer
+  temprano). Writer actual ya inserta disponible=fisico.
+  → Saneamiento controlado fila a fila recomendable antes
+     de cierre productivo (no bloquea E2E de writers actuales
+     sobre saldos OK).
+
+M3 (CRUD Gateway sin authenticatedWriteContext):
+  CONFIRMADO asimetría vs writers stock.
+  Mitigación Python 10C (X-Company-Id obligatorio + match body
+  + PUT por id_almacen+id_empresa → 404 cross-company) reduce
+  bypass de tenant. Queda deuda de consistencia de identidad
+  (ctxHeaders confía X-User-Id vs me JWT).
+  → Hardening Gateway recomendable (P1), no bypass abierto
+     evidente en tenant si Python se mantiene.
+
+Bajos B1/B2/B3: UX / deuda; no bloquean seguridad.
+D1 Git / D4 docker-compose: versionado pendiente; no tocar ahora.
+
+Clasificación final 13B: D) REQUIERE HARDENING + INTEGRIDAD
+antes de cierre PRODUCTIVO.
+Cierre FUNCIONAL (E2E writers + UI) puede permanecer
+como GO CON OBSERVACIONES documentado.
+
+============================================================
+2. HALLAZGO M1 — NEST MULTIEMPRESA
+============================================================
+
+Operaciones auditadas en AlmacenNestJs:
+
+A) almacenesListado
+B) almacenPorId
+C) movimientosInventarioListado
+D) actualizarEstadoAlmacen
+
+Contraste positivo (NO hallazgo):
+- stockItemsAlmacenListado / stockPorFecha: id_empresa
+  obligatorio en GraphQL Args (type ID, no nullable).
+
+============================================================
+3. EVIDENCIA M1
+============================================================
+
+--- 3.1 almacenesListado ---
+
+Firma GraphQL (almacen.resolver.ts):
+  @Args('id_empresa', { type: () => ID, nullable: true })
+  + filtros opcionales país/provincia/población/ref/nombre/estado
+
+Service (almacen.service.ts):
+  if (f.id_empresa?.trim()) {
+    qb.andWhere('alm.id_empresa = :idEmp', ...)
+  }
+  → Si se omite: SIN filtro de empresa → listado global
+    de almacenes visibles por UUID/estado/otros filtros.
+
+¿Acceso por UUID solamente?: N/A (es listado).
+¿Caller autenticado omitiendo id_empresa obtiene otra empresa?:
+  SÍ (datos de todas las empresas que cumplan filtros).
+
+--- 3.2 almacenPorId ---
+
+Firma:
+  id_almacen: ID!
+  id_empresa: ID nullable
+
+Service:
+  filtro id_empresa solo si trim presente.
+  → Lookup por id_almacen únicamente si se omite empresa.
+
+¿Acceso por UUID solamente?: SÍ.
+¿Cross-company?: SÍ si conoce UUID de otra empresa.
+
+--- 3.3 movimientosInventarioListado ---
+
+Firma (movimiento-inventario.resolver.ts):
+  id_empresa nullable: true
+
+Service:
+  if (f.id_empresa?.trim()) andWhere mov.id_empresa
+  → Sin empresa: movimientos de cualquier empresa
+    (más filtros opcionales item/almacén/tipo/fechas).
+
+¿Cross-company omitiendo empresa?: SÍ.
+
+--- 3.4 actualizarEstadoAlmacen ---
+
+Firma mutation:
+  id_almacen: ID!
+  estado: Boolean!
+  id_empresa: ID nullable
+
+Service:
+  UPDATE WHERE id_almacen = :id
+  andWhere id_empresa solo si informado.
+  → Puede operar únicamente por id_almacen.
+  Cross-company toggle si conoce UUID: SÍ.
+
+--- 3.5 Frontend → Gateway → Nest ---
+
+UI actual SÍ envía id_empresa cuando hay empresa activa:
+- Almacenes.tsx: loadAlmacenes early-return si !idEmpresaActiva;
+  variables id_empresa: idEmpresaActiva
+- EditarAlmacen: query AlmacenPorIdEdicion con id_empresa
+- MovimientosAlmacen: variables con idEmpresaActiva
+- Writers UI (Entrada/Salida/Ajuste/Transferencia/Inicial/
+  CambioMasivo/StockActual/StockPorFecha): pasan id_empresa
+  a almacenesListado
+
+Mitigación: UI / convención de pantallas.
+Protección real backend: AUSENTE en las 4 ops.
+FAIL CLOSED requerido en Nest independientemente del front
+(cualquier cliente GraphQL autenticado puede omitir el arg).
+
+Gateway: reenvía GraphQL a AlmacenNestJs; no impone
+id_empresa obligatorio en esas firmas.
+
+============================================================
+4. PROPUESTA MÍNIMA M1
+============================================================
+
+SIN IMPLEMENTAR.
+
+Evaluación alternativas:
+A) Hacer id_empresa obligatorio en Args GraphQL
+B) Obtener empresa exclusivamente del contexto auth
+C) Ambas capas
+
+Recomendación coherente con arquitectura actual ERP
+(patrón similar a stockItemsAlmacenListado / stockPorFecha
+y a writers Python con X-Company-Id explícito):
+
+→ Preferir A como mínimo (simetría interna Nest),
+  opcionalmente reforzar validación en service
+  (si !id_empresa → error / [] / false FAIL CLOSED).
+
+B sola (solo auth context) requeriría redesign de cómo
+Nest recibe identidad (hoy Args desde Gateway/Front),
+más invasivo.
+
+C ideal a medio plazo; fuera de “mínimo” 13C.
+
+Por operación (cambio conceptual):
+
+| Op | Archivo probable | Función | Cambio | Regresión | FE/GW | Rebuild | BD |
+|----|------------------|---------|--------|-----------|------|---------|-----|
+| Listado | almacen.resolver.ts + service | almacenesListado | Args id_empresa no nullable; service exige trim o [] | Front ya envía; callers externos GraphQL rompen si omitían | FE: vars ya OK; GW: tipado schema si aplica | Nest rebuild | NO |
+| PorId | idem | almacenPorId | exigir id_empresa; WHERE ambos | EditarAlmacen ya envía | idem | Nest | NO |
+| Movs | movimiento-inventario.resolver.ts + service | movimientosInventarioListado | exigir id_empresa | MovimientosAlmacen ya envía | idem | Nest | NO |
+| Estado | almacen.resolver.ts + service | actualizarEstadoAlmacen | exigir id_empresa en WHERE | Almacenes.tsx mutation ya declara $id_empresa | Verificar siempre pasa activa | Nest | NO |
+
+Riesgo regresión: BAJO-MEDIO (solo clientes que omitían arg).
+BD: NO.
+
+============================================================
+5. HALLAZGO M2 — INVARIANTES HISTÓRICAS
+============================================================
+
+Regla: stock_disponible = stock_fisico - stock_reservado
+
+Revalidación SELECT 2026-08-25:
+
+TOTAL: 7
+OK:    3
+ROTAS: 4
+
+Writer actual (stock_inicial_repository.py INSERT):
+  stock_disponible := :stock_fisico
+  → Bug histórico NO se reproduce en writer vigente.
+
+============================================================
+6. ANÁLISIS INDIVIDUAL DE LAS 4 FILAS
+============================================================
+
+Convención clasificación física:
+A) stock_fisico correcto / disponible incorrecto
+B) stock_fisico también incorrecto
+C) evidencia insuficiente
+
+Reconstrucción: SUM tipos POS - NEG con estado=true
+POS: INICIAL, ENTRADA, AJUSTE_POSITIVO, TRF_ENTRADA
+NEG: SALIDA, AJUSTE_NEGATIVO, TRF_SALIDA
+
+--- FILA 1 ---
+id_stock_producto_almacen: b6cc8d8b-d980-4eea-bbfd-f784736414e3
+id_empresa: d2600c4c-2ce7-4d01-b6e8-82f028e69d27
+id_item: 07b90b65-5ebb-431e-a7a9-cab287aecdc3
+producto_ref: RATON01
+id_almacen: e0241a68-c619-4965-9b89-2402753a7678
+almacen_ref: UI-ALM-001
+stock_fisico: 1.00
+stock_reservado: 0.00
+stock_disponible: 0.00  ← esperado 1.00
+stock_virtual: 0.00
+created_at / updated_at: 2026-08-17 02:09:17
+created_by / updated_by: 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+Movimientos: 1× INICIAL cantidad 1, ref PRUEBA-STOCK-INICIAL-3C,
+  modulo STOCK_INICIAL, created_at idéntico al snapshot
+RECON_FISICO: 1.000 = SNAP
+Clasificación: A
+Saneamiento: S1
+
+--- FILA 2 ---
+id_stock: ee4f751f-dbdb-43c0-9e48-6c12ec00e7e9
+id_empresa: 0459fe04-163b-4b89-b98a-0f1179b7224c
+id_item: 76fb956b-a15e-4173-957e-21791929cbfe
+producto_ref: BorregoLoja01
+id_almacen: dd04ca48-b2e6-4ac3-a5e3-04bcc7d6038d
+almacen_ref: ALM-001
+fisico 1 / reservado 0 / disponible 0 / virtual 0
+created/updated: 2026-08-17 03:39:30
+created_by/updated_by: 2c5fcc4f-...
+Mov: 1× INICIAL 1, ref NULL, STOCK_INICIAL
+RECON=1 = SNAP → A / S1
+
+--- FILA 3 ---
+id_stock: db1ac664-6f49-43bd-bbde-00f07d95cfc9
+id_empresa: 0459fe04-163b-4b89-b98a-0f1179b7224c
+id_item: f12775ee-3667-40f1-8673-280eb7be6cae
+producto_ref: BOR01
+id_almacen: 0c924077-1e60-42a5-a714-3576e3e85871
+almacen_ref: ALM-002
+fisico 1 / reservado 0 / disponible 0
+created/updated: 2026-08-17 03:57:50
+Mov: 1× INICIAL 1, ref PRUEBA-UI-STOCK-INICIAL-5D
+RECON=1 = SNAP → A / S1
+
+--- FILA 4 ---
+id_stock: 3e0bc2b3-c9e3-45b7-86e4-612f9ce0211b
+id_empresa: 0459fe04-163b-4b89-b98a-0f1179b7224c
+id_item: f12775ee-3667-40f1-8673-280eb7be6cae
+producto_ref: BOR01
+id_almacen: dd04ca48-b2e6-4ac3-a5e3-04bcc7d6038d
+almacen_ref: ALM-001
+fisico 3 / reservado 0 / disponible 0
+created/updated: 2026-08-25 00:48:52
+Mov: 1× INICIAL 3, ref NULL, STOCK_INICIAL
+RECON=3 = SNAP → A / S1
+
+Origen temporal (evidencia, sin inventar):
+- Las 4 nacen con created_at = movimiento INICIAL
+  (mismo timestamp) → inconsistencia en el INSERT inicial,
+  no drift posterior por otros movimientos.
+- Referencias de prueba en 2/4 filas.
+- Writer actual ya escribe disponible=fisico → filas
+  posteriores “limpias” (3 OK del total 7) coherentes.
+- No hay historial de reservas; no se reconstruye reservado.
+
+============================================================
+7. PROPUESTA SANEAMIENTO M2
+============================================================
+
+SIN EJECUTAR.
+
+Para las 4 filas (todas A/S1):
+  UPDATE puntual stock_disponible = stock_fisico - stock_reservado
+  SIN alterar stock_fisico / reservado / virtual / movimientos.
+
+NO UPDATE masivo genérico sin WHERE por PK.
+NO tocar filas OK.
+
+Clasificación:
+S1) las 4 — corrección matemática directa segura
+S2) ninguna
+S3) ninguna (todas tienen evidencia suficiente)
+
+Movimiento de auditoría (paso 11):
+Modelo A recomendado:
+  Corrección de snapshot inconsistente SIN cambiar físico
+  = mantenimiento técnico, NO movimiento_inventario de negocio.
+  Documentar en auditoría / bitácora operativa (este TXT +
+  post-auditoría 13C.4), no contaminar kardex físico.
+
+Modelo B solo si algún día se corrige stock_fisico
+(entonces sí trazabilidad funcional). No aplica aquí.
+
+Impacto Stock por fecha (paso 12):
+CONFIRMADO en código stockPorFecha:
+  reconstruye stock_fisico desde movimiento_inventario
+  (SUM CASE tipos); no lee stock_disponible ni snapshot.
+→ Saneamiento de disponible SIN tocar físico/movimientos
+  NO afecta Stock por fecha.
+
+Impacto Stock actual / writers que validan disponible:
+  SÍ mejora (hoy disponible=0 bloquea salidas/ajustes
+  sobre esas 4 claves aunque físico>0).
+
+============================================================
+8. HALLAZGO M3 — AUTH CRUD
+============================================================
+
+CRUD almacén Gateway vs writers stock: asimetría de helper.
+
+============================================================
+9. EVIDENCIA M3
+============================================================
+
+Archivo: gateway-api/src/services/almacenPython.js
+
+CRUD:
+- crearAlmacen / actualizarAlmacen
+  → almacenFwdHeaders(req, payload) → ctxHeaders(req, body)
+  Headers: X-Company-Id, X-User-Id, X-Scope-Acceso
+  Empresa:
+    GLOBAL: body.id_empresa || header || usuario.id_empresa
+    EMPRESA: fuerza usuario.id_empresa
+    sin usuario scope: header || body
+  Usuario: X-User-Id del request entrante (cliente)
+
+Writers stock:
+- crearStockInicial, crearEntradaStock, crearSalidaStock,
+  crearAjusteStock, crearTransferenciaStock,
+  crearCambioMasivoStock
+  → authenticatedWriteContext(req, payload)
+  Identidad: Authorization Bearer → InicioNestJs `me`
+  Ignora X-User-Id entrante como autoridad
+  FAIL CLOSED 401/403/500 tipados
+  Empresa según scope me + body (mismo patrón GLOBAL/EMPRESA
+  pero anclado a JWT/me)
+
+Python mitigación 10C (almacen_service.py + routes):
+POST crear:
+  X-Company-Id obligatorio (ValidationError)
+  body.id_empresa si viene debe coincidir header
+  body.id_empresa forzado = header
+PUT actualizar:
+  lookup find_almacen_by_id_and_empresa(id, header)
+  cross-company → LookupError → 404 "Almacén no encontrado"
+  body.id_empresa match header
+
+Conclusión bypass:
+  Con Python 10C vigente, la asimetría Gateway es
+  principalmente DEUDA DE CONSISTENCIA de identidad
+  (quién autentica usuario), no vía abierta trivial de
+  escribir almacén en otra empresa vía body solo.
+  Riesgo residual: ctxHeaders confía X-User-Id cliente
+  + getUsuarioScope(id); authenticatedWriteContext no.
+  Si Authorization y X-User-Id divergen, CRUD es más débil
+  que writers.
+
+============================================================
+10. PROPUESTA MÍNIMA M3
+============================================================
+
+SIN IMPLEMENTAR. NO tocar requestContext.js en 13B/13C
+salvo necesidad demostrada (helper ya existe).
+
+Migrar crearAlmacen + actualizarAlmacen a
+authenticatedWriteContext en:
+  gateway-api/src/services/almacenPython.js
+funciones: crearAlmacen, actualizarAlmacen
+
+Compatibilidad esperada:
+- EMPRESA: X-Company-Id = me.id_empresa (igual writers)
+- GLOBAL: body.id_empresa / selección empresa (igual writers)
+- body.id_empresa + Python match header: se mantiene
+- Frontend Nuevo/Editar ya envían id_empresa
+
+Riesgo: BAJO si se copia patrón exacto de crearStockInicial.
+Pruebas necesarias:
+- GLOBAL crea/edita empresa seleccionada
+- EMPRESA no puede cross-company
+- 401 sin Bearer
+- 404 PUT cross-company
+- 409 ref duplicada
+
+Rebuild: gateway (restart container), NO BD.
+
+Prioridad: P1 (recomendable merge/productivo), no P0
+mientras Python 10C se preserve.
+
+============================================================
+11. HALLAZGOS BAJOS
+============================================================
+
+B1. Writers Entrada/Salida/Ajuste/Transferencia/Inicial
+    sin ítem de menú directo.
+Menú SQL cubre: listado, nuevo, movimientos, cambio-stock,
+stock-fecha, stock-actual.
+Acceso writers vía Stock actual = UX deliberada v1.
+Clasificar: DOCUMENTAR (no CORREGIR obligatorio).
+
+B2. 409 genérico en algunas pantallas.
+Evidencia: pantallas leen err.data.error / detail / message
+antes del fallback (NuevoAlmacen, CambioMasivo, etc.).
+Backend conserva detalle; mejora restante es UX.
+Clasificar: DOCUMENTAR / P2 UX.
+
+B3. Stock actual sin botones a Cambio masivo / Stock por fecha.
+Menú lateral ya incluye ambas rutas.
+Clasificar: DOCUMENTAR (nice-to-have UX, no seguridad).
+
+============================================================
+12. DEUDA GIT
+============================================================
+
+SIN modificar.
+
+Untracked núcleo Almacenes:
+  AlmacenPython/, AlmacenNestJs/, routes/services gateway
+  almacen, front _apis_/almacen.js + views/almacenes/,
+  menu SQL, docs/auditoria/*
+
+Modified tracked (mezcla posibles otros módulos + almacén):
+  docker-compose.yml (servicios almacén + posiblemente más)
+  Router.tsx (rutas almacenes)
+  gateway app.js / graphql.js / requestContext.js
+  package-lock.json
+
+Estrategia commit futura recomendada (menos riesgosa):
+VARIOS commits por capa, no un monstruo único:
+
+1) Infra: docker-compose (+ lock solo si inseparable)
+2) Backend Python AlmacenPython + migraciones SQL
+3) Backend Nest AlmacenNestJs
+4) Gateway: requestContext (si compartido) + almacen.js
+   + almacénPython + app/graphql wiring
+5) Frontend: api + views + Router
+6) Menú SQL + docs/auditoria (opcional separado)
+
+NO mezclar Banco/Cajas ni Contabilidad en el mismo commit.
+NO commit en 13B.
+D4 docker-compose: revisar diff humano antes de commit
+para no arrastrar cambios ajenos.
+
+============================================================
+13. MATRIZ DE DECISIÓN
+============================================================
+
+Hallazgo | Severidad | Confirmado | Bloquea cierre productivo | Corregir ahora | Archivos afectados | BD | Riesgo corrección
+---------|-----------|------------|---------------------------|----------------|--------------------|----|------------------
+M1 Nest tenant | MEDIA-ALTA | SÍ | SÍ (seguridad) | SÍ (hardening) | AlmacenNestJs resolver/service; posiblemente tipos FE | NO | Bajo-medio
+M2 invariantes | MEDIA | SÍ | Condicional (integridad saldos afectados) | SÍ controlado S1 | BD stock_item_almacen (4 PK) | SÍ UPDATE puntual | Bajo si fila a fila
+M3 auth CRUD | MEDIA-BAJA | SÍ | NO (mitigado Python) | Recomendable | gateway almacenPython.js | NO | Bajo
+B1 menú writers | BAJA | SÍ | NO | NO (documentar) | menú/UX | NO | N/A
+B2 mensajes 409 | BAJA | SÍ | NO | NO | front views | NO | N/A
+B3 navegación Stock actual | BAJA | SÍ | NO | NO | StockActual UI | NO | N/A
+D1 Git versionado | MEDIA proceso | SÍ | SÍ para cierre formal | Tras 13C | varios | NO | Proceso
+D2 saneamiento histórico | =M2 | SÍ | Ver M2 | Ver M2 | BD | SÍ | Bajo S1
+D3 Kardex fuera alcance | INFO | SÍ | NO | NO | — | NO | N/A
+D4 docker-compose | BAJA-MEDIA | SÍ | NO funcional | Revisar en commit | docker-compose.yml | NO | Medio si hay ruido ajeno
+
+============================================================
+14. PRIORIZACIÓN P0/P1/P2/P3
+============================================================
+
+P0 — obligatorio antes de producción
+  M1 Hardening Nest id_empresa FAIL CLOSED en las 4 ops.
+  Justificación: sin esto, seguridad multiempresa NO es
+  aceptable frente a cliente GraphQL autenticado no-UI.
+
+P1 — recomendable antes de merge / productivo
+  M2 Saneamiento S1 de las 4 filas (UPDATE disponible).
+  M3 Migrar CRUD a authenticatedWriteContext.
+  D1 Plan de commits por capa (ejecutar post-hardening).
+  Justificación: integridad conocida + simetría auth +
+  trazabilidad de código.
+
+P2 — puede quedar deuda técnica
+  B1 documentar UX writers desde Stock actual.
+  B2 pulir mensajes 409.
+  B3 atajos navegación desde Stock actual.
+  Justificación: no seguridad; no rompen E2E.
+
+P3 — fuera de alcance Almacenes
+  D3 Kardex (FIFO/LIFO/promedio/lotes/series/valorización/
+     asientos/recepción compras/reservas futuras).
+  Justificación: explícitamente fuera de v1.
+
+============================================================
+15. SUBFASES PROPUESTAS
+============================================================
+
+SIN IMPLEMENTAR. Solo las necesarias:
+
+13C.1 — Hardening tenant Nest (P0)
+  Hacer id_empresa obligatorio / FAIL CLOSED en:
+  almacenesListado, almacenPorId,
+  movimientosInventarioListado, actualizarEstadoAlmacen.
+  Rebuild Nest. Smoke lectura UI.
+
+13C.2 — Hardening CRUD Gateway (P1)
+  crearAlmacen/actualizarAlmacen → authenticatedWriteContext.
+  Restart gateway. Pruebas GLOBAL/EMPRESA/401/404/409.
+
+13C.3 — Saneamiento controlado invariantes (P1)
+  4 UPDATE por PK: disponible = fisico - reservado.
+  SELECT revalidación TOTAL/OK/ROTAS.
+  Sin movimientos de negocio.
+
+13C.4 — Auditoría post-corrección
+  Releer Nest firmas, counts stock, smoke E2E mínimo.
+  TXT de cierre parcial.
+
+13D — Commit/versionado (tras 13C.* autorizados)
+  Commits por capa según §12. Sin push salvo pedido.
+
+NO asumir ejecución automática de todas; autorizar una a una.
+
+============================================================
+16. CRITERIO CIERRE FUNCIONAL
+============================================================
+
+Declarar ALMACENES v1 — CIERRE FUNCIONAL cuando:
+
+1) E2E writers OK: Inicial, Entrada, Salida, Ajuste ±,
+   Transferencia, Cambio masivo (Gateway+UI documentados).
+2) Lecturas OK: listado, detalle, stock actual, movimientos,
+   stock por fecha.
+3) Rutas UI sin huérfanos graves (menú cubre principales;
+   writers vía Stock actual documentado).
+4) Auditorías 13A/13B guardadas.
+5) Observaciones M1/M2/M3 conocidas y aceptadas
+   explícitamente como no bloqueantes del E2E.
+
+Estado actual respecto a esto: ALCANZABLE YA
+como “GO CON OBSERVACIONES” (13A), sin ejecutar 13C.
+
+============================================================
+17. CRITERIO CIERRE PRODUCTIVO
+============================================================
+
+Declarar ALMACENES v1 — CIERRE PRODUCTIVO cuando:
+
+1) Cumple cierre funcional, Y
+2) M1 corregido (Nest FAIL CLOSED multiempresa), Y
+3) M2 saneado o formalmente aceptado por negocio
+   con ROTAS=0 preferible, Y
+4) M3 migrado o excepción de riesgo firmada
+   (Python 10C vigente), Y
+5) Cambios versionados (commits por capa; sin secretos), Y
+6) docker-compose revisado sin ruido ajeno, Y
+7) Auditoría post-corrección (13C.4) archivada.
+
+Hasta entonces: NO declarar cerrado productivo.
+
+============================================================
+18. RIESGOS DE CORRECCIÓN
+============================================================
+
+M1:
+  - Clientes GraphQL externos que omitían id_empresa fallarán
+    (deseado). UI propia: bajo riesgo.
+  - Rebuild Nest obligatorio.
+
+M2:
+  - Bajo si UPDATE por PK y solo disponible.
+  - No tocar físico ni inventar movimientos.
+  - Verificar post-SELECT invariante global.
+
+M3:
+  - Regresión GLOBAL si se rompe selección empresa:
+    mitigar copiando patrón writers existentes.
+  - No modificar requestContext.js salvo bug demostrado.
+
+Regresiones no esperadas:
+  Stock por fecha (si solo se toca disponible).
+  Writers stock (si no se tocan).
+
+============================================================
+19. RECOMENDACIONES NO EJECUTADAS
+============================================================
+
+- Ningún cambio de código Nest/Gateway/Front.
+- Ningún UPDATE de las 4 filas.
+- Ningún commit/push.
+- Ningún menú nuevo para writers.
+- Ningún Kardex / contabilidad / reservas.
+- No iniciar 13C sin autorización explícita.
+
+============================================================
+20. CLASIFICACIÓN FINAL
+============================================================
+
+D)
+REQUIERE HARDENING + INTEGRIDAD
+antes de cierre productivo.
+
+Detalle:
+- Hardening: M1 (P0) y M3 (P1).
+- Integridad: M2 S1 (P1).
+- Cierre funcional E2E: puede mantenerse GO CON OBSERVACIONES.
+- Esperar autorización explícita para 13C.1 / 13C.2 / 13C.3.
+
+============================================================
+CONTROLES FINALES 13B
+============================================================
+
+AUDITORÍA SOLO LECTURA: SÍ
+CÓDIGO MODIFICADO: NINGUNO
+BD MODIFICADA: NO
+INSERT: 0
+UPDATE: 0
+DELETE: 0
+DDL: 0
+POST NEGOCIO: 0
+PUT/PATCH/DELETE HTTP: 0
+MUTACIONES GRAPHQL: 0
+DOCKER REBUILD: NO
+DOCKER: NO TOCADO
+
+ÚNICO ARCHIVO CREADO:
+C:\Users\maykf\Documents\auditorias\FASE_13B_DISENO_CIERRE_HALLAZGOS_ALMACENES.txt
+
+============================================================
+FIN FASE 13B — DETENERSE
+============================================================
+NO iniciar 13C.
+NO modificar código.
+NO corregir filas.
+NO ejecutar UPDATE.
+NO cambiar GraphQL.
+NO cambiar Gateway.
+NO hacer commit.
+NO hacer push.
+Esperar autorización explícita.

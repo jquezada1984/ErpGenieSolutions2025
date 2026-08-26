@@ -1,0 +1,347 @@
+================================================================================
+AUDITORÍA TÉCNICA — EDITAR ALMACÉN (patrón Editar Inventario)
+Fecha: 2026-08-09
+Modo: SOLO LECTURA (excepto este archivo TXT)
+NO se implementó EditarAlmacen. NO se crearon queries/endpoints. NO se modificó código.
+================================================================================
+
+--------------------------------------------------------------------------------
+0. PRERREQUISITO ALMACENES (CONFIRMADO)
+--------------------------------------------------------------------------------
+
+- CREATE: NuevoAlmacen → Gateway POST /api/almacen → AlmacenPython
+- LISTADO: Almacenes.tsx → almacenesListado → Gateway → AlmacenNestJs
+- TOGGLE: actualizarEstadoAlmacen → Gateway → AlmacenNestJs (solo estado)
+- Botón Editar: habilitado si estado=true, deshabilitado si false; SIN navegación
+
+Object AlmacenDetalle YA existe en scaffold (campos de cabecera + auditoría);
+aún NO hay query almacenPorId ni PUT.
+
+--------------------------------------------------------------------------------
+1–2. EDITAR INVENTARIO — FRONTEND (CONFIRMADO)
+--------------------------------------------------------------------------------
+
+Archivo:
+  frontReact/src/views/items/inventarios/EditarInventario.tsx
+
+Ruta Router:
+  items/inventarios/editar/:id
+  URL: /items/inventarios/editar/{uuid}
+
+ID:
+  useParams<{ id }>() → idInventarioParam
+
+Navegación desde listado (Inventarios.tsx):
+  navigate(`/items/inventarios/editar/${encodeURIComponent(idInventario)}`)
+  Botón pencil: disabled={!original.estado}; color info si activo / secondary si no
+  onClick solo si original.estado
+
+Carga detalle:
+  useQuery GraphQL inventarioPorId(id_inventario, id_empresa?)
+  fetchPolicy: cache-and-network
+  skip si no hay id en URL
+  Hydratación única por id (hydratedIdRef): rellena estados locales del form
+
+API escritura:
+  actualizarInventario(id, body) desde _apis_/inventario.js
+  → PUT /api/inventario/:id vía Gateway → InventarioPython
+
+Validación UI:
+  id_empresa, inventario_ref, etiqueta, id_almacen obligatorios
+  Guardar deshabilitado si: loading || !hydrated || !row || estado===false || !hasChanges
+
+Cancelar:
+  navigate('/items/inventarios') — NO pregunta dirty form en código revisado
+
+Éxito:
+  Alert "Inventario actualizado correctamente." (queda en pantalla; no redirige automático)
+
+No encontrado / inactivo:
+  formDisabled si inventarioRow.estado === false
+  Alert informativo si inactivo (bloquea guardar)
+  Si inventarioPorId null: formulario no hidrata / disabled
+
+SelectEmpresa:
+  Visible solo scope GLOBAL (puede cambiar id_empresa en el form)
+  EMPRESA: usa JWT; no muestra selector
+
+--------------------------------------------------------------------------------
+3. DETALLE inventarioPorId (CONFIRMADO)
+--------------------------------------------------------------------------------
+
+InventarioNestJs:
+  resolver inventarioPorId(id_inventario: ID!, id_empresa?: ID)
+  service: QueryBuilder + leftJoin almacen → nombre como `almacen`
+  Filtro opcional: AND id_empresa = :idEmp
+  Devuelve null si no hay fila
+
+Gateway graphql.js:
+  inventariosListado | inventarioPorId | actualizarEstadoInventario
+  → InventarioNestJs
+
+PROPUESTA FUTURA almacenPorId (NO implementar):
+  Args: id_almacen: ID!, id_empresa?: ID
+  Object: AlmacenDetalle (ya scaffold) + opcional pais/provincia String vía JOIN
+  Para formulario: IDs (id_pais, id_provincia) bastan; SelectProvincia filtra por id_pais
+  Nombres pais/provincia opcionales (readonly display) — Inventario usa `almacen` String
+
+--------------------------------------------------------------------------------
+4. UPDATE INVENTARIO (CONFIRMADO)
+--------------------------------------------------------------------------------
+
+Capa escritura: InventarioPython (REST), NO Nest.
+
+Ruta Python:
+  PUT /api/inventario/<uuid:id_inventario>
+
+Gateway:
+  PUT /api/inventario/:id → inventarioPython.actualizarInventario
+
+Payload (InventarioUpdateSchema):
+  id_empresa (req), inventario_ref, etiqueta, id_almacen,
+  estado_inventario?, fechas?, observacion?
+
+Duplicados:
+  find_otro_inventario_misma_ref(id_empresa, inventario_ref, excluir_id_inventario)
+  → ValueError inventario_ref_duplicado → HTTP 409
+
+Auditoría:
+  updated_by = X-User-Id (UUID validado)
+  updated_at = now UTC
+
+Estado booleano `estado` (activo/inactivo):
+  NO se edita en este PUT — se cambia por mutation Nest actualizarEstadoInventario
+  (mismo split que Almacenes ya tiene)
+
+--------------------------------------------------------------------------------
+5. BOTÓN EDITAR — COMPARACIÓN
+--------------------------------------------------------------------------------
+
+Inventarios: navega a editar/:id si activo
+Almacenes: disabled={!estado}; onClick vacío; sin ruta
+
+PROPUESTA futura Almacenes (NO implementar):
+  navigate(`/items/almacenes/editar/${encodeURIComponent(id)}`)
+  Convención Router inventarios: editar/:id (NO :id/editar)
+
+--------------------------------------------------------------------------------
+6–7. MULTIEMPRESA Y EMPRESA EN EDICIÓN (CONFIRMADO)
+--------------------------------------------------------------------------------
+
+Lectura:
+  Front envía id_empresa (JWT EMPRESA; GLOBAL puede ser null hasta hidratar)
+  Nest filtra por id_empresa si viene
+
+Escritura:
+  Body incluye id_empresa; Python NO revalida que el registro original
+  pertenezca a la empresa del JWT (carga por id solo).
+  GLOBAL puede cambiar id_empresa en SelectEmpresa y persistir el nuevo valor.
+
+CONCLUSIÓN Inventario:
+  A/D: GLOBAL SÍ puede cambiar empresa en el formulario de edición.
+  EMPRESA: selector oculto; fuerza JWT.
+
+RECOMENDACIÓN Almacenes (solo propuesta):
+  Replicar Inventario: GLOBAL puede cambiar empresa; EMPRESA fija JWT.
+  Alternativa más estricta (no cambiar empresa en edición): decisión de producto.
+  Preferencia de coherencia: igual que Inventario.
+
+--------------------------------------------------------------------------------
+8. PAÍS / PROVINCIA EN EDICIÓN (CONFIRMADO PATRÓN)
+--------------------------------------------------------------------------------
+
+NuevoAlmacen / SeccionItemInventario / SeccionCuentaGeneral:
+  CountrySelect + SelectProvincia(id_pais)
+  Al cambiar país → limpia id_provincia
+  Queries generales: paises, provinciasByPais (InicioNestJs)
+
+Editar: hidratar id_pais e id_provincia desde detalle;
+  SelectProvincia con id_pais cargado vuelve a pedir provinciasByPais.
+
+NO hace falta devolver nombres en detalle para editar (sí IDs).
+
+--------------------------------------------------------------------------------
+9. CAMPOS EDITABLES ALMACÉN (PROPUESTA)
+--------------------------------------------------------------------------------
+
+Editables (alineado a CREATE):
+  almacen_ref, nombre, descripcion, direccion, codigo_postal,
+  poblacion, id_pais, id_provincia, telefono, fax
+  id_empresa (según regla GLOBAL)
+
+NO en formulario de edición de cabecera (ya hay toggle listado):
+  estado
+
+Solo lectura / sistema:
+  id_almacen, created_*, updated_* (updated_by/at set en backend)
+
+--------------------------------------------------------------------------------
+10. DUPLICADOS almacen_ref (PROPUESTA)
+--------------------------------------------------------------------------------
+
+Patrón Inventario: find_otro_*_misma_ref(empresa, ref, excluir_id)
+
+Futuro AlmacenPython:
+  WHERE id_empresa=? AND almacen_ref=? AND id_almacen <> :actual
+  Constraint BD: uq_almacen_empresa_ref → 409 IntegrityError fallback
+
+--------------------------------------------------------------------------------
+11–12. LECTURA vs ESCRITURA FUTURA — CONCLUSIÓN
+--------------------------------------------------------------------------------
+
+CONFIRMADO Inventario:
+  DETALLE / LISTADO / TOGGLE estado → Nest GraphQL
+  CREATE / UPDATE cabecera → Python REST
+
+CONFIRMADO Almacenes hoy:
+  LISTADO / TOGGLE → Nest
+  CREATE → Python
+
+CONCLUSIÓN UPDATE cabecera almacén:
+  Implementar en AlmacenPython PUT /api/almacen/<id>
+  (mismo split CREATE+UPDATE Python; estado sigue Nest)
+
+almacenPorId → AlmacenNestJs (como inventarioPorId)
+
+--------------------------------------------------------------------------------
+13. GATEWAY FUTURO (PROPUESTA — NO EJECUTAR)
+--------------------------------------------------------------------------------
+
+GraphQL (junto a almacenesListado / actualizarEstadoAlmacen, ANTES de includes('almacenes')):
+  + almacenPorId → AlmacenNestJs
+
+REST (almacen.js ya tiene POST):
+  + PUT /api/almacen/:id → AlmacenPython
+
+Client front: ampliar _apis_/almacen.js con actualizarAlmacen (patrón inventario.js)
+
+--------------------------------------------------------------------------------
+14. FRONTEND FUTURO (PROPUESTA — NO CREAR)
+--------------------------------------------------------------------------------
+
+Archivo: frontReact/src/views/items/almacenes/EditarAlmacen.tsx
+Ruta: items/almacenes/editar/:id  (igual convención inventarios)
+Lazy + Router.tsx (fase posterior)
+Reutilizar UI de NuevoAlmacen (campos + País/Provincia + multiempresa)
+Carga: almacenPorId; Guardar: PUT; Cancelar: /items/almacenes
+
+--------------------------------------------------------------------------------
+15. INACTIVO (CONFIRMADO + PROPUESTA)
+--------------------------------------------------------------------------------
+
+Listado: Editar disabled si estado=false — MANTENER
+
+Editar Inventario si URL manual con inactivo:
+  formDisabled=true; no guarda; muestra alerta
+
+Propuesta Almacenes: mismo bloqueo + Alert; opcional redirect a listado
+  (Inventario NO redirige; solo deshabilita)
+
+--------------------------------------------------------------------------------
+16. NO TOCAR AL IMPLEMENTAR EDITAR
+--------------------------------------------------------------------------------
+
+- NuevoAlmacen.tsx (salvo no romper)
+- almacenesListado service (salvo campos detalle compartidos con cuidado)
+- actualizarEstadoAlmacen (separado)
+- POST CREATE AlmacenPython
+- query almacenes InicioNestJs
+- Inventarios / Productos / Servicios
+- docker-compose / puertos / BD estructural
+- CountrySelect / SelectProvincia código fuente
+
+--------------------------------------------------------------------------------
+17. ORDEN DE IMPLEMENTACIÓN RECOMENDADO
+--------------------------------------------------------------------------------
+
+Fase 1: almacenPorId en AlmacenNestJs (+ ampliar detalle si faltan campos)
+Fase 2: Gateway GraphQL enrutar almacenPorId (misma prioridad anti-colisión)
+Fase 3: AlmacenPython PUT + schema Update + dup excluyendo id
+Fase 4: Gateway PUT /api/almacen/:id + _apis_/almacen.js
+Fase 5: EditarAlmacen.tsx (carga + UI; Guardar cableado)
+Fase 6: Router + navegación botón Editar en Almacenes.tsx
+Fase 7: Bloqueo inactivo + mensajes (como Inventario)
+
+Probar cada fase aislada.
+
+--------------------------------------------------------------------------------
+18. RIESGOS
+--------------------------------------------------------------------------------
+
+1. Editar almacén otra empresa (lectura sin id_empresa / escritura solo por id)
+2. Duplicar almacen_ref al editar (olvidar excluir id actual)
+3. GLOBAL cambia id_empresa accidentalmente
+4. Provincia de otro país (limpiar al cambiar país)
+5. URL manual de inactivo permite guardar si no se bloquea
+6. Romper CREATE / listado / toggle
+7. Colisión GraphQL almacenes vs almacenPorId (includes('almacenes') captura
+   "almacenPorId"? → "almacenPorId" NO contiene "almacenes"; OK.
+   Pero "almacenesListado" SÍ; ya mitigado. Revisar cualquier nombre nuevo.)
+8. '' como UUID en id_pais/id_provincia
+9. Sobrescribir auditoría / nullificar campos no enviados
+10. PUT parcial vs full replace (Inventario envía cabecera completa)
+
+--------------------------------------------------------------------------------
+19. RESPUESTAS DIRECTAS
+--------------------------------------------------------------------------------
+
+1. Ruta: /items/inventarios/editar/:id
+2. ID: useParams().id
+3. Carga: GraphQL inventarioPorId vía Gateway → InventarioNestJs
+4. UPDATE: InventarioPython servicio_actualizar_inventario
+5. Actualización: REST PUT (no GraphQL mutation de cabecera)
+6. Multiempresa: filtro id_empresa en lectura; body id_empresa en escritura;
+   EMPRESA=JWT; GLOBAL=SelectEmpresa
+7. Empresa: GLOBAL puede cambiarla; EMPRESA fija
+8. Duplicados: find_otro_* excluyendo id actual → 409
+9. Guardar: PUT + Alert éxito; sin redirect forzado
+10. Cancelar: navigate listado
+11. almacenPorId: detalle por id (+ id_empresa opcional); AlmacenDetalle + IDs ubicación
+12. UPDATE almacén: AlmacenPython PUT (como Inventario)
+13. Ruta futura: /items/almacenes/editar/:id
+14. Inactivos: botón listado disabled; form edit bloqueado si se abre URL
+15. Archivos futuros: Nest (porId), Gateway gql+REST, Python PUT, _apis_, EditarAlmacen, Router, Almacenes navigate
+16. NO tocar: Inicio almacenes, Inventarios, CREATE existente, Docker/BD, menú
+17. Orden: porId Nest → Gateway GQL → PUT Python → Gateway REST → UI → navigate
+
+--------------------------------------------------------------------------------
+20. ARCHIVOS REVISADOS
+--------------------------------------------------------------------------------
+
+FRONTEND INVENTARIOS:
+- inventarios/EditarInventario.tsx
+- inventarios/Inventarios.tsx
+- inventarios/NuevoInventario.tsx
+- routes/Router.tsx
+- _apis_/inventario.js (vía grep actualizarInventario)
+
+INVENTARIONESTJS:
+- inventario.resolver.ts
+- inventario.service.ts (inventarioPorId, actualizarEstadoInventario)
+
+INVENTARIOPYTHON:
+- api/inventario_routes.py
+- services/inventario_service.py
+- schemas/inventario_schema.py
+- repositories/inventario_repository.py (find_otro_inventario_misma_ref)
+
+GATEWAY:
+- routes/graphql.js
+- routes/inventario.js
+- services/inventarioPython.js
+
+REFERENCIAS PAÍS/PROVINCIA:
+- banco-cajas/SeccionCuentaGeneral.tsx (SelectProvincia)
+- almacenes/NuevoAlmacen.tsx (patrón create)
+- terceros Editar* (hidratan id_pais)
+
+ALMACENES ACTUALES (solo lectura):
+- Almacenes.tsx (botón editar)
+- AlmacenNestJs objects/almacen-detalle.object.ts
+- (contexto) AlmacenPython CREATE / Nest listado+toggle
+
+--------------------------------------------------------------------------------
+21. FIN
+--------------------------------------------------------------------------------
+Única escritura: este TXT.
+================================================================================

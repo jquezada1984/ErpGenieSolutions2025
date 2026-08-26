@@ -1,0 +1,628 @@
+================================================================================
+AUDITORÍA TÉCNICA — public.movimiento_inventario
+Fecha: 2026-08-09
+Alcance: SOLO LECTURA del repositorio ERP_ITEM_WAREHOUSE
+Método: búsqueda en NestJS / Python / Gateway / frontend / SQL / docs
+NO se ejecutó escritura contra PostgreSQL ni se modificó código funcional.
+================================================================================
+
+VEREDICTO EJECUTIVO
+-------------------
+CONFIRMADO: En este codebase NO existe implementación de lectura ni escritura
+sobre public.movimiento_inventario.
+
+La tabla y sus FKs están CONFIRMADAS por el usuario (esquema BD real).
+En el repositorio solo aparecen menciones DOCUMENTALES / de planificación.
+
+Consecuencia: Almacenes → Movimientos NO puede “reutilizar” un servicio de
+movimientos existente: hay que diseñarlo de cero SOBRE la tabla ya presente,
+sin inventar valores de tipo_movimiento/modulo_origen hasta definir catálogo
+acordado (o leer DISTINCT de BD en una fase posterior de solo lectura).
+
+NO confundir con:
+  - movimiento_bancario (Banco–Cajas) — IMPLEMENTADO
+  - movimiento_contable (Contabilidad) — IMPLEMENTADO
+  - pantallas ProductosStocks / ProductosStocksLotes — MOCK frontend
+
+
+================================================================================
+1. USOS DE movimiento_inventario EN EL REPOSITORIO
+================================================================================
+
+Búsqueda: movimiento_inventario | MovimientoInventario | movimientoInventario
+          | id_movimiento_inventario
+
+RESULTADOS FUNCIONALES (código ejecutable): 0
+
+Apariciones DOCUMENTALES:
+  docs/auditoria/AUDITORIA_PATRON_GLOBAL_EMPRESA_MODULO_ITEM.md
+    — plan GLOBAL/EMPRESA; menciona tabla movimiento_inventario como entidad
+      operativa del dominio item; afirma “ya existe en esquema actual”
+      (afirmación documental; no hay CREATE TABLE en el repo).
+  docs/auditoria/AUDITORIA_ARQUITECTURA_MODULO_ALMACENES.txt
+    — Fase 7 stock_item_almacen; Fase 8 Movimientos / transferencias
+      (orden explícito: CRUD almacén primero, luego stock, luego movimientos).
+
+Clasificación:
+  A. LECTURA aplicación ........ NO ENCONTRADO
+  B. ESCRITURA aplicación ...... NO ENCONTRADO
+  C. ACTUALIZACIÓN aplicación .. NO ENCONTRADO
+  D. SOLO DEFINICIÓN/MODELO .... NO ENCONTRADO (sin entity/model TypeORM/SQLAlchemy)
+  E. DOCUMENTACIÓN / PLAN ...... SÍ (docs citados)
+
+
+================================================================================
+2. MÓDULOS QUE ESCRIBEN MOVIMIENTOS DE INVENTARIO
+================================================================================
+
+| Módulo            | ¿Escribe movimiento_inventario? | Evidencia |
+|-------------------|--------------------------------|-----------|
+| Inventarios       | NO                             | InventarioPython solo cabecera public.inventario |
+| Items/Productos   | NO                             | ItemPython escribe umbrales en item, no stock físico por almacén |
+| Almacenes         | NO                             | AlmacenPython/Nest: cabecera almacen; Nest comenta “Sin … stock/movimientos” |
+| Compras           | NO ENCONTRADO                  | Sin microservicio/código de compras en este monorepo |
+| Ventas            | NO ENCONTRADO                  | Idem |
+| Transferencias stock | NO ENCONTRADO               | 0 hits transferencia_stock |
+| Ajustes           | NO ENCONTRADO                  | |
+| Devoluciones      | NO ENCONTRADO                  | |
+| Facturación       | NO ENCONTRADO                  | |
+| Contabilidad      | NO (no toca esta tabla)        | asientos/movimientos contables propios |
+| Recepción/Envío   | NO ENCONTRADO                  | solo mencionados en docs de plan |
+| Banco–Cajas       | N/A                            | escribe movimiento_BANCARIO, otra tabla |
+
+Por cada módulo confirmado como escritor: NINGUNO.
+
+
+================================================================================
+3. tipo_movimiento (INVENTARIO)
+================================================================================
+
+Valores de tipo_movimiento en CÓDIGO de inventario: NINGUNO.
+
+Valores encontrados en el repo pertenecen a BANCO (NO aplicar a inventario):
+  ingreso, egreso, transferencia_salida, transferencia_entrada, reversa,
+  transferencia_bancaria, (UI) efectivo / tipos de pago
+
+Catálogo formal inventario (tabla/enum/check): NO ENCONTRADO en el repo.
+
+CONFIRMADO: no se puede listar ENTRADA/SALIDA/TRANSFERENCIA/AJUSTE como
+valores reales del ERP desde código — serían PROPUESTA, no evidencia.
+
+
+================================================================================
+4. modulo_origen
+================================================================================
+
+Ocurrencias de modulo_origen en TODO el repo: 0
+
+No hay valores COMPRA/VENTA/INVENTARIO/TRANSFERENCIA/AJUSTE en código.
+
+CONFIRMADO: campo existe en BD (usuario); semántica en aplicación: NO DEFINIDA
+en este codebase.
+
+
+================================================================================
+5. id_origen
+================================================================================
+
+Sin código que asigne o lea id_origen de movimiento_inventario.
+
+FK formal a una sola tabla: NO aparece en constraints listadas por el usuario
+(no hay fk_movimiento_inventario_origen).
+
+PROPUESTA (no confirmada por código): referencia polimórfica
+  (modulo_origen + id_origen) → documento origen.
+
+CONFIRMADO por constraints usuario: es UUID nullable sin FK a documento.
+
+
+================================================================================
+6. stock_item_almacen
+================================================================================
+
+Código que INSERTA: NO ENCONTRADO
+Código que ACTUALIZA: NO ENCONTRADO
+Código que LEE (API real): NO ENCONTRADO
+
+Menciones:
+  - docs (plan GLOBAL/EMPRESA + arquitectura almacenes Fase 7)
+  - NuevoInventario.tsx TODO FASE 3: “consultar stock_item_almacen…”
+  - ProductosStocks*.tsx: campos stock_fisico etc. con MOCK local
+    (comentario “Datos de ejemplo. Sustituir por API…”)
+
+Sincronización movimiento ↔ stock: NO IMPLEMENTADA (no hay flujo que unir).
+
+
+================================================================================
+7. RELACIÓN MOVIMIENTO → STOCK
+================================================================================
+
+Orden real en código: NO EXISTE.
+
+No hay transacción conjunta, rollback de stock, validación de stock negativo,
+ni concurrencia implementada para este dominio.
+
+PROPUESTA futura (sin implementar): toda escritura de movimiento debe actualizar
+stock_item_almacen en la MISMA transacción DB — patrón análogo conceptual a
+BancoCaja (movimiento_bancario + saldo_actual), pero ESO es banco, no inventario.
+
+
+================================================================================
+8. CANTIDAD — interpretación del signo
+================================================================================
+
+Sin código que inserte cantidad en movimiento_inventario.
+
+CONFIRMADO: no se puede afirmar desde el repo si:
+  - cantidad siempre > 0 + tipo define dirección, o
+  - salidas usan cantidad negativa, o
+  - transferencia = 1 ó 2 filas.
+
+CRITICO para diseño futuro: definir convención ANTES de escribir el primer
+INSERT; no hay evidencia en código.
+
+
+================================================================================
+9. TRANSFERENCIAS DE STOCK
+================================================================================
+
+public.transferencia_stock / transferencia_stock_detalle:
+  0 hits en el repositorio.
+
+id_transferencia_stock: 0 hits.
+
+Relación con movimiento_inventario: NO IMPLEMENTADA / NO MODELADA en código.
+
+(Nota: transferencia_bancaria SÍ existe — otro dominio.)
+
+Estado: solo planificado en AUDITORIA_ARQUITECTURA_MODULO_ALMACENES.txt Fase 8.
+
+
+================================================================================
+10. INVENTARIOS FÍSICOS
+================================================================================
+
+Implementado hoy:
+  - Cabecera public.inventario (CRUD parcial + estado boolean Nest)
+  - estado_inventario: ABIERTO | BORRADOR | CERRADO (validado en Python)
+  - SIN inventario_detalle en backend
+  - SIN generación de movimiento_inventario al cerrar
+
+Evidencia UI:
+  NuevoInventario.tsx:
+    TODO FASE 3: inventario_detalle + stock_item_almacen + diferencia
+    TODO FASE 4: flujo de cierre de inventario
+
+CONCLUSIÓN: inventarios físicos NO generan hoy movimientos de inventario.
+
+
+================================================================================
+11. LOTES / SERIES (id_lote_serie)
+================================================================================
+
+Constraint usuario: fk_movimiento_inventario_lote → lote/serie.
+
+En código aplicación:
+  - item_lote_serie: solo docs
+  - Item front: flag usar_lote_serie en formularios (Yup/schema) — metadato item
+  - ProductosStocksLotes.tsx: MOCK
+
+id_lote_serie en movimiento: sin uso. Obligatoriedad: NO DETERMINABLE por código
+(probable opcional por FK nullable — confirmar en BD; no se consultó BD aquí).
+
+
+================================================================================
+12. CONTABILIDAD (id_asiento_contable)
+================================================================================
+
+Constraint usuario: movimiento_inventario_id_asiento_contable_fkey.
+
+ItemPython / InventarioPython / AlmacenPython: 0 referencias a id_asiento en
+contexto de inventario.
+
+ContabilidadNestJs opera asientos/movimientos contables propios.
+
+CONFIRMADO: el módulo Almacén NO debe crear asientos directamente hoy;
+id_asiento_contable en movimiento_inventario es referencia opcional futura.
+No hay lógica que la rellene.
+
+
+================================================================================
+13. ESTADO (movimiento_inventario.estado)
+================================================================================
+
+Sin código que lea/escriba estado de movimiento_inventario.
+
+Patrones análogos en el ERP (otras tablas):
+  - almacen.estado / inventario.estado: boolean activo/inactivo UI
+  - movimiento_bancario: anulación por REVERSA (no DELETE), sin “estado” boolean
+    en el mismo sentido (patrón documentado Banco–Cajas)
+
+CONFIRMADO para inventario: significado de estado = DESCONOCIDO en código.
+No proponer DELETE físico sin evidencia.
+
+
+================================================================================
+14. REFERENCIA Y CONCEPTO
+================================================================================
+
+Sin ejemplos de escritura en código para movimiento_inventario.
+
+Campos existen en esquema usuario.
+Significado: NO CONFIRMADO por código.
+
+PROPUESTA (alineada a Dolibarr + patrón banco):
+  referencia ≈ código documento / código movimiento
+  concepto   ≈ etiqueta / descripción
+Marcar como PROPUESTA hasta primera implementación.
+
+
+================================================================================
+15. fecha_movimiento
+================================================================================
+
+Sin asignación en código de inventario.
+
+created_at / updated_at / updated_by: presentes en esquema usuario;
+sin onupdate/defaults verificables en repo (no hay model ORM de la tabla).
+
+
+================================================================================
+16. COSTOS (costo_unitario, costo_total)
+================================================================================
+
+0 hits en contexto inventario.
+Método valorización (promedio/FIFO/LIFO): NO IMPLEMENTADO.
+¿costo_total = cantidad × unitario?: NO CONFIRMADO.
+
+
+================================================================================
+17. MULTIEMPRESA
+================================================================================
+
+Esquema: id_empresa + FK empresa (usuario).
+
+Código que filtra movimiento_inventario por id_empresa: NO EXISTE.
+
+Riesgo documentado en AUDITORIA_PATRON_GLOBAL_EMPRESA_MODULO_ITEM.md:
+  mezclar stock/movimientos entre empresas = CRÍTICO.
+
+Al implementar: exigir id_empresa en toda lectura/escritura (patrón Almacén/
+Inventario/Terceros ya existente).
+
+
+================================================================================
+18. CONSULTAS / COMPONENTES REUTILIZABLES (FUTURO LISTADO)
+================================================================================
+
+REUTILIZABLES HOY (sin crear queries nuevas de movimientos):
+
+InicioNestJs / Gateway GraphQL:
+  - empresas, paises, (catálogo) almacenes — query `almacenes` (InicioNestJs)
+  - NO confundir con almacenesListado (AlmacenNestJs)
+
+AlmacenNestJs:
+  - almacenesListado, almacenPorId, actualizarEstadoAlmacen
+  - Comentario servicio: sin stock/movimientos
+
+ItemNestJs:
+  - itemsListado (productos) — útil para filtro Producto
+
+InventarioNestJs:
+  - inventariosListado, inventarioPorId — cabecera inventario, NO kardex
+
+Front:
+  - SelectEmpresa, ReactTable, filtros fecha (ver MovimientosCuenta banco
+    como UX de “historial de movimientos”, OTRO dominio)
+  - CountrySelect / SelectProvincia — irrelevantes para movimientos stock
+
+
+================================================================================
+19. FRONTEND EXISTENTE “MOVIMIENTOS DE STOCK”
+================================================================================
+
+| Ruta / pantalla                         | Estado |
+|-----------------------------------------|--------|
+| /items/almacenes/movimientos            | Menú SQL sí; Router/vista NO |
+| /items/almacenes/cambio-stock           | Menú sí; Router/vista NO |
+| /items/almacenes/stock-fecha            | Menú sí; Router/vista NO |
+| /items/productos/stocks                 | MOCK |
+| /items/productos/stocks-lotes           | MOCK |
+| Kardex / historial stock                | NO ENCONTRADO |
+| /banco-cajas/.../movimientos            | SÍ (bancario) — no reutilizar datos |
+
+Menú: MenuNestJs/migrations/menu-almacenes-producto-servicio.sql
+
+
+================================================================================
+20. DOLIBARR Warehouses → Movements — MAPEO
+================================================================================
+
+Dolibarr (referencia visual)     | Campo BD ERP              | Estado
+---------------------------------|---------------------------|----------------
+Date                             | fecha_movimiento          | PROPUESTA (columna BD sí)
+Product ref.                     | id_item → item            | PROPUESTA
+Warehouse                        | id_almacen                | PROPUESTA
+Warehouse dest.                  | id_almacen_destino        | PROPUESTA (columna BD sí)
+Inv./Mov. code                   | referencia / tipo         | PROPUESTA
+Label of movement                | concepto                  | PROPUESTA
+Origin                           | modulo_origen + id_origen | PROPUESTA
+Qty                              | cantidad                  | PROPUESTA
+Ref.                             | id_movimiento_inventario o referencia | PROPUESTA
+
+CONFIRMADO: columnas BD existen (usuario).
+NO CONFIRMADO: convenciones de llenado / signos / tipos.
+
+
+================================================================================
+21. ¿QUÉ DEBE SER “MOVIMIENTOS”?
+================================================================================
+
+Recomendación basada en evidencia:
+
+  A. solo historial/consulta  ← FASE INICIAL RECOMENDADA
+
+Justificación CONFIRMADA:
+  - No hay writers ni reglas de stock en código
+  - Arquitectura almacenes ordena: stock (Fase 7) antes de movimientos (Fase 8)
+  - Crear movimientos manuales sin motor de stock rompería consistencia
+  - Dolibarr Movements es principalmente historial/consulta + alta controlada;
+    alta manual solo tras reglas claras
+
+B/C (historial + alta/ajustes): FASE POSTERIOR, solo si existe servicio único
+que actualice stock_item_almacen + movimiento en una transacción.
+
+
+================================================================================
+22. ¿CREAR MOVIMIENTO MANUAL?
+================================================================================
+
+Función entrada/salida/ajuste manual: NO EXISTE.
+
+Crear INSERT solo en movimiento_inventario sin tocar stock_item_almacen:
+  RIESGO CRÍTICO de desincronización (documentado también en plan item).
+
+No asumir que Almacenes → Movimientos deba crear movimientos en v1.
+
+
+================================================================================
+23. COLUMNAS RECOMENDADAS PARA LISTADO FUTURO
+================================================================================
+
+Útiles (PROPUESTA, alineadas a BD + Dolibarr):
+  fecha_movimiento
+  item (ref + etiqueta vía JOIN)
+  almacen (nombre/ref)
+  id_almacen_destino / destino (si no null)
+  tipo_movimiento (cuando exista catálogo)
+  referencia
+  concepto
+  cantidad
+  modulo_origen (+ id_origen resumido)
+  estado (si se confirma semántica)
+
+Omitir inicialmente salvo necesidad:
+  costo_unitario / costo_total (sin motor de costos)
+  id_asiento_contable (sin integración)
+  id_lote_serie (hasta lotes reales)
+
+
+================================================================================
+24. FILTROS FUTUROS RECOMENDADOS
+================================================================================
+
+Soportables por columnas BD (PROPUESTA):
+  id_empresa (obligatorio multiempresa)
+  fecha desde/hasta (fecha_movimiento)
+  id_item
+  id_almacen (origen y/o destino)
+  tipo_movimiento
+  referencia (LIKE)
+  modulo_origen
+  estado
+
+No implementar en esta auditoría.
+
+
+================================================================================
+25. ARQUITECTURA FUTURA (PROPUESTA CON BASE EN PATRONES)
+================================================================================
+
+LECTURA listado/historial:
+  PROPUESTA: AlmacenNestJs GraphQL (mismo split que almacenesListado /
+  almacenPorId), con QueryBuilder + JOIN item/almacen, filtro id_empresa.
+  Alternativa: InventarioNestJs — MENOS coherente (hoy solo cabecera inventario).
+
+ESCRITURA (cuando exista motor):
+  PROPUESTA: un ÚNICO servicio Python de dominio stock (podría vivir en
+  InventarioPython o AlmacenPython, pero NO duplicar en ambos).
+  Patrón ERP: Nest lectura / Python escritura (como inventarios y almacenes).
+
+NO: Gateway con lógica de negocio; NO: frontend escribiendo BD.
+
+
+================================================================================
+26. RIESGOS CRÍTICOS
+================================================================================
+
+1. Insertar movimientos sin actualizar stock_item_almacen
+2. Actualizar stock sin movimiento (historial incompleto / Stock por fecha falso)
+3. Duplicar lógica en AlmacenPython e InventarioPython
+4. Inventar tipo_movimiento/modulo_origen sin catálogo ni DISTINCT BD
+5. Cross-company (item/almacén/empresa distintos)
+6. Transferencia parcial (origen sí, destino no) — sin transacción
+7. Stock negativo no validado
+8. Tocar id_asiento_contable / Contabilidad desde Almacén
+9. DELETE físico de historial
+10. Confundir movimiento_bancario con movimiento_inventario en UI/menú
+11. Depender de mocks ProductosStocks como si fueran datos reales
+12. Implementar Movimientos antes de stock (rompe orden Fase 7→8)
+
+
+================================================================================
+27. ORDEN DE IMPLEMENTACIÓN RECOMENDADO
+================================================================================
+
+FASE 0 (opcional, solo lectura BD): SELECT DISTINCT tipo_movimiento, modulo_origen
+      FROM public.movimiento_inventario (y conteos) — fuera de esta auditoría.
+
+FASE 1: Listado/historial GraphQL READ-ONLY (AlmacenNestJs) + pantalla
+        /items/almacenes/movimientos — sin POST/PUT.
+
+FASE 2: Filtros (empresa, fechas, producto, almacén, tipo si hay datos).
+
+FASE 3: Detalle de un movimiento (solo lectura).
+
+FASE 4: Motor stock_item_almacen (servicio único + transacciones).
+
+FASE 5: Escritores de negocio (cierre inventario, transferencias, ajustes)
+        que usen el motor — NO alta suelta desde UI sin reglas.
+
+FASE 6: Stock por fecha / cambio masivo (menú ya apunta; requieren historial).
+
+
+================================================================================
+28. RESPUESTAS OBLIGATORIAS
+================================================================================
+
+1. ¿Quién escribe hoy movimiento_inventario?
+   → NADIE en este codebase. (BD puede tener filas legacy; no auditado en SQL.)
+
+2. ¿Quién lee hoy movimiento_inventario?
+   → NADIE en este codebase.
+
+3. ¿Qué valores de tipo_movimiento existen (inventario)?
+   → NINGUNO en código. (Banco usa otros valores — dominio distinto.)
+
+4. ¿Qué valores de modulo_origen existen?
+   → NINGUNO en código (0 hits).
+
+5. ¿Cómo funciona id_origen?
+   → Sin uso en código; FK formal a documento: NO; probable polimórfico.
+
+6. ¿Cómo se actualiza stock_item_almacen?
+   → No se actualiza desde aplicación en este repo.
+
+7. ¿Movimiento y stock en la misma transacción?
+   → No hay implementación; por tanto NO.
+
+8. ¿Cómo se representa una salida?
+   → NO DEFINIDO en código.
+
+9. ¿Cómo se representa una transferencia?
+   → NO IMPLEMENTADA (transferencia_stock ausente en repo).
+
+10. ¿Inventarios físicos generan movimientos?
+    → NO. Solo cabecera; TODOs FASE 3/4 en UI.
+
+11. ¿Lotes/series?
+    → Flag en item (front); tabla/uso en movimiento: no implementado.
+
+12. ¿Costos?
+    → No implementados para inventario.
+
+13. ¿Contabilidad?
+    → Columna id_asiento_contable en BD; ninguna lógica que la llene desde
+      almacén/inventario/item.
+
+14. ¿Qué significa estado?
+    → Desconocido en código para esta tabla.
+
+15. ¿Movimientos debe ser solo lectura inicialmente?
+    → SÍ (recomendación CONFIRMADA por ausencia de motor de stock).
+
+16. ¿Qué consultas reutilizar?
+    → empresas, itemsListado, almacenesListado/almacenPorId, SelectEmpresa,
+      patrones de listado Inventarios/Almacenes; UX MovimientosCuenta solo
+      como inspiración visual (banco).
+
+17. ¿Qué NO volver a programar?
+    → No reinventar GLOBAL/EMPRESA; no duplicar catálogo almacenes de
+      InicioNestJs con nombre `almacenes`; no copiar movimiento_bancario
+      como si fuera inventario; no mocks como fuente de verdad.
+
+18. ¿Qué capa alimenta el listado?
+    → PROPUESTA: AlmacenNestJs GraphQL → Gateway (antes de regla genérica
+      almacenes) → front.
+
+19. ¿Columnas y filtros?
+    → Ver §§23–24.
+
+20. ¿Siguiente paso más seguro?
+    → FASE 1: historial read-only + (opcional) lectura DISTINCT en BD de
+      tipos/orígenes existentes; NO crear pantallas de alta ni tocar stock.
+
+
+================================================================================
+29. ARCHIVOS REVISADOS (por capa)
+================================================================================
+
+ALMACEN
+  AlmacenNestJs/src/modules/almacen/almacen.service.ts
+  AlmacenPython/ (routes/services/repos — sin stock/movimientos)
+  docs/auditoria/AUDITORIA_ARQUITECTURA_MODULO_ALMACENES.txt
+
+INVENTARIO
+  InventarioPython/services/inventario_service.py
+  InventarioPython/repositories/inventario_repository.py
+  InventarioPython/migrations/public_inventario_recommended.sql
+  InventarioNestJs (listado/detalle/estado)
+  frontReact/.../inventarios/NuevoInventario.tsx (TODOs FASE 3/4)
+
+ITEM
+  ItemPython/models/item.py, repositories, services (umbrales stock_*)
+  ItemNestJs entities/services
+  frontReact itemSchema / SeccionItemInventario / mapItemForm*
+  frontReact/.../productos/ProductosStocks.tsx
+  frontReact/.../productos/ProductosStocksLotes.tsx
+
+COMPRAS / VENTAS / RECEPCIÓN / ENVÍO
+  NO ENCONTRADOS como módulos en este monorepo
+
+TRANSFERENCIAS STOCK
+  NO ENCONTRADO (transferencia_stock*)
+
+CONTABILIDAD
+  ContabilidadNestJs (asientos/movimientos contables — dominio distinto)
+  docs/CONTABILIDAD_MODULO.md
+
+BANCO (contraste — NO es inventario)
+  BancoCajaPython movimiento_bancario / transferencia_bancaria
+  frontReact/.../banco-cajas/MovimientosCuenta.tsx
+
+INICIO
+  Catálogos GraphQL (empresas, almacenes catálogo) vía Gateway
+
+GATEWAY
+  Sin rutas REST/GraphQL hacia movimiento_inventario
+
+FRONTEND ALMACENES
+  Router.tsx (sin /movimientos)
+  Almacenes.tsx / NuevoAlmacen / EditarAlmacen (cabecera)
+
+MENÚ
+  MenuNestJs/migrations/menu-almacenes-producto-servicio.sql
+    → rutas planificadas movimientos / cambio-stock / stock-fecha
+
+SQL / MIGRACIONES
+  Sin CREATE TABLE movimiento_inventario en el repo
+  InventarioPython/migrations/public_inventario_recommended.sql (solo inventario)
+
+DOCS
+  docs/auditoria/AUDITORIA_PATRON_GLOBAL_EMPRESA_MODULO_ITEM.md
+  docs/auditoria/AUDITORIA_ARQUITECTURA_MODULO_ALMACENES.txt
+
+
+================================================================================
+30. GIT — CAMBIO AUTORIZADO DE ESTA TAREA
+================================================================================
+
+Único archivo NUEVO/escrito por esta auditoría:
+  docs/auditoria/AUDITORIA_MOVIMIENTOS_INVENTARIO.txt
+
+Cualquier otro cambio en el working tree es PREEXISTENTE y NO fue tocado.
+
+
+================================================================================
+FIN DE AUDITORÍA — SIN IMPLEMENTACIÓN
+================================================================================

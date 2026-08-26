@@ -1,0 +1,435 @@
+================================================================================
+CIERRE_FLUJO_COMPLETO_STOCK_INICIAL_V1.txt
+================================================================================
+Módulo: Almacenes / STOCK INICIAL v1
+Fase: 5E — Cierre documental FRONTEND + flujo completo
+Fecha de cierre documental: 2026-08-16
+Naturaleza: EXCLUSIVAMENTE DOCUMENTAL (sin nuevas pruebas en esta fase)
+================================================================================
+
+
+1. IDENTIFICACIÓN
+--------------------------------------------------------------------------------
+Documento: CIERRE TÉCNICO — Flujo completo STOCK INICIAL v1
+            (Backend + Gateway + Autenticación + Frontend + Persistencia)
+
+Cadena end-to-end validada:
+
+  Frontend (StockInicialAlmacen.tsx)
+    → Gateway REST :3002  POST /api/almacen/stock-inicial
+    → InicioNestJs `me` (identidad autenticada)
+    → Gateway construye contexto confiable (FAIL CLOSED)
+    → AlmacenPython :3018  POST /api/almacen/stock-inicial
+    → Transacción atómica
+         ├── public.stock_item_almacen
+         └── public.movimiento_inventario
+
+Lecturas (fuera del writer; sin cambio de patrón):
+
+  Frontend
+    → Gateway GraphQL
+    → AlmacenNestJs
+
+Writer único de negocio:
+  AlmacenPython
+
+Tablas utilizadas (existentes):
+  public.stock_item_almacen
+  public.movimiento_inventario
+
+Tablas nuevas creadas para STOCK INICIAL v1:
+  NINGUNA
+
+Documentos de cierre previos (referencia):
+  docs/auditoria/CIERRE_PRUEBAS_BACKEND_STOCK_INICIAL_V1.txt          (3G)
+  docs/auditoria/CIERRE_INTEGRACION_GATEWAY_STOCK_INICIAL_V1.txt      (4G)
+  docs/auditoria/CIERRE_BLOQUEANTES_WRITER_STOCK_INICIAL_V1.txt
+  docs/auditoria/CONTRATO_TECNICO_STOCK_INICIAL_V1_APROBADO.txt
+  docs/auditoria/CONTRATO_ESCRITURA_MOTOR_STOCK_V1_APROBADO.txt
+
+Fases documentadas en este cierre (resultados ya comprobados):
+  Backend:     3C, 3D, 3E, 3F, 3G
+  Gateway:     4A–4E.2, 4F / 4F.2 / 4F.3, 4G
+  Frontend:    5A, 5B, 5C / 5C.1 / 5C.2, 5D.0, 5D, 5D.2
+  Observación: 5D.A (Alert verde residual post-éxito; no falso montaje)
+
+
+2. OBJETIVO
+--------------------------------------------------------------------------------
+Dejar evidencia auditable de que STOCK INICIAL v1 está validado
+de extremo a extremo en el entorno actualmente probado:
+
+  - backend (creación, atomicidad, replay, conflictos, rollback);
+  - Gateway (routing, preservación de status, identidad);
+  - autenticación FAIL CLOSED;
+  - frontend (ruta, API, idempotencia de intención, doble submit);
+  - persistencia BD (1 stock + 1 movimiento, sin duplicados).
+
+Este documento NO autoriza producción, release productivo ni
+generalización a otros movimientos de inventario.
+
+
+3. ALCANCE DEL GO
+--------------------------------------------------------------------------------
+INCLUIDO (probado / documentado):
+
+  - STOCK INICIAL v1 funcional end-to-end en el entorno de prueba.
+  - Backend writer AlmacenPython.
+  - Gateway REST autenticado hacia AlmacenPython.
+  - Identidad vía InicioNestJs `me` / JWT.sub.
+  - Frontend ruta /items/almacenes/stock-inicial.
+  - Idempotencia (id_origen + YA_PROCESADO).
+  - Atomicidad transaccional stock + movimiento.
+  - Auditoría created_by / updated_by coherente.
+  - Persistencia verificada por SELECT AFTER (fase 5D.2).
+
+EXCLUIDO (explícitamente fuera de este GO):
+
+  - Autorización de producción / deploy productivo / release productivo.
+  - Todos los movimientos de inventario implementados
+    (entradas, salidas, ajustes, reservas, transferencias).
+  - Inventario completo terminado.
+  - Compras / ventas / transferencias entre almacenes.
+  - Corrección o redefinición semántica de stock_disponible.
+  - Seguridad global de todas las rutas REST del ERP.
+  - Migración de otras escrituras (crearAlmacen / actualizarAlmacen)
+    al mismo helper de identidad (fuera del alcance de este GO).
+
+
+4. BACKEND STOCK INICIAL
+--------------------------------------------------------------------------------
+Resultado:                         GO
+
+Creación (3C):                     OK
+Atomicidad:                        OK
+Replay idempotente (3D):           OK
+Conflicto de idempotencia (3E):    OK
+Stock ya inicializado (3F):        OK
+Rollback:                          OK
+Duplicados:                        NO
+
+Endpoint writer:
+  POST /api/almacen/stock-inicial
+  Puerto AlmacenPython: 3018
+
+Cierre documental backend:
+  CIERRE_PRUEBAS_BACKEND_STOCK_INICIAL_V1.txt (fase 3G)
+
+
+5. GATEWAY
+--------------------------------------------------------------------------------
+Resultado:                         GO
+
+Ruta externa:
+  POST /api/almacen/stock-inicial
+  Puerto Gateway: 3002
+
+Destino:
+  AlmacenPython
+  POST /api/almacen/stock-inicial
+
+Status downstream preservados (comprobados en fases 4x):
+  201
+  200
+  400
+  409
+  500
+
+Cierre documental Gateway:
+  CIERRE_INTEGRACION_GATEWAY_STOCK_INICIAL_V1.txt (fase 4G)
+
+
+6. SEGURIDAD DE IDENTIDAD
+--------------------------------------------------------------------------------
+Resultado:                         GO
+
+Cadena de identidad confiable:
+
+  Gateway
+    → InicioNestJs `me`
+    → JWT.sub
+    → id_usuario autenticado
+
+X-User-Id entrante (cliente):
+  NO es autoridad para STOCK INICIAL.
+
+X-User-Id downstream (hacia AlmacenPython):
+  Derivado exclusivamente de me.user.id_usuario.
+
+Scope EMPRESA:
+  Empresa derivada de la identidad autenticada.
+
+Scope GLOBAL:
+  Selección de empresa permitida únicamente después de autenticar.
+
+Fail-closed:                       OK
+401 sin autenticación:             OK
+Fallback inseguro para STOCK INICIAL:  NO
+
+
+7. FRONTEND
+--------------------------------------------------------------------------------
+Resultado:                         GO
+
+Ruta UI:
+  /items/almacenes/stock-inicial
+
+Pantalla:
+  frontReact/src/views/items/almacenes/StockInicialAlmacen.tsx
+
+Punto de entrada:
+  Stock Actual → Stock inicial
+  (StockActualAlmacen.tsx)
+
+API frontend:
+  crearStockInicial(body)
+  frontReact/src/_apis_/almacen.js
+    → POST /api/almacen/stock-inicial  (Gateway)
+
+Campos enviados:
+  id_empresa
+  id_item
+  id_almacen
+  id_origen
+  cantidad
+  fecha_movimiento
+  referencia
+  concepto
+
+Costos calculados en frontend:     NO
+Stock calculado en frontend:       NO
+
+Despliegue (5D.0):
+  Rebuild aislado servicio Compose `frontend`
+  Contenedor: erp-frontend
+  Bundle incluye StockInicialAlmacen y ruta stock-inicial
+
+
+8. IDEMPOTENCIA FRONTEND
+--------------------------------------------------------------------------------
+Resultado:                         OK
+
+id_origen:
+  Generado mediante crypto.randomUUID() en StockInicialAlmacen.tsx.
+  Se mantiene durante la misma intención de registro.
+  Se conserva ante: 400, 409, 401, 403, 500, timeout / error de red.
+  Se regenera únicamente cuando la intención termina con éxito:
+    - HTTP 201 + estado_operacion CREADO
+    - HTTP 200 + estado_operacion YA_PROCESADO
+  (vía reiniciarIntencion tras setOk)
+
+Doble submit (5C / 5C.1 / 5C.2):
+  Protegido mediante guard síncrono useRef (submitLockRef).
+  Máximo request en vuelo: 1
+
+Observación UI (5D.A — solo auditoría):
+  El Alert verde "Stock inicial creado correctamente" se conserva
+  en la misma instancia del componente tras reiniciarIntencion()
+  (limpia campos; no limpia estado `ok`).
+  No es un falso éxito de montaje.
+  Un refresh de la ruta remonta el componente y el Alert desaparece.
+  El refresh NO genera POST.
+
+
+9. PRUEBA UI END-TO-END (FASE 5D / 5D.2)
+--------------------------------------------------------------------------------
+Empresa:       SipDEecom
+id_empresa:    0459fe04-163b-4b89-b98a-0f1179b7224c
+
+Producto:      BOR01 - Borrego
+id_item:       f12775ee-3667-40f1-8673-280eb7be6cae
+
+Almacén:       ALM-002 - Almacén secundario
+id_almacen:    0c924077-1e60-42a5-a714-3576e3e85871
+
+Cantidad:      1.00
+Fecha:         2026-08-16
+Referencia:    PRUEBA-UI-STOCK-INICIAL-5D
+Concepto:      Prueba controlada desde frontend STOCK INICIAL Fase 5D
+
+BEFORE (confirmado antes de Guardar):
+  STOCK COUNT:                 0
+  STOCK_INICIAL COUNT:         0
+  INCONSISTENCIA HISTÓRICA:    NO
+
+Resultado Network / UI:
+  HTTP:                        201
+  Mensaje UI:                  Stock inicial creado correctamente
+  XHR POST stock-inicial:      1
+  Preflight OPTIONS:           204 (no escritura)
+  Segundo clic / replay UI:    NO
+
+
+10. RESULTADO BD END-TO-END (SELECT AFTER — FASE 5D.2)
+--------------------------------------------------------------------------------
+STOCK BEFORE / AFTER:          0 / 1
+
+ID STOCK:
+  db1ac664-6f49-43bd-bbde-00f07d95cfc9
+
+id_empresa:    0459fe04-163b-4b89-b98a-0f1179b7224c
+id_item:       f12775ee-3667-40f1-8673-280eb7be6cae
+id_almacen:    0c924077-1e60-42a5-a714-3576e3e85871
+
+stock_fisico:       1.00
+stock_reservado:    0.00
+stock_virtual:      0.00
+stock_disponible:   0.00
+stock_alerta:       NULL
+stock_deseado:      NULL
+estado:             true
+
+created_by:    2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+updated_by:    2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+
+11. MOVIMIENTO END-TO-END
+--------------------------------------------------------------------------------
+MOVIMIENTO STOCK_INICIAL BEFORE / AFTER:   0 / 1
+
+ID MOVIMIENTO:
+  b63686fc-db7c-4a98-9dd6-20f4d324aa18
+
+ID ORIGEN (generado por UI crypto.randomUUID()):
+  37a1dff7-25a7-4e8e-80da-c231c0e46f8a
+
+tipo_movimiento:    INICIAL
+modulo_origen:      STOCK_INICIAL
+cantidad:           1.000
+fecha_movimiento:   2026-08-16
+referencia:         PRUEBA-UI-STOCK-INICIAL-5D
+concepto:           Prueba controlada desde frontend STOCK INICIAL Fase 5D
+costo_unitario:     0.00
+costo_total:        0.00
+estado:             true
+
+updated_by:         2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+Correlación stock / movimiento:
+  Misma id_empresa + id_item + id_almacen
+  Par: SipDEecom / BOR01 / ALM-002
+  Resultado: SÍ
+
+
+12. AUDITORÍA
+--------------------------------------------------------------------------------
+created_by stock:       2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+updated_by stock:       2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+updated_by movimiento:  2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+Resultado:
+  Auditoría consistente entre stock y movimiento (mismo UUID de usuario).
+
+
+13. DUPLICADOS
+--------------------------------------------------------------------------------
+Segundo stock:          NO
+Segundo movimiento:     NO
+Duplicados:             NO
+
+COUNT stock (item + almacén):                 1
+COUNT movimiento INICIAL / STOCK_INICIAL:     1
+
+
+14. OBSERVACIÓN IMPORTANTE — stock_disponible
+--------------------------------------------------------------------------------
+En la creación UI validada (5D.2):
+
+  stock_fisico      = 1.00
+  stock_disponible  = 0.00
+
+Este documento NO lo corrige y NO asume que sea un error.
+
+Se registra únicamente como comportamiento real observado
+del contrato / implementación actual en el entorno probado.
+
+Cualquier revisión de la semántica de stock_disponible
+debe realizarse en una fase separada, con autorización expresa.
+
+
+15. ARQUITECTURA FINAL VALIDADA
+--------------------------------------------------------------------------------
+Escritura STOCK INICIAL:
+
+  Frontend
+     ↓
+  Gateway REST
+     ↓
+  InicioNestJs / me  (identidad autenticada)
+     ↓
+  Gateway construye contexto confiable (FAIL CLOSED)
+     ↓
+  AlmacenPython writer
+     ↓
+  Transacción
+     ├── stock_item_almacen
+     └── movimiento_inventario
+
+Lecturas de catálogo / listados (sin cambio de patrón):
+
+  Frontend
+     ↓
+  Gateway GraphQL
+     ↓
+  AlmacenNestJs
+
+Regla de arquitectura respetada:
+  No mover lógica de negocio (costos, saldos, atomicidad,
+  reglas de stock) al frontend ni al Gateway.
+
+
+16. RESUMEN DE VEREDICTOS POR CAPA
+--------------------------------------------------------------------------------
+BACKEND:                 GO
+GATEWAY:                 GO
+SEGURIDAD IDENTIDAD:     GO
+FRONTEND:                GO
+CREACIÓN UI 201:         OK
+REPLAY 200 (backend/GW): OK
+IDEMPOTENCIA:            OK
+ATOMICIDAD:              OK
+FAIL-CLOSED:             OK
+DOBLE SUBMIT:            PROTEGIDO
+STOCK UI BEFORE/AFTER:   0 / 1
+MOVIMIENTO UI BEFORE/AFTER: 0 / 1
+DUPLICADOS:              NO
+AUDITORÍA:               OK
+
+
+17. QUÉ HIZO Y QUÉ NO HIZO LA FASE 5E
+--------------------------------------------------------------------------------
+5E creó únicamente este documento de cierre.
+
+5E NO:
+  - ejecutó POST / PUT / PATCH / DELETE;
+  - ejecutó nuevas pruebas funcionales;
+  - modificó BD;
+  - modificó código funcional (frontend, Gateway, Python, Nest);
+  - tocó Docker / rebuild / recreate / restart;
+  - instaló dependencias;
+  - ejecutó git add / commit / push;
+  - limpió el working tree;
+  - corrigió hallazgos adicionales (p. ej. stock_disponible).
+
+
+18. RESULTADO FINAL
+--------------------------------------------------------------------------------
+GO — STOCK INICIAL v1 VALIDADO END-TO-END
+
+ACLARACIÓN OBLIGATORIA:
+  Este GO NO constituye autorización de producción.
+  Este GO NO constituye autorización de release productivo.
+  Este GO NO declara el módulo Inventario / Almacenes completo.
+
+
+19. PRÓXIMA FASE
+--------------------------------------------------------------------------------
+NO iniciar automáticamente.
+
+Detenerse y esperar autorización expresa para definir
+el siguiente flujo funcional del módulo Almacenes.
+
+
+================================================================================
+FIN DEL DOCUMENTO
+================================================================================

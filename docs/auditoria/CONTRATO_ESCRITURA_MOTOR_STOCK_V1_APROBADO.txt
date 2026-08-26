@@ -1,0 +1,678 @@
+CONTRATO DE ESCRITURA — MOTOR DE STOCK v1 (APROBADO)
+Fecha: 2026-08-16
+Fase: 2A — Documentación formal de decisiones
+Estado: APROBADO para diseño; NO implementado.
+
+================================================================================
+0. ALCANCE DE ESTA FASE
+================================================================================
+
+Este documento formaliza las decisiones funcionales y técnicas YA APROBADAS
+para el Motor de Stock v1.
+
+NO implementa el motor.
+NO crea endpoints, mutations, services, repositories ni migraciones.
+NO modifica código, base de datos, Gateway, frontend ni Docker.
+NO ejecuta INSERT / UPDATE / DELETE / UPSERT.
+
+Referencias de contexto:
+  docs/auditoria/CONTRATO_MOTOR_STOCK_V1.txt
+  docs/auditoria/AUDITORIA_METADATA_MOTOR_STOCK_V1.txt
+  docs/auditoria/AUDITORIA_CONTRATO_ESCRITURA_STOCK_V1.txt
+
+Estado actual confirmado:
+  public.stock_item_almacen     = 0 filas
+  public.movimiento_inventario  = 0 filas
+  No existe escritor real del Motor de Stock.
+
+================================================================================
+1. PRINCIPIO FUNDAMENTAL
+================================================================================
+
+APROBADO.
+
+Un PRODUCTO no representa automáticamente existencia física.
+Un ALMACÉN no crea automáticamente existencia física.
+
+Por tanto está PROHIBIDO crear stock_item_almacen por:
+  - creación de producto;
+  - creación de almacén;
+  - simple existencia de item.id_almacen_defecto;
+  - apertura de pantalla;
+  - consulta de stock;
+  - inventario automático.
+
+La primera fila de stock nace exclusivamente por una OPERACIÓN REAL DE STOCK.
+
+MVP de escritura:
+  STOCK INICIAL
+
+================================================================================
+2. STOCK FÍSICO
+================================================================================
+
+APROBADO.
+
+stock_fisico representa la existencia física real actual de un producto
+dentro de un almacén determinado.
+
+Ejemplo:
+  Producto RATON01 + Almacén CENTRAL + existencia 25
+  → stock_fisico = 25.00
+
+En el MVP de escritura, el campo de saldo que se afecta es stock_fisico.
+
+================================================================================
+3. PRIMERA FILA DE STOCK
+================================================================================
+
+APROBADO.
+
+La primera fila de stock_item_almacen se crea únicamente mediante una
+operación explícita de STOCK INICIAL.
+
+No se crea por alta de catálogo, preferencias de item ni lecturas.
+
+================================================================================
+4. OPERACIÓN CONCEPTUAL: STOCK INICIAL
+================================================================================
+
+APROBADO a nivel conceptual.
+
+Entradas mínimas:
+  - id_empresa
+  - id_item
+  - id_almacen
+  - cantidad
+  - fecha
+  - usuario
+
+Soporte requerido:
+  - referencia
+  - concepto
+  - identidad idempotente
+
+Los detalles exactos de DTO/API NO se definen ni implementan en esta fase.
+
+================================================================================
+5. CANTIDAD INICIAL
+================================================================================
+
+APROBADO PARA v1.
+
+  - cantidad > 0
+  - cantidad negativa: NO permitida en STOCK INICIAL
+  - el signo NO representa dirección
+
+La dirección futura del movimiento se determina por tipo_movimiento,
+no por el signo recibido.
+
+================================================================================
+6. CANTIDAD CERO
+================================================================================
+
+APROBADO PARA v1.
+
+STOCK INICIAL no crea filas con cantidad 0.
+Si no hay existencia física real, no es necesario crear stock_item_almacen.
+
+cantidad = 0 es INVÁLIDA para STOCK INICIAL.
+
+================================================================================
+7. PRECISIÓN NUMÉRICA
+================================================================================
+
+APROBADO PARA v1.
+
+Esquema actual:
+  movimiento_inventario.cantidad     NUMERIC(10,3)
+  stock_item_almacen.stock_fisico    NUMERIC(12,2)
+
+Regla del Motor v1:
+  aceptar como máximo 2 decimales.
+
+Válidos:   25 | 25.5 | 25.25
+Inválido:  25.257
+
+NO redondear silenciosamente.
+NO truncar silenciosamente.
+
+Si unidades de medida futuras requieren 3 o más decimales, se hará una
+evolución explícita de esquema/contrato.
+
+Compatibilidad con el esquema:
+  Aunque cantidad admite 3 decimales en BD, el contrato de aplicación
+  rechaza más de 2. Esto es compatible: la app es más estricta que el
+  tipo de columna.
+
+================================================================================
+8. TIPO DE MOVIMIENTO
+================================================================================
+
+APROBADO PARA MVP:
+
+  tipo_movimiento = INICIAL
+
+Convención futura prevista (NO implementable todavía):
+  INICIAL
+  ENTRADA
+  SALIDA
+  AJUSTE_POSITIVO
+  AJUSTE_NEGATIVO
+  TRANSFERENCIA
+
+Solo INICIAL está aprobado para la primera implementación.
+
+================================================================================
+9. MÓDULO DE ORIGEN
+================================================================================
+
+APROBADO PARA MVP:
+
+  modulo_origen = STOCK_INICIAL
+
+Propósito: identificar el flujo funcional que originó el movimiento.
+
+Convención futura prevista (NO implementable todavía):
+  STOCK_INICIAL
+  INVENTARIO
+  COMPRAS
+  VENTAS
+  TRANSFERENCIA
+  AJUSTE
+
+Solo STOCK_INICIAL pertenece al MVP actual.
+
+================================================================================
+10. STOCK RESERVADO
+================================================================================
+
+APROBADO PARA v1.
+
+No implementar reservas.
+Durante STOCK INICIAL:
+  stock_reservado = 0
+No calcularlo ni modificarlo con reglas inventadas.
+
+================================================================================
+11. STOCK VIRTUAL
+================================================================================
+
+APROBADO PARA v1.
+
+No implementar lógica de stock virtual.
+Dependerá de módulos futuros (compras, ventas, pedidos, producción).
+Durante STOCK INICIAL:
+  stock_virtual = 0
+
+================================================================================
+12. STOCK DISPONIBLE
+================================================================================
+
+APROBADO (conservador) PARA v1.
+
+No inventar todavía una fórmula funcional definitiva.
+Durante la inicialización se mantiene el default de BD:
+  stock_disponible DEFAULT 0
+
+NO asumir todavía:
+  stock_disponible = stock_fisico - stock_reservado
+
+hasta que exista contrato funcional específico.
+
+================================================================================
+13. STOCK ALERTA / STOCK DESEADO
+================================================================================
+
+APROBADO PARA v1.
+
+STOCK INICIAL NO modifica:
+  stock_alerta
+  stock_deseado
+
+NO copiar automáticamente valores desde item.
+Responsabilidades separadas.
+
+================================================================================
+14. COSTO UNITARIO
+================================================================================
+
+APROBADO PARA v1 (política provisional, no contable definitiva).
+
+Si item.precio_compra tiene valor:
+  costo_unitario = item.precio_compra
+Si item.precio_compra es NULL:
+  costo_unitario = 0.00
+
+NO implementar en esta fase:
+  FIFO, LIFO, PMP, costo promedio, asientos contables.
+
+Compatibilidad de esquema a cerrar antes del writer:
+  item.precio_compra            Numeric(18,6) nullable (modelo ItemPython)
+  movimiento_inventario.costo_unitario  NUMERIC(15,2) NOT NULL
+
+Si precio_compra aportara más de 2 decimales, NO se define aquí una
+política de redondeo. Esa regla debe cerrarse antes de implementar el
+escritor; esta fase no altera BD ni código.
+
+================================================================================
+15. COSTO TOTAL
+================================================================================
+
+APROBADO.
+
+  costo_total = cantidad × costo_unitario
+
+Cálculo con Decimal / NUMERIC.
+NO usar Float/Number para aritmética financiera crítica.
+
+================================================================================
+16. CONTABILIDAD
+================================================================================
+
+FUERA DEL MVP.
+
+STOCK INICIAL:
+  - NO crea asiento contable
+  - id_asiento_contable permanece NULL
+  - NO tocar Contabilidad
+
+================================================================================
+17. ITEM INVENTARIABLE
+================================================================================
+
+APROBADO.
+
+Nueva escritura de stock requiere:
+  item.inventariable = true
+
+Si inventariable = false → rechazar.
+La lectura histórica permanece independiente.
+
+================================================================================
+18. ITEM INACTIVO
+================================================================================
+
+APROBADO.
+
+Para NUEVAS escrituras:
+  item.estado = true
+
+Producto inactivo → NO puede recibir STOCK INICIAL.
+No afecta consultas históricas.
+
+================================================================================
+19. ALMACÉN INACTIVO
+================================================================================
+
+APROBADO.
+
+Para NUEVAS escrituras:
+  almacen.estado = true
+
+Almacén inactivo → NO puede recibir STOCK INICIAL.
+No afecta consultas históricas.
+
+================================================================================
+20. MULTIEMPRESA
+================================================================================
+
+APROBADO.
+
+Toda operación comprueba:
+  request.id_empresa = item.id_empresa = almacen.id_empresa
+
+Defensa en profundidad:
+  APLICACIÓN + BASE DE DATOS
+
+Constraints existentes (NO modificar en esta fase):
+  item: UNIQUE(id_empresa, id_item)
+  almacen: UNIQUE(id_empresa, id_almacen)
+  stock_item_almacen: FK(id_empresa, id_item) → item
+  stock_item_almacen: FK(id_empresa, id_almacen) → almacen
+
+================================================================================
+21. UNA SOLA FILA DE SALDO
+================================================================================
+
+APROBADO / CONFIRMADO POR BD.
+
+UNIQUE(id_item, id_almacen)
+→ solo una fila de stock por producto + almacén.
+
+La inicialización NO debe crear una segunda fila.
+
+================================================================================
+22. IDEMPOTENCIA
+================================================================================
+
+APROBADO A NIVEL ARQUITECTÓNICO; implementación técnica PENDIENTE.
+
+Repetir la misma operación NO puede aplicar nuevamente la cantidad.
+
+Identidad conceptual:
+  modulo_origen = STOCK_INICIAL
+  id_origen     = UUID de la operación
+
+Primera solicitud: procesar.
+Misma solicitud nuevamente: NO volver a aplicar.
+
+La estrategia técnica definitiva de idempotencia persistente
+(UNIQUE parcial/compuesta u otro mecanismo equivalente) debe cerrarse
+ANTES de implementar el writer.
+
+NO implementar en esta fase.
+NO modificar BD en esta fase.
+
+================================================================================
+23. CONCURRENCIA
+================================================================================
+
+APROBADO COMO REQUISITO; implementación PENDIENTE.
+
+El futuro writer debe proteger:
+  - primera fila simultánea
+  - doble solicitud
+  - actualización concurrente
+
+Evaluar:
+  TRANSACTION
+  SELECT FOR UPDATE
+  UNIQUE
+  protección idempotente persistida
+
+NO implementar en esta fase.
+
+================================================================================
+24. ATOMICIDAD
+================================================================================
+
+APROBADO (invariante fundamental).
+
+Saldo y movimiento forman una sola operación atómica.
+
+Secuencia conceptual:
+  BEGIN
+    validar empresa
+    validar producto
+    validar almacén
+    validar inventariable
+    validar estados
+    validar cantidad
+    validar idempotencia
+    crear/afectar stock_item_almacen
+    crear movimiento_inventario
+  COMMIT
+
+Si cualquier paso falla → ROLLBACK.
+
+Nunca puede quedar:
+  - saldo sin movimiento
+  - movimiento sin saldo
+
+================================================================================
+25. MOVIMIENTO OBLIGATORIO
+================================================================================
+
+APROBADO.
+
+Toda inicialización real de stock deja trazabilidad en
+movimiento_inventario.
+
+No permitir inicialización silenciosa mediante UPDATE directo.
+
+================================================================================
+26. CORRECCIONES
+================================================================================
+
+APROBADO.
+
+Un movimiento histórico NO se edita para corregir cantidades.
+
+Ejemplo:
+  INICIAL +25, existencia correcta 20
+  → NO cambiar INICIAL a 20
+  → futuro: AJUSTE_NEGATIVO 5
+
+Resultado esperado conceptual:
+  INICIAL             +25
+  AJUSTE_NEGATIVO      -5
+  -------------------------
+  STOCK                20
+
+Los ajustes NO se implementan en el MVP actual.
+
+================================================================================
+27. STOCK NEGATIVO
+================================================================================
+
+APROBADO PARA STOCK INICIAL:
+  NO permitido.
+
+Política general de stock negativo para SALIDAS futuras:
+  PENDIENTE DE FASE FUTURA.
+
+================================================================================
+28. ALMACÉN POR DEFECTO
+================================================================================
+
+APROBADO.
+
+item.id_almacen_defecto:
+  - NO crea stock
+  - NO inicializa automáticamente
+  - puede usarse después como ayuda UX
+  - nunca es evento de movimiento por sí solo
+
+================================================================================
+29. USUARIO / AUDITORÍA
+================================================================================
+
+APROBADO COMO REQUISITO; detalle técnico PENDIENTE DE CONFIRMACIÓN.
+
+La operación futura debe conservar la identidad del usuario ejecutor.
+Antes de implementar, revisar el patrón real existente:
+  JWT / X-User-Id / created_by / updated_by
+
+NO inventar un mecanismo nuevo en esta fase.
+
+================================================================================
+30. FECHA
+================================================================================
+
+APROBADO COMO REQUISITO; origen exacto PENDIENTE DE UI/API.
+
+STOCK INICIAL registra fecha_movimiento (fecha efectiva de la operación).
+
+Origen exacto a confirmar al diseñar UI/API:
+  - seleccionada por usuario, o
+  - fecha del sistema
+
+NO implementar todavía.
+
+================================================================================
+31. REFERENCIA Y CONCEPTO
+================================================================================
+
+APROBADO COMO SOPORTE REQUERIDO.
+
+La operación debe soportar:
+  referencia
+  concepto
+
+Ejemplo conceptual:
+  referencia = APERTURA-001
+  concepto   = Stock inicial
+
+La obligatoriedad exacta de referencia se cierra en el contrato del
+endpoint futuro. NO implementar todavía.
+
+================================================================================
+32. UBICACIÓN DEL ESCRITOR
+================================================================================
+
+APROBADO.
+
+Escritor único del Motor de Stock v1:
+  AlmacenPython
+
+AlmacenNestJs continúa principalmente con lecturas ya implementadas.
+
+NO crear un segundo escritor en:
+  InventarioPython
+  InventarioNestJs
+  ItemPython
+  ItemNestJs
+
+================================================================================
+33. INVENTARIOS, COMPRAS Y VENTAS
+================================================================================
+
+APROBADO.
+
+Inventarios NO es dueño del saldo.
+Representa conteos/cierres físicos y, en el futuro, podrá SOLICITAR
+ajustes al Motor de Stock.
+NO escribir directamente stock_item_almacen desde Inventarios.
+
+Cuando existan Compras, Ventas, Transferencias e Inventarios:
+  - NO modificarán el saldo directamente
+  - solicitarán una operación al Motor de Stock
+  - el Motor será el único responsable de saldo + movimiento
+
+================================================================================
+34. MVP APROBADO
+================================================================================
+
+Única operación de escritura del MVP:
+  STOCK INICIAL
+
+FUERA DEL MVP:
+  ENTRADA
+  SALIDA
+  TRANSFERENCIA
+  AJUSTE
+  RESERVAS
+  STOCK VIRTUAL
+  COMPRAS
+  VENTAS
+  INVENTARIO FÍSICO
+  CONTABILIDAD
+  CAMBIO MASIVO
+
+================================================================================
+35. EJEMPLO FUNCIONAL APROBADO
+================================================================================
+
+Entrada conceptual:
+  Empresa       = Empresa Test
+  Producto      = RATON01
+  Almacén       = CENTRAL
+  Cantidad      = 25.00
+  precio_compra = 8.50
+
+Resultado conceptual en UNA TRANSACCIÓN:
+
+stock_item_almacen:
+  stock_fisico      = 25.00
+  stock_reservado   = 0
+  stock_virtual     = 0
+  stock_disponible  = 0
+
+movimiento_inventario:
+  tipo_movimiento       = INICIAL
+  cantidad              = 25.00
+  costo_unitario        = 8.50
+  costo_total           = 212.50
+  modulo_origen         = STOCK_INICIAL
+  id_origen             = UUID de operación
+  id_asiento_contable   = NULL
+
+================================================================================
+36. BLOQUEANTES TÉCNICOS ANTES DEL WRITER
+================================================================================
+
+Antes de implementar el escritor real falta cerrar:
+
+  ESTRATEGIA DE IDEMPOTENCIA + CONCURRENCIA
+
+Específicamente:
+  - si (modulo_origen, id_origen) necesita UNIQUE parcial/compuesta;
+  - o qué mecanismo persistente equivalente se usará;
+  - cómo se protegen retries y race conditions;
+  - política exacta si precio_compra aporta más de 2 decimales frente a
+    costo_unitario NUMERIC(15,2).
+
+NO modificar la BD en esta fase.
+NO implementar el motor en esta fase.
+
+================================================================================
+37. SIGUIENTE FASE PROPUESTA
+================================================================================
+
+FASE 2B — AUDITORÍA TÉCNICA DE IDEMPOTENCIA Y CONCURRENCIA
+
+Objetivo:
+  definir exactamente cómo impedir:
+    - doble inicialización
+    - doble movimiento
+    - doble aplicación por retry
+    - race conditions
+
+ANTES de escribir el Motor.
+
+================================================================================
+38. RESUMEN DE ESTADO
+================================================================================
+
+DECISIONES CERRADAS EN ESTE CONTRATO:
+  - principio: producto/almacén no crean existencia
+  - stock_fisico = existencia física real actual
+  - primera fila solo por STOCK INICIAL
+  - cantidad > 0; cero y negativo inválidos en inicialización
+  - máximo 2 decimales; sin redondeo/truncado silencioso
+  - tipo_movimiento = INICIAL (MVP)
+  - modulo_origen = STOCK_INICIAL (MVP)
+  - reservado/virtual = 0; disponible = default BD (0)
+  - no tocar alerta/deseado
+  - costo_unitario desde precio_compra o 0.00
+  - costo_total = cantidad × costo_unitario (Decimal)
+  - sin contabilidad
+  - inventariable=true; item/almacén activos
+  - multiempresa app + BD
+  - una sola fila por item+almacén
+  - atomicidad saldo+movimiento
+  - correcciones por ajuste futuro, no edición histórica
+  - escritor único: AlmacenPython
+  - MVP = solo STOCK INICIAL
+
+DECISIONES TODAVÍA PENDIENTES (no bloquean este documento):
+  - estrategia persistida de idempotencia/concurrencia
+  - origen exacto de fecha_movimiento (UI vs sistema)
+  - obligatoriedad exacta de referencia en el endpoint
+  - mapeo exacto JWT / X-User-Id → created_by / updated_by
+  - regla de escala precio_compra(18,6) → costo_unitario(15,2)
+  - política de stock negativo para salidas futuras
+  - fórmulas futuras de disponible/virtual/reservas
+  - catálogo completo de tipos/módulos posteriores a INICIAL
+
+MVP APROBADO:
+  STOCK INICIAL
+
+ESCRITOR ÚNICO:
+  AlmacenPython
+
+PRÓXIMA FASE:
+  FASE 2B — Auditoría técnica de idempotencia y concurrencia
+
+================================================================================
+39. CIERRE FASE 2A
+================================================================================
+
+Única escritura de esta tarea:
+  docs/auditoria/CONTRATO_ESCRITURA_MOTOR_STOCK_V1_APROBADO.txt
+
+CAMBIOS DE CÓDIGO: NINGUNO
+CAMBIOS BD: NINGUNO
+DOCKER: NO TOCADO
+IMPLEMENTACIÓN DEL MOTOR: NO REALIZADA

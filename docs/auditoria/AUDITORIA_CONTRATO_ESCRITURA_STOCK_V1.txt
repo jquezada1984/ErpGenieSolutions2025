@@ -1,0 +1,588 @@
+AUDITORÍA TÉCNICA — CONTRATO DE ESCRITURA DEL MOTOR DE STOCK v1
+Fecha: 2026-08-16
+Alcance: investigación, comparación y diseño exclusivamente read-only.
+
+================================================================================
+0. GARANTÍAS DE ESTA AUDITORÍA
+================================================================================
+
+No se implementó código ni se modificaron rutas, servicios, repositorios,
+frontend, Gateway, Docker, migraciones o constraints.
+
+No se ejecutó INSERT, UPDATE, DELETE, UPSERT, ALTER, CREATE TABLE, CREATE INDEX
+ni ninguna mutation contra la base de datos. La única escritura de esta tarea es
+este archivo.
+
+Antes de investigar se verificó el working tree. Existían cambios previos en
+docker-compose.yml, frontReact/src/routes/Router.tsx, gateway-api, package-lock,
+AlmacenNestJs, AlmacenPython, migraciones de menú y auditorías anteriores. No se
+revirtió, formateó, movió, eliminó, corrigió ni preparó ninguno.
+
+================================================================================
+1. CONCLUSIÓN EJECUTIVA
+================================================================================
+
+RESPUESTA A LA MISIÓN CENTRAL
+
+La primera fila real de stock NO debe nacer al crear un producto, al elegir su
+almacén por defecto ni al crear un almacén. La recomendación técnica,
+CONDICIONADA a decisiones de negocio aún pendientes, es que nazca únicamente
+por una operación explícita y autorizada de inicialización de stock para el par:
+
+  id_empresa + id_item + id_almacen
+
+La operación debe crear, dentro de una única transacción:
+
+  1. una sola fila en stock_item_almacen para el par; y
+  2. un único movimiento_inventario de trazabilidad asociado.
+
+No existe escritor actual que contradiga esta recomendación. Al contrario, el
+contrato previo y las auditorías existentes sitúan stock inicial, entradas,
+salidas, ajustes, cierre y transferencias detrás de un motor único
+transaccional.
+
+Esta conclusión NO autoriza implementar todavía. La escritura permanece
+BLOQUEADA hasta resolver, como mínimo:
+
+  - semántica de negocio de stock_fisico;
+  - escala aceptada para cantidad (movimiento 10,3; saldo 12,2);
+  - fuente y regla de costo inicial;
+  - catálogo oficial de tipo_movimiento y modulo_origen;
+  - identidad idempotente persistida y su protección frente a concurrencia;
+  - política de cantidad cero, negativa y reversión;
+  - política de item/almacén inactivos y fecha efectiva.
+
+================================================================================
+2. FUENTES Y PRECEDENCIA DE EVIDENCIA
+================================================================================
+
+Se revisaron, entre otros:
+
+  - docs/auditoria/CONTRATO_MOTOR_STOCK_V1.txt
+  - docs/auditoria/AUDITORIA_METADATA_MOTOR_STOCK_V1.txt
+  - docs/auditoria/AUDITORIA_STOCK_ITEM_ALMACEN_FLUJO.txt
+  - docs/auditoria/AUDITORIA_MOVIMIENTOS_INVENTARIO.txt
+  - docs/auditoria/AUDITORIA_FLUJO_INVENTARIOS_STOCK_MOVIMIENTOS.txt
+  - AlmacenPython, AlmacenNestJs, InventarioPython, InventarioNestJs,
+    ItemPython, ItemNestJs y frontReact
+  - BancoCajaPython como referencia técnica de transacciones saldo+movimiento.
+
+Hay una diferencia temporal importante: AUDITORIA_METADATA_MOTOR_STOCK_V1.txt
+documenta FKs simples y ausencia de FK cruzada de empresa. El contexto confirmado
+para esta auditoría declara que posteriormente se fortaleció la BD con:
+
+  item: UNIQUE(id_empresa, id_item)
+  almacen: UNIQUE(id_empresa, id_almacen)
+  stock_item_almacen:
+    FK(id_empresa, id_item) -> item(id_empresa, id_item)
+    FK(id_empresa, id_almacen) -> almacen(id_empresa, id_almacen)
+
+Para este contrato prevalece la metadata actual confirmada por el usuario. La
+auditoría anterior debe considerarse histórica en ese punto y no evidencia de
+que deban modificarse las constraints actuales.
+
+================================================================================
+3. HALLAZGOS: ESCRITORES Y FLUJOS EXISTENTES
+================================================================================
+
+stock_item_almacen
+  - No se encontró INSERT, UPDATE, save, create, adjust ni operación de negocio
+    que escriba la tabla.
+  - AlmacenNestJs contiene solo entidades/queries read-only de filas existentes:
+    stockItemAlmacen y stockItemsAlmacenListado.
+  - La pantalla StockActualAlmacen consume exclusivamente ese listado.
+
+movimiento_inventario
+  - No se encontró escritor en AlmacenPython, AlmacenNestJs, InventarioPython,
+    InventarioNestJs, ItemPython, ItemNestJs, Gateway o frontend.
+  - AlmacenNestJs ofrece movimientosInventarioListado de solo lectura.
+  - No se encontró convención real de signo para cantidad, ni valores históricos
+    de tipo_movimiento o modulo_origen: ambas tablas están actualmente vacías.
+
+Inventario
+  - NuevoInventario.tsx contiene TODO FASE 3 para detalle, consultar
+    stock_item_almacen y calcular diferencia; y TODO FASE 4 para cierre.
+  - El inventario actual es cabecera; no realiza conteo, snapshot, cierre,
+    ajuste ni escritura de stock/movimientos.
+
+Item y almacén
+  - ItemPython persiste inventariable e id_almacen_defecto como datos maestros.
+  - Crear/editar item no referencia stock_item_almacen ni movimiento_inventario.
+  - id_almacen_defecto es una preferencia; no existe regla que la convierta en
+    una relación de stock ni en una inicialización.
+  - AlmacenPython solo escribe la cabecera de almacén.
+
+Compras, ventas, recepción, despacho, reservas y transferencias de stock
+  - No se encontró flujo funcional que los implemente.
+  - transferencia_bancaria y movimiento_bancario pertenecen a otro dominio:
+    sirven solo como referencia técnica, no como catálogo de inventario.
+
+Resultado: no hay escritor parcial que deba conservarse, migrarse o completar.
+
+================================================================================
+4. INTENCIÓN ARQUITECTÓNICA YA DOCUMENTADA
+================================================================================
+
+La evidencia documental es consistente:
+
+  - CONTRATO_MOTOR_STOCK_V1 propone un motor único del dominio Almacén/Stock.
+  - AUDITORIA_STOCK_ITEM_ALMACEN_FLUJO ubica stock inicial, entradas, salidas,
+    reservas, transferencias y cierre como pendientes.
+  - AUDITORIA_FLUJO_INVENTARIOS_STOCK_MOVIMIENTOS prohíbe que el inventario
+    cierre o inserte movimientos antes de que exista un motor transaccional.
+  - AUDITORIA_MOVIMIENTOS_INVENTARIO concluye que no debe insertarse movimiento
+    sin actualizar saldo en la misma transacción.
+
+La recomendación sigue siendo ubicar al único escritor en AlmacenPython, como
+servicio interno del dominio Almacenes/Stock. Es coherente con el patrón actual:
+
+  lectura:  AlmacenNestJs + GraphQL
+  escritura: servicio Python + REST/Gateway cuando se autorice
+
+InventarioPython no debe duplicar la lógica de saldo: un futuro cierre deberá
+solicitar una operación al motor. No se justifica crear un microservicio nuevo
+antes de que exista una necesidad de separación demostrada.
+
+================================================================================
+5. EVALUACIÓN DE CÓMO NACE LA PRIMERA FILA
+================================================================================
+
+A. Fila con cero al crear producto
+  Trazabilidad: insuficiente; crear un catálogo no prueba existencia física.
+  Idempotencia: exige coordinar item y cada almacén presente/futuro.
+  Multiempresa: factible, pero multiplica relaciones sin actividad.
+  UX: aparentemente simple, pero oculta que aún no hubo inventario.
+  Riesgo: filas cero masivas y confusión entre catálogo y stock.
+  Evidencia: no existe flujo actual que lo haga.
+  Resultado: NO RECOMENDADO.
+
+B. Fila con cero al seleccionar almacén por defecto
+  Trazabilidad: insuficiente; es configuración, no evento de existencias.
+  Idempotencia: depende de cambios repetidos de preferencia.
+  UX: convierte una ayuda de selección en una escritura no visible.
+  Riesgo: relación artificial y ambigua si cambia el almacén por defecto.
+  Evidencia: ninguna regla relaciona id_almacen_defecto con stock.
+  Resultado: NO RECOMENDADO.
+
+C. Fila al primer movimiento efectivo genérico
+  Trazabilidad: buena si todo movimiento pasa por el motor.
+  Idempotencia: posible, pero no resuelve cuál es el primer hecho autorizado.
+  Inventario físico/compras: quedarían esperando reglas que todavía no existen.
+  Riesgo: una entrada, ajuste o transferencia podría intentar ser el primero
+  sin contrato de costo, signo o tipo.
+  Resultado: RECOMENDABLE COMO REGLA EVOLUTIVA posterior, pero no define por sí
+  sola el primer caso de v1.
+
+D. Operación explícita de stock inicial
+  Trazabilidad: máxima; el origen y el usuario quedan documentados.
+  Idempotencia: puede exigir identidad de operación antes de afectar saldo.
+  Multiempresa: valida el par dentro de la operación.
+  UX: explícita y autorizable; no transforma altas de catálogo en inventario.
+  Inventario físico/compras futuras: deja una base clara sin apropiarse de sus
+  reglas respectivas.
+  Riesgo: requiere resolver bloqueantes antes de construirse.
+  Resultado: RECOMENDACIÓN TÉCNICA CONDICIONADA PARA EL MVP.
+
+E. Otra operación encontrada en el repo
+  No existe.
+
+DECISIÓN PROPUESTA, NO OFICIAL:
+  La primera fila debe ser consecuencia de INICIALIZAR_STOCK explícita y no de
+  una creación automática. Después, operaciones de negocio aprobadas podrán
+  crear la fila solo cuando su propio contrato defina que pueden ser el primer
+  evento y preserve las mismas invariantes.
+
+================================================================================
+6. SEMÁNTICA DE CAMPOS DE SALDO
+================================================================================
+
+stock_fisico
+  La tabla lo admite técnicamente como NUMERIC(12,2) NOT NULL DEFAULT 0 y las
+  pantallas lo etiquetan como “Stock físico”. No existe fórmula, comentario de
+  backend ni flujo que demuestre que sea el saldo operativo, una cantidad
+  contada, o el campo que debe alimentar inventario_detalle.stock_sistema.
+  ESTADO: DECISIÓN DE NEGOCIO PENDIENTE.
+
+stock_reservado
+  No existe dominio de reservas, pedidos o apartados que lo lea/modifique.
+  Para v1 debe quedar en su default 0 y el motor no debe modificarlo.
+  ESTADO: FUERA DE v1, salvo evidencia futura.
+
+stock_virtual
+  No se encontró fórmula real ni productor de documentos pendientes.
+  El motor v1 no debe calcularlo ni sobrescribirlo por intuición.
+  ESTADO: FUERA DE v1 / DECISIÓN PENDIENTE.
+
+stock_disponible
+  No se encontró fórmula. En particular, no hay evidencia para afirmar
+  stock_fisico - stock_reservado.
+  El motor v1 no debe calcularlo ni modificarlo fuera de su default.
+  ESTADO: FUERA DE v1 / DECISIÓN PENDIENTE.
+
+stock_alerta y stock_deseado
+  Item ya tiene stock_minimo_alerta y stock_deseado como atributos maestros.
+  No hay evidencia de que los campos homónimos por almacén deban copiarse,
+  heredarse o actuar como override. En la inicialización deben quedar NULL y no
+  copiarse desde item hasta una regla aprobada.
+  ESTADO: FUERA DE v1.
+
+================================================================================
+7. CONTRATO CONCEPTUAL: INICIALIZAR_STOCK
+================================================================================
+
+Este nombre es descriptivo, no nombre final de endpoint, ruta, mutation ni
+servicio.
+
+OBLIGATORIO POR CONTRATO PROPUESTO
+  - id_empresa de contexto confiable;
+  - id_item;
+  - id_almacen;
+  - cantidad expresada como Decimal, nunca float;
+  - fecha efectiva;
+  - usuario auditor autenticado;
+  - identidad idempotente;
+  - costo_unitario y su regla de cálculo/validación aprobada;
+  - referencia o documento de apertura si negocio la exige;
+  - clase/origen oficial de la operación antes de persistirla.
+
+OPCIONAL EN LA ESTRUCTURA ACTUAL
+  - concepto;
+  - id_lote_serie (fuera de MVP);
+  - id_asiento_contable (fuera de MVP);
+  - id_almacen_destino (fuera de MVP).
+
+PENDIENTE DE DECISIÓN
+  - nombre y valores oficiales de tipo_movimiento/modulo_origen;
+  - si referencia es obligatoria de negocio;
+  - si concepto es obligatorio u opcional;
+  - si fecha puede ser elegida, debe ser fecha del sistema o del documento;
+  - política de costo, cero y negativo.
+
+El resultado conceptual debe incluir:
+  - identificación del saldo resultante;
+  - identificación del movimiento creado;
+  - valores de saldo que el contrato autorice exponer;
+  - estado: aplicado, repetición idempotente o conflicto;
+  - nunca una segunda aplicación silenciosa de cantidad.
+
+================================================================================
+8. CANTIDAD, COSTO, TIPO Y ORIGEN
+================================================================================
+
+PRECISIÓN
+  movimiento_inventario.cantidad es NUMERIC(10,3).
+  stock_fisico es NUMERIC(12,2).
+
+Una cantidad con tres decimales puede no caber exactamente en el saldo. Se
+evaluaron:
+  A. Rechazar más de dos decimales: conserva igualdad exacta saldo/movimiento y
+     es el menor riesgo para un MVP, pero limita unidades fraccionarias.
+  B. Redondear: permite ingreso, pero altera una cantidad solicitada; exige
+     norma de redondeo, trazabilidad y regla para costo_total.
+  C. Truncar: también altera cantidad y sesga el saldo; no hay respaldo.
+  D. Cambiar el esquema: podría alinear escalas, pero está fuera de esta tarea y
+     exige decisión de compatibilidad.
+
+ESTADO: decisión técnica y de negocio PENDIENTE. Hasta resolverla no debe
+persistirse ningún movimiento ni saldo de inicialización.
+
+COSTOS
+  movimiento_inventario exige costo_unitario y costo_total, ambos NUMERIC(15,2)
+  NOT NULL y sin default. Opciones posibles:
+  A. costo 0: técnicamente válido, pero podría falsear valorización;
+  B. precio_compra de item: no hay evidencia de que sea costo inventariable ni
+     de que exista un precio aplicable para este fin;
+  C. costo informado por usuario autorizado: preserva valor de apertura, pero
+     exige validación y UX;
+  D. costo promedio: requiere historial/regla que no existe aún.
+
+ESTADO: decisión de negocio/contabilidad PENDIENTE. costo_total debe obedecer
+una regla Decimal explícita y no float.
+
+TIPO DE MOVIMIENTO
+  No hay catálogo, CHECK, enum ni valores históricos. INICIAL, ENTRADA, SALIDA,
+  AJUSTE_POSITIVO, AJUSTE_NEGATIVO y TRANSFERENCIA son opciones conceptuales,
+  no valores oficiales. Banco usa valores de otro dominio y no son evidencia.
+  ESTADO: PENDIENTE.
+
+MÓDULO DE ORIGEN
+  No existe uso de modulo_origen ni id_origen en código de inventario. Valores
+  como STOCK_INICIAL, INVENTARIO, COMPRAS, VENTAS, TRANSFERENCIA y AJUSTE son
+  conceptuales, no oficiales.
+  ESTADO: PENDIENTE.
+
+================================================================================
+9. IDEMPOTENCIA Y CONCURRENCIA
+================================================================================
+
+Hechos confirmados:
+  - UNIQUE(id_item, id_almacen) impide dos filas de saldo para el mismo par.
+  - No impide aplicar dos veces una cantidad sobre la misma fila.
+  - movimiento_inventario tiene modulo_origen e id_origen nullable, sin UNIQUE
+    confirmado sobre ellos y sin catálogo o uso actual.
+
+Estrategia conceptual requerida:
+  1. Toda solicitud lleva una identidad verificable de origen:
+       modulo_origen + id_origen
+     o una clave idempotente explícita persistida.
+  2. Antes de alterar saldo, buscar una operación previa con la identidad y el
+     mismo contexto empresa/item/almacén.
+  3. Si existe y el payload efectivo coincide, devolver resultado idempotente.
+  4. Si existe y difiere, rechazarlo como conflicto.
+  5. Una búsqueda sin constraint única NO elimina carreras entre solicitudes.
+
+Sin ALTER TABLE, movimiento_inventario podría usarse para una comprobación
+aplicativa de modulo_origen+id_origen, pero no es una garantía fuerte frente a
+dos transacciones simultáneas. No se debe declarar idempotencia garantizada
+mientras no se decida una protección persistida/serializable compatible.
+
+Secuencia transaccional conceptual:
+
+  BEGIN
+    validar identidad, empresa, autorización, item, almacén y payload
+    consultar operación idempotente existente
+    localizar saldo del par con SELECT ... FOR UPDATE si existe
+    si no existe:
+      intentar insertar una sola fila de saldo protegida por UNIQUE
+      ante violación UNIQUE, releer y bloquear la fila
+    decidir repetición idempotente o conflicto
+    crear movimiento y aplicar saldo autorizado
+    registrar auditoría y fechas
+  COMMIT
+
+  ante cualquier error: ROLLBACK
+
+Para el caso “primera fila”, dos inicializaciones simultáneas no pueden ambas
+aplicar cantidad. Una crea la fila; la otra debe releer/bloquear y terminar como
+repetición idempotente solo si representa exactamente la misma operación, o
+como conflicto si es una inicialización distinta. Nunca debe transformarse una
+segunda inicialización en suma automática.
+
+El orden INSERT saldo → INSERT movimiento o INSERT movimiento → INSERT saldo no
+es relevante si ambos participan en la misma transacción y cualquier fallo hace
+rollback completo. El orden de bloqueo y la identidad idempotente sí importan.
+
+================================================================================
+10. VALIDACIONES DE DOMINIO PROPUESTAS
+================================================================================
+
+MULTIEMPRESA
+  La aplicación debe validar dentro de la transacción:
+
+    operación.id_empresa = item.id_empresa = almacen.id_empresa
+
+  La BD ahora refuerza la relación mediante FKs compuestas a item y almacén.
+  Esto es defensa en profundidad: las constraints no sustituyen validación de
+  contexto/autorización de la aplicación, y la aplicación no sustituye la BD.
+
+ITEM INVENTARIABLE
+  Item tiene inventariable y el frontend lo alinea con producto/servicio:
+  servicios se envían con inventariable=false. Esa es evidencia suficiente para
+  proponer que la futura operación rechace inventariable=false, pues un servicio
+  no debe iniciar existencias. Aun así, debe formalizarse como regla de negocio
+  antes de implementación.
+  ESTADO: PROPUESTA FUERTE PENDIENTE DE APROBACIÓN.
+
+ITEM Y ALMACÉN INACTIVOS
+  Los patrones de BancoCajaPython rechazan cuentas inactivas para nuevas
+  operaciones. No existe regla equivalente de stock. Para preservar historial,
+  lectura histórica no debe ocultarse por esta regla; para escritura nueva se
+  propone rechazar item.estado=false o almacen.estado=false.
+  ESTADO: PROPUESTA COMPATIBLE, PENDIENTE DE APROBACIÓN.
+
+ALMACÉN POR DEFECTO
+  No debe seleccionarse automáticamente. id_almacen_defecto es preferencia
+  del maestro item y no evidencia de existencia, autorización ni inicialización.
+  El request debe identificar explícitamente el almacén.
+
+CERO Y NEGATIVO
+  Cero: técnicamente posible por defaults. Permitirlo podría registrar una
+  apertura explícita sin existencia; rechazarlo evita filas sin efecto y
+  conserva “fila = actividad positiva”. No hay evidencia para elegir.
+  Negativo: no hay CHECK ni regla de negocio. Para una inicialización negativa
+  normalmente no hay sentido sin una política de corrección/deuda aprobada,
+  pero prohibirlo como regla general debe decidirlo negocio.
+  ESTADO: ambos PENDIENTES.
+
+FECHA, REFERENCIA Y CONCEPTO
+  fecha_movimiento es DATE NOT NULL. No hay regla existente que decida entre
+  fecha sistema, fecha seleccionada o fecha efectiva del documento.
+  referencia y concepto son nullable en BD; para apertura, exigir al menos una
+  referencia/documento mejora auditoría, pero no hay obligación actual.
+  ESTADO: PENDIENTE. No fijar códigos HTTP.
+
+AUDITORÍA DE USUARIO
+  AlmacenPython obtiene X-Company-Id y X-User-Id en _ctx_empresa_user().
+  BancoCajaPython usa user_id para created_by/updated_by cuando las tablas lo
+  permiten. stock_item_almacen tiene created_by/updated_by; movimiento tiene
+  updated_by, pero no created_by en la metadata actual.
+  Propuesta: obtener identidad de contexto autenticado/gateway, no confiar en
+  un usuario libre del body; asignar stock.created_by y stock.updated_by al
+  creador, y movimiento.updated_by al mismo usuario.
+  ESTADO: patrón compatible; el origen confiable final de headers/JWT debe
+  confirmarse con seguridad antes de exponer endpoint.
+
+================================================================================
+11. MOVIMIENTO QUE ACOMPAÑA LA INICIALIZACIÓN
+================================================================================
+
+La inicialización debe crear un movimiento, porque crear solo saldo deja una
+existencia sin trazabilidad; crear solo movimiento deja historial sin saldo.
+
+Mínimos disponibles de movimiento:
+  id_empresa, id_item, tipo_movimiento, cantidad, costo_unitario, costo_total,
+  fecha_movimiento e id_almacen por contrato de dominio.
+
+El movimiento debe tener:
+  - el almacén de la fila inicial;
+  - estado=true por default, sin semántica adicional inventada;
+  - modulo_origen/id_origen o identidad alternativa aprobada para idempotencia;
+  - referencia/concepto según decisión de auditoría;
+  - sin id_asiento_contable en v1;
+  - sin almacén destino ni lote/serie en v1.
+
+No se oficializan aún:
+  - el literal de tipo_movimiento;
+  - el literal de modulo_origen;
+  - el signo de cantidad;
+  - la política de costo.
+
+Corrección/reversión:
+  Nunca UPDATE manual destructivo sobre saldo o movimiento. BancoCajaPython
+  muestra reversas mediante nueva línea, pero movimiento_inventario no tiene
+  columna confirmada equivalente a id_movimiento_reversado. Por ello hay dos
+  opciones futuras: operación de ajuste posterior o esquema/contrato de reversa
+  trazable. No se puede adoptar literalmente el modelo bancario.
+  ESTADO: PENDIENTE Y BLOQUEANTE PARA UNA OPERACIÓN DE APERTURA OPERATIVA.
+
+================================================================================
+12. PATRÓN BANCOCAJAS: QUÉ SÍ Y QUÉ NO SE REUTILIZA
+================================================================================
+
+BancoCajaPython confirma una práctica útil:
+  - Decimal en vez de float;
+  - validación de entidad activa y empresa;
+  - creación de movimiento y modificación de saldo antes de un solo commit;
+  - reversa mediante líneas nuevas;
+  - asignación de usuario auditor.
+
+No confirma para inventario:
+  - tipos de movimiento;
+  - signo de cantidad;
+  - reglas de costo;
+  - idempotencia;
+  - SELECT FOR UPDATE explícito;
+  - modelo de reversa, ya que las tablas son distintas.
+
+Por tanto es referencia de atomicidad, no código para copiar ni contrato de
+inventario.
+
+================================================================================
+13. SEGURIDAD Y LÍMITES DEL MVP
+================================================================================
+
+La inicialización futura no debe ser un endpoint libre de “cambio de stock”.
+Debe limitarse a usuarios/roles explícitamente autorizados y, cuando exista,
+a callers internos de módulos aprobados. El frontend no debe poder enviar un
+ajuste arbitrario sin validación de dominio, empresa y autorización.
+
+MVP MÁS PEQUEÑO PROPUESTO, SOLO DESPUÉS DE CERRAR BLOQUEANTES:
+  - una operación interna explícita de inicialización por item+almacén;
+  - cantidad/costo/fecha/origen con reglas aprobadas;
+  - validación de empresa, item inventariable y estados si se aprueba;
+  - una fila de saldo y un movimiento en una transacción;
+  - idempotencia resistente a reintentos;
+  - sin reservas, virtual, disponible, transferencias, compras, ventas,
+    inventario físico, lotes/series, contabilidad ni cambio masivo.
+
+No debe modificar:
+  - InventarioPython/InventarioNestJs (hasta contrato de snapshot/cierre);
+  - contabilidad y asientos;
+  - queries y pantallas read-only de movimientos/StockActual;
+  - menú;
+  - constraints o esquema de BD existente;
+  - mocks de ProductosStocks como fuente de negocio.
+
+Previsión mínima de archivos para una futura implementación aprobada:
+  - AlmacenPython: modelo/repository transaccional, servicio interno, schema y
+    ruta controlada, si se decide exponer REST;
+  - gateway-api: proxy/seguridad únicamente si se expone la operación;
+  - frontReact: pantalla/acción autorizada únicamente después de prueba backend.
+
+================================================================================
+14. ORDEN PROPUESTO DE IMPLEMENTACIÓN FUTURA
+================================================================================
+
+FASE 2A — Decisiones y contrato cerrado
+  Resolver bloqueantes, literals, precisión, costo, idempotencia y reversión.
+
+FASE 2B — Preparación aislada del writer
+  Modelos/repository de AlmacenPython y transacción sin exponer endpoint público.
+
+FASE 2C — Servicio interno de inicialización
+  Validaciones, Decimal, empresa, lock, unique-race e idempotencia.
+
+FASE 2D — Pruebas backend directas
+  Primera fila, repetición igual, repetición diferente, empresas cruzadas,
+  concurrencia, rollback, costos y escalas.
+
+FASE 2E — Exposición controlada
+  Gateway/REST solo tras seguridad y contrato de error acordado.
+
+FASE 2F — Frontend autorizado
+  Interfaz mínima para inicialización, sin ajuste libre.
+
+================================================================================
+15. CRITERIOS DE ACEPTACIÓN FUTUROS
+================================================================================
+
+Una futura inicialización solo será correcta si:
+  - crea como máximo una fila por (id_item, id_almacen);
+  - valida empresa en aplicación y se apoya en las FKs compuestas existentes;
+  - no utiliza float;
+  - respeta una política aprobada de escala/cantidad/costo;
+  - crea saldo y movimiento en una única transacción o ninguno;
+  - un reintento no duplica cantidad;
+  - una inicialización distinta sobre saldo existente termina en conflicto;
+  - no toca reservado, virtual o disponible sin fórmula aprobada;
+  - no crea asiento contable;
+  - no modifica Inventarios;
+  - no permite UPDATE manual destructivo;
+  - mantiene la trazabilidad de usuario, fecha y origen acordados.
+
+================================================================================
+16. DECISIONES BLOQUEANTES
+================================================================================
+
+| Decisión | Estado | Impacto | Responsable |
+|---|---|---|---|
+| Semántica de stock_fisico | Pendiente | Define el saldo que cambia la apertura | Negocio + Arquitectura |
+| Primera fila por inicialización explícita | Propuesta condicionada | MVP y UX | Negocio + Arquitectura |
+| Cantidad cero | Pendiente | Filas sin existencia/operación | Negocio |
+| Cantidad negativa | Pendiente | Apertura, ajustes y saldo futuro | Negocio |
+| Precisión 10,3 vs 12,2 | Pendiente | Igualdad saldo/movimiento | Arquitectura + Negocio |
+| Costo inicial y costo_total | Pendiente | Valorización y NOT NULL de movimiento | Negocio + Contabilidad |
+| tipo_movimiento oficial | Pendiente | Trazabilidad y dirección | Arquitectura + Negocio |
+| modulo_origen / id_origen oficial | Pendiente | Trazabilidad e idempotencia | Arquitectura + Negocio |
+| Idempotencia persistida | Bloqueante técnico | Reintentos y carrera concurrente | Arquitectura + Backend |
+| Item inventariable=false | Propuesta fuerte pendiente | Evitar stock de servicios | Negocio |
+| Item/almacén inactivos | Propuesta pendiente | Nuevas escrituras vs historial | Negocio |
+| Fecha efectiva | Pendiente | Auditoría temporal | Operaciones + Negocio |
+| Referencia/concepto | Pendiente | Auditabilidad de apertura | Operaciones + Negocio |
+| Reversión/corrección | Pendiente | Corrección sin UPDATE destructivo | Arquitectura + Negocio |
+
+================================================================================
+17. CIERRE
+================================================================================
+
+La primera fila real de stock debe nacer, si se aprueba el MVP propuesto, por
+una inicialización explícita, autorizada, idempotente y transaccional. Debe
+acompañarse de un movimiento_inventario de apertura con valores oficiales aún
+pendientes para tipo, origen, cantidad y costo.
+
+No hay evidencia que autorice automatizar filas cero al crear producto, asignar
+almacén por defecto o crear almacén. Tampoco existe evidencia que permita
+definir hoy fórmulas de reservado, virtual o disponible.
+
+Esta auditoría no habilita escritura hasta que se cierren los bloqueantes de la
+sección 16.

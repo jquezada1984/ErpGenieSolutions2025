@@ -1,0 +1,742 @@
+AUDITORÍA TÉCNICA PREVIA AL WRITER — STOCK INICIAL EN AlmacenPython
+Fecha: 2026-08-16
+Fase: 2C — Solo auditoría y diseño
+Estado: no implementado.
+
+================================================================================
+0. ALCANCE Y PROTECCIÓN DEL REPOSITORIO
+================================================================================
+
+Esta auditoría es estática y read-only. No se ejecutaron INSERT, UPDATE, DELETE,
+UPSERT, DDL, pruebas de escritura ni operaciones Docker.
+
+No se modificó código funcional, BD, Gateway, frontend, Docker ni servicios.
+La única escritura de esta fase es este archivo:
+
+  docs/auditoria/AUDITORIA_WRITER_STOCK_INICIAL_ALMACEN_PYTHON.txt
+
+Los cambios ya presentes en docker-compose.yml, frontReact, gateway-api,
+package-lock, AlmacenNestJs, AlmacenPython, menú y auditorías son PREEXISTENTES
+y no fueron modificados, revertidos, formateados, movidos, borrados ni stageados.
+
+================================================================================
+1. FUENTES Y REGLAS VIGENTES
+================================================================================
+
+Fuentes leídas:
+  - CONTRATO_ESCRITURA_MOTOR_STOCK_V1_APROBADO.txt
+  - AUDITORIA_IDEMPOTENCIA_CONCURRENCIA_STOCK_V1.txt
+  - código actual de AlmacenPython y módulos Python de referencia.
+
+[APROBADO EN 2A]
+  - MVP: STOCK INICIAL.
+  - Escritor único futuro: AlmacenPython.
+  - Primera fila solo por operación real STOCK INICIAL.
+  - stock_fisico representa existencia física real actual.
+  - tipo_movimiento='INICIAL'.
+  - modulo_origen='STOCK_INICIAL'.
+  - cantidad positiva, no cero, máximo dos decimales.
+  - stock_reservado=0 y stock_virtual=0; stock_disponible conserva default 0.
+  - saldo y movimiento deben ser atómicos.
+  - item inventariable y activo; almacén activo; pertenencia multiempresa.
+
+[CONFIRMADO POR CONTEXTO ACTUAL DE BD]
+  - uq_mov_inv_stock_inicial_idempotencia ya existe en movimiento_inventario.
+  - Su unicidad aplica a (id_empresa, modulo_origen, id_origen) cuando:
+      modulo_origen='STOCK_INICIAL'
+      tipo_movimiento='INICIAL'
+      id_origen IS NOT NULL.
+  - UNIQUE(id_item,id_almacen) ya existe en stock_item_almacen.
+  - FKs compuestas multiempresa en stock_item_almacen ya están aplicadas.
+
+[DESCARTADO PARA ESTE MVP]
+  - stock_operation.
+  - tablas auxiliares de idempotencia.
+  - nuevos microservicios.
+  - rediseñar tablas existentes.
+
+La recomendación de tabla stock_operation incluida como propuesta no aprobada en
+la auditoría 2B queda descartada explícitamente para este MVP. Esta 2C utiliza
+solo stock_item_almacen y movimiento_inventario como tablas del motor.
+
+================================================================================
+2. HECHOS VS RECOMENDACIONES
+================================================================================
+
+[CONFIRMADO EN CÓDIGO]
+  - AlmacenPython es Flask + Flask-SQLAlchemy.
+  - requirements.txt declara SQLAlchemy 2.0.48 y psycopg2-binary 2.9.11.
+  - Config.SQLALCHEMY_DATABASE_URI obtiene DATABASE_URL.
+  - utils/db.py declara una única instancia db = SQLAlchemy().
+  - AlmacenPython usa db.session.add(), db.session.commit() y rollback ante
+    excepción en su repository.
+  - AlmacenPython maneja ValidationError, IntegrityError y SQLAlchemyError en
+    sus rutas.
+  - AlmacenPython obtiene X-Company-Id y X-User-Id de headers.
+  - No existen modelos, schemas, repositories, services ni rutas de stock o
+    movimiento de inventario en AlmacenPython.
+  - No existe en AlmacenPython SELECT FOR UPDATE, begin explícito, savepoint,
+    id_origen, modulo_origen ni lógica de idempotencia.
+
+[CONFIRMADO EN BD / CONTEXTO]
+  - Las tablas del MVP son stock_item_almacen, movimiento_inventario, item y
+    almacen.
+  - Las constraints de saldo e idempotencia descritas en la sección 1 existen
+    y NO se modifican en esta fase.
+
+[APROBADO]
+  - El contrato funcional de la sección 1.
+
+[RECOMENDADO PARA IMPLEMENTACIÓN FUTURA]
+  - Usar la misma db.session de AlmacenPython para toda la operación.
+  - Usar Decimal y no float.
+  - Consultar item/almacén directamente en PostgreSQL dentro de esa misma
+    sesión/transacción, en vez de realizar llamadas de red a ItemPython.
+  - Usar el índice idempotente existente como defensa final de retry.
+  - Insertar primero el movimiento de inicialización y después el saldo, ambos
+    dentro de la misma transacción, por las razones de la sección 12.
+
+[PENDIENTE]
+  - Quién proporciona y conserva id_origen entre retries.
+  - Origen exacto de fecha_movimiento (usuario o sistema).
+  - Si referencia es obligatoria de negocio.
+  - Regla precio_compra NUMERIC(18,6) a costo_unitario NUMERIC(15,2).
+  - Contrato HTTP final y forma exacta de la respuesta idempotente.
+
+================================================================================
+3. ESTADO REAL DE AlmacenPython
+================================================================================
+
+Estructura encontrada:
+
+  AlmacenPython/
+    app.py
+    config/config.py
+    utils/db.py
+    models/__init__.py
+    models/almacen.py
+    schemas/almacen_schema.py
+    repositories/almacen_repository.py
+    services/almacen_service.py
+    api/almacen_routes.py
+    requirements.txt
+    Dockerfile
+
+Responsabilidad actual:
+  CRUD de cabecera public.almacen; no contiene un motor de stock.
+
+app.py:
+  - construye Flask;
+  - carga Config;
+  - inicializa db con db.init_app(app);
+  - inicializa Flask-JWT-Extended;
+  - registra almacen_bp con prefijo /api.
+
+config/config.py:
+  - lee DATABASE_URL para SQLALCHEMY_DATABASE_URI;
+  - no declara isolation level ni opciones de engine explícitas.
+
+================================================================================
+4. DRIVER, CONEXIÓN Y TRANSACCIÓN
+================================================================================
+
+Driver PostgreSQL:
+  - SQLAlchemy mediante Flask-SQLAlchemy.
+  - psycopg2-binary está declarado como dependencia.
+  - DATABASE_URL tiene fallback postgresql://... en configuración.
+
+Patrón de conexión:
+  - No hay función de conexión, cursor manual ni context manager propio.
+  - La conexión/sesión se obtiene mediante db.session de Flask-SQLAlchemy.
+  - El ciclo de cierre de la conexión no se controla manualmente en los archivos
+    del módulo; corresponde a la integración Flask-SQLAlchemy.
+
+Patrón transaccional real:
+
+  try:
+    db.session.add(entity)
+    db.session.commit()
+  except Exception:
+    db.session.rollback()
+    raise
+
+Esto aparece en create_almacen_row() y update_almacen_row() de
+repositories/almacen_repository.py.
+
+Conclusión:
+  Existe patrón básico commit/rollback por operación de cabecera, pero NO existe
+  todavía una transacción multi-entidad explícita para stock. La futura
+  implementación debe extender el patrón existente a una sola db.session y un
+  único commit final; no debe hacer commits intermedios.
+
+Isolation:
+  No hay configuración explícita en AlmacenPython. Para PostgreSQL, el default
+  habitual es READ COMMITTED; la futura implementación debe verificar el
+  entorno desplegado antes de depender de una configuración distinta. No se
+  propone cambiarlo en esta fase.
+
+================================================================================
+5. MODELOS, REPOSITORIES, SERVICES Y ROUTES EXISTENTES
+================================================================================
+
+| Recurso | Estado en AlmacenPython | Evidencia / responsabilidad actual |
+|---|---|---|
+| almacen | EXISTE | models/almacen.py mapea public.almacen; repository y service de cabecera |
+| item | NO EXISTE | No hay modelo Item local en AlmacenPython |
+| stock_item_almacen | NO EXISTE | Sin modelo, schema, repository, service ni ruta |
+| movimiento_inventario | NO EXISTE | Sin modelo, schema, repository, service ni ruta |
+| repository almacén | EXISTE | lookups, create y update de almacén |
+| service almacén | EXISTE | valida Marshmallow, UUID, duplicado y auditoría |
+| route almacén | EXISTE | POST /api/almacen y PUT /api/almacen/<uuid> |
+
+Patrón de repository:
+  - Lookups con modelo ORM (Almacen.query.filter...).
+  - Construye entidades ORM.
+  - Ejecuta commit/rollback.
+  - Devuelve diccionarios serializables.
+
+Patrón de service:
+  - valida identificadores y payload con Marshmallow;
+  - hace validaciones de negocio previas;
+  - llama al repository;
+  - retorna {success, message, data}.
+
+Patrón de route:
+  - Flask Blueprint.
+  - Lee request JSON y headers.
+  - Traduce ValidationError a 400.
+  - Traduce ValueError conocido a 409/400.
+  - Traduce IntegrityError a 409.
+  - Traduce SQLAlchemyError a 500.
+
+================================================================================
+6. REFERENCIAS REUTILIZABLES EN OTROS MÓDULOS
+================================================================================
+
+BancoCajaPython:
+  - Es la referencia más próxima de saldo + movimiento.
+  - movimiento_helpers.crear_linea_movimiento usa Decimal(str(valor)),
+    calcula saldo nuevo, agrega movimiento y actualiza saldo en la misma sesión.
+  - transferencia_bancaria_repository añade cabecera, hace flush para obtener
+    el identificador, agrega dos movimientos y confirma con un commit final.
+  - No implementa FOR UPDATE, idempotencia ni protección de carrera; esas partes
+    NO son reutilizables como garantía.
+
+ItemPython:
+  - Tiene modelo ORM Item contra public.item.
+  - Usa Decimal en item_service.py mediante Decimal(str(value)).
+  - Sus schemas usan fields.Decimal.
+  - item.precio_compra se mapea como Numeric(18,6), nullable.
+  - Demuestra que el ERP maneja NUMERIC con Decimal, no que AlmacenPython ya lo
+    haga.
+
+InventarioPython:
+  - Usa el mismo patrón Flask-SQLAlchemy + commit/rollback de cabecera.
+  - No contiene detalle, stock, movimiento ni idempotencia.
+
+ContabilidadPython:
+  - No ofrece un patrón de writer inventariable reutilizable en el código
+    revisado.
+
+================================================================================
+7. VALIDACIÓN DIRECTA DE ITEM Y ALMACÉN
+================================================================================
+
+Item:
+  AlmacenPython no posee un modelo Item local. ItemPython sí usa un modelo ORM
+  y consultas SQL directas mediante db.session.execute(text(...)).
+
+[RECOMENDADO]
+  El writer futuro debe consultar public.item dentro de la misma db.session y
+  transacción del writer, solicitando como mínimo:
+
+    id_item, id_empresa, estado, inventariable, precio_compra
+
+  Filtro conceptual:
+
+    id_item = request.id_item
+    AND id_empresa = request.id_empresa
+
+  Después, aplicación valida:
+    item existe;
+    item.estado = true;
+    item.inventariable = true.
+
+Justificación:
+  - evita una llamada de red innecesaria a ItemPython;
+  - permite validar y escribir bajo la misma conexión/sesión;
+  - el patrón ERP ya usa PostgreSQL compartido y db.session.execute(text(...))
+    en ItemPython.
+
+Almacén:
+  AlmacenPython ya tiene modelo Almacen y find_almacen_by_id(), aunque este
+  lookup actual no filtra empresa ni estado.
+
+[RECOMENDADO]
+  El writer debe usar una consulta específica dentro de su transacción que
+  valide conjuntamente:
+
+    id_almacen = request.id_almacen
+    AND id_empresa = request.id_empresa
+    AND estado = true
+
+No reutilizar find_almacen_by_id() sin complementar filtros, porque no cubre
+por sí solo multiempresa ni estado.
+
+Multiempresa:
+  La aplicación debe comprobar:
+
+    request.id_empresa = item.id_empresa = almacen.id_empresa
+
+  La BD refuerza la inserción del saldo mediante FKs compuestas. La validación de
+  aplicación aporta respuesta clara y no debe depender únicamente del error FK.
+
+================================================================================
+8. id_origen E IDEMPOTENCIA USANDO SOLO TABLAS EXISTENTES
+================================================================================
+
+Índice existente confirmado por el contexto:
+
+  uq_mov_inv_stock_inicial_idempotencia
+  movimiento_inventario(id_empresa, modulo_origen, id_origen)
+  parcial para modulo_origen='STOCK_INICIAL', tipo_movimiento='INICIAL' e
+  id_origen no NULL.
+
+[RECOMENDADO]
+  El service recibe id_origen obligatorio para STOCK INICIAL, lo valida como UUID
+  y consulta movimiento_inventario por:
+
+    id_empresa = request.id_empresa
+    modulo_origen = 'STOCK_INICIAL'
+    tipo_movimiento = 'INICIAL'
+    id_origen = request.id_origen
+
+La consulta previa mejora la respuesta de retry, pero NO sustituye al índice:
+dos transacciones pueden no ver una fila aún no confirmada.
+
+Quién genera id_origen:
+  No existe patrón real en AlmacenPython, ItemPython, InventarioPython ni
+  BancoCajaPython para una clave idempotente de solicitud.
+
+[PENDIENTE DE DECISIÓN]
+  Definir el componente que genera y conserva el UUID durante retry. La única
+  regla segura ya derivable es:
+
+    AlmacenPython NO debe generar un UUID nuevo en cada retry.
+
+El futuro contrato UI/API debe exigir que el caller autorizado preserve la misma
+clave para la misma intención. Gateway debe transmitirla sin reemplazarla.
+
+Retry válido:
+  Si el movimiento previo existe y los campos comparables coinciden, retornar
+  “ya procesado” junto con el resultado identificado, sin modificar saldo ni
+  crear movimiento.
+
+Payload diferente con misma key:
+  Los campos existentes permiten comparar, sin crear fingerprint ni columnas:
+
+    id_empresa
+    id_item
+    id_almacen
+    tipo_movimiento
+    modulo_origen
+    cantidad
+    fecha_movimiento
+    referencia
+    concepto
+
+  Si cualquiera de esos campos de solicitud efectivos difiere después de
+  normalizar Decimal/texto/null, responder conflicto de idempotencia. Son
+  suficientes para STOCK INICIAL de una sola línea.
+
+  costo_unitario y costo_total son resultado persistido de la primera
+  ejecución, no deben recalcularse desde el precio_compra actual para decidir
+  un retry: el precio del item podría cambiar después del commit y convertir
+  erróneamente el mismo request en conflicto. Solo se comparan si un contrato
+  futuro los recibe explícitamente como parte del payload.
+
+Limitación documentada:
+  movimiento_inventario no contiene referencia directa al id de saldo ni
+  fingerprint de request. El resultado original debe obtenerse consultando por
+  los datos persistidos existentes; si se necesitan comparaciones semánticas más
+  complejas en el futuro, será una decisión posterior, no un cambio de este MVP.
+
+================================================================================
+9. CONCURRENCIA DE PRIMERA FILA
+================================================================================
+
+No confiar solo en:
+
+  SELECT saldo
+  si no existe → INSERT saldo
+
+Dos solicitudes concurrentes pueden observar “sin fila”. La última defensa es:
+
+  UNIQUE(id_item, id_almacen) de PostgreSQL.
+
+Caso A y B con misma id_origen:
+  - Ambas pueden no encontrar movimiento en la consulta previa.
+  - Una insertará el movimiento INICIAL; la otra colisionará con
+    uq_mov_inv_stock_inicial_idempotencia cuando la primera resuelva.
+  - La transacción que recibe IntegrityError debe hacer rollback completo antes
+    de releer el movimiento existente.
+  - Si el payload coincide: devolver replay/ya procesado.
+  - Si difiere: devolver conflicto de idempotencia.
+  - Nunca crear ni aumentar un segundo saldo.
+
+Caso A y B con id_origen distinta, mismo item+almacén:
+  - Ambas pueden crear movimientos de forma no confirmada.
+  - Solo una puede insertar stock_item_almacen por UNIQUE(id_item,id_almacen).
+  - La perdedora recibe IntegrityError, realiza rollback completo y con ello se
+    revierte también su movimiento insertado en la misma transacción.
+  - Debe devolver conflicto controlado “stock ya inicializado”; nunca sumar,
+    actualizar o considerar retry.
+
+SELECT FOR UPDATE:
+  - No es necesario para la PRIMERA inicialización: no existe fila de saldo que
+    pueda bloquearse.
+  - No sustituye UNIQUE para crear la primera fila.
+  - Será útil en futuras operaciones que alteren una fila de saldo ya existente,
+    pero no añade protección indispensable a este MVP.
+
+No se recomienda añadir advisory locks ni SERIALIZABLE para STOCK INICIAL:
+no hay patrón existente en el ERP y las dos constraints vigentes, la transacción
+única y el manejo de IntegrityError cubren las dos carreras relevantes del MVP.
+
+================================================================================
+10. ORDEN TRANSACCIONAL RECOMENDADO
+================================================================================
+
+Opciones evaluadas:
+
+A. INSERT movimiento → INSERT saldo
+B. INSERT saldo → INSERT movimiento
+
+[RECOMENDADO: A]
+
+Motivo:
+  - movimiento_inventario posee el índice idempotente ya aplicado;
+  - intentar el movimiento primero hace que la clave de retry sea el primer
+    recurso exclusivo de la transacción;
+  - si otra solicitud con igual key llega concurrentemente, el índice impide que
+    ambas continúen hacia el saldo;
+  - si el saldo falla por su UNIQUE, el rollback elimina ese movimiento aún no
+    confirmado, por lo que no queda historial huérfano;
+  - no existe movimiento observable antes del commit.
+
+Flujo técnico conceptual futuro:
+
+  REQUEST
+    ↓
+  route: extraer body, X-Company-Id y X-User-Id
+    ↓
+  schema: UUIDs, Date, Decimal, cantidad > 0 y escala <= 2
+    ↓
+  service: validar contrato fijo INICIAL/STOCK_INICIAL
+    ↓
+  misma db.session / una transacción
+    ↓
+  consultar y validar item por empresa, activo e inventariable
+    ↓
+  consultar y validar almacén por empresa y activo
+    ↓
+  buscar movimiento previo por clave idempotente
+    ├─ existe: comparar payload → replay o conflicto
+    └─ no existe: continuar
+    ↓
+  construir costo con Decimal según contrato aprobado
+    ↓
+  INSERT movimiento_inventario (clave idempotente)
+    ↓
+  INSERT stock_item_almacen (stock_fisico=cantidad)
+    ↓
+  COMMIT único
+    ↓
+  RESPONSE creada
+
+Si un INSERT genera IntegrityError:
+  - rollback completo;
+  - abrir/naturalmente usar una nueva transacción de lectura;
+  - releer movimiento por idempotencia;
+  - si existe, clasificar replay o conflicto de payload;
+  - si no existe, clasificar la colisión de saldo como “stock ya inicializado”;
+  - nunca continuar sobre una sesión en estado de transacción abortada.
+
+================================================================================
+11. ROLLBACK, UNIQUE VIOLATIONS Y ERROR MAPPING
+================================================================================
+
+Atomicidad:
+  Todo debe estar en una única db.session con un único commit al final.
+
+Fallo INSERT movimiento:
+  - no se intenta confirmar saldo;
+  - rollback deja cero cambios de la operación.
+
+Fallo INSERT saldo después de movimiento:
+  - rollback revierte el movimiento de la misma transacción;
+  - no queda movimiento sin stock.
+
+Fallo posterior a INSERT saldo y antes de commit:
+  - rollback revierte saldo y movimiento;
+  - no queda stock sin movimiento.
+
+Patrón de errores existente:
+  - ValidationError → 400.
+  - IntegrityError → 409.
+  - SQLAlchemyError → 500.
+  - ValueError conocido puede mapearse a 409 o 400.
+
+Recomendación de clasificación futura, sin fijar todavía endpoint:
+
+| Error | Fuente principal | Categoría de respuesta |
+|---|---|---|
+| Item inexistente/empresa ajena | Validación service/consulta | negocio no encontrado o no autorizado |
+| Item no inventariable/inactivo | Service | regla de negocio |
+| Almacén inexistente/ajeno/inactivo | Service/consulta | negocio no encontrado o no autorizado |
+| Cantidad <=0 o >2 decimales | Schema/service Decimal | validación |
+| Mismo id_origen, mismo payload | Consulta movimiento | replay exitoso |
+| Mismo id_origen, distinto payload | Consulta movimiento | conflicto idempotente |
+| Colisión índice idempotente | IntegrityError + relectura | replay o conflicto idempotente |
+| Colisión UNIQUE saldo | IntegrityError + ausencia de movimiento correspondiente | stock ya inicializado |
+| Error inesperado DB | SQLAlchemyError | interno; rollback |
+
+================================================================================
+12. DECIMAL, COSTO Y FECHA
+================================================================================
+
+Decimal:
+  AlmacenPython no manipula actualmente valores NUMERIC de stock.
+  BancoCajaPython usa Decimal(str(valor)); ItemPython usa Decimal(str(value))
+  para parsear valores. Ambos son referencias compatibles.
+
+[RECOMENDADO]
+  Schema y service futuros usan Decimal para cantidad, costo_unitario y
+  costo_total. No usar float para cálculos ni comparaciones idempotentes.
+
+precio_compra:
+  ItemPython/models/item.py declara:
+
+    precio_compra = Numeric(18,6), nullable
+
+Contrato 2A:
+  - precio_compra existente → costo_unitario;
+  - NULL → 0.00.
+
+Incompatibilidad/decisión pendiente:
+  movimiento_inventario.costo_unitario es NUMERIC(15,2). Si precio_compra tiene
+  tres o más decimales, falta una política aprobada de conversión. No se debe
+  redondear ni truncar silenciosamente. Esto bloquea el writer hasta resolverse.
+
+costo_total:
+  En una fase posterior se calculará:
+
+    cantidad × costo_unitario
+
+  con Decimal y escala aprobada para NUMERIC(15,2). No se ejecuta cálculo ni
+  escritura en esta auditoría.
+
+Fecha:
+  AlmacenPython usa datetime.now(timezone.utc) para auditoría de almacén;
+  no existe operación de stock con fecha efectiva.
+
+BancoCajaPython recibe fecha_movimiento desde el payload, validada como
+fields.Date(required=True) para transferencias. Esta es la referencia más
+próxima.
+
+[PENDIENTE DE APROBACIÓN]
+  Confirmar si STOCK INICIAL recibe fecha_movimiento del usuario o usa fecha de
+  sistema. El writer no debe decidirlo por intuición.
+
+Referencia y concepto:
+  BancoCaja exige concepto para transferencia, pero no existe operación de
+  inventario comparable. referencia y concepto son nullable en
+  movimiento_inventario.
+
+[PENDIENTE]
+  No hay evidencia para hacer referencia obligatoria en STOCK INICIAL.
+
+================================================================================
+13. USUARIO Y AUDITORÍA
+================================================================================
+
+Patrón real:
+  AlmacenPython/api/almacen_routes.py obtiene:
+
+    X-Company-Id / x-company-id
+    X-User-Id / x-user-id
+
+  AlmacenPython/service normaliza user_id como UUID opcional y lo asigna a
+  created_by/updated_by de Almacen.
+
+  app.py inicializa Flask-JWT-Extended, pero las rutas actuales no extraen
+  identidad desde el JWT; usan headers.
+
+[RECOMENDADO]
+  El futuro writer debe seguir el patrón actual de contexto proporcionado por
+  Gateway: id_empresa y user_id en headers, validando UUID antes de persistir.
+
+Limitación de metadata:
+  stock_item_almacen tiene created_by y updated_by; movimiento_inventario tiene
+  updated_by, pero no created_by confirmado. La implementación no debe inventar
+  una columna inexistente.
+
+================================================================================
+14. ARQUITECTURA DEL MVP
+================================================================================
+
+TABLAS NUEVAS PROPUESTAS:
+  NINGUNA
+
+stock_operation:
+  NO SE UTILIZA EN ESTE MVP
+
+TABLAS DEL MOTOR:
+  public.stock_item_almacen
+  public.movimiento_inventario
+
+TABLAS DE VALIDACIÓN:
+  public.item
+  public.almacen
+
+WRITER ÚNICO FUTURO:
+  AlmacenPython
+
+No duplicar el motor en:
+  AlmacenNestJs
+  InventarioPython
+  InventarioNestJs
+  ItemPython
+  ItemNestJs
+  Gateway
+  frontend
+
+Gateway solo deberá enrutar en una fase posterior. Frontend solo consumirá la
+operación autorizada cuando exista. Ninguno debe escribir saldo directamente.
+
+================================================================================
+15. MATRIZ DE ARCHIVOS PARA IMPLEMENTACIÓN FUTURA
+================================================================================
+
+| Archivo real | Estado actual | Responsabilidad actual | Cambio futuro mínimo | ¿Crear/modificar? | Riesgo |
+|---|---|---|---|---|---|
+| AlmacenPython/app.py | Existe | Flask, db, JWT, blueprint | Registrar ruta solo si se expone | Modificar solo fase autorizada | Bajo |
+| config/config.py | Existe | DATABASE_URL y config base | Ninguno previsto | No tocar | Bajo |
+| utils/db.py | Existe | Instancia SQLAlchemy | Reutilizar db.session | No tocar salvo necesidad probada | Medio |
+| models/almacen.py | Existe | ORM almacén | Reutilizar para validar almacén | No tocar | Bajo |
+| models/__init__.py | Existe | Importa modelos actuales | Importar modelos stock futuros | Modificar | Bajo |
+| schemas/almacen_schema.py | Existe | DTO almacén | No mezclar DTO de stock salvo decisión explícita | Preferir archivo schema específico | Medio |
+| repositories/almacen_repository.py | Existe | CRUD almacén | No mezclar transacción stock multi-entidad | Preferir repository stock específico | Medio |
+| services/almacen_service.py | Existe | Reglas de cabecera | No mezclar motor con CRUD cabecera | Preferir service stock específico | Medio |
+| api/almacen_routes.py | Existe | POST/PUT almacén | Ruta controlada futura, si API REST se aprueba | Modificar o blueprint específico mínimo | Medio |
+| models/stock_item_almacen.py | No existe | — | Mapeo ORM saldo | Crear | Bajo |
+| models/movimiento_inventario.py | No existe | — | Mapeo ORM movimiento | Crear | Bajo |
+| schemas/stock_inicial_schema.py | No existe | — | Validar UUID, Date, Decimal y escala | Crear | Bajo |
+| repositories/stock_inicial_repository.py | No existe | — | Consultas item/almacén, movimiento/saldo y unidad transaccional | Crear | Alto |
+| services/stock_inicial_service.py | No existe | — | Orquestar validación/reglas idempotentes | Crear | Alto |
+
+La tabla es una previsión técnica, no autorización de crear/modificar archivos
+en esta fase. Se evita incluir Gateway, Nest o frontend porque no son parte del
+writer inicial.
+
+================================================================================
+16. MATRIZ DE VALIDACIONES FUTURAS
+================================================================================
+
+| Validación | Capa aplicación | Protección BD | Resultado esperado |
+|---|---|---|---|
+| Empresa | Contexto/header + consulta | FK compuestas saldo | Rechazo si no coincide |
+| Item | Consulta por id_item+empresa | FK compuesta saldo | Rechazo si inexistente/ajeno |
+| Inventariable | item.inventariable=true | Ninguna confirmada | Rechazo si false |
+| Estado item | item.estado=true | Ninguna confirmada | Rechazo si false |
+| Almacén | Consulta por id_almacen+empresa | FK compuesta saldo | Rechazo si inexistente/ajeno |
+| Estado almacén | almacen.estado=true | Ninguna confirmada | Rechazo si false |
+| Cantidad | Decimal, >0, escala <=2 | NUMERIC admite 3; app más estricta | Rechazo si inválida |
+| Stock ya existente | Consulta previa informativa | UNIQUE(id_item,id_almacen) | Conflicto; no segunda inicialización |
+| Retry | Consulta por movimiento/origen | Índice uq_mov_inv_stock_inicial_idempotencia | Replay sin cambios |
+| Misma key distinto payload | Comparar columnas persistidas | Índice evita segundo movimiento | Conflicto idempotente |
+| Concurrencia primera fila | Manejo IntegrityError + rollback | UNIQUE saldo | Solo una confirmada |
+
+================================================================================
+17. MATRIZ DE PRUEBAS FUTURAS (NO EJECUTADA)
+================================================================================
+
+| # | Caso | Resultado esperado |
+|---|---|---|
+| 1 | STOCK INICIAL correcto | Un saldo y un movimiento, mismo commit |
+| 2 | Cantidad 0 | Rechazo; cero escrituras |
+| 3 | Cantidad negativa | Rechazo; cero escrituras |
+| 4 | Más de 2 decimales | Rechazo; sin redondeo/truncado |
+| 5 | Item inexistente | Rechazo |
+| 6 | Item de otra empresa | Rechazo |
+| 7 | Item no inventariable | Rechazo |
+| 8 | Item inactivo | Rechazo |
+| 9 | Almacén inexistente | Rechazo |
+| 10 | Almacén de otra empresa | Rechazo |
+| 11 | Almacén inactivo | Rechazo |
+| 12 | Retry mismo id_origen y payload | Resultado ya procesado; sin segunda escritura |
+| 13 | Mismo id_origen y payload diferente | Conflicto idempotente; sin cambios |
+| 14 | Stock ya inicializado con key distinta | Conflicto; sin segundo saldo/movimiento |
+| 15 | Dos requests concurrentes misma key | Un solo movimiento/saldo; segundo replay |
+| 16 | Dos requests concurrentes keys distintas | Una inicialización; otro conflicto de saldo |
+| 17 | Falla INSERT movimiento | Rollback; no saldo |
+| 18 | Falla INSERT saldo | Rollback; no movimiento |
+| 19 | precio_compra NULL | costo_unitario 0.00 conforme a contrato |
+| 20 | Empresa GLOBAL seleccionada correctamente | Aplicar validación de empresa/contexto aprobada |
+
+================================================================================
+18. RIESGOS Y DECISIONES PENDIENTES
+================================================================================
+
+Riesgos controlados por la implementación futura:
+  - SELECT previo sin constraint → carrera; se controla con UNIQUE BD.
+  - sesión abortada tras IntegrityError → rollback obligatorio antes de releer.
+  - dos keys sobre mismo item+almacén → UNIQUE saldo + rollback del movimiento.
+  - retry con misma key → índice parcial existente + comparación de payload.
+  - falta de Decimal → usar patrón BancoCaja/ItemPython.
+  - modelo Almacen parcial: models/almacen.py usa String(36) y nullable=True
+    para varios UUID/campos aunque la metadata vigente es más estricta; la
+    consulta del writer debe validar explícitamente empresa y estado contra BD,
+    no inferir garantías desde esa nulabilidad ORM.
+
+Decisiones pendientes que bloquean el writer:
+  1. Conversión de precio_compra Numeric(18,6) a costo_unitario Numeric(15,2)
+     cuando hay más de dos decimales.
+  2. Ownership y conservación de id_origen para reintentos.
+  3. Fuente de fecha_movimiento.
+
+Decisiones pendientes que no bloquean este diseño técnico:
+  - obligatoriedad de referencia;
+  - formato final de respuesta de replay/conflicto;
+  - endpoint y permisos de exposición.
+
+================================================================================
+19. RECOMENDACIÓN DE PRÓXIMA FASE
+================================================================================
+
+FASE 2D — CIERRE TÉCNICO DE BLOQUEANTES DEL WRITER
+
+Resolver y aprobar exclusivamente:
+  - escala/cálculo precio_compra → costo_unitario;
+  - ownership estable de id_origen;
+  - fuente de fecha_movimiento;
+  - contrato de respuesta de replay/conflicto.
+
+Después de ese cierre, una fase de implementación separada podrá crear los
+modelos/repository/service/schema/ruta mínimos en AlmacenPython, sin modificar
+los demás módulos.
+
+================================================================================
+20. CIERRE
+================================================================================
+
+El writer de STOCK INICIAL puede diseñarse dentro de AlmacenPython con:
+
+  movimiento_inventario (índice idempotente existente)
+  + stock_item_almacen (UNIQUE de saldo existente)
+  + una db.session
+  + un único commit/rollback
+  + Decimal
+
+No se proponen tablas nuevas. stock_operation no se utiliza. Esta auditoría no
+implementa ni autoriza todavía ningún writer.

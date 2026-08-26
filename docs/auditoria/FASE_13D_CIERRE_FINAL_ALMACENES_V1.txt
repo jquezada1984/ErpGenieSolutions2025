@@ -1,0 +1,300 @@
+FASE 13D — Regresión final y cierre técnico Almacenes v1
+Fecha/hora: 2026-08-25 23:05:33 (hora local agente)
+Rama: warehouse_may_V1
+Modo: PRINCIPALMENTE SOLO LECTURA — sin writers, sin DML, sin rebuild, sin commit/push
+Código modificado por 13D: NINGUNO
+BD modificada por 13D: NO
+
+Evidencias previas referenciadas (NO sobrescritas):
+- FASE_13A_AUDITORIA_FINAL_ALMACENES.txt
+- FASE_13B_DISENO_CIERRE_HALLAZGOS_ALMACENES.txt
+- FASE_13C_3_PRECHECK_M2_ALMACENES.txt
+- FASE_13C_3_1_SANEAMIENTO_M2_ALMACENES.txt
+
+================================================================================
+1. ARQUITECTURA FINAL
+================================================================================
+LECTURAS:
+  Frontend → Gateway GraphQL (:3002) → AlmacenNestJs (:3017) → PostgreSQL
+
+WRITES:
+  Frontend → Gateway REST → authenticatedWriteContext → AlmacenPython (:3018) → PostgreSQL
+
+Confirmado:
+- Frontend no es autoridad del saldo.
+- Gateway no calcula stock.
+- Nest no ejecuta writers de stock.
+- Python conserva writers / atomicidad / idempotencia.
+- BD conserva movimiento_inventario como trazabilidad.
+
+================================================================================
+2. ESTADO SERVICIOS
+================================================================================
+erp-frontend                 Up 34 minutes   http://localhost:3000 → 200
+erp-gateway-api              Up 21 minutes   http://localhost:3002/api/health → 200
+erp-almacen-nestjs-service   Up 58 minutes   :3017 GraphQL responde (POST OK; GET /health no expuesto → 404)
+erp-almacen-python-service   Up 3 hours      http://localhost:3018/health → 200
+
+Docker rebuild/restart/recreate en 13D: NO
+
+================================================================================
+3. INTEGRIDAD STOCK (PASO 2)
+================================================================================
+TOTAL = 7
+OK    = 7
+ROTAS = 0
+Regla stock_disponible = stock_fisico - stock_reservado: CUMPLIDA 7/7
+(Coincide postcheck M2 13C.3.1)
+
+================================================================================
+4. COUNTS FINALES (PASO 3)
+================================================================================
+almacen                         = 9
+stock_item_almacen              = 7
+movimiento_inventario           = 25
+transferencia_stock             = 2
+transferencia_stock_detalle     = 2
+cambio_masivo_stock             = 3
+cambio_masivo_stock_detalle     = 6
+
+Índices unique idempotencia movimiento_inventario: presentes (6 UQ)
+Duplicados (tipo, modulo_origen, id_origen) con COUNT>1: 0
+
+================================================================================
+5. MOVIMIENTOS POR tipo_movimiento / modulo_origen (PASO 4)
+================================================================================
+AJUSTE_NEGATIVO | AJUSTE_STOCK         | 2
+AJUSTE_NEGATIVO | CAMBIO_MASIVO_STOCK  | 3
+AJUSTE_POSITIVO | AJUSTE_STOCK         | 2
+AJUSTE_POSITIVO | CAMBIO_MASIVO_STOCK  | 3
+ENTRADA         | ENTRADA_STOCK        | 2
+INICIAL         | STOCK_INICIAL        | 7
+SALIDA          | SALIDA_STOCK         | 2
+TRF_ENTRADA     | TRANSFERENCIA_STOCK  | 2
+TRF_SALIDA      | TRANSFERENCIA_STOCK  | 2
+
+Tipos desconocidos: NINGUNO
+modulo_origen inesperado: NINGUNO
+Presencia coherente de todos los pares esperados: SÍ
+
+================================================================================
+6. STOCK POR FECHA (PASO 5)
+================================================================================
+Código Nest (movimiento-inventario.service.ts stockPorFecha):
+- fecha_movimiento <= :fecha
+- estado = true
+- SUM por tipo_movimiento (INICIAL/ENTRADA/AJUSTE_POSITIVO/TRF_ENTRADA +
+  SALIDA/AJUSTE_NEGATIVO/TRF_SALIDA) — incluye AJUSTE_* de Cambio Masivo
+- NO lee stock_item_almacen (no snapshot actual)
+
+Runtime GraphQL Empresa Test + TEST-ALM-001
+(id_empresa=d2600c4c-2ce7-4d01-b6e8-82f028e69d27,
+ id_almacen=6ddd583d-4a97-45dd-843d-c1e1b2d9099e):
+
+Fecha 2026-08-24:
+  RATON01 stock_fisico=6
+
+Fecha 2026-08-25:
+  RATON01 stock_fisico=4
+  TCO20   stock_fisico=1
+
+Diferencia histórica entre fechas: confirma reconstrucción por movimientos.
+Código 13D: NO modificado.
+
+================================================================================
+7. MULTIEMPRESA M1 — COMPROBACIÓN COMPACTA (PASO 6)
+================================================================================
+1) Empresa Test + TEST-ALM-001 → VISIBLE
+   almacenPorId → id_almacen=6ddd583d-..., almacen_ref=TEST-ALM-001
+
+2) Empresa Gateway Test (fc59e203-237f-408b-8737-fe54dcf10dc1)
+   + UUID TEST-ALM-001 → null (no visible)
+
+3) id_empresa omitido → GraphQL validation FAIL CLOSED:
+   "Field \"almacenPorId\" argument \"id_empresa\" of type \"ID!\" is required,
+    but it was not provided." HTTP 400
+
+Mutation cross-company: NO reejecutada (ya validada en M1).
+
+================================================================================
+8. GATEWAY M3 (PASO 7)
+================================================================================
+Inspección código host + runtime contenedor erp-gateway-api:
+crearAlmacen / actualizarAlmacen → authenticatedWriteContext(req, payload)
+
+Sin POST/PUT adicionales en 13D.
+Sin regresión de código/runtime detectada.
+
+Observación no bloqueante (heredada M3):
+  Prueba runtime scope EMPRESA pendiente por falta de contexto/credenciales
+  seguros; rama EMPRESA respaldada por código (X-Company-Id = me.id_empresa).
+
+================================================================================
+9. SANEAMIENTO M2 (referencia 13C.3.1)
+================================================================================
+CERRADO: 4 UPDATE fail-closed, 1 COMMIT, 7/7/0, físico/reservado/virtual
+intactos, auditoría created_*/updated_* intacta, movimientos=25.
+
+================================================================================
+10. FRONTEND / RUTAS (PASO 8)
+================================================================================
+Router.tsx rutas Almacenes (nombres reales):
+  /items/almacenes
+  /items/almacenes/nuevo
+  /items/almacenes/editar/:id
+  /items/almacenes/movimientos
+  /items/almacenes/stock-actual
+  /items/almacenes/stock-inicial
+  /items/almacenes/stock-entrada   (prompt decía entrada-stock)
+  /items/almacenes/stock-salida
+  /items/almacenes/stock-ajuste
+  /items/almacenes/stock-transferencia
+  /items/almacenes/stock-fecha
+  /items/almacenes/cambio-stock
+
+HTTP GET SPA shell (localhost:3000): todas STATUS=200
+Sin writes desde UI en 13D.
+
+Nota: shell SPA 200 no prueba auth/GraphQL de cada pantalla; carga de
+Almacenes/Editar/Stock fecha/Cambio masivo quedó validada en fases previas
+y rutas+componentes permanecen presentes.
+
+================================================================================
+11. MENÚ / ROUTER (PASO 9)
+================================================================================
+menu_item hijos Almacenes en BD (estado true):
+  Nuevo almacén          → /items/almacenes/nuevo
+  Listado                → /items/almacenes
+  Movimientos            → /items/almacenes/movimientos
+  Cambio masivo de stock → /items/almacenes/cambio-stock
+  Stock por fecha        → /items/almacenes/stock-fecha
+  Stock actual           → /items/almacenes/stock-actual
+
+Stock por fecha: menú + router + StockPorFechaAlmacen → OK (no huérfano)
+Cambio masivo:   menú + router + CambioMasivoStockAlmacen → OK (no huérfano)
+
+Rutas writer SIN entrada de menú (acceso vía botones Stock actual):
+  stock-inicial, stock-entrada, stock-salida, stock-ajuste, stock-transferencia
+Confirmado en StockActualAlmacen.tsx (navigate a esas rutas).
+No son huérfanas: tienen Router + componente + entrada desde Stock actual.
+Clasificación: OBSERVACIÓN NO BLOQUEANTE (documentada desde 13A).
+
+================================================================================
+12. GLOBAL / EMPRESA (PASO 11)
+================================================================================
+EMPRESA: tenant por identidad autenticada; write no elige otra empresa
+         (authenticatedWriteContext).
+GLOBAL: selecciona empresa explícita; ausencia → fail closed; no descubre
+        tenant por UUID solo (Nest exige id_empresa en lecturas endurecidas).
+Arquitectura NO cambiada en 13D.
+
+================================================================================
+13. MATRIZ FUNCIONAL FINAL (PASO 12)
+================================================================================
+Función            | Impl | Backend      | Gateway | Frontend | E2E prev | Estado
+-------------------|------|--------------|---------|----------|----------|--------
+CRUD Almacén       | SÍ   | Nest+Python  | SÍ      | SÍ       | SÍ*      | CERRADO
+Lista Almacenes    | SÍ   | Nest         | GraphQL | SÍ       | SÍ       | CERRADO
+Stock Inicial      | SÍ   | Python       | REST+AWC| SÍ       | SÍ prev  | VALIDADO
+Stock Actual       | SÍ   | Nest         | GraphQL | SÍ       | SÍ       | CERRADO
+Entrada            | SÍ   | Python       | REST+AWC| SÍ       | SÍ prev  | VALIDADO
+Salida             | SÍ   | Python       | REST+AWC| SÍ       | SÍ prev  | VALIDADO
+Ajuste             | SÍ   | Python       | REST+AWC| SÍ       | SÍ prev  | VALIDADO
+Transferencia      | SÍ   | Python       | REST+AWC| SÍ       | SÍ prev  | VALIDADO
+Movimientos        | SÍ   | Nest         | GraphQL | SÍ       | SÍ       | CERRADO
+Stock por fecha    | SÍ   | Nest         | GraphQL | SÍ       | SÍ 13D   | CERRADO
+Cambio masivo      | SÍ   | Python       | REST+AWC| SÍ       | SÍ prev  | VALIDADO
+
+* CRUD: GLOBAL runtime OK; EMPRESA runtime pendiente (obs. no bloqueante).
+AWC = authenticatedWriteContext
+Writers no reejecutados en 13D (sin evidencia de regresión).
+
+================================================================================
+14. FUERA DE ALCANCE ALMACENES v1 (PASO 13)
+================================================================================
+NO forman parte de v1 (no son defecto):
+- FIFO / LIFO / promedio ponderado
+- Kardex valorizado
+- lotes / series
+- reservas avanzadas
+- recepción de compras
+- asientos contables / valorización contable
+
+================================================================================
+15. HALLAZGOS RESTANTES / OBSERVACIONES NO BLOQUEANTES
+================================================================================
+1) M3 EMPRESA runtime no ejercitado (sin credenciales seguras).
+   Código respaldado; GLOBAL+cross-company validados.
+2) Writers de stock sin ítem de menú lateral; acceso desde Stock actual.
+3) Nest sin endpoint /health dedicado (servicio UP vía GraphQL).
+
+Sin hallazgos críticos/altos abiertos tras M1/M2/M3.
+
+================================================================================
+16. GIT STATUS (PASO 14) — SOLO LECTURA
+================================================================================
+Rama: warehouse_may_V1
+
+Modificados (diff --stat):
+  docker-compose.yml                      | +39
+  frontReact/src/routes/Router.tsx        | +42
+  gateway-api/src/app.js                  | +1
+  gateway-api/src/routes/graphql.js       | +20
+  gateway-api/src/utils/requestContext.js | +147
+  package-lock.json                       | 2 líneas
+  6 files changed, 245 insertions(+), 6 deletions(-)
+
+Untracked relevantes Almacenes (no exhaustivo):
+  AlmacenNestJs/
+  AlmacenPython/
+  MenuNestJs/migrations/menu-almacenes-producto-servicio.sql
+  frontReact/src/_apis_/almacen.js
+  frontReact/src/views/items/almacenes/
+  gateway-api/src/routes/almacen.js
+  gateway-api/src/services/almacenPython.js
+  docs/auditoria/* (múltiples auditorías)
+  .cursor/rules/proyecto-banco-cajas.mdc (fuera de alcance Almacenes)
+
+Clasificación por área:
+  Frontend: Router + views/almacenes + _apis_/almacen
+  Gateway: app.js, graphql.js, requestContext.js, routes/almacen.js, almacenPython.js
+  Nest: AlmacenNestJs/ (untracked)
+  Python: AlmacenPython/ (untracked)
+  Migraciones: MenuNestJs/migrations/menu-almacenes-*.sql + AlmacenPython/migrations
+  Docker: docker-compose.yml
+
+git add/commit/push/reset/clean: NO ejecutados en 13D.
+
+================================================================================
+17. CONTROLES 13D
+================================================================================
+Código modificado por 13D: NINGUNO
+BD modificada por 13D: NO
+INSERT: 0
+UPDATE: 0
+DELETE: 0
+DDL: 0
+POST negocio: 0
+PUT/PATCH/DELETE: 0
+Writers: NO EJECUTADOS
+Docker rebuild: NO
+Commit: NO
+Push: NO
+M1/M2/M3: NO reabiertos ni reimplementados
+
+================================================================================
+18. CLASIFICACIÓN FINAL
+================================================================================
+B) GO CON OBSERVACIONES NO BLOQUEANTES
+
+Justificación:
+- Servicios UP; integridad 7/7/0; M1/M2/M3 cerrados según criterios de fase.
+- Stock por fecha operativo; Cambio masivo con menú+router+componente.
+- Multiempresa compacta OK; Gateway AWC intacto; sin regresión de writers.
+- Observaciones no bloqueantes: EMPRESA runtime M3 pendiente; writers sin
+  entrada de menú (acceso Stock actual); Nest sin /health dedicado.
+
+ALMACENES v1 = CERRADO TÉCNICAMENTE CON OBSERVACIONES NO BLOQUEANTES.
+
+DETENERSE — NO commit/push. NO iniciar Kardex/Contabilidad/otro módulo.
+Esperar autorización explícita del usuario.

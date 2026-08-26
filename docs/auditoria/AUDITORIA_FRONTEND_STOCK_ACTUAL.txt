@@ -1,0 +1,476 @@
+AUDITORÍA FASE 1D — UBICACIÓN FRONTEND DE STOCK ACTUAL
+Fecha: 2026-08-16
+Alcance: solo lectura del repositorio y documentación.
+
+Fuente de datos futura ya disponible:
+  Frontend → Gateway :3002/graphql → AlmacenNestJs :3017/graphql
+  → public.stock_item_almacen
+
+NO se implementó una pantalla, ruta, menú, consumo GraphQL ni cambio de BD.
+NO se ejecutaron mutations, DML, Docker ni instalaciones.
+
+================================================================================
+1. RESUMEN EJECUTIVO
+================================================================================
+
+No existe una pantalla funcional de “Stock actual” dentro de Almacenes.
+
+Sí existen dos pantallas de stock bajo Productos:
+  - /items/productos/stocks
+  - /items/productos/stocks-lotes
+
+Ambas son MOCK: declaran explícitamente datos de ejemplo, no consultan saldo
+real, no consumen stockItemsAlmacenListado y contienen acciones locales que no
+son apropiadas para una futura pantalla read-only.
+
+La ubicación correcta para una futura pantalla es una VISTA NUEVA bajo el
+dominio Almacenes:
+  Almacenes → Stock actual → /items/almacenes/stock-actual
+
+No corresponde reutilizar “Cambio masivo de stock” ni “Stock por fecha”:
+ambas opciones están definidas en el SQL de menú, pero sus rutas no existen en
+Router.tsx ni sus vistas en frontReact. Son RUTAS HUÉRFANAS.
+
+La query ya disponible permite implementar la futura pantalla sin tocar
+Inventarios, AlmacenPython, el motor de escritura, Gateway ni backend:
+  stockItemsAlmacenListado(id_empresa!, id_almacen?, id_item?, estado?)
+
+================================================================================
+2. MENÚ ACTUAL
+================================================================================
+
+Fuente encontrada:
+  MenuNestJs/migrations/menu-almacenes-producto-servicio.sql
+
+El script define, dentro de la sección “Producto|Servicio”:
+
+| Orden | Etiqueta                 | Ruta                                  | Clickable | Estado | Clasificación |
+|-------|--------------------------|---------------------------------------|-----------|--------|---------------|
+| —     | Almacenes                | NULL                                  | false     | true   | Padre de menú |
+| 1     | Nuevo almacén            | /items/almacenes/nuevo                | true      | true   | FUNCIONAL     |
+| 2     | Listado                  | /items/almacenes                      | true      | true   | FUNCIONAL     |
+| 3     | Movimientos              | /items/almacenes/movimientos          | true      | true   | FUNCIONAL     |
+| 4     | Cambio masivo de stock   | /items/almacenes/cambio-stock         | true      | true   | RUTA HUÉRFANA |
+| 5     | Stock por fecha          | /items/almacenes/stock-fecha          | true      | true   | RUTA HUÉRFANA |
+
+El padre usa id fijo:
+  b1c2d3e4-f5a6-4789-a012-697465000030
+
+Los hijos usan los sufijos 031 a 035. El script define estado=true y,
+si se aplica, concede permisos a los perfiles que ya tienen permitido el padre
+“Inventarios”. No se ejecutó el SQL ni se consultó/modificó la BD; por tanto,
+la auditoría confirma la CONFIGURACIÓN DECLARADA en repositorio, no si el
+script está aplicado en un entorno concreto.
+
+No se encontró una entrada “Stock actual” en dicho script.
+
+================================================================================
+3. RUTAS EXISTENTES
+================================================================================
+
+Fuente:
+  frontReact/src/routes/Router.tsx
+
+Rutas funcionales de Almacenes:
+
+| Ruta                                 | Lazy import / componente        | Archivo existe | Clasificación |
+|--------------------------------------|---------------------------------|----------------|---------------|
+| /items/almacenes                     | Almacenes                       | Sí             | FUNCIONAL     |
+| /items/almacenes/nuevo               | NuevoAlmacen                    | Sí             | FUNCIONAL     |
+| /items/almacenes/editar/:id          | EditarAlmacen                   | Sí             | FUNCIONAL     |
+| /items/almacenes/movimientos         | MovimientosAlmacen              | Sí             | FUNCIONAL     |
+| /items/almacenes/cambio-stock        | —                               | No             | RUTA HUÉRFANA |
+| /items/almacenes/stock-fecha         | —                               | No             | RUTA HUÉRFANA |
+| /items/almacenes/stock-actual        | —                               | No             | NO IMPLEMENTADO |
+
+Rutas existentes de stock fuera de Almacenes:
+
+| Ruta                              | Componente             | Archivo existe | Clasificación |
+|-----------------------------------|------------------------|----------------|---------------|
+| /items/productos/stocks           | ProductosStocks        | Sí             | MOCK          |
+| /items/productos/stocks-lotes     | ProductosStocksLotes   | Sí             | MOCK          |
+
+No hay lazy import ni ruta para Stock actual bajo Almacenes.
+
+================================================================================
+4. PANTALLAS DE STOCK ENCONTRADAS
+================================================================================
+
+4.1 frontReact/src/views/items/productos/ProductosStocks.tsx
+
+Ruta:
+  /items/productos/stocks
+
+Propósito visual:
+  listado de productos con umbrales y stocks.
+
+Datos:
+  MOCK_STOCKS_INICIAL. El archivo declara “Datos de ejemplo. Sustituir por API
+  cuando esté disponible.” No consulta stock_item_almacen, no usa REST para
+  stock y no incluye stockItemsAlmacenListado.
+
+Apollo:
+  Solo consulta empresas mediante GET_EMPRESAS para SelectEmpresa cuando el
+  scope es GLOBAL.
+
+Columnas:
+  Referencia, Etiqueta, Stock límite, Stock deseado, Stock físico, Stock
+  virtual, En venta, En compra y Acciones.
+
+Filtros:
+  referencia, etiqueta y “Stock insuficiente”; los tres se aplican sobre el
+  arreglo local mock. También limita visualmente por empresa/scope.
+
+Acciones:
+  editar producto (navega a editar), “Ajustar stock” (console.log de futuro) y
+  toggle de estado exclusivamente sobre state local mock.
+
+Paginación/UI:
+  ReactTable, paginación local, Card/Alert/Badge/SelectEmpresa.
+
+Clasificación:
+  MOCK. Es reutilizable solo como REFERENCIA VISUAL parcial, no como fuente
+  funcional ni como base directa: sus datos, semántica y acciones no coinciden
+  con el contrato de stock actual por almacén.
+
+4.2 frontReact/src/views/items/productos/ProductosStocksLotes.tsx
+
+Ruta:
+  /items/productos/stocks-lotes
+
+Propósito visual:
+  stock por lote/serie.
+
+Datos:
+  MOCK_LOTES_SERIE y mensaje explícito “Datos de ejemplo. Conecte el backend
+  cuando esté disponible.” No consulta API de lote/serie ni stock real.
+
+Columnas:
+  Referencia, Etiqueta, Almacén, Lote/Serie, Fecha límite de venta, Fecha de
+  caducidad, Stock físico, En venta, En compra y Acciones.
+
+Filtros:
+  referencia, etiqueta, almacén texto, lote/serie, rangos de fecha, stock
+  físico mínimo y “Solo con lote/serie”; todos locales sobre mocks.
+
+Acciones:
+  editar producto, “Ver/gestionar lote-serie” (console.log) y toggle local de
+  estado. Es dependiente de lote/serie.
+
+Clasificación:
+  MOCK. No es adecuada para Stock actual general: la query disponible no
+  entrega lote/serie ni fechas de caducidad.
+
+================================================================================
+5. ANÁLISIS CAMBIO MASIVO DE STOCK
+================================================================================
+
+Entrada encontrada:
+  menú SQL, orden 4, ruta /items/almacenes/cambio-stock.
+
+No se encontró:
+  - ruta correspondiente en frontReact/src/routes/Router.tsx;
+  - lazy import;
+  - vista en frontReact/src/views/items/almacenes;
+  - API o query asociada.
+
+Clasificación:
+  RUTA HUÉRFANA / NO IMPLEMENTADO.
+
+No hay evidencia de que hoy represente Stock actual. Por nombre, un cambio
+masivo implica potencial escritura, por lo que no debe reutilizarse como la
+pantalla read-only propuesta.
+
+================================================================================
+6. ANÁLISIS STOCK POR FECHA
+================================================================================
+
+Entrada encontrada:
+  menú SQL, orden 5, ruta /items/almacenes/stock-fecha.
+
+No se encontró:
+  - ruta correspondiente en Router.tsx;
+  - lazy import;
+  - vista asociada;
+  - query/API de saldo histórico.
+
+Clasificación:
+  RUTA HUÉRFANA / NO IMPLEMENTADO.
+
+No existe base frontend para reconstrucción histórica ni debe vincularse
+automáticamente a movimiento_inventario en esta fase.
+
+================================================================================
+7. RELACIÓN CON MOVIMIENTOS
+================================================================================
+
+Archivo:
+  frontReact/src/views/items/almacenes/MovimientosAlmacen.tsx
+
+Clasificación:
+  FUNCIONAL read-only.
+
+Evidencia:
+  consume por Apollo la query movimientosInventarioListado a través de Gateway.
+  Su propio comentario define: “historial exclusivamente de lectura”.
+
+Responsabilidad:
+  historial de movimiento_inventario:
+  fecha, producto, almacén origen/destino, tipo de movimiento, referencia,
+  concepto, cantidad, módulo origen y estado.
+
+No representa un saldo presente ni consulta stock_item_almacen.
+La futura pantalla Stock actual debe consumir stockItemsAlmacenListado y no
+debe reconstruir saldos desde esta pantalla o desde el historial.
+
+Patrones visuales reutilizables sin modificar:
+  SelectEmpresa, SearchableSelect para Producto, select HTML para Almacén y
+  Estado, Card/Alert/Badge/ReactTable y paginación local.
+
+================================================================================
+8. RELACIÓN CON INVENTARIOS
+================================================================================
+
+Archivo:
+  frontReact/src/views/items/inventarios/Inventarios.tsx
+
+Clasificación:
+  FUNCIONAL para cabeceras de inventario físico, no para stock actual.
+
+Evidencia:
+  consulta inventariosListado y ofrece nuevo/editar inventario, filtros por
+  referencia, etiqueta, almacén, producto y estado del inventario. También
+  contiene la mutation actualizarEstadoInventario.
+
+Su tabla muestra procesos de inventario (referencia, etiqueta, almacén,
+producto, estado ABIERTO/BORRADOR/CERRADO), no filas de saldo
+stock_item_almacen ni columnas stock_fisico/stock_disponible.
+
+Conclusión:
+  Inventarios no es una ubicación correcta para Stock actual. Stock actual
+  pertenece visual y funcionalmente a Almacenes/Stock.
+
+================================================================================
+9. COMPONENTES Y PATRONES REUTILIZABLES
+================================================================================
+
+| Recurso | Archivo / evidencia | Uso futuro posible |
+|---------|---------------------|--------------------|
+| SelectEmpresa | frontReact/src/components/SelectEmpresa.tsx | Sí. Adaptador de empresas a SearchableSelect; ya usado en Almacenes y Movimientos. |
+| SearchableSelect | frontReact/src/components/SearchableSelect.tsx | Sí. Selector searchable/clearable; Movimientos lo usa para Producto. |
+| ReactTable | usado en Almacenes.tsx y MovimientosAlmacen.tsx | Sí. Tabla y paginación local ya homogéneas. |
+| Card, CardBody, Container, Row, Col | Reactstrap; Almacenes/Movimientos | Sí. Estructura visual del módulo. |
+| Alert | Almacenes/Movimientos | Sí. Estados sin empresa/error. |
+| Badge | Almacenes/Movimientos | Sí. Estado true/false. |
+| Catálogo de almacenes | ALMACENES_LISTADO en MovimientosAlmacen.tsx | Sí como patrón de consulta y select por id_almacen. |
+| Catálogo de productos | ITEMS_LISTADO_PRODUCTO en MovimientosAlmacen.tsx | Sí como patrón de itemsListado por empresa y PRODUCT. |
+
+La reutilización debe ser de componentes/patrones, no de las acciones de
+ProductosStocks* ni de las mutations de Almacenes/Inventarios.
+
+================================================================================
+10. QUERY DISPONIBLE
+================================================================================
+
+Contrato ya implementado, no modificado por esta auditoría:
+
+stockItemsAlmacenListado(
+  id_empresa: ID!
+  id_almacen: ID
+  id_item: ID
+  estado: Boolean
+)
+
+Campos:
+  id_stock_producto_almacen
+  id_empresa
+  id_item
+  producto_ref
+  etiqueta
+  id_almacen
+  almacen_ref
+  almacen_nombre
+  stock_fisico
+  stock_reservado
+  stock_virtual
+  stock_disponible
+  stock_alerta
+  stock_deseado
+  estado
+
+Es suficiente para un listado read-only por empresa/almacén/producto. No
+entrega lote/serie, historial, costo, totalizaciones ni datos históricos.
+
+================================================================================
+11. COLUMNAS FUTURAS PROPUESTAS
+================================================================================
+
+Sin implementar, las columnas compatibles con el contrato actual son:
+
+  - Producto: etiqueta
+  - Referencia: producto_ref
+  - Almacén: almacen_ref + almacen_nombre
+  - Stock físico: stock_fisico
+  - Reservado: stock_reservado
+  - Virtual: stock_virtual
+  - Disponible: stock_disponible
+  - Stock alerta: stock_alerta
+  - Stock deseado: stock_deseado
+  - Estado: estado
+
+No se proponen lote/serie, fechas, costo, totales, acciones de ajuste,
+transferencia, edición o eliminación porque la query no los aporta y el
+alcance futuro debe continuar siendo read-only.
+
+================================================================================
+12. FILTROS FUTUROS PROPUESTOS
+================================================================================
+
+Todos están soportados por la query o por el patrón de UI existente:
+
+  - Empresa (obligatoria): SelectEmpresa para scope GLOBAL; empresa del JWT
+    para scope EMPRESA.
+  - Producto (opcional): SearchableSelect con el patrón itemsListado /
+    codigo_tipo_item PRODUCT de MovimientosAlmacen.
+  - Almacén (opcional): select con almacenesListado, igual que Movimientos.
+  - Estado (opcional): select Todos / Activo / Inactivo.
+
+No se recomienda añadir filtros de fecha, lote/serie, costo, stock insuficiente
+ni totalización en la primera pantalla, porque no pertenecen al contrato
+actual de la query.
+
+================================================================================
+13. OPCIONES DE UBICACIÓN
+================================================================================
+
+OPCIÓN A — Reutilizar una ruta/pantalla existente
+  Candidata: /items/productos/stocks.
+  Ventaja: ya tiene tabla, filtros, selector de empresa y apariencia similar.
+  Riesgos: usa mock, se ubica en Productos, no discrimina almacén como entidad
+  principal, incluye acciones locales y columnas comerciales ajenas.
+  Impacto: requeriría reescritura considerable y mezclaría responsabilidades.
+  No recomendada.
+
+OPCIÓN B — Reutilizar visualmente ProductosStocks, creando una vista nueva
+  Ventaja: aprovecha referencia de columnas/ReactTable/estilo.
+  Riesgos: copiar acciones mock o semántica de stock límite/comercial.
+  Impacto: medio. Reutilizar solo patrón visual, no código de datos/acciones.
+  Parcialmente válida como guía de diseño.
+
+OPCIÓN C — Crear posteriormente “Almacenes → Stock actual”
+  Ruta propuesta: /items/almacenes/stock-actual.
+  Ventajas: separa saldo actual de productos, movimientos e inventarios;
+  refleja el dominio de stock por almacén; usa el contrato ya disponible;
+  permite una pantalla estrictamente read-only.
+  Riesgos: requiere nueva vista, ruta y entrada de menú/permisos.
+  Impacto: acotado a frontend/menu de Almacenes; no necesita backend adicional.
+  RECOMENDADA.
+
+OPCIÓN D — Reutilizar “Cambio masivo de stock” o “Stock por fecha”
+  Ventaja: existen nombres de menú declarados.
+  Riesgos: ambas rutas son huérfanas; cambio masivo sugiere escritura y stock
+  por fecha requiere histórico inexistente.
+  Impacto: semántica incorrecta y riesgo de ampliar alcance.
+  No recomendada.
+
+================================================================================
+14. RECOMENDACIÓN FINAL
+================================================================================
+
+Crear en una fase posterior una vista NUEVA y estrictamente READ-ONLY:
+
+  Menú: Producto|Servicio → Almacenes → Stock actual
+  Ruta: /items/almacenes/stock-actual
+  Fuente: stockItemsAlmacenListado
+
+La pantalla debe adoptar el patrón visual de MovimientosAlmacen/Almacenes:
+empresa obligatoria por scope, selectores de Producto/Almacén, filtro Estado,
+Alert, Badge y ReactTable; pero sin botones operativos ni mutations.
+
+No debe ocupar las rutas existentes:
+  /items/almacenes/cambio-stock
+  /items/almacenes/stock-fecha
+
+================================================================================
+15. ARCHIVOS QUE UNA IMPLEMENTACIÓN FUTURA NECESITARÍA TOCAR
+================================================================================
+
+Previsión mínima, no realizada:
+
+  - frontReact/src/views/items/almacenes/StockActualAlmacen.tsx
+    (nuevo componente read-only)
+  - frontReact/src/routes/Router.tsx
+    (lazy import y ruta /items/almacenes/stock-actual)
+  - MenuNestJs/migrations/... (nueva entrada Stock actual y permiso asociado,
+    siguiendo el patrón vigente; requiere decisión y ejecución posterior de BD)
+
+No parece necesario cambiar Gateway ni AlmacenNestJs: la query ya existe y el
+routing Gateway ya está disponible.
+
+================================================================================
+16. ARCHIVOS QUE NO DEBERÍA TOCAR
+================================================================================
+
+Para esa fase read-only no deberían tocarse:
+
+  - AlmacenPython/
+  - InventarioNestJs/ e InventarioPython/
+  - movimiento_inventario
+  - stock_item_almacen en BD
+  - motor de stock / inicialización / movimientos
+  - Contabilidad
+  - cambio masivo de stock
+  - stock por fecha
+  - ProductosStocks.tsx y ProductosStocksLotes.tsx como fuente funcional
+
+================================================================================
+17. RIESGOS
+================================================================================
+
+  - Confundir el mock ProductosStocks con saldo real.
+  - Mezclar historial de movimientos con saldo actual.
+  - Reutilizar rutas huérfanas con semántica de escritura o histórico.
+  - Copiar botones de editar/ajustar/toggle de pantallas mock.
+  - Renderizar filas cero artificiales: el listado debe mostrar solo filas
+    existentes de stock_item_almacen.
+  - Exponer todas las empresas: id_empresa es obligatorio en la query y la UI
+    debe respetar el scope JWT.
+  - Asumir que el SQL de menú fue aplicado: este informe solo confirma el
+    script presente en repositorio.
+
+================================================================================
+18. SIGUIENTE PASO RECOMENDADO
+================================================================================
+
+Abrir una fase separada de implementación frontend read-only, limitada a:
+
+  1. nueva vista Almacenes/Stock actual;
+  2. ruta frontend;
+  3. entrada de menú/permisos tras decisión explícita;
+  4. Apollo query stockItemsAlmacenListado;
+  5. filtros Empresa, Producto, Almacén y Estado;
+  6. tabla sin acciones de escritura.
+
+No implementar en esa fase stock inicial, ajuste, cambio masivo, stock por
+fecha, movimientos, conteo, inventario físico, transferencias ni contabilidad.
+
+================================================================================
+19. CIERRE Y GIT
+================================================================================
+
+Respuesta a las preguntas principales:
+
+1. ¿Existe Stock actual funcional? No.
+2. ¿Existe pantalla reutilizable? Solo ProductosStocks como referencia visual;
+   es MOCK y no debe reutilizarse funcionalmente.
+3. ¿Qué hacen Cambio masivo / Stock por fecha? Hoy son entradas de menú con
+   rutas huérfanas; no implementan funcionalidad.
+4. ¿Dónde debe vivir Stock actual? En Almacenes, como pantalla nueva.
+5. ¿Qué tocaría una fase futura? Nueva vista, Router y menú/permisos.
+6. ¿Puede consumirse stockItemsAlmacenListado sin Inventarios/motor escritura?
+   Sí; backend y Gateway ya exponen la query read-only.
+
+Única escritura autorizada de esta auditoría:
+  docs/auditoria/AUDITORIA_FRONTEND_STOCK_ACTUAL.txt
+
+Todos los demás cambios del working tree son PREEXISTENTES.

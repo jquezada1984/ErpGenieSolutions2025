@@ -1,0 +1,427 @@
+AUDITORÍA TÉCNICA — FILTRO PRODUCTO EN ALMACENES → MOVIMIENTOS
+Fecha: 2026-08-15
+Alcance: solo lectura, salvo la creación de este informe.
+
+================================================================================
+1. CONCLUSIÓN EJECUTIVA
+================================================================================
+
+SÍ existe una fuente GraphQL existente, reutilizable y multiempresa para el
+futuro filtro Producto:
+
+  itemsListado de ItemNestJs, ya expuesta por el Gateway GraphQL.
+
+La fuente acepta id_empresa y devuelve directamente id_item, producto_ref,
+etiqueta y estado. Por ello id_item puede enviarse sin transformación a
+movimientosInventarioListado(id_item: ...).
+
+No existe un componente específico SelectProducto, ProductoSelect, SelectItem,
+ItemSelect, BuscarProducto o AutocompleteProducto. Sí existe el componente
+genérico SearchableSelect, ya usado en NuevoInventario y EditarInventario para
+seleccionar productos mediante itemsListado.
+
+Opción más segura para una fase futura:
+  - reutilizar SearchableSelect;
+  - consultar itemsListado con id_empresa: idEmpresaActiva y
+    codigo_tipo_item: "PRODUCT";
+  - solicitar solo id_item, producto_ref, etiqueta y estado;
+  - NO filtrar estado, para incluir activos e inactivos del histórico;
+  - guardar solo id_item;
+  - limpiar id_item cuando GLOBAL cambie de empresa;
+  - enviar id_item || null a movimientosInventarioListado.
+
+Esto se puede implementar localmente en MovimientosAlmacen.tsx, sin cambios de
+backend, Gateway, Python, BD, Docker ni otros módulos, siempre que se acepte
+la carga completa de los productos de la empresa (ver sección de volumen).
+
+================================================================================
+2. RESPUESTAS OBLIGATORIAS
+================================================================================
+
+1. ¿Existe SelectProducto / SelectItem reutilizable?
+   No. No se encontraron componentes con esos nombres ni equivalentes
+   específicos de producto/item.
+
+2. ¿Dónde está?
+   El componente reutilizable genérico es:
+   frontReact/src/components/SearchableSelect.tsx
+
+3. ¿Qué props usa?
+   value?: string | string[] | null
+   onChange(value: string | string[] | null): void
+   options?: { value: string; label: string }[]
+   loadOptions?: (inputValue: string) => Promise<opciones[]>
+   placeholder?: string
+   isDisabled?: boolean
+   isLoading?: boolean
+   error?: string
+   isMulti?: boolean
+
+   Para selección simple devuelve el value de la opción o null. Por tanto puede
+   guardar directamente el UUID id_item, sin guardar el objeto completo.
+
+4. ¿Qué query/API usa?
+   SearchableSelect no consulta datos por sí mismo en su uso actual de
+   productos. NuevoInventario y EditarInventario lo alimentan con:
+   itemsListado(id_empresa, codigo_tipo_item).
+
+5. ¿Existe una query de productos/item adecuada?
+   Sí: itemsListado.
+
+6. ¿Qué nombre tiene?
+   Query GraphQL: itemsListado.
+   Resolver: ItemNestJs/src/modules/items/items.resolver.ts.
+
+7. ¿Qué argumentos acepta?
+   id_empresa: ID
+   producto_ref: String
+   etiqueta: String
+   codigo_barras: String
+   id_estado_venta: ID
+   id_estado_compra: ID
+   codigo_tipo_item: String
+
+8. ¿Acepta id_empresa?
+   Sí. El resolver recibe id_empresa opcional y el servicio añade:
+   item.id_empresa = :idEmp cuando existe y no está vacío.
+
+9. ¿Devuelve id_item?
+   Sí, Item.id_item es ID obligatorio.
+
+10. ¿Devuelve producto_ref?
+    Sí, producto_ref es String nullable.
+
+11. ¿Devuelve etiqueta?
+    Sí, etiqueta es String obligatorio.
+
+12. ¿Devuelve estado?
+    Sí, estado es Boolean obligatorio.
+
+13. ¿Filtra empresa correctamente?
+    Sí, si el consumidor proporciona id_empresa. El servicio ItemNestJs filtra
+    explícitamente por item.id_empresa. La UI existente de Productos e
+    Inventarios ya calcula la empresa activa con JWT para EMPRESA y
+    SelectEmpresa para GLOBAL. IMPORTANTE: id_empresa es opcional en el
+    servidor; el futuro filtro debe usar skip mientras idEmpresaActiva esté
+    vacío para no solicitar un catálogo multiempresa sin filtro.
+
+14. ¿Conviene incluir productos inactivos en histórico?
+    Sí. Los movimientos históricos pueden pertenecer a un item actualmente
+    inactivo. itemsListado no filtra estado por defecto, por lo que basta no
+    excluir filas con estado=false en el mapeo de opciones.
+
+15. ¿Qué pasa al cambiar empresa?
+    Para GLOBAL, se debe limpiar id_item inmediatamente, volver a consultar
+    itemsListado con la nueva idEmpresaActiva y mantener el selector
+    deshabilitado mientras no exista empresa. Así no se conserva un producto
+    de una empresa anterior.
+
+16. ¿Puede implementarse después tocando solo MovimientosAlmacen.tsx?
+    Sí, para el patrón local estático ya usado por Inventarios:
+    useQuery(itemsListado) + SearchableSelect + estado idItem, dentro de esa
+    única vista. SearchableSelect ya existe y Gateway ya enruta itemsListado.
+
+17. ¿Necesitamos tocar backend?
+    No para el selector local basado en la carga completa actual. Sí sería
+    necesario diseñar una mejora de backend solo si se exige paginación o una
+    búsqueda única server-side que combine referencia y etiqueta para
+    catálogos de gran volumen; esa mejora no está autorizada ni se implementó.
+
+18. ¿Cuál es la opción más segura?
+    itemsListado de ItemNestJs con id_empresa e id_tipo "PRODUCT", consumido
+    por SearchableSelect. No usar fuentes de InicioNestJs ni APIs Python para
+    listar items.
+
+19. ¿Cuál sería el siguiente paso exacto?
+    En una tarea separada y limitada a MovimientosAlmacen.tsx:
+    a) importar SearchableSelect;
+    b) declarar la query existente itemsListado con variables id_empresa y
+       codigo_tipo_item y fields id_item, producto_ref, etiqueta, estado;
+    c) usar idEmpresaActiva y skip: !idEmpresaActiva;
+    d) mapear TODAS las filas a { value: id_item,
+       label: producto_ref + " - " + etiqueta };
+    e) crear idItem, resetearlo al cambiar empresa GLOBAL y con Limpiar;
+    f) sustituir exclusivamente el control Producto pendiente;
+    g) cambiar solo id_item: idItem || null en la llamada ya existente de
+       movimientosInventarioListado.
+
+================================================================================
+3. FRONTEND — COMPONENTES
+================================================================================
+
+3.1 SearchableSelect
+Archivo:
+  frontReact/src/components/SearchableSelect.tsx
+
+Es un wrapper de react-select / AsyncSelect. Las opciones tienen la forma:
+  { value: string, label: string }
+
+En selección simple, handleChange llama:
+  onChange(option?.value ?? null)
+
+No contiene query de productos ni conoce empresa/estado. Es reutilizable para
+mostrar la etiqueta sin UUID y conservar únicamente el UUID en el estado.
+
+3.2 Ausencia de selector específico
+Se buscó en frontReact por:
+  SelectProducto, ProductoSelect, SelectItem, ItemSelect, BuscarProducto y
+  AutocompleteProducto.
+
+No se encontró componente específico de producto/item. Por lo tanto no hay
+una abstracción de producto que reutilizar; el patrón reutilizable real es
+SearchableSelect más una consulta local a itemsListado.
+
+================================================================================
+4. FRONTEND — INVENTARIOS
+================================================================================
+
+4.1 NuevoInventario
+Archivo:
+  frontReact/src/views/items/inventarios/NuevoInventario.tsx
+
+Query existente:
+  itemsListado(id_empresa: $id_empresa, codigo_tipo_item: $codigo_tipo_item)
+
+Fields solicitados:
+  id_item
+  producto_ref
+  etiqueta
+  estado
+
+Variables:
+  id_empresa: idEmpresaActiva || null
+  codigo_tipo_item: "PRODUCT"
+  skip: !idEmpresaActiva
+
+Patrón visual:
+  SearchableSelect con value=productoEspecifico,
+  options=opcionesProducto,
+  isLoading=loadingItems,
+  isDisabled=!idEmpresaActiva.
+
+El mapeo existente usa:
+  value = String(it.id_item)
+  label = producto_ref ? "producto_ref - etiqueta" : etiqueta
+
+Pero filtra `.filter((it) => it?.estado !== false)`, adecuado para alta de
+inventario, NO para el histórico de movimientos. El futuro filtro de
+Movimientos debe reutilizar la query y el componente, pero no ese filtro de
+estado.
+
+4.2 EditarInventario
+Archivo:
+  frontReact/src/views/items/inventarios/EditarInventario.tsx
+
+Usa la misma query, los mismos cuatro fields y el mismo patrón
+SearchableSelect. También excluye inactivos por ser un formulario operativo;
+no copiar esa exclusión para el histórico.
+
+4.3 Inventarios
+Archivo:
+  frontReact/src/views/items/inventarios/Inventarios.tsx
+
+No selecciona un item real. Su filtro "Producto" es un Input de texto para el
+campo product de inventariosListado (cantidad/contador) y no devuelve ni usa
+id_item. No es fuente ni patrón adecuado para este filtro.
+
+================================================================================
+5. FRONTEND — PRODUCTOS Y APIS
+================================================================================
+
+5.1 Productos
+Archivo:
+  frontReact/src/views/items/productos/Productos.tsx
+
+Consulta itemsListado con:
+  id_empresa, producto_ref, etiqueta, codigo_barras,
+  id_estado_venta, id_estado_compra.
+
+Solicita, entre otros:
+  id_item, id_empresa, producto_ref, etiqueta, codigo_barras, estado.
+
+Patrón multiempresa:
+  EMPRESA: id_empresa viene de JWT.
+  GLOBAL: requiere selectedIdEmpresa (SelectEmpresa).
+  Sin empresa activa: limpia la lista y no consulta.
+
+Este es evidencia de que itemsListado es el catálogo de productos por empresa
+ya adoptado por el ERP.
+
+5.2 APIs frontend
+Archivo:
+  frontReact/src/_apis_/item.js
+
+No contiene listarItems, listarProductos, buscarProductos ni getProductos.
+Solo expone catálogos auxiliares del item (estados, naturalezas, controles,
+tipos de comportamiento) y operaciones de escritura/etiquetas de categoría.
+No es fuente para seleccionar un producto real por id_item.
+
+================================================================================
+6. ITEMNESTJS
+================================================================================
+
+6.1 Resolver
+Archivo:
+  ItemNestJs/src/modules/items/items.resolver.ts
+
+itemsListado está declarado como Query de [Item]. Acepta exactamente:
+  id_empresa?: ID
+  producto_ref?: String
+  etiqueta?: String
+  codigo_barras?: String
+  id_estado_venta?: ID
+  id_estado_compra?: ID
+  codigo_tipo_item?: String
+
+6.2 Servicio y aislamiento de empresa
+Archivo:
+  ItemNestJs/src/modules/items/items.service.ts
+
+El query builder ordena por item.etiqueta ascendente. Si se proporciona
+id_empresa, ejecuta el predicado:
+  item.id_empresa = :idEmp
+
+Si se proporciona codigo_tipo_item, une item.tipoItem y filtra:
+  ticFiltr.codigo = :codigoTipoItem
+
+Por tanto codigo_tipo_item: "PRODUCT" permite evitar servicios sin asumir
+otro campo o tabla.
+
+El servicio NO añade un filtro por item.estado. Esa omisión es correcta para
+el histórico si el frontend no lo excluye.
+
+6.3 Entity y esquema real
+Archivos:
+  ItemNestJs/src/modules/items/entities/item.entity.ts
+  ItemNestJs/src/schema.gql
+
+La entidad item confirma:
+  id_item      UUID / GraphQL ID obligatorio
+  id_empresa   UUID / GraphQL ID obligatorio
+  producto_ref varchar(100), nullable
+  etiqueta     varchar(255), obligatorio
+  estado       boolean, default true
+
+Los campos son adecuados para el label:
+  producto_ref - etiqueta
+
+El fallback debe evitar mostrar UUID si producto_ref y etiqueta fueran
+anómalamente vacíos; en condiciones normales etiqueta es obligatoria.
+
+6.4 Paginación y volumen
+itemsListado retorna [Item!]!, y el servicio finaliza con getMany(). No recibe
+limit, offset, cursor ni page. La infraestructura existente no ofrece
+paginación para este catálogo.
+
+SearchableSelect puede filtrar en el navegador una vez recibidas las opciones,
+pero no elimina el costo de cargar toda la empresa. Las búsquedas disponibles
+del backend son separadas por producto_ref y etiqueta y se combinan con AND si
+se envían ambas; no existe una búsqueda única OR por texto.
+
+Recomendación:
+  - volumen pequeño/medio: SearchableSelect con catálogo completo, patrón ya
+    validado en NuevoInventario/EditarInventario;
+  - volumen alto: no implementar un selector que cargue miles de filas sin
+    validar rendimiento. Se necesitaría una tarea de diseño separada para
+    paginación o búsqueda server-side, no una modificación implícita.
+
+================================================================================
+7. ITEMPYTHON
+================================================================================
+
+Archivos revisados:
+  ItemPython/models/item.py
+  ItemPython/api/item_routes.py
+  ItemPython/services/item_service.py
+  ItemPython/repositories/item_repository.py
+
+ItemPython contiene la escritura de item y catálogos de etiquetas/categorías.
+El modelo también confirma id_item, producto_ref, etiqueta y estado. Sin
+embargo no expone un endpoint de lectura de listado de items equivalente a
+itemsListado. No debe usarse para este filtro: la fuente adecuada ya está en
+ItemNestJs a través de GraphQL/Gateway.
+
+================================================================================
+8. INICIONESTJS
+================================================================================
+
+Se revisaron los resolvers de InicioNestJs. No expone un catálogo de
+productos/items de dominio. Sus queries `items`/`item` son MenuItem
+administrativos, no filas de public.item, y por tanto no devuelven
+producto_ref ni son candidatos para este filtro.
+
+La única relación encontrada es tiposItemCatalogo, que es un catálogo de tipos
+(por ejemplo PRODUCT/SERVICE), no un catálogo de productos. Puede servir como
+contexto de tipo, pero no reemplaza itemsListado.
+
+================================================================================
+9. GATEWAY Y COMPATIBILIDAD
+================================================================================
+
+Archivo revisado:
+  gateway-api/src/routes/graphql.js
+
+El Gateway ya reconoce `itemsListado` y lo dirige a ItemNestJs. No se requiere
+modificar Gateway ni usar requests directos a puertos de servicios.
+
+Archivo revisado:
+  frontReact/src/views/items/almacenes/MovimientosAlmacen.tsx
+
+movimientosInventarioListado ya declara id_item como variable ID opcional y
+actualmente lo manda como null. La fuente recomendada entrega exactamente el
+mismo UUID id_item requerido, por lo que no hay conversión ni consulta
+intermedia necesaria.
+
+================================================================================
+10. COMPARACIÓN DE OPCIONES
+================================================================================
+
+Opción A — itemsListado / ItemNestJs (RECOMENDADA)
+  Multiempresa: sí, id_empresa explícito y filtro SQL.
+  Estado: sí, retorna estado; no filtra por defecto.
+  Fields: id_item, producto_ref, etiqueta, estado.
+  Tipo: filtra PRODUCT mediante codigo_tipo_item.
+  Paginación: no.
+  Reutilización: ya usada en NuevoInventario, EditarInventario y Productos.
+  Riesgo: bajo si siempre se aplica idEmpresaActiva; volumen potencial sin
+  paginación.
+
+Opción B — componente SearchableSelect
+  No es una fuente de datos. Es la UI reutilizable para la opción A.
+  Devuelve el value (id_item) y evita mostrar UUID si el label se construye
+  con referencia y etiqueta.
+
+Opción C — APIs ItemPython
+  No hay endpoint listado de items aplicable.
+  No recomendada; agregaría dependencia y/o lógica nueva innecesaria.
+
+Opción D — InicioNestJs
+  No tiene catálogo de items de negocio; `items` se refiere a menú.
+  No recomendada por incompatibilidad semántica y de campos.
+
+================================================================================
+11. REGLAS FUTURAS MULTIEMPRESA E HISTÓRICO
+================================================================================
+
+EMPRESA:
+  idEmpresaActiva debe continuar viniendo del JWT/contexto existente.
+  itemsListado debe recibir esa UUID.
+
+GLOBAL:
+  idEmpresaActiva debe continuar viniendo de SelectEmpresa.
+  Al cambiar la empresa: setIdItem(''), nuevo itemsListado con la empresa
+  seleccionada y selector temporalmente deshabilitado si no hay empresa.
+
+HISTÓRICO:
+  No enviar un filtro de estado a itemsListado y no ejecutar
+  .filter(estado !== false), a diferencia de Nuevo/EditarInventario.
+  Deben ser seleccionables items activos e inactivos porque ambos pueden
+  aparecer en movimientos históricos.
+
+================================================================================
+12. ESCRITURAS Y ALCANCE
+================================================================================
+
+No se modificaron frontend funcional, backend, Gateway, Python, BD, Docker,
+puertos, stock ni contabilidad. No se crearon queries ni componentes. La única
+escritura de esta auditoría es este TXT.

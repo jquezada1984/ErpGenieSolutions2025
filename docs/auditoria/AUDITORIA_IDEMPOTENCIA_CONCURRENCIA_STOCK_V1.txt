@@ -1,0 +1,570 @@
+AUDITORÍA TÉCNICA — IDEMPOTENCIA Y CONCURRENCIA — MOTOR DE STOCK v1
+Fecha: 2026-08-16
+Fase: 2B — Solo auditoría y diseño
+Estado: recomendaciones técnicas; NO implementadas ni aprobadas como contrato funcional.
+
+================================================================================
+0. ALCANCE Y PROTECCIÓN
+================================================================================
+
+Esta fase lee, compara y documenta. No se modificó código funcional, BD,
+migraciones, endpoints, Gateway, frontend, Docker ni contenedores.
+No se ejecutó SQL de escritura ni se crearon saldos o movimientos.
+
+Única escritura de esta fase:
+  docs/auditoria/AUDITORIA_IDEMPOTENCIA_CONCURRENCIA_STOCK_V1.txt
+
+El working tree ya contenía cambios en docker-compose.yml, frontReact,
+gateway-api, package-lock, AlmacenNestJs, AlmacenPython, menú y auditorías.
+Esos cambios son PREEXISTENTES y no fueron alterados.
+
+================================================================================
+1. FUENTE FUNCIONAL Y LÍMITES
+================================================================================
+
+Fuente de verdad funcional:
+  docs/auditoria/CONTRATO_ESCRITURA_MOTOR_STOCK_V1_APROBADO.txt
+
+[YA APROBADO EN 2A]
+  - MVP: STOCK INICIAL.
+  - Escritor único futuro: AlmacenPython.
+  - stock_fisico es existencia física actual.
+  - Primera fila exclusivamente mediante STOCK INICIAL.
+  - tipo_movimiento = INICIAL.
+  - modulo_origen = STOCK_INICIAL.
+  - cantidad positiva, máximo dos decimales, no cero ni negativa.
+  - saldo y movimiento se confirman o revierten juntos.
+  - la misma operación no puede aplicar cantidad dos veces.
+  - la identidad conceptual usa modulo_origen + id_origen.
+
+Esta auditoría no modifica ninguna decisión anterior. Decide una recomendación
+técnica para materializar la garantía de idempotencia, que sigue PENDIENTE DE
+APROBACIÓN antes de escribir el motor.
+
+================================================================================
+2. HALLAZGOS DEL REPOSITORIO
+================================================================================
+
+2.1 Idempotencia existente
+
+No se encontró en el ERP un patrón funcional de:
+  - idempotency key / idempotencia persistida;
+  - request_id, operation_id o external_id;
+  - pg_advisory_lock;
+  - isolation SERIALIZABLE configurado;
+  - SELECT ... FOR UPDATE / with_for_update();
+  - UNIQUE sobre modulo_origen + id_origen.
+
+movimiento_inventario expone modulo_origen en su lector Nest, pero no existe
+código que escriba o consulte id_origen/modulo_origen como identidad.
+
+Conclusión:
+  NO existe idempotencia real reutilizable para operaciones de stock.
+
+2.2 Patrones transaccionales existentes
+
+AlmacenPython:
+  - Flask-SQLAlchemy 3.1.1 + SQLAlchemy 2.0.48.
+  - PostgreSQL se configura por DATABASE_URL.
+  - psycopg2-binary 2.9.11 está declarado como driver.
+  - Repositories usan db.session.add(), db.session.commit() y, ante error,
+    db.session.rollback().
+  - Routes distinguen ValidationError, IntegrityError y SQLAlchemyError.
+  - No hay transacción explícita multi-entidad, savepoint ni bloqueo de fila.
+  - No se encontró configuración explícita de isolation level.
+  - _ctx_empresa_user() obtiene X-Company-Id y X-User-Id; no hay todavía
+    mecanismo específico de idempotencia.
+
+BancoCajaPython:
+  - Usa Decimal para monto y saldo.
+  - crear_linea_movimiento() altera el saldo de cuenta y añade una línea de
+    movimiento a la misma db.session.
+  - Transferencias añaden cabecera y dos movimientos y ejecutan un commit final.
+  - No se encontró SELECT FOR UPDATE, advisory lock, idempotency key ni manejo
+    explícito de carreras de concurrencia.
+
+Referencia útil:
+  saldo + movimiento en una única sesión y un solo commit.
+
+Referencia NO suficiente:
+  BancoCaja no ofrece protección idempotente ni de primera fila concurrente;
+  no debe copiarse literalmente como solución de Stock.
+
+2.3 Nombres de constraints existentes
+
+Evidencia disponible:
+  - uq_stock_item_almacen para UNIQUE(id_item, id_almacen), documentado.
+  - uq_almacen_empresa_ref, documentado como constraint de almacén.
+  - uq_empresa_dia, definido en un modelo.
+  - uk_empresa_email, usado en una migración antigua.
+
+La convención predominante observable para unicidad nueva es el prefijo uq_.
+
+================================================================================
+3. HECHOS DE BASE DE DATOS RELEVANTES
+================================================================================
+
+stock_item_almacen:
+  UNIQUE(id_item, id_almacen)
+
+Esto garantiza una única FILA de saldo por par, pero no la identidad de una
+operación ni la no repetición de su cantidad.
+
+movimiento_inventario:
+  modulo_origen VARCHAR NULL
+  id_origen UUID NULL
+
+No hay UNIQUE ni índice confirmado sobre dichos campos.
+
+PostgreSQL y NULL:
+  En una UNIQUE convencional, los NULL se consideran distintos. Por tanto una
+  UNIQUE(id_empresa, modulo_origen, id_origen) permite múltiples filas cuando
+  modulo_origen o id_origen es NULL. Esto preserva movimientos legacy/sin origen,
+  pero no obliga por sí mismo a que operaciones idempotentes aporten ambos datos.
+
+Un unique index parcial:
+
+  WHERE modulo_origen IS NOT NULL AND id_origen IS NOT NULL
+
+también permite registros sin identidad, pero expresa que la unicidad se aplica
+solo a operaciones con identidad declarada. Para el escritor de STOCK INICIAL,
+la aplicación tendría que exigir ambos campos no NULL.
+
+================================================================================
+4. EVALUACIÓN DE ESTRATEGIAS
+================================================================================
+
+A. UNIQUE(modulo_origen, id_origen) en movimiento_inventario
+
+Ventajas:
+  - Es simple.
+  - Impide un segundo movimiento con la misma pareja.
+
+Riesgos:
+  - Omite id_empresa: la misma clave podría interferir entre empresas.
+  - Omite el contexto de una operación multi-línea.
+  - En una futura transferencia, dos movimientos legítimos (origen/destino)
+    no podrían compartir la identidad de la misma operación.
+  - Los NULL no quedan protegidos.
+
+Veredicto:
+  NO RECOMENDADA.
+
+B. UNIQUE(id_empresa, modulo_origen, id_origen) en movimiento_inventario
+
+Ventajas:
+  - Respeta aislamiento multiempresa.
+  - Resuelve el retry de STOCK INICIAL, que hoy crea un solo movimiento.
+  - Un índice parcial preservaría movimientos legacy con NULL.
+
+Riesgos:
+  - Sigue modelando “una operación = un movimiento”.
+  - Impediría que una transferencia, cierre o documento origen genere varias
+    líneas legítimas con un único id_origen.
+  - Obliga a inventar ids por línea o a perder la identidad común de negocio.
+  - No conserva por sí mismo el fingerprint para diferenciar misma key con
+    payload distinto.
+
+Veredicto:
+  MEJOR QUE A PARA UN MVP AISLADO, PERO NO RECOMENDADA como estrategia central
+  del Motor v1 por deuda peligrosa frente a operaciones multi-movimiento.
+
+C. Tabla separada de operación/idempotencia
+
+Modelo conceptual:
+  stock_operation (nombre conceptual, NO creado)
+
+Identidad única:
+  id_empresa + modulo_origen + id_origen
+
+Una operación representa el comando de negocio; sus movimientos representan
+las líneas de trazabilidad. Así una transferencia futura puede conservar una
+sola operación y varios movimientos sin violar unicidad.
+
+Ventajas:
+  - Separa identidad de comando de sus movimientos.
+  - Funciona para STOCK INICIAL, entradas, salidas, ajustes, inventarios,
+    compras, ventas y transferencias.
+  - Puede conservar fingerprint del payload, estado final y referencias a los
+    resultados para responder retries después de timeout.
+  - Da una constraint final de BD ante dos requests simultáneos.
+  - No obliga a UNIQUE incorrecta sobre movimiento_inventario.
+
+Desventajas:
+  - Requiere cambio de BD y modelo/repository futuros.
+  - Añade una entidad al MVP.
+
+Veredicto:
+  RECOMENDADA para la estrategia persistida del Motor de Stock.
+
+D. Depender únicamente de UNIQUE(id_item, id_almacen)
+
+Ventaja:
+  - Para STOCK INICIAL evita dos filas de saldo para un mismo par.
+
+Insuficiencias:
+  - No distingue retry legítimo de una segunda inicialización.
+  - No devuelve el resultado original por identidad de operación.
+  - No detecta “misma key, distinto payload”.
+  - No sirve para múltiples entradas/salidas/ajustes sobre una fila existente.
+  - No asocia de forma durable el movimiento con una solicitud.
+
+Veredicto:
+  NECESARIA PARA LA FILA, INSUFICIENTE PARA IDEMPOTENCIA.
+
+================================================================================
+5. RECOMENDACIÓN FINAL
+================================================================================
+
+[RECOMENDACIÓN 2B — PENDIENTE DE APROBACIÓN]
+
+ESTRATEGIA DE IDEMPOTENCIA:
+  Tabla persistida de operaciones de stock, separada de movimiento_inventario.
+
+CLAVE:
+  (id_empresa, modulo_origen, id_origen)
+
+CONSTRAINT/INDEX RECOMENDADO:
+  En una futura tabla stock_operation (nombre conceptual):
+
+  CONSTRAINT uq_stock_operation_empresa_modulo_origen_id_origen
+  UNIQUE (id_empresa, modulo_origen, id_origen)
+
+La tabla de operaciones debe exigir dichos tres campos NOT NULL; por ello no
+necesita índice parcial para el flujo idempotente.
+
+SQL CONCEPTUAL PARA REVISIÓN FUTURA — NO EJECUTADO:
+
+  CREATE TABLE public.stock_operation (
+    id_stock_operation UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_empresa UUID NOT NULL,
+    modulo_origen VARCHAR NOT NULL,
+    id_origen UUID NOT NULL,
+    payload_fingerprint VARCHAR NOT NULL,
+    estado VARCHAR NOT NULL,
+    id_stock_producto_almacen UUID NULL,
+    id_movimiento_inventario UUID NULL,
+    created_by UUID NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
+    CONSTRAINT uq_stock_operation_empresa_modulo_origen_id_origen
+      UNIQUE (id_empresa, modulo_origen, id_origen)
+  );
+
+Este SQL es conceptual: tipos FK, catálogo de estado y política de auditoría
+deben revisarse antes de una migración. No es instrucción de ejecución.
+
+movimiento_inventario mantiene modulo_origen + id_origen como trazabilidad del
+origen, pero NO recibe una UNIQUE idempotente que impida varias líneas válidas
+de una misma operación futura.
+
+NECESIDAD DE CAMBIO DE BD:
+  SÍ. Sin una garantía única persistida para la identidad de operación, una
+  consulta previa de aplicación puede sufrir carrera y no garantiza idempotencia
+  real frente a retries concurrentes.
+
+================================================================================
+6. QUIÉN GENERA Y CONSERVA id_origen
+================================================================================
+
+[RECOMENDACIÓN 2B — PENDIENTE DE APROBACIÓN]
+
+id_origen representa el UUID estable de la OPERACIÓN DE STOCK, no el UUID de
+una línea de movimiento y no un UUID que AlmacenPython invente en cada llamada.
+
+Para STOCK INICIAL, donde aún no existe documento de negocio anterior:
+  - el caller autorizado genera un UUID antes del primer envío;
+  - debe conservar la misma clave en todos los retries de la misma intención;
+  - Gateway lo transmite sin sustituirlo;
+  - AlmacenPython lo valida, lo usa para reservar la operación y lo persiste.
+
+El frontend puede ser ese caller inicial cuando sea la interfaz autorizada, pero
+la identidad no debe vivir solo en una variable efímera si se requiere reintento
+tras timeout/recarga. El contrato de la futura UI/API debe definir conservación
+durable durante el ciclo de la solicitud.
+
+AlmacenPython NO debe generar un UUID nuevo por retry: hacerlo anularía la
+idempotencia. Puede rechazar la ausencia de id_origen para una operación que
+exige idempotencia.
+
+Para módulos futuros:
+  - Compras/Ventas/Inventarios/Transferencias deben generar o poseer la
+    identidad estable del comando/documento que origina la operación.
+  - Si un documento produce varias operaciones independientes, cada operación
+    recibe su propio id_origen.
+
+================================================================================
+7. FINGERPRINT Y REUTILIZACIÓN DE KEY
+================================================================================
+
+[RECOMENDACIÓN 2B — PENDIENTE DE APROBACIÓN]
+
+La fila de operación debe conservar un payload_fingerprint calculado de forma
+canónica con los campos efectivos:
+
+  id_empresa, modulo_origen, id_origen, tipo_movimiento,
+  id_item, id_almacen, cantidad normalizada, costo_unitario normalizado,
+  fecha_movimiento, referencia y concepto según su contrato aprobado.
+
+No se debe usar JSON no normalizado ni float para la comparación. Cantidades y
+costos deben compararse como representaciones Decimal normalizadas.
+
+Misma key + mismo fingerprint:
+  retry válido; devolver el resultado original sin crear ni modificar nada.
+
+Misma key + fingerprint distinto:
+  rechazo explícito: “idempotency key reuse with different payload”.
+  Nunca se procesa como retry ni se aplica una segunda cantidad.
+
+El fingerprint es parte central de la recomendación de tabla separada. Un
+UNIQUE sobre movimiento_inventario por sí solo no contiene todos los datos
+necesarios para comparar una reutilización inconsistente.
+
+================================================================================
+8. ESTRATEGIA DE CONCURRENCIA Y PRIMERA FILA
+================================================================================
+
+[RECOMENDACIÓN 2B — PENDIENTE DE APROBACIÓN]
+
+Nivel de aislamiento:
+  PostgreSQL usa READ COMMITTED por defecto. No hay configuración explícita de
+  isolation level en AlmacenPython. READ COMMITTED es suficiente para el MVP SI
+  se combina con constraints únicas, transacción única y manejo correcto de las
+  colisiones. No se recomienda depender exclusivamente de lecturas previas.
+
+Misma key simultánea (A y B: STOCK_INICIAL + ABC):
+
+  1. A comienza transacción e intenta reservar stock_operation por su UNIQUE.
+  2. B intenta reservar la misma clave. PostgreSQL espera o detecta la
+     colisión de UNIQUE al resolverse A.
+  3. Si A hace COMMIT, B no aplica saldo: recupera la operación persistida,
+     compara fingerprint y devuelve el resultado original.
+  4. Si A hace ROLLBACK, no queda reserva y B puede procesar la operación.
+
+Keys diferentes, mismo item+almacén, primera inicialización simultánea:
+
+  1. A y B reservan sus identidades distintas.
+  2. Ambas pueden observar que no hay saldo; SELECT FOR UPDATE no bloquea una
+     fila inexistente.
+  3. Solo una puede INSERTar stock_item_almacen por UNIQUE(id_item,id_almacen).
+  4. La perdedora recibe una violación de UNIQUE, revierte su transacción y NO
+     crea movimiento ni deja reserva de operación.
+  5. La perdedora debe informar conflicto “saldo ya inicializado”; no debe
+     sumar, actualizar ni reinterpretar como retry.
+
+SELECT FOR UPDATE:
+  - Es útil cuando la fila de saldo YA existe, para posteriores operaciones que
+    modifican el mismo saldo.
+  - No protege por sí solo la primera creación, porque no hay fila que bloquear.
+
+Alternativas no recomendadas para el MVP:
+  - bloquear item o almacén: serializa operaciones no relacionadas y añade
+    contención artificial;
+  - advisory locks: posibles, pero no se usan hoy y añaden disciplina de claves
+    y liberación sin reemplazar constraints;
+  - SERIALIZABLE: puede detectar anomalías, pero obliga reintentos por fallos de
+    serialización y no sustituye el diseño de identidad persistida.
+
+La garantía final para primera fila es UNIQUE(id_item,id_almacen), con manejo
+de IntegrityError. La garantía final para misma operación es la UNIQUE de
+stock_operation.
+
+================================================================================
+9. ORDEN TRANSACCIONAL RECOMENDADO
+================================================================================
+
+[RECOMENDACIÓN 2B — PENDIENTE DE APROBACIÓN]
+
+Opción recomendada: C — reservar identidad → saldo → movimiento.
+
+Secuencia conceptual:
+
+  BEGIN
+    validar empresa, item, almacén, inventariable, estados y Decimal
+    validar modulo_origen=STOCK_INICIAL e id_origen requerido
+    calcular fingerprint canónico
+    INSERT stock_operation (reserva de identidad)
+    si la identidad ya existe:
+      finalizar transacción fallida o savepoint y recuperar operación
+      comparar fingerprint
+      igual     → devolver resultado original (retry idempotente)
+      distinto  → rechazar reutilización de key
+    intentar INSERT stock_item_almacen
+    si UNIQUE(id_item,id_almacen) falla:
+      ROLLBACK completo → conflicto de segunda inicialización
+    INSERT movimiento_inventario
+    actualizar stock_operation con ids resultantes/estado final
+  COMMIT
+
+No realizar commit entre estos pasos.
+
+Por qué no A (movimiento → saldo):
+  El movimiento quedaría conceptualmente antes del recurso que representa y no
+  mejora la protección de primera fila.
+
+Por qué no B (saldo → movimiento):
+  Puede ser atómico si hay transacción, pero no reserva primero la identidad
+  durable necesaria para resolver retry/concurrencia con claridad.
+
+Manejo ORM relevante:
+  Después de IntegrityError en PostgreSQL, la transacción queda abortada.
+  Para consultar el resultado existente se requiere rollback completo y una
+  nueva transacción, o un savepoint/nested transaction correctamente diseñado.
+  AlmacenPython hoy solo usa commit/rollback; la futura implementación debe
+  diseñar explícitamente este punto, no asumir que puede seguir consultando.
+
+================================================================================
+10. ATOMICIDAD ANTE FALLOS
+================================================================================
+
+[YA APROBADO EN 2A]
+  Saldo y movimiento son atómicos.
+
+[RECOMENDACIÓN 2B]
+  La reserva de operación, el INSERT de saldo, el INSERT de movimiento y la
+  persistencia de resultados deben estar en la MISMA transacción.
+
+Fallo después de INSERT stock y antes de INSERT movimiento:
+  ROLLBACK elimina la fila de stock y la reserva de operación; no queda saldo
+  huérfano.
+
+Fallo después de INSERT movimiento y antes de COMMIT:
+  ROLLBACK elimina movimiento, saldo y reserva; no queda movimiento huérfano.
+
+Fallo o timeout de respuesta después de COMMIT:
+  La operación queda persistida. Un retry con misma clave/fingerprint recupera
+  el resultado original y no aplica cambios nuevamente.
+
+La infraestructura actual de Flask-SQLAlchemy dispone de db.session.commit() y
+db.session.rollback(), por lo que soporta el patrón de una unidad de trabajo.
+No existe aún el repositorio multi-entidad ni la disciplina transaccional
+explícita: debe implementarse en la fase de writer, no en esta auditoría.
+
+================================================================================
+11. RETRY Y RESPUESTA IDEMPOTENTE
+================================================================================
+
+[RECOMENDACIÓN 2B — PENDIENTE DE APROBACIÓN]
+
+Primera solicitud:
+  procesa y devuelve resultado creado.
+
+Retry idéntico después de COMMIT:
+  devolver el resultado original con indicador semántico
+  already_processed / idempotent_replay = true.
+  No devolver conflicto: para un cliente que perdió la respuesta, la operación
+  fue correcta y debe ser recuperable.
+
+Retry mientras la primera está en curso:
+  la constraint única de operación evita aplicación doble; la segunda solicitud
+  espera/colisiona y luego recupera el resultado si la primera confirmó.
+
+Retry después de timeout con commit exitoso:
+  misma clave recupera el resultado persistido.
+
+Misma key + payload diferente:
+  error de conflicto de identidad; nunca se devuelve el resultado original como
+  si correspondiera a un payload distinto.
+
+================================================================================
+12. ESTADO, REVERSIÓN Y FUTURAS OPERACIONES
+================================================================================
+
+estado de movimiento:
+  Para la inicialización aplicada, estado=true es el valor actual de tabla y
+  basta como representación de una fila vigente. No se inventan nuevos estados.
+
+Reversión:
+  Una reversa o ajuste futuro NO reutiliza el id_origen de INICIAL.
+  Será una nueva operación con nueva identidad y su tipo/módulo aprobado.
+
+Operaciones futuras:
+  La recomendación de stock_operation permite múltiples movimientos para una
+  sola operación. Por ello no debe agregarse UNIQUE(id_item,id_almacen) a
+  movimiento_inventario: ese índice impediría entradas, salidas y ajustes
+  posteriores legítimos.
+
+Deadlocks futuros:
+  Transferencias A→B y B→A deberán bloquear saldos en un orden determinista
+  (por ejemplo, identidad de almacén ascendente) dentro de una transacción.
+  No se diseña transferencia en v1; se registra el riesgo desde ahora.
+
+================================================================================
+13. SEGURIDAD NUMÉRICA
+================================================================================
+
+AlmacenPython no implementa aún cálculos de stock, pero el proyecto usa
+SQLAlchemy NUMERIC y BancoCajaPython usa Decimal(str(valor)) para montos/saldos.
+
+La futura implementación debe usar Decimal para:
+  cantidad
+  costo_unitario
+  costo_total
+
+No usar float binario para fingerprint, comparación o cálculo.
+
+================================================================================
+14. MATRIZ DE PRUEBAS FUTURAS (NO EJECUTADA)
+================================================================================
+
+| Caso | Entrada | Resultado esperado |
+|---|---|---|
+| 1 | Primera inicialización | Una reserva, un saldo, un movimiento; commit |
+| 2 | Retry misma key y mismo payload | Sin nuevas filas; resultado original + replay |
+| 3 | Misma key y payload distinto | Conflicto de identidad; sin cambios |
+| 4 | Key distinta, mismo item+almacén inicializado | Rechazo; no segundo saldo/movimiento |
+| 5 | Dos requests simultáneos, misma key | Una aplicación; ambas observan mismo resultado final |
+| 6 | Dos requests simultáneos, keys distintas, mismo par | Una inicialización; la otra conflicto |
+| 7 | Fallo al crear movimiento | Rollback de saldo y reserva |
+| 8 | Empresa incorrecta | Rechazo antes de persistir |
+| 9 | Item no inventariable | Rechazo antes de persistir |
+| 10 | Item o almacén inactivo | Rechazo antes de persistir |
+| 11 | Timeout tras commit y retry | Replay sin nueva aplicación |
+| 12 | id_origen ausente o no UUID | Rechazo antes de persistir |
+| 13 | Cantidad/costo fuera de precisión | Rechazo sin redondeo silencioso |
+
+================================================================================
+15. PENDIENTE DE APROBACIÓN ANTES DE FASE 2C
+================================================================================
+
+  1. Aprobar o ajustar la tabla separada stock_operation y su constraint.
+  2. Confirmar el nombre definitivo, FKs y campos auditables de dicha tabla.
+  3. Confirmar contrato de generación/conservación de id_origen en la UI/API.
+  4. Aprobar campos exactos del fingerprint y regla de normalización Decimal.
+  5. Resolver la regla pendiente precio_compra(18,6) → costo_unitario(15,2).
+  6. Definir contrato de respuesta de replay/conflicto sin fijar aún HTTP.
+
+================================================================================
+16. RESPUESTA DIRECTA
+================================================================================
+
+¿Existe ya idempotencia en el ERP?
+  No para stock ni para movimiento_inventario.
+
+¿Qué patrón transaccional reutilizable existe?
+  db.session con Decimal, add de saldo+movimiento y un único commit/rollback,
+  observado en BancoCajaPython. No incluye locks ni idempotencia.
+
+¿Hace falta cambio de BD para garantía real?
+  Sí. La aplicación sola no elimina la carrera de “consultar antes de insertar”.
+
+¿Estrategia recomendada?
+  Reserva persistida de operación en tabla separada con UNIQUE
+  (id_empresa, modulo_origen, id_origen), seguida de saldo y movimiento en la
+  misma transacción.
+
+¿Cómo se resuelve la primera fila concurrente?
+  UNIQUE(id_item,id_almacen) + manejo de IntegrityError/rollback; SELECT FOR
+  UPDATE no bloquea una fila inexistente.
+
+¿Siguiente fase recomendada?
+  FASE 2C — decisión/aprobación de diseño físico de stock_operation y de su
+  constraint, seguida únicamente de la migración explícitamente aprobada.
+
+================================================================================
+17. CIERRE
+================================================================================
+
+Esta auditoría documenta una estrategia segura, pero NO autoriza ni implementa
+el writer, la tabla, la constraint, el índice, SQL ni ninguna operación de
+stock.

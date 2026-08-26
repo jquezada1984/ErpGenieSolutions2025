@@ -1,0 +1,277 @@
+FASE 13C.3.1 — Saneamiento controlado M2 (stock_item_almacen)
+Fecha/hora inicio: 2026-08-25 22:59:35
+Fecha/hora fin:    2026-08-25 22:59:46
+Clasificación PRECHECK (FASE_13C_3_PRECHECK_M2_ALMACENES.txt): A) APTO PARA 13C.3.1
+PRECHECK NO sobrescrito.
+
+================================================================================
+RESULTADO FINAL
+================================================================================
+A) GO — M2 SANEADO CORRECTAMENTE
+
+COMMIT: SÍ (exactamente 1)
+ROLLBACK: NO
+UPDATE ejecutados: 4
+Filas modificadas: 4
+Cada UPDATE rowcount: 1 / 1 / 1 / 1
+
+================================================================================
+PASO 0 — EVIDENCIA PRECHECK
+================================================================================
+Archivo: FASE_13C_3_PRECHECK_M2_ALMACENES.txt
+Fase: 13C.3-PRECHECK-R2 M2
+Clasificación: A) APTO PARA 13C.3.1
+4 PK completas extraídas del TXT (no inventadas / no truncadas).
+
+================================================================================
+PASO 1 — SALUD
+================================================================================
+erp-almacen-python-service: UP
+SELECT 1: OK
+Docker rebuild/restart/recreate: NO
+
+================================================================================
+PASO 2 — SNAPSHOT BEFORE INMEDIATO
+================================================================================
+TOTAL = 7
+OK    = 3
+ROTAS = 4
+Coincide PRECHECK: SÍ
+
+================================================================================
+PASO 3/5 — BEFORE EXACTO DE LAS 4 PK (revalidado justo antes del write)
+================================================================================
+
+--- PK 1 ---
+id_stock_producto_almacen = 3e0bc2b3-c9e3-45b7-86e4-612f9ce0211b
+producto_ref = BOR01 | almacen_ref = ALM-001
+id_empresa = 0459fe04-163b-4b89-b98a-0f1179b7224c
+id_item = f12775ee-3667-40f1-8673-280eb7be6cae
+id_almacen = dd04ca48-b2e6-4ac3-a5e3-04bcc7d6038d
+stock_fisico BEFORE      = 3.00
+stock_reservado BEFORE  = 0.00
+stock_disponible BEFORE = 0.00
+stock_virtual BEFORE    = 0.00
+disponible_esperado     = 3.00
+fisico_reconstruido     = 3.000 (coincide SI)
+created_at  = 2026-08-25 00:48:52.175821
+created_by  = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+updated_at  = 2026-08-25 00:48:52.175821
+updated_by  = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+--- PK 2 ---
+id_stock_producto_almacen = b6cc8d8b-d980-4eea-bbfd-f784736414e3
+producto_ref = RATON01 | almacen_ref = UI-ALM-001
+id_empresa = d2600c4c-2ce7-4d01-b6e8-82f028e69d27
+id_item = 07b90b65-5ebb-431e-a7a9-cab287aecdc3
+id_almacen = e0241a68-c619-4965-9b89-2402753a7678
+stock_fisico BEFORE      = 1.00
+stock_reservado BEFORE  = 0.00
+stock_disponible BEFORE = 0.00
+stock_virtual BEFORE    = 0.00
+disponible_esperado     = 1.00
+fisico_reconstruido     = 1.000 (coincide SI)
+created_at  = 2026-08-17 02:09:17.003919
+created_by  = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+updated_at  = 2026-08-17 02:09:17.003919
+updated_by  = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+--- PK 3 ---
+id_stock_producto_almacen = db1ac664-6f49-43bd-bbde-00f07d95cfc9
+producto_ref = BOR01 | almacen_ref = ALM-002
+id_empresa = 0459fe04-163b-4b89-b98a-0f1179b7224c
+id_item = f12775ee-3667-40f1-8673-280eb7be6cae
+id_almacen = 0c924077-1e60-42a5-a714-3576e3e85871
+stock_fisico BEFORE      = 1.00
+stock_reservado BEFORE  = 0.00
+stock_disponible BEFORE = 0.00
+stock_virtual BEFORE    = 0.00
+disponible_esperado     = 1.00
+fisico_reconstruido     = 1.000 (coincide SI)
+created_at  = 2026-08-17 03:57:50.926287
+created_by  = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+updated_at  = 2026-08-17 03:57:50.926287
+updated_by  = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+--- PK 4 ---
+id_stock_producto_almacen = ee4f751f-dbdb-43c0-9e48-6c12ec00e7e9
+producto_ref = BorregoLoja01 | almacen_ref = ALM-001
+id_empresa = 0459fe04-163b-4b89-b98a-0f1179b7224c
+id_item = 76fb956b-a15e-4173-957e-21791929cbfe
+id_almacen = dd04ca48-b2e6-4ac3-a5e3-04bcc7d6038d
+stock_fisico BEFORE      = 1.00
+stock_reservado BEFORE  = 0.00
+stock_disponible BEFORE = 0.00
+stock_virtual BEFORE    = 0.00
+disponible_esperado     = 1.00
+fisico_reconstruido     = 1.000 (coincide SI)
+created_at  = 2026-08-17 03:39:30.274750
+created_by  = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+updated_at  = 2026-08-17 03:39:30.274750
+updated_by  = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+S1 revalidado JUSTO ANTES DEL WRITE: 4/4 SI
+
+================================================================================
+COUNTS BEFORE
+================================================================================
+almacen                         = 9
+movimiento_inventario           = 25
+stock_item_almacen              = 7
+cambio_masivo_stock             = 3
+cambio_masivo_stock_detalle     = 6
+transferencia_stock             = 2
+transferencia_stock_detalle     = 2
+MAX(movimiento_inventario.created_at) = 2026-08-26 02:01:13.627221
+MAX(stock_item_almacen.updated_at)    = 2026-08-26 02:01:13.627221
+
+================================================================================
+SQL EJECUTADO (UNA sola transacción; SET solo stock_disponible)
+================================================================================
+BEGIN;
+
+UPDATE public.stock_item_almacen
+SET stock_disponible = stock_fisico - stock_reservado
+WHERE id_stock_producto_almacen = '3e0bc2b3-c9e3-45b7-86e4-612f9ce0211b'
+  AND stock_fisico = 3.00
+  AND stock_reservado = 0.00
+  AND stock_disponible = 0.00
+  AND stock_virtual = 0.00;
+-- rowcount = 1
+
+UPDATE public.stock_item_almacen
+SET stock_disponible = stock_fisico - stock_reservado
+WHERE id_stock_producto_almacen = 'b6cc8d8b-d980-4eea-bbfd-f784736414e3'
+  AND stock_fisico = 1.00
+  AND stock_reservado = 0.00
+  AND stock_disponible = 0.00
+  AND stock_virtual = 0.00;
+-- rowcount = 1
+
+UPDATE public.stock_item_almacen
+SET stock_disponible = stock_fisico - stock_reservado
+WHERE id_stock_producto_almacen = 'db1ac664-6f49-43bd-bbde-00f07d95cfc9'
+  AND stock_fisico = 1.00
+  AND stock_reservado = 0.00
+  AND stock_disponible = 0.00
+  AND stock_virtual = 0.00;
+-- rowcount = 1
+
+UPDATE public.stock_item_almacen
+SET stock_disponible = stock_fisico - stock_reservado
+WHERE id_stock_producto_almacen = 'ee4f751f-dbdb-43c0-9e48-6c12ec00e7e9'
+  AND stock_fisico = 1.00
+  AND stock_reservado = 0.00
+  AND stock_disponible = 0.00
+  AND stock_virtual = 0.00;
+-- rowcount = 1
+
+-- Validaciones intra-TX: 4 PK OK; TOTAL=7 OK=7 ROTAS=0; counts intactos
+-- updated_at / updated_by NO modificados (confirmado)
+
+COMMIT;  -- autorizado: todas las condiciones cumplidas
+
+================================================================================
+AFTER (postcheck conexión NUEVA independiente)
+================================================================================
+Invariantes globales: TOTAL=7 | OK=7 | ROTAS=0
+
+PK 3e0bc2b3-c9e3-45b7-86e4-612f9ce0211b | BOR01 / ALM-001
+  fisico=3.00 reservado=0.00 disponible=3.00 virtual=0.00
+  created_*/updated_* = BEFORE (intactos)
+  fisico_reconstruido=3.000 coincide=SI | invariante=OK
+
+PK b6cc8d8b-d980-4eea-bbfd-f784736414e3 | RATON01 / UI-ALM-001
+  fisico=1.00 reservado=0.00 disponible=1.00 virtual=0.00
+  created_*/updated_* = BEFORE (intactos)
+  fisico_reconstruido=1.000 coincide=SI | invariante=OK
+
+PK db1ac664-6f49-43bd-bbde-00f07d95cfc9 | BOR01 / ALM-002
+  fisico=1.00 reservado=0.00 disponible=1.00 virtual=0.00
+  created_*/updated_* = BEFORE (intactos)
+  fisico_reconstruido=1.000 coincide=SI | invariante=OK
+
+PK ee4f751f-dbdb-43c0-9e48-6c12ec00e7e9 | BorregoLoja01 / ALM-001
+  fisico=1.00 reservado=0.00 disponible=1.00 virtual=0.00
+  created_*/updated_* = BEFORE (intactos)
+  fisico_reconstruido=1.000 coincide=SI | invariante=OK
+
+================================================================================
+COUNTS AFTER (= BEFORE)
+================================================================================
+almacen                         = 9
+movimiento_inventario           = 25
+stock_item_almacen              = 7
+cambio_masivo_stock             = 3
+cambio_masivo_stock_detalle     = 6
+transferencia_stock             = 2
+transferencia_stock_detalle     = 2
+MAX(movimiento_inventario.created_at) = 2026-08-26 02:01:13.627221 (sin cambio)
+MAX(stock_item_almacen.updated_at)    = 2026-08-26 02:01:13.627221 (sin cambio)
+
+Movimientos nuevos por saneamiento: 0
+Writers ejecutados: 0
+HTTP writes: 0
+
+================================================================================
+CAMPOS NO MODIFICADOS (confirmado 4/4)
+================================================================================
+stock_fisico, stock_reservado, stock_virtual,
+id_empresa, id_item, id_almacen,
+created_at, created_by, updated_at, updated_by
+→ intactos (= BEFORE)
+
+Único campo cambiado: stock_disponible (0 → fisico - reservado)
+
+================================================================================
+ARQUITECTURA MULTIEMPRESA
+================================================================================
+Este saneamiento NO cambia arquitectura GLOBAL/EMPRESA.
+NO modifica: JWT, scope GLOBAL/EMPRESA, SelectEmpresa,
+authenticatedWriteContext, X-Company-Id, GraphQL, REST,
+Nest, Gateway, Frontend, AlmacenPython.
+Correcciones exclusivamente por PK exacta + snapshot BEFORE fail-closed.
+NO UPDATE general por empresa.
+NO uso de empresa seleccionada desde UI para elegir filas.
+M1: NO TOCADO
+M3: NO TOCADO
+
+================================================================================
+CONTROLES OBLIGATORIOS
+================================================================================
+Código modificado: NINGUNO
+Archivos proyecto modificados: NINGUNO
+BD estructural: NO
+Filas stock objetivo: 4
+UPDATE autorizados: EXACTAMENTE 4
+UPDATE ejecutados: 4
+Filas modificadas: 4
+INSERT: 0
+DELETE: 0
+DDL: 0
+Movimiento negocio creado: 0
+HTTP POST: 0
+HTTP PUT: 0
+HTTP PATCH: 0
+HTTP DELETE: 0
+Writers: NO EJECUTADOS
+Frontend: NO TOCADO
+Gateway: NO TOCADO
+Nest: NO TOCADO
+AlmacenPython código: NO TOCADO
+Docker rebuild: NO
+Docker recreate: NO
+M1: NO TOCADO
+M3: NO TOCADO
+Commit Git: NO
+Push: NO
+
+================================================================================
+CLASIFICACIÓN FINAL
+================================================================================
+A) GO — M2 SANEADO CORRECTAMENTE
+
+DETENERSE — esperar autorización explícita del usuario para cualquier fase siguiente.
+NO regresión final.
+NO writers.
+NO commit/push.

@@ -1,0 +1,538 @@
+================================================================================
+CIERRE DE PRUEBAS BACKEND — STOCK INICIAL v1
+Fecha: 2026-08-16
+Fase: 3G — Documentación formal de resultados 3C–3F
+Estado: GO BACKEND STOCK INICIAL v1
+Fuente de contrato: docs/auditoria/CONTRATO_TECNICO_STOCK_INICIAL_V1_APROBADO.txt
+================================================================================
+
+Esta fase NO ejecuta POST, NO modifica código, NO modifica BD, NO toca Docker,
+NO implementa Gateway ni frontend. Solo documenta resultados ya comprobados.
+
+================================================================================
+1. RESUMEN EJECUTIVO
+================================================================================
+
+El writer STOCK INICIAL en AlmacenPython fue implementado, corregido
+mínimamente (compatibilidad Marshmallow 4 en schema) y validado de punta a
+punta contra PostgreSQL real mediante pruebas controladas 3C–3F.
+
+Resultado consolidado:
+
+  - Creación correcta de 1 movimiento + 1 saldo.
+  - Atomicidad verificada.
+  - Replay idempotente sin escrituras.
+  - Conflicto de idempotencia (misma key, payload distinto) rechazado.
+  - Segunda inicialización (nueva key, mismo item+almacén) rechazada.
+  - Sin movimiento huérfano / sin saldo duplicado.
+  - Costos Decimal con ROUND_HALF_UP.
+  - Auditoría de usuario vía X-User-Id.
+
+Alcance del GO:
+
+  SOLO el writer backend directo:
+
+    POST http://localhost:3018/api/almacen/stock-inicial
+
+  NO implica Gateway listo, frontend listo, ni motor completo
+  (ENTRADA/SALIDA/AJUSTE/TRANSFERENCIA).
+
+================================================================================
+2. ARQUITECTURA PROBADA
+================================================================================
+
+Caller de prueba (HTTP directo)
+  ↓
+AlmacenPython :3018
+  POST /api/almacen/stock-inicial
+  ↓
+UNA db.session / commit único
+  ↓
+public.movimiento_inventario   (tipo INICIAL, modulo STOCK_INICIAL)
+  +
+public.stock_item_almacen      (primera fila de saldo)
+
+Tablas de validación leídas (sin writer remoto):
+
+  public.item
+  public.almacen
+
+Tablas nuevas:
+
+  NINGUNA
+
+stock_operation:
+
+  NO UTILIZADA
+
+Writer único:
+
+  AlmacenPython
+
+Índices / constraints usados como defensa final:
+
+  - uq_mov_inv_stock_inicial_idempotencia
+    (id_empresa, modulo_origen, id_origen) para STOCK_INICIAL/INICIAL
+  - UNIQUE(id_item, id_almacen) en stock_item_almacen
+
+================================================================================
+3. DATOS DE PRUEBA
+================================================================================
+
+Empresa (id_empresa / X-Company-Id):
+  d2600c4c-2ce7-4d01-b6e8-82f028e69d27
+
+Item:
+  07b90b65-5ebb-431e-a7a9-cab287aecdc3
+  producto_ref / etiqueta (contexto UI): RATON01 - RATON
+  estado = true
+  inventariable = true
+  precio_compra = 0.00
+
+Almacén:
+  e0241a68-c619-4965-9b89-2402753a7678
+  almacen_ref = UI-ALM-001
+  nombre = Almacen prueba UI
+  estado = true
+
+Usuario (X-User-Id):
+  2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+id_origen original (intención 3C–3E):
+  dcff992d-69af-4f0b-aa4c-d8640c9bb35a
+
+Cantidad de creación / replay:
+  1.00
+
+fecha_movimiento:
+  2026-08-16
+
+Referencia / concepto originales:
+  PRUEBA-STOCK-INICIAL-3C
+  Prueba controlada STOCK INICIAL Fase 3C
+
+id_origen de conflicto 3F (nueva key):
+  f1f4e9ec-255e-4453-9969-0c08854e4776
+
+Endpoint probado:
+  POST http://localhost:3018/api/almacen/stock-inicial
+
+================================================================================
+4. FASE 3C — CREACIÓN
+================================================================================
+
+Objetivo:
+  Primera escritura real controlada.
+
+Precondiciones:
+  stock previo item+almacén = 0
+  movimiento con id_origen = 0
+
+Resultado HTTP:
+  201
+
+estado_operacion:
+  CREADO
+
+Stock creado:
+  id_stock_producto_almacen = b6cc8d8b-d980-4eea-bbfd-f784736414e3
+  stock_fisico      = 1.00
+  stock_reservado   = 0.00
+  stock_virtual     = 0.00
+  stock_disponible  = 0.00
+  stock_alerta      = NULL
+  stock_deseado     = NULL
+  estado            = true
+  created_by / updated_by = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+Movimiento creado:
+  id_movimiento_inventario = 5ed25d80-59df-41b7-aa18-2d8699ab2702
+  tipo_movimiento = INICIAL
+  cantidad        = 1.000
+  costo_unitario  = 0.00
+  costo_total     = 0.00
+  fecha_movimiento = 2026-08-16
+  modulo_origen   = STOCK_INICIAL
+  id_origen       = dcff992d-69af-4f0b-aa4c-d8640c9bb35a
+  id_asiento_contable / id_lote_serie / id_almacen_destino = NULL
+  updated_by = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+  estado = true
+
+Cardinalidad:
+  1 stock + 1 movimiento
+
+Nota técnica previa a 201:
+  Dos intentos previos devolvieron HTTP 500 por incompatibilidad
+  Marshmallow 4 (@validates sin **kwargs). Tras corrección mínima del
+  schema y rebuild aislado de almacen-python-service, la creación
+  controlada fue exitosa. Esos 500 no dejaron filas (rollback / no commit).
+
+Resultado 3C:
+  CREACIÓN CORRECTA.
+
+================================================================================
+5. FASE 3D — REPLAY
+================================================================================
+
+Request:
+  Idéntico al de creación (mismo id_origen e intención completa).
+
+Resultado HTTP:
+  200
+
+estado_operacion:
+  YA_PROCESADO
+
+Stock:
+  antes = 1 fila / stock_fisico 1.00
+  después = 1 fila / stock_fisico 1.00
+
+Movimiento:
+  antes = 1
+  después = 1
+
+Inmutabilidad:
+  created_at / updated_at / created_by / updated_by sin cambios
+  en stock y movimiento.
+
+Resultado 3D:
+  REPLAY IDEMPOTENTE CORRECTO.
+  Sin INSERT, UPDATE ni DELETE.
+
+================================================================================
+6. FASE 3E — CONFLICTO IDEMPOTENTE
+================================================================================
+
+Request:
+  Mismo id_origen
+  Único cambio: cantidad 1.00 → 2.00
+
+Resultado HTTP:
+  409
+
+Mensaje:
+  Conflicto de idempotencia
+  detail: La clave id_origen ya fue usada con otra intención
+
+Persistencia:
+  stock = 1 / stock_fisico = 1.00
+  movimiento = 1 / cantidad = 1.000
+  timestamps y auditoría sin cambios
+
+Resultado 3E:
+  CONFLICTO DE IDEMPOTENCIA CORRECTO.
+
+================================================================================
+7. FASE 3F — STOCK YA INICIALIZADO
+================================================================================
+
+Request:
+  Nueva key f1f4e9ec-255e-4453-9969-0c08854e4776
+  Mismo item + almacén
+  cantidad 1.00
+  referencia/concepto de prueba 3F
+
+Resultado HTTP:
+  409
+
+Mensaje:
+  Stock ya inicializado
+  detail: El stock para item y almacén ya fue inicializado
+
+Persistencia:
+  stock = 1 / stock_fisico = 1.00
+  movimientos del par item+almacén = 1
+  movimientos con la nueva key = 0
+
+Interpretación:
+  Idempotencia (id_origen) y unicidad de saldo (item+almacén) son
+  protecciones distintas. Nueva key no autoriza re-inicializar.
+
+Resultado 3F:
+  STOCK YA INICIALIZADO CORRECTAMENTE RECHAZADO.
+  ROLLBACK del intento fallido = OK (sin movimiento huérfano).
+
+================================================================================
+8. ATOMICIDAD
+================================================================================
+
+Demostrado en 3C:
+  Commit único produce exactamente 1 movimiento + 1 saldo.
+
+Demostrado en intentos fallidos previos (500 por schema) y en 3F:
+  Fallo antes de commit / rechazo de negocio no deja filas parciales.
+
+Invariantes de atomicidad del contrato:
+
+  - Nunca saldo confirmado sin movimiento.
+  - Nunca movimiento confirmado sin saldo (para STOCK INICIAL).
+  - No hay commit intermedio en el writer.
+
+ATOMICIDAD: OK
+
+================================================================================
+9. IDEMPOTENCIA
+================================================================================
+
+Clave:
+  (id_empresa, modulo_origen='STOCK_INICIAL', id_origen)
+  con tipo_movimiento='INICIAL'
+
+Comparación de intención (sin recalcular costos):
+  id_item, id_almacen, cantidad, fecha_movimiento,
+  referencia/concepto normalizados, constantes INICIAL/STOCK_INICIAL
+
+Casos probados:
+
+  Misma key + misma intención → 200 YA_PROCESADO (3D)
+  Misma key + cantidad distinta → 409 conflicto (3E)
+
+Defensa final en BD:
+  índice uq_mov_inv_stock_inicial_idempotencia
+
+IDEMPOTENCIA: OK
+
+================================================================================
+10. CONCURRENCIA PROTEGIDA POR CONSTRAINTS
+================================================================================
+
+No se ejecutó prueba de dos requests simultáneos en esta serie.
+
+Queda documentado que el diseño y la BD ya disponen de:
+
+  - UNIQUE(id_item, id_almacen) en stock_item_almacen
+  - índice idempotente parcial para STOCK_INICIAL
+
+Estas constraints son la defensa final ante carrera, complementando
+la consulta previa de aplicación.
+
+Estado:
+  PROTECCIÓN POR CONSTRAINTS CONFIRMADA EN DISEÑO/BD.
+  CONCURRENCIA REAL SIMULTÁNEA: NO PROBADA AÚN.
+
+================================================================================
+11. ROLLBACK
+================================================================================
+
+Evidencia 3F:
+  Nueva key rechazada por stock ya existente.
+  COUNT de movimientos para esa key = 0 después del 409.
+
+Evidencia previa a corrección schema:
+  POST 500 sin dejar stock ni movimiento.
+
+Conclusión:
+  Un error / rechazo no deja movimiento huérfano ni saldo parcial.
+
+ROLLBACK: OK
+
+================================================================================
+12. DECIMAL Y COSTOS
+================================================================================
+
+Fuente de costo:
+  item.precio_compra = 0.00
+
+Persistido:
+  costo_unitario = 0.00
+  costo_total    = 0.00
+
+Política aplicada (contrato):
+  Decimal + ROUND_HALF_UP + escala 0.01
+  cantidad sin redondeo; máximo 2 decimales (validado en schema)
+
+Cantidad persistida en movimiento:
+  1.000 (NUMERIC(10,3) de BD; valor de negocio 1.00)
+
+DECIMAL / COSTOS: OK PARA EL CASO PROBADO (precio_compra 0.00)
+
+================================================================================
+13. MULTIEMPRESA
+================================================================================
+
+En la prueba exitosa se cumplió:
+
+  X-Company-Id
+    =
+  body.id_empresa
+    =
+  item.id_empresa
+    =
+  almacen.id_empresa
+    =
+  d2600c4c-2ce7-4d01-b6e8-82f028e69d27
+
+Las filas creadas conservan id_empresa coherente en stock y movimiento.
+
+Casos negativos (empresa ajena / item o almacén de otra empresa):
+  NO PROBADOS AÚN (documentados en sección 16).
+
+MULTIEMPRESA EN CAMINO FELIZ: OK
+
+================================================================================
+14. AUDITORÍA DE USUARIO
+================================================================================
+
+Header:
+  X-User-Id = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+Persistido:
+  stock_item_almacen.created_by = mismo UUID
+  stock_item_almacen.updated_by = mismo UUID
+  movimiento_inventario.updated_by = mismo UUID
+
+No se inventó created_by en movimiento_inventario (columna inexistente).
+
+Replay (3D) y conflictos (3E/3F) no alteraron auditoría ni timestamps.
+
+AUDITORÍA: OK
+
+================================================================================
+15. INVARIANTES DEMOSTRADAS
+================================================================================
+
+INVARIANTE 1:
+  Un item + almacén tiene máximo una fila de stock.
+  Evidencia: 3C crea 1; 3D/3E/3F no crean segunda.
+
+INVARIANTE 2:
+  STOCK INICIAL genera exactamente 1 movimiento + 1 saldo.
+  Evidencia: 3C.
+
+INVARIANTE 3:
+  Mismo id_origen + misma intención NO genera segunda escritura.
+  Evidencia: 3D.
+
+INVARIANTE 4:
+  Mismo id_origen + intención diferente se rechaza.
+  Evidencia: 3E (cantidad 2.00 → 409).
+
+INVARIANTE 5:
+  Nueva key + stock existente se rechaza.
+  Evidencia: 3F.
+
+INVARIANTE 6:
+  Un error / rechazo de saldo no deja movimiento huérfano.
+  Evidencia: 3F (nueva key = 0 movimientos).
+
+INVARIANTE 7:
+  Replay no modifica timestamps ni auditoría.
+  Evidencia: 3D.
+
+================================================================================
+16. CASOS TODAVÍA NO PROBADOS
+================================================================================
+
+Documentados como FUTUROS (no ejecutados en 3C–3G):
+
+  - concurrencia real con dos requests simultáneos;
+  - item de otra empresa;
+  - almacén de otra empresa;
+  - item no inventariable;
+  - item inactivo;
+  - almacén inactivo;
+  - precio_compra con más de dos decimales (ROUND_HALF_UP end-to-end);
+  - cantidad inválida (0, negativa, >2 decimales vía HTTP);
+  - fecha inválida;
+  - enrutamiento Gateway REST hacia AlmacenPython;
+  - frontend / generación de id_origen en UI;
+  - permisos de menú/UI;
+  - operaciones ENTRADA, SALIDA, AJUSTE, TRANSFERENCIA.
+
+================================================================================
+17. RIESGOS RESTANTES
+================================================================================
+
+  1. Concurrencia simultánea no ejercitada; se confía en UNIQUE/índice.
+  2. Integración Gateway aún no auditada ni cableada para este POST.
+  3. Frontend no genera/conserva id_origen todavía.
+  4. Validaciones negativas multiempresa / inventariable / estado no
+     ejercitadas por HTTP en esta serie.
+  5. Política monetaria con precio_compra fraccionario (>2 decimales)
+     no se demostró con un item de precio distinto de 0.00.
+  6. Los datos de prueba 3C permanecen en BD como evidencia; no deben
+     borrarse sin decisión explícita.
+
+Ninguno de estos riesgos invalida el GO del writer backend aislado.
+
+================================================================================
+18. RESULTADO FINAL
+================================================================================
+
+Writer backend STOCK INICIAL v1 en AlmacenPython:
+
+  CREACIÓN                 OK
+  ATOMICIDAD               OK
+  REPLAY                   OK
+  CONFLICTO IDEMPOTENTE    OK
+  STOCK YA INICIALIZADO    OK
+  ROLLBACK                 OK
+  DUPLICADOS               NO
+  TABLAS NUEVAS            NINGUNA
+
+Endpoint validado:
+  POST /api/almacen/stock-inicial  (directo a :3018)
+
+Evidencia persistida de la creación (no limpiada):
+  stock   b6cc8d8b-d980-4eea-bbfd-f784736414e3
+  movimiento 5ed25d80-59df-41b7-aa18-2d8699ab2702
+  id_origen  dcff992d-69af-4f0b-aa4c-d8640c9bb35a
+
+================================================================================
+19. GO / NO-GO
+================================================================================
+
+RESULTADO:
+
+  GO BACKEND STOCK INICIAL v1
+
+Significa únicamente:
+
+  El writer backend directo de AlmacenPython está validado para el MVP
+  de STOCK INICIAL según el contrato técnico aprobado y las pruebas
+  3C–3F.
+
+NO significa:
+
+  Gateway listo
+  frontend listo
+  motor completo listo
+  ENTRADA / SALIDA / AJUSTE / TRANSFERENCIA listas
+
+================================================================================
+20. PRÓXIMA FASE RECOMENDADA
+================================================================================
+
+FASE 4A — AUDITORÍA DE INTEGRACIÓN GATEWAY PARA STOCK INICIAL
+
+Objetivo futuro (sin implementarlo en 3G):
+
+  Frontend/caller
+    ↓
+  Gateway
+    ↓
+  AlmacenPython POST /api/almacen/stock-inicial
+
+Alcance sugerido de 4A:
+  - revisar rutas REST existentes de almacén en gateway-api;
+  - confirmar headers X-Company-Id / X-User-Id;
+  - confirmar transporte intacto de id_origen;
+  - NO modificar frontend todavía;
+  - NO ampliar a otros movimientos.
+
+Esta fase 3G NO inicia 4A automáticamente.
+
+================================================================================
+21. CIERRE DE DOCUMENTACIÓN
+================================================================================
+
+Único archivo de esta fase:
+  docs/auditoria/CIERRE_PRUEBAS_BACKEND_STOCK_INICIAL_V1.txt
+
+Código modificado: NINGUNO
+BD modificada: NO
+Docker: NO TOCADO
+POST ejecutados en 3G: NINGUNO
+
+FIN DEL DOCUMENTO
+================================================================================

@@ -1,0 +1,461 @@
+================================================================================
+AUDITORÍA TÉCNICA — LISTADO REAL ALMACENES (GraphQL / Nest / Gateway)
+Fecha: 2026-08-09
+Modo: SOLO LECTURA (excepto este archivo TXT)
+NO se implementó listado real. NO se modificó código funcional ni BD.
+================================================================================
+
+--------------------------------------------------------------------------------
+1. CÓMO CARGA INVENTARIOS SU LISTADO (CONFIRMADO POR CÓDIGO)
+--------------------------------------------------------------------------------
+
+Archivo: frontReact/src/views/items/inventarios/Inventarios.tsx
+
+Query GraphQL:
+  inventariosListado(
+    id_empresa, inventario_ref, etiqueta, warehouse, product, estado_inventario
+  )
+
+Mecanismo front:
+  - useLazyQuery(INVENTARIOS_LISTADO, { fetchPolicy: 'network-only', errorPolicy: 'all' })
+  - loadInventarios() construye variables y llama getInventarios({ variables })
+  - useEffect dispara load al montar / cambiar empresa según scope
+
+Multiempresa:
+  - useJwtPayload → scope_acceso, id_empresa
+  - EMPRESA: idEmpresaUsuario del JWT; carga automática
+  - GLOBAL: SelectEmpresa + query empresas (InicioNestJs); exige selectedIdEmpresa
+  - skip implícito: sin idEmpresaActiva → rows=[]
+
+Filtros:
+  - Inputs locales; onBlur → reload GraphQL (filtros en servidor)
+  - Limpiar filtros solo limpia estado local (NO recarga automática al limpiar
+    salvo que el usuario dispare blur/otro efecto)
+
+Loading / error:
+  - loading local + queryLoading → ReactTable.loading
+  - Alert warning para error; Alert success para toggle
+
+Tabla:
+  - ReactTable (react-table), paginación client-side defaultPageSize 10
+
+Toggle estado:
+  - Mutation GraphQL actualizarEstadoInventario(id_inventario, estado)
+  - Optimistic UI + rollback si falla
+  - Enrutada en Gateway a InventarioNestJs (mismo bloque que inventariosListado)
+
+Detalle / Editar:
+  - navigate(`/items/inventarios/editar/${id}`)
+  - Backend: inventarioPorId (InventarioNestJs)
+
+Gateway GraphQL:
+  query.includes('inventariosListado') || inventarioPorId || actualizarEstadoInventario
+  → INVENTARIO_NEST_GQL_URL (default http://inventario-nestjs-service:3013)
+  Headers reenviados: Authorization, X-Company-Id
+  (X-User-Id NO aparece en executeGraphQLQuery; sí en inventarioNestJs.js REST-style helper)
+
+InventarioNestJs service (JOIN de nombre relacionado):
+  createQueryBuilder + leftJoin('almacen', ...) + COALESCE(alm.nombre,'') AS almacen
+  Filtra id_empresa obligatorio cuando el front lo envía.
+
+--------------------------------------------------------------------------------
+2. ALMACENNESTJS ACTUAL (CONFIRMADO)
+--------------------------------------------------------------------------------
+
+Resolver: almacenesListado() — SIN Args / filtros
+Service: return [] — stub explícito (void this.almacenRepo)
+Entity: mapea columnas reales incl. id_pais, id_provincia, poblacion, telefono, estado
+  (sin @ManyToOne / JoinColumn)
+
+Object AlmacenListado (actual — INCOMPLETO para UI aprobada):
+  id_almacen, id_empresa, almacen_ref, nombre, descripcion, estado
+  FALTA para UI: poblacion, telefono, id_pais, id_provincia, nombres país/provincia
+
+Object AlmacenDetalle (más completo):
+  incluye poblacion, id_pais, id_provincia, telefono, fax, auditoría
+  NO incluye pais_nombre / provincia_nombre
+
+Repository: InjectRepository(Almacen) TypeORM — listo para QueryBuilder real.
+
+Respuestas:
+1. Query existente: almacenesListado (stub)
+2. Sí, sigue stub (array vacío, sin BD)
+3. Campos listado actuales: ver arriba (mínimos)
+4. Filtros definidos: NINGUNO
+5. Falta: Args, QueryBuilder, filtros, JOINs país/provincia, mapping a Object ampliado
+6. Usa TypeORM Repository inyectado (no consulta aún)
+7. id_empresa en entity/listado object; NO filtrado todavía
+8. estado en entity y listado object; NO filtrado
+9. id_pais en entity y detalle; NO en listado object
+10. id_provincia en entity y detalle; NO en listado object
+
+--------------------------------------------------------------------------------
+3. CAMPOS NECESARIOS PARA EL LISTADO UI APROBADO
+--------------------------------------------------------------------------------
+
+UI columnas: País | Provincia | Ciudad | Referencia | Nombre | Teléfono | Estado | Acciones
+
+Desde public.almacen:
+  poblacion ← Ciudad
+  almacen_ref ← Referencia
+  nombre ← Nombre
+  telefono ← Teléfono
+  estado ← Estado
+  id_almacen ← Acciones / keys
+  id_empresa ← multiempresa
+  id_pais / id_provincia ← FKs para resolver nombres
+
+NO modificar tabla (solo lectura de este informe).
+
+--------------------------------------------------------------------------------
+4. PATRÓN PAÍS / PROVINCIA EN LISTADOS (CONFIRMADO)
+--------------------------------------------------------------------------------
+
+Inventarios (referencia de listado del mismo menú Producto|Servicio):
+  → JOIN SQL en Nest del dominio (QueryBuilder) para nombre de almacén relacionado.
+  → Front NO hace N+1 de catálogos para rellenar la columna "Almacén".
+
+Selects de formularios (Nuevo Producto / Nuevo Almacén / Banco):
+  → queries generales paises / provinciasByPais desde InicioNestJs (catálogo).
+  → Eso es para SELECTS, no para hidratar filas de listado.
+
+CONCLUSIÓN CONFIRMADA:
+  Para listado de dominio, el patrón ERP observado es (A) JOIN/SQL en el Nest del
+  dominio y devolver un campo string de presentación (ej. inventariosListado.almacen).
+
+PROPUESTA FUTURA (alineada a A):
+  En AlmacenNestJs.almacenesListado:
+    LEFT JOIN pais ON pais.id_pais = alm.id_pais
+    LEFT JOIN provincia ON provincia.id_provincia = alm.id_provincia
+    SELECT COALESCE(pais.nombre,'') AS pais  (o pais_nombre — ver convención)
+    SELECT COALESCE(provincia.nombre,'') AS provincia
+
+  Preferencia de nombres de campo GraphQL:
+  - Inventario usa `almacen` (nombre, no id_almacen_nombre).
+  - Propuesta coherente: campos `pais` y `provincia` (String) + opcionalmente
+    id_pais / id_provincia si se necesitan para filtros/edición.
+  - NO confirmar `pais_nombre` como definitivo; es propuesta.
+
+NO reutilizar query InicioNestJs `almacenes` para el listado completo
+(solo id_almacen, almacen_ref, nombre — catálogo corto).
+
+--------------------------------------------------------------------------------
+5. CONSULTAS GENERALES INICIO (CONFIRMADO)
+--------------------------------------------------------------------------------
+
+paises → PaisService.findAll (catálogo select)
+provincias / provinciasByPais → ProvinciaService (select filtrado)
+almacenes → AlmacenService.findAll:
+  select solo id_almacen, almacen_ref, nombre
+  Entity Inicio incompleta vs tabla real (sin poblacion/país/teléfono en GraphQL)
+  Consumidores: formularios Inventario/Item (select almacén defecto)
+
+Apropiadas para SELECTS.
+NO son el listado operacional de Almacenes (faltan campos UI).
+
+--------------------------------------------------------------------------------
+6. RIESGO DE COLISIÓN GRAPHQL — CRÍTICO (CONFIRMADO)
+--------------------------------------------------------------------------------
+
+gateway-api/src/routes/graphql.js:
+
+  if (query.includes('almacenes')) {
+    → InicioNestJs
+  }
+
+PROBLEMA CONFIRMADO:
+  La cadena "almacenesListado" CONTIENE la subcadena "almacenes".
+  Por tanto, con la regla actual, cualquier query almacenesListado sería
+  redirigida ERRÓNEAMENTE a InicioNestJs, donde esa query NO existe
+  (o no es el stub de AlmacenNestJs).
+
+PROPUESTA FUTURA (NO implementar ahora):
+  1. Añadir BLOQUE ANTES del `includes('almacenes')`:
+
+     if (query.includes('almacenesListado') ||
+         query.includes('almacenPorId') ||
+         query.includes('actualizarEstadoAlmacen')) {  // si se usa
+       → ALMACEN_NEST_GQL_URL
+     }
+
+  2. O endurecer la regla de catálogo, p.ej. match más preciso de la query
+     `almacenes` sin capturar `almacenesListado`
+     (ej. regex /\balmacenes\b/ y excluir Listado — evaluar con cuidado).
+
+  3. Registrar en config:
+     almacenNestJsService:
+       process.env.ALMACEN_NEST_GQL_URL ||
+       'http://almacen-nestjs-service:3017'
+
+  Default propuesto: http://almacen-nestjs-service:3017
+  (executeGraphQLQuery ya concatena `/graphql`)
+
+CONFIRMADO: hoy NO existe ALMACEN_NEST_GQL_URL en graphql.js ni en el bloque config.
+
+--------------------------------------------------------------------------------
+7. GATEWAY NEST — PATRÓN INVENTARIO (CONFIRMADO)
+--------------------------------------------------------------------------------
+
+- Env: INVENTARIO_NEST_GQL_URL
+- Default: http://inventario-nestjs-service:3013
+- Timeout GraphQL proxy: GRAPHQL_SERVICE_TIMEOUT || 10000
+- Enrutado por nombre de operación en el string `query`
+- Headers proxy: Authorization, X-Company-Id
+- inventarioNestJs.js (helper axios separado) también envía X-User-Id;
+  el front Inventarios usa Apollo → /graphql del Gateway (no ese helper)
+
+PROPUESTA: replicar bloque inventariosListado para almacenesListado
+sin tocar el resto de rutas.
+
+--------------------------------------------------------------------------------
+8. MULTIEMPRESA (CONFIRMADO + PROPUESTA)
+--------------------------------------------------------------------------------
+
+Inventarios:
+  Front envía id_empresa según scope.
+  Nest filtra AND inv.id_empresa = :idEmp si viene informado.
+  GLOBAL sin empresa seleccionada → no carga.
+
+PROPUESTA Almacenes:
+  Mismo contrato: variable id_empresa obligatoria desde front.
+  Service: andWhere id_empresa = :idEmp
+  EMPRESA: JWT id_empresa
+  GLOBAL: SelectEmpresa (como Inventarios) — Almacenes.tsx aún NO tiene SelectEmpresa
+  (omitido en fase visual para no disparar query empresas). Habrá que añadirlo
+  en fase integración UI.
+
+--------------------------------------------------------------------------------
+9. FILTROS — PROPUESTA FUTURA (nombres sugeridos)
+--------------------------------------------------------------------------------
+
+Variables GraphQL sugeridas (alineadas a inventariosListado / columnas BD):
+
+  id_empresa: ID! o ID (recomendado exigir en service si falta → [])
+  id_pais: ID
+  id_provincia: ID
+  poblacion: String          (LIKE sobre poblacion)
+  almacen_ref: String        (LIKE)
+  nombre: String             (LIKE)
+  estado: Boolean            (filtro exacto activo/inactivo)
+
+Front actual filtra por texto País/Provincia sobre MOCK.
+Opciones futuras:
+  A) Filtros texto → LIKE sobre JOIN pais.nombre / provincia.nombre
+     (variables pais / provincia String) — más fiel al UI actual
+  B) Filtros UUID id_pais / id_provincia + Select en UI — más preciso
+
+PROPUESTA: Fase 1 LIKE por nombre (pais, provincia String) + ref/nombre/poblacion/estado
+para no forzar rediseño de filtros; o id_* si se migran filtros a selects.
+NO crear query todavía.
+
+--------------------------------------------------------------------------------
+10. OBJECT LISTADO — PROPUESTA FUTURA
+--------------------------------------------------------------------------------
+
+Campos mínimos para reemplazar MOCK:
+
+  id_almacen
+  id_empresa
+  almacen_ref
+  nombre
+  poblacion
+  telefono
+  estado
+  id_pais          (opcional pero útil)
+  id_provincia     (opcional)
+  pais             (String nombre — patrón como inventarios.almacen)
+  provincia        (String nombre)
+
+Comparar: InventarioListado usa `almacen` String, no `almacen_nombre`.
+Preferir `pais` / `provincia` String sobre `pais_nombre` salvo convención distinta
+en otro módulo (NO hallada en BancoCajaNest listados).
+
+--------------------------------------------------------------------------------
+11. TOGGLE ESTADO (CONFIRMADO PATRÓN)
+--------------------------------------------------------------------------------
+
+Inventarios: Mutation GraphQL en InventarioNestJs (actualizarEstadoInventario)
+  → TypeORM update en Nest (lectura/escritura de estado en Nest, no Python).
+
+Productos: NO auditado en detalle en esta pasada; Inventario es la referencia
+  del mismo submenú.
+
+PROPUESTA Almacenes (fase posterior):
+  Mutation actualizarEstadoAlmacen(id_almacen, estado) en AlmacenNestJs
+  O REST PATCH en AlmacenPython — el patrón Inventario favorece Nest mutation
+  para toggle de listado.
+
+NO implementar ahora.
+NOTA: Escritura CREATE ya está en AlmacenPython; toggle en Nest crearía
+  dualidad escritura Nest+Python. Documentar decisión explícita en fase toggle.
+  Alternativa coherente con CREATE: PATCH AlmacenPython + ruta Gateway REST.
+  Inventario usa Nest para estado → tensionada con “Python = escritura”.
+  Decisión pendiente de producto.
+
+--------------------------------------------------------------------------------
+12. EDITAR / DETALLE (CONFIRMADO PATRÓN)
+--------------------------------------------------------------------------------
+
+Inventarios: inventarioPorId + ruta editar/:id
+PROPUESTA: almacenPorId + EditarAlmacen (aún no existe UI)
+Object base: AlmacenDetalle ya existe en scaffold (sin nombres país/provincia)
+
+NO implementar.
+
+--------------------------------------------------------------------------------
+13. ARQUITECTURA OBJETIVO
+--------------------------------------------------------------------------------
+
+CONFIRMADO (hoy):
+  Almacenes.tsx → MOCK local
+  NuevoAlmacen → REST Gateway POST /api/almacen → AlmacenPython
+  Query almacenes (corta) → Gateway → InicioNestJs
+  almacenesListado stub en AlmacenNestJs (no enrutado útilmente)
+
+PROPUESTA FUTURA:
+  Almacenes.tsx
+    → Apollo useLazyQuery almacenesListado
+    → Gateway POST /graphql
+    → (ruta nueva) AlmacenNestJs :3017/graphql
+    → public.almacen
+       LEFT JOIN pais, provincia
+    → Object con nombres + campos UI
+
+Escritura permanece:
+  POST /api/almacen → Gateway → AlmacenPython
+
+--------------------------------------------------------------------------------
+14. ORDEN DE IMPLEMENTACIÓN RECOMENDADO (SEGURIDAD)
+--------------------------------------------------------------------------------
+
+Fase 1 — AlmacenNestJs:
+  Ampliar AlmacenListado object
+  Implementar QueryBuilder real + filtros + JOINs
+  Args en resolver
+  Probar Nest directo :3017 (sin Gateway)
+
+Fase 2 — Gateway graphql.js (mínimo):
+  Añadir ALMACEN_NEST_GQL_URL
+  Enrutar almacenesListado ANTES de la regla `includes('almacenes')`
+  Verificar que query `almacenes` sigue yendo a InicioNestJs
+
+Fase 3 — Probar vía Gateway /graphql (Postman/curl) con id_empresa real
+
+Fase 4 — Almacenes.tsx:
+  Reemplazar MOCK por useLazyQuery (patrón Inventarios)
+  SelectEmpresa si GLOBAL
+  Filtros onBlur → variables GraphQL
+  Cero requests a AlmacenPython en listado
+
+Fase 5 — Toggle estado (decidir Nest mutation vs Python PATCH)
+
+Fase 6 — almacenPorId + EditarAlmacen UI
+
+--------------------------------------------------------------------------------
+15. RIESGOS
+--------------------------------------------------------------------------------
+
+1. CRÍTICO: includes('almacenes') captura almacenesListado → InicioNestJs
+2. Fuga multiempresa si id_empresa no se filtra en Nest
+3. N+1 si front resuelve país/provincia por fila (evitar; usar JOIN)
+4. Duplicar catálogos / queries nuevas innecesarias
+5. Renombrar o reutilizar mal query `almacenes` de Inicio → rompe selects Item/Inventario
+6. Tocar Inventarios.tsx / graphql bloques ajenos
+7. Mostrar UUID en columnas País/Provincia
+8. Romper NuevoAlmacén (REST) al tocar Gateway GraphQL mal
+9. Mezclar responsabilidades: listado Nest vs create Python (aceptable si claro)
+10. Toggle Nest vs create Python: inconsistencia de capa de escritura
+11. Entity Inicio Almacen incompleta: no usarla como fuente del listado rico
+
+--------------------------------------------------------------------------------
+16. RESPUESTAS DIRECTAS
+--------------------------------------------------------------------------------
+
+1. ¿Cómo carga Inventarios?
+   useLazyQuery inventariosListado vía Gateway → InventarioNestJs + filtros + JOIN almacén.
+
+2. ¿almacenesListado es stub?
+   SÍ (return []).
+
+3. ¿Qué modificar en AlmacenNestJs?
+   Resolver Args, Service QueryBuilder real, Object listado ampliado, JOINs.
+
+4. ¿Nombre País?
+   JOIN tabla pais en AlmacenNestJs; campo String presentación.
+
+5. ¿Nombre Provincia?
+   JOIN tabla provincia; campo String presentación.
+
+6. ¿JOIN Nest o front?
+   JOIN en AlmacenNestJs (patrón Inventarios). Catálogos Inicio solo para selects.
+
+7. ¿Filtrar empresa?
+   Variable id_empresa + andWhere; front EMPRESA/GLOBAL como Inventarios.
+
+8. ¿Filtros query?
+   id_empresa, almacen_ref, nombre, poblacion, estado, id_pais/id_provincia
+   y/o pais/provincia String (LIKE) según decisión UI.
+
+9. ¿Campos devolver?
+   id_almacen, id_empresa, almacen_ref, nombre, poblacion, telefono, estado,
+   id_pais, id_provincia, pais, provincia (nombres).
+
+10. ¿Cambio mínimo graphql.js?
+    Bloque almacenesListado → AlmacenNestJs ANTES de regla almacenes;
+    + ALMACEN_NEST_GQL_URL en config.
+
+11. ¿Evitar colisión?
+    Orden de if + no renombrar query Inicio `almacenes`; mantener nombre
+    `almacenesListado` en AlmacenNestJs.
+
+12. ¿Almacenes.tsx?
+    Sustituir MOCK por lazy query + mapping + SelectEmpresa GLOBAL;
+    conservar orden columnas/filtros visuales.
+
+13. ¿NO tocar?
+    InicioNestJs query almacenes, AlmacenPython CREATE, NuevoAlmacen REST,
+    Inventarios, Docker/puertos/BD estructural, graphql reglas ajenas.
+
+14. ¿Siguiente paso?
+    Fase 1: implementar lectura real almacenesListado en AlmacenNestJs
+    (probar :3017) ANTES de tocar Gateway/front.
+
+--------------------------------------------------------------------------------
+17. ARCHIVOS REVISADOS
+--------------------------------------------------------------------------------
+
+FRONTEND:
+- frontReact/src/views/items/inventarios/Inventarios.tsx
+- frontReact/src/views/items/almacenes/Almacenes.tsx (contexto MOCK; no modificado)
+
+ALMACENNESTJS:
+- src/modules/almacen/almacen.resolver.ts
+- src/modules/almacen/almacen.service.ts
+- src/modules/almacen/entities/almacen.entity.ts
+- src/modules/almacen/objects/almacen-listado.object.ts
+- src/modules/almacen/objects/almacen-detalle.object.ts
+
+INICIONESTJS:
+- src/resolvers/almacen.resolver.ts
+- src/services/almacen.service.ts
+- src/entities/almacen.entity.ts
+- (contexto) pais/provincia services/resolvers
+
+GATEWAY:
+- gateway-api/src/routes/graphql.js
+- gateway-api/src/services/inventarioNestJs.js
+
+INVENTARIONESTJS:
+- src/modules/inventario/inventario.resolver.ts
+- src/modules/inventario/inventario.service.ts
+- src/modules/inventario/objects/inventario-listado.object.ts
+
+OTRAS:
+- AlmacenPython POST (contexto escritura; no auditado en profundidad aquí)
+- TerceroNestJs (búsqueda JOIN país en listados: no hallado patrón pais_nombre)
+
+--------------------------------------------------------------------------------
+18. FIN
+--------------------------------------------------------------------------------
+Única escritura de esta tarea: este TXT.
+================================================================================

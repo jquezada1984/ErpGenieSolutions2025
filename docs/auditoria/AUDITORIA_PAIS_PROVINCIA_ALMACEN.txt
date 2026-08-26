@@ -1,0 +1,317 @@
+================================================================================
+AUDITORÍA TÉCNICA — PAÍS → PROVINCIA → CIUDAD/POBLACIÓN (contexto Almacén)
+Fecha: 2026-08-09
+Modo: SOLO LECTURA (excepto este archivo TXT)
+NO se agregó id_provincia a almacen. NO se creó FK. NO se modificó BD ni código funcional.
+================================================================================
+
+--------------------------------------------------------------------------------
+1. TABLA / ENTIDAD PROVINCIA
+--------------------------------------------------------------------------------
+
+CONFIRMADO POR CÓDIGO:
+
+1. ¿Existe tabla provincia?
+   SÍ. Entity TypeORM: @Entity('provincia') en InicioNestJs.
+   Modelos Python: InicioPython/models/empresa.py (Provincia),
+   TerceroPython/models/catalogos.py (stub Provincia, __tablename__='provincia').
+
+2. Nombre exacto: provincia (schema public implícito / public en convención ERP).
+
+3. Primary key: id_provincia
+
+4. Tipo PK: UUID
+   - Nest: PrimaryGeneratedColumn('uuid')
+   - Python Item/Tercero: String(36) / UUID en schemas
+
+5. ¿Tiene id_pais?
+   SÍ. Column uuid NOT NULL en entity Nest (@Column uuid nullable:false).
+
+6. Relación con pais:
+   - Nest: ManyToOne Provincia → Pais via JoinColumn({ name: 'id_pais' })
+   - Pais tiene OneToMany provincias
+   - InicioPython: id_pais = ForeignKey('pais.id_pais'), nullable=False
+   - FK formal a nivel PostgreSQL (CONSTRAINT en migraciones SQL del repo):
+     NO COMPROBADO DE FORMA SEGURA. Relación confirmada en modelos ORM.
+
+7. ¿Estado activo/inactivo?
+   NO en la entity Nest revisada (solo id_provincia, nombre, id_pais, relación pais).
+   NO COMPROBADO DE FORMA SEGURA si BD live tiene más columnas.
+
+8. Columnas relevantes (entity Nest CONFIRMADO):
+   - id_provincia (uuid PK)
+   - nombre (varchar 100 NOT NULL)
+   - id_pais (uuid NOT NULL)
+   - relación GraphQL: pais (Pais)
+
+Tabla pais (CONFIRMADO):
+   - id_pais uuid PK
+   - nombre varchar(100)
+   - codigo_iso varchar(2) unique
+   - icono text
+
+--------------------------------------------------------------------------------
+2. NUEVO PRODUCTO — PAÍS / PROVINCIA / CIUDAD
+--------------------------------------------------------------------------------
+
+Archivo principal UI:
+  frontReact/src/views/items/productos/NuevoProducto.tsx
+  → usa SeccionItemInventario
+    frontReact/src/views/items/secciones/SeccionItemInventario.tsx
+
+Componentes reutilizados:
+  - CountrySelect (países)
+  - SelectProvincia (provincias filtradas)
+
+Estado React en SeccionItemInventario:
+  - id_pais_origen
+  - id_provincia_origen
+  (mapeados a BD item.id_pais / item.id_provincia)
+
+Queries:
+  - GET_PAISES → query paises { id_pais, nombre, codigo_iso, icono }
+  - SelectProvincia:
+      * provincias { id_provincia, nombre } si NO hay id_pais
+      * provinciasByPais(idPais) { id_provincia, nombre } si hay id_pais
+
+Filtro provincia por país:
+  SelectProvincia recibe id_pais; usa provinciasByPais con fetchPolicy network-only.
+
+Al cambiar país:
+  onPaisOrigenChange limpia id_provincia_origen a ''
+  Comentario explícito: "Igual que terceros: al cambiar país se limpia provincia"
+
+Persistencia:
+  mapItemFormToCreateBody.ts:
+    put(out, 'id_pais', trim(v.id_pais_origen));
+    put(out, 'id_provincia', trim(v.id_provincia_origen));
+  ItemPython schema: id_pais, id_provincia (UUID allow_none)
+  ItemPython model: columnas nullable
+  ItemNestJs detalle: lee id_pais, id_provincia en itemDetalleEdicion
+
+¿Es solo visual?
+  NO — se persiste en tabla item (id_pais, id_provincia).
+
+¿Ciudad en Nuevo Producto?
+  En SeccionItemInventario NO hay campo "poblacion/ciudad" visible en la UI
+  de aduanas/origen (solo país + provincia + nomenclatura).
+  item.poblacion existe en modelo Python y EditarProducto GraphQL, pero
+  mapItemFormToCreateBody NO envía poblacion desde el formulario Item
+  (CONFIRMADO: sin put de poblacion). Uso de poblacion en formulario Producto
+  Nuevo: NO como ciudad libre en la sección inventario revisada.
+
+--------------------------------------------------------------------------------
+3. CONSULTAS GENERALES (InicioNestJs)
+--------------------------------------------------------------------------------
+
+Gateway (graphql.js) redirige a InicioNestJs (nestjs-service) si la query
+incluye: provinciasByPais | provincias | paises | monedas.
+
+Query: paises
+  Resolver: (catálogo país en InicioNestJs)
+  Uso front: CountrySelect en Producto, Terceros, Banco, NuevoAlmacen, etc.
+
+Query: provincias
+  Resolver: ProvinciaResolver.getProvincias → ProvinciaService.findAll()
+  Tabla: provincia (+ relations pais)
+  Parámetros: ninguno
+  Respuesta: [Provincia] orden nombre ASC
+
+Query: provinciasByPais(idPais: String!)
+  Resolver: ProvinciaResolver.getProvinciasByPais
+  Service: findByPais(idPais) where id_pais = idPais
+  Respuesta: [Provincia] sin relation obligatoria, orden nombre ASC
+
+InicioPython (REST paralelo, no el camino principal del front React GraphQL):
+  GET /provincia
+  GET /provincia/<id_provincia>
+  (entidad_routes.py)
+
+NO crear consultas nuevas: reutilizar paises + provinciasByPais.
+
+--------------------------------------------------------------------------------
+4. PRODUCTO / ITEM → PROVINCIA
+--------------------------------------------------------------------------------
+
+CONFIRMADO:
+  item.id_pais     String(36) nullable
+  item.id_provincia String(36) nullable
+  item.poblacion   String(255) nullable
+
+FK formal TypeORM/SQLAlchemy ForeignKey a provincia:
+  NO encontrada en ItemPython model ni ItemNestJs entity principal
+  (entity Nest Item no mapea id_pais/id_provincia en entity.ts; se leen
+  vía query raw en items.service detalle).
+  FK PostgreSQL: NO COMPROBADO DE FORMA SEGURA.
+
+Persistencia escritura: ItemPython (schema UUID + repository).
+Lectura: ItemNestJs itemDetalleEdicion.
+
+--------------------------------------------------------------------------------
+5. CIUDAD / POBLACIÓN
+--------------------------------------------------------------------------------
+
+CONFIRMADO:
+  - No existe entity/tabla ciudad / id_ciudad en el código revisado.
+  - Campo texto libre "poblacion" en: item, tercero, contacto, empresa,
+    cuenta_bancaria (según modelos), almacen.poblacion.
+  - En UI Nuevo Almacén: label "Ciudad / Población" → columna poblacion.
+  - En UI Terceros/Contactos: poblacion como texto.
+
+CONCLUSIÓN DE PATRÓN:
+  poblacion = ciudad/localidad como TEXTO LIBRE, no catálogo.
+  NO proponer id_ciudad (alineado a pedido del usuario).
+
+--------------------------------------------------------------------------------
+6. PROPUESTA TÉCNICA FK (NO EJECUTAR)
+--------------------------------------------------------------------------------
+
+A. Tabla destino: provincia
+B. PK: id_provincia
+C. Tipo: UUID
+D. Nullable: SÍ (nullable), como item.id_provincia, cuenta_bancaria.id_provincia,
+   tercero — patrón ERP de ubicación opcional.
+E. Nombre FK sugerido (convención): fk_almacen_provincia
+   (NO COMPROBADO el naming exacto de FKs en BD live; es sugerencia).
+F. ¿Mantener id_pais en almacen?
+   SÍ — mismo patrón que item / tercero / cuenta_bancaria (id_pais + id_provincia).
+G. Riesgos de tener ambos:
+   - Inconsistencia país≠provincia.id_pais si no se valida.
+   - Denormalización (id_pais redundante si se deriva de provincia).
+   - Beneficio: consultas/filtros por país sin join; UI carga país primero.
+
+Relación propuesta futura:
+  almacen.id_provincia → provincia.id_provincia  (UUID, NULL allowed)
+
+--------------------------------------------------------------------------------
+7. CONSISTENCIA PAÍS / PROVINCIA (PATRÓN EXISTENTE)
+--------------------------------------------------------------------------------
+
+Cómo lo resuelven otros módulos (CONFIRMADO):
+
+Frontend:
+  1. SelectProvincia filtrado por id_pais (provinciasByPais).
+  2. Al cambiar país → limpiar id_provincia (Producto, Banco SeccionCuentaGeneral,
+     comentario "igual que terceros").
+  3. Provincia deshabilitada si no hay país (isDisabled={!id_pais}).
+
+Backend:
+  - No se encontró FK compuesta (pais, provincia).
+  - No se encontró trigger ni validación explícita en ItemPython que verifique
+    provincia.id_pais == id_pais (NO en el código revisado).
+  - Consistencia principal: UI + filtrado de catálogo.
+
+NO hay evidencia de validación backend fuerte País→Provincia en Item.
+
+--------------------------------------------------------------------------------
+8. IMPACTO FUTURO SI SE AGREGA id_provincia A almacen
+--------------------------------------------------------------------------------
+
+Lista de impacto (NO aplicar ahora):
+
+1. PostgreSQL: ALTER TABLE public.almacen ADD COLUMN id_provincia UUID NULL;
+   (+ FK opcional a provincia.id_provincia)
+2. AlmacenNestJs entity almacen.entity.ts
+3. objects almacen-listado / almacen-detalle
+4. AlmacenPython models/almacen.py
+5. schemas AlmacenCreateSchema / AlmacenUpdateSchema
+6. Frontend NuevoAlmacen.tsx (+ SelectProvincia, limpiar al cambiar país)
+7. Futuro EditarAlmacen / listado si muestra ubicación
+8. InicioNestJs entity Almacen (solo mapea id_almacen, ref, nombre, estado hoy):
+   NO necesita id_provincia para seguir funcionando el select corto
+9. Inventarios / id_almacen_defecto: usan solo id_almacen + nombre — SIN impacto
+   obligatorio si la nueva columna es nullable y no se cambia la query almacenes
+
+--------------------------------------------------------------------------------
+9. COMPATIBILIDAD CON CONSUMIDORES ACTUALES
+--------------------------------------------------------------------------------
+
+InicioNestJs query `almacenes`:
+  select id_almacen, almacen_ref, nombre — no pide provincia.
+  Agregar columna nullable NO rompe esa query.
+
+Inventarios / Item id_almacen_defecto:
+  Solo UUID de almacén — independientes de provincia.
+
+Cómo mantener compatibilidad:
+  - Columna nueva NULL
+  - No exigir provincia en create hasta que UI/API lo pidan
+  - No cambiar firma de query GraphQL `almacenes` de Inicio
+  - Expander AlmacenNestJs con almacenesListado propio (nombre distinto)
+
+--------------------------------------------------------------------------------
+10. VEREDICTO FINAL
+--------------------------------------------------------------------------------
+
+1. ¿Existe tabla Provincia? SÍ (provincia).
+2. ¿PK? id_provincia (UUID).
+3. ¿Relación con País? SÍ (id_pais NOT NULL + ManyToOne en Nest).
+4. ¿Nuevo Producto usa Provincia? SÍ (SeccionItemInventario + SelectProvincia).
+5. ¿Persiste id_provincia? SÍ en item.
+6. ¿Consulta provincias? provincias y provinciasByPais (InicioNestJs vía Gateway).
+7. ¿almacen.poblacion como Ciudad/Localidad? SÍ — texto libre; mantener.
+8. ¿Falta id_provincia en almacen? SÍ (no aparece en columnas confirmadas ni en
+   scaffolds AlmacenNest/Python / NuevoAlmacen).
+9. ¿Recomendar agregarla? SÍ, alineado a Producto/Terceros/Banco, NULLABLE.
+10. Tipo exacto: UUID.
+11. FK apunta a: provincia.id_provincia.
+12. ¿Sin romper actual? SÍ si nullable y sin cambiar query `almacenes` Inicio.
+13. Validación futura País→Provincia:
+    - UI: SelectProvincia + clear al cambiar país (patrón existente)
+    - Backend (recomendado agregar luego): verificar que
+      provincia.id_pais == body.id_pais antes de persistir
+    - NO hay FK compuesta en el patrón actual
+
+CONCLUSIÓN:
+almacen.id_provincia → provincia.id_provincia
+ES LA RELACIÓN CORRECTA PARA IMPLEMENTAR POSTERIORMENTE,
+manteniendo almacen.id_pais y almacen.poblacion (texto).
+
+--------------------------------------------------------------------------------
+11. ARCHIVOS REVISADOS
+--------------------------------------------------------------------------------
+
+FRONTEND:
+- frontReact/src/views/items/productos/NuevoProducto.tsx
+- frontReact/src/views/items/secciones/SeccionItemInventario.tsx
+- frontReact/src/views/items/schemas/itemSchema.ts
+- frontReact/src/views/items/utils/mapItemFormToCreateBody.ts
+- frontReact/src/views/items/utils/mapItemDetalleToFormValues.ts
+- frontReact/src/views/items/almacenes/NuevoAlmacen.tsx
+- frontReact/src/components/selects/SelectProvincia.tsx
+- frontReact/src/components/CountrySelect.tsx
+- frontReact/src/views/banco-cajas/secciones/SeccionCuentaGeneral.tsx
+
+INICIO NESTJS:
+- InicioNestJs/src/entities/provincia.entity.ts
+- InicioNestJs/src/entities/pais.entity.ts
+- InicioNestJs/src/entities/almacen.entity.ts
+- InicioNestJs/src/resolvers/provincia.resolver.ts
+- InicioNestJs/src/services/provincia.service.ts
+
+INICIO PYTHON:
+- InicioPython/models/empresa.py (Provincia)
+- InicioPython/api/entidad_routes.py
+- InicioPython/insert_master_data.py
+
+ITEM NESTJS:
+- ItemNestJs/src/modules/items/objects/item-detalle-edicion.object.ts
+- ItemNestJs/src/modules/items/items.service.ts
+
+ITEM PYTHON:
+- ItemPython/models/item.py
+- ItemPython/schemas/item_schema.py
+- ItemPython/services/item_service.py
+
+GATEWAY:
+- gateway-api/src/routes/graphql.js (routing paises/provincias)
+
+OTROS (patrón):
+- TerceroPython/models/catalogos.py
+- BancoCajaPython (id_pais/id_provincia en cuenta)
+
+--------------------------------------------------------------------------------
+12. FIN
+--------------------------------------------------------------------------------
+Fin de auditoría. Única escritura: este TXT.
+================================================================================

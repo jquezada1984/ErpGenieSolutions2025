@@ -1,0 +1,279 @@
+================================================================================
+AUDITORÍA — Filtro Almacén para Almacenes → Movimientos
+Fecha: 2026-08-15
+Alcance: SOLO LECTURA
+================================================================================
+
+OBJETIVO
+--------
+Determinar qué catálogo o selector existente puede reutilizarse posteriormente
+para obtener `id_almacen` y enviarlo a `movimientosInventarioListado`, sin
+crear backend ni componentes en esta auditoría.
+
+
+VEREDICTO
+---------
+NO existe un componente compartido `SelectAlmacen`, `SelectWarehouse` ni
+`AlmacenSelect` en `frontReact/src`.
+
+SÍ existe un patrón de selección reutilizable en Inventarios:
+  - HTML `Input type="select"` local
+  - valor de option = `id_almacen`
+  - etiqueta = `${almacen_ref} - ${nombre}` o `nombre`
+  - catálogo cargado por `listarAlmacenes()`
+
+Pero ese catálogo general `almacenes` NO filtra por empresa ni por estado.
+Para el futuro filtro histórico multiempresa, la opción más segura es reutilizar
+la query YA existente `almacenesListado(id_empresa)` de AlmacenNestJs mediante
+Apollo en `MovimientosAlmacen.tsx`, no crear un componente compartido.
+
+
+1. ¿EXISTE SelectAlmacen REUTILIZABLE?
+--------------------------------------
+NO.
+
+Búsquedas realizadas:
+  SelectAlmacen
+  SelectWarehouse
+  AlmacenSelect
+  listarAlmacenes
+  id_almacen
+
+No existe un componente frontend dedicado de selección de almacén.
+
+
+2. PATRÓN EXISTENTE EN INVENTARIOS
+----------------------------------
+
+Archivo:
+  frontReact/src/views/items/inventarios/NuevoInventario.tsx
+
+Archivo equivalente:
+  frontReact/src/views/items/inventarios/EditarInventario.tsx
+
+Carga de catálogo:
+  import { listarAlmacenes } from '../../../_apis_/gateway';
+
+  useEffect(() => {
+    listarAlmacenes()
+      .then((list) => setAlmacenes(Array.isArray(list) ? list : []))
+      ...
+  }, []);
+
+Selector:
+  <Input
+    id="id_almacen"
+    type="select"
+    value={idAlmacen}
+    onChange={(e) => setIdAlmacen(e.target.value)}
+    disabled={loadingAlmacenes}
+  >
+    <option value="">Seleccionar</option>
+    {almacenes.map((a) => (
+      <option key={a.id_almacen} value={a.id_almacen}>
+        {a.almacen_ref ? `${a.almacen_ref} - ${a.nombre}` : a.nombre}
+      </option>
+    ))}
+  </Input>
+
+Valor devuelto:
+  `event.target.value` = `id_almacen` directamente (UUID/string).
+
+Compatibilidad:
+  SÍ. Es compatible sin transformación con la variable GraphQL:
+    movimientosInventarioListado(id_almacen: $id_almacen)
+
+
+3. QUERY GENERAL `almacenes`
+----------------------------
+
+Frontend consumidor:
+  frontReact/src/_apis_/gateway.js
+
+Helper:
+  listarAlmacenes()
+
+Solicitud:
+  query {
+    almacenes {
+      id_almacen
+      almacen_ref
+      nombre
+    }
+  }
+
+Backend:
+  InicioNestJs/src/resolvers/almacen.resolver.ts
+  InicioNestJs/src/services/almacen.service.ts
+
+Resolver:
+  @Query(() => [Almacen], { name: 'almacenes' })
+  getAlmacenes(): Promise<Almacen[]> {
+    return this.almacenService.findAll();
+  }
+
+Service:
+  findAll(): Promise<Almacen[]> {
+    return this.almacenRepository.find({
+      select: ['id_almacen', 'almacen_ref', 'nombre'],
+      order: { nombre: 'ASC' },
+    });
+  }
+
+Campos disponibles:
+  - id_almacen
+  - almacen_ref
+  - nombre
+
+Argumentos:
+  Ninguno.
+
+¿Filtra por id_empresa?
+  NO. No recibe argumentos y `findAll()` no tiene condición `where`.
+
+¿Filtra por estado?
+  NO. Aunque la entity InicioNestJs declara `estado`, el servicio no lo
+  selecciona ni aplica filtro.
+
+Conclusión:
+  Es reutilizable técnicamente para un select básico y es el catálogo que
+  Inventarios usa hoy, pero NO es el catálogo adecuado por sí solo para el
+  filtro histórico multiempresa de Movimientos.
+
+
+4. ALTERNATIVA EXISTENTE SEGURA: `almacenesListado`
+---------------------------------------------------
+
+Backend existente:
+  AlmacenNestJs/src/modules/almacen/almacen.resolver.ts
+  AlmacenNestJs/src/modules/almacen/almacen.service.ts
+
+Argumento existente:
+  id_empresa?: ID
+
+Campos existentes relevantes:
+  - id_almacen
+  - id_empresa
+  - almacen_ref
+  - nombre
+  - estado
+
+Comportamiento:
+  Si se informa `id_empresa`, aplica:
+    alm.id_empresa = :idEmp
+
+Ventajas para Movimientos:
+  - UUID `id_almacen` directo.
+  - Filtro de empresa ya implementado.
+  - Expone `estado`, para decidir en UI si el histórico debe incluir inactivos.
+  - No requiere backend, Gateway ni componente compartido nuevos.
+
+Limitación:
+  La query actual no necesita ser modificada; en la futura fase se usaría
+  desde Apollo dentro de `MovimientosAlmacen.tsx`.
+
+
+5. MULTIEMPRESA
+---------------
+
+Patrón actual de Nuevo/Editar Inventario:
+  - scope EMPRESA: obtiene `id_empresa` del JWT (`useJwtPayload`).
+  - scope GLOBAL: muestra `SelectEmpresa` y usa la empresa elegida.
+
+Catálogo de almacenes en Inventarios:
+  - Se carga una sola vez al montar (`useEffect([])`).
+  - NO se recarga ni limpia al cambiar empresa GLOBAL.
+  - Por usar `almacenes` general, tampoco queda filtrado por empresa.
+
+Conclusión para la futura pantalla Movimientos:
+  - EMPRESA: cargar almacenes con el `id_empresa` del JWT.
+  - GLOBAL: no cargar/seleccionar almacén hasta elegir empresa.
+  - Al cambiar empresa: limpiar `id_almacen` y recargar `almacenesListado`
+    con la nueva empresa.
+  - Sin empresa activa: selector deshabilitado.
+
+Esto es una RECOMENDACIÓN derivada del requisito multiempresa y de la query
+existente; no es comportamiento ya implementado en Inventarios.
+
+
+6. ESTADO DE ALMACENES
+----------------------
+
+Catálogo `almacenes`:
+  - no selecciona ni filtra `estado`;
+  - por tanto puede devolver activos e inactivos.
+
+`almacenesListado`:
+  - expone `estado`;
+  - si no recibe filtro `estado`, devuelve ambos.
+
+Recomendación para historial:
+  Mostrar también almacenes inactivos, identificándolos visualmente si se
+  desea. Un movimiento histórico puede pertenecer legítimamente a un almacén
+  que hoy está inactivo; ocultarlo impediría filtrar el historial completo.
+
+
+7. RESPUESTAS OBLIGATORIAS
+--------------------------
+
+1. ¿Existe SelectAlmacen reutilizable?
+   NO, no como componente compartido.
+
+2. ¿Qué archivo contiene el patrón?
+   NuevoInventario.tsx y EditarInventario.tsx.
+
+3. ¿Qué query usa?
+   `almacenes`, a través de `listarAlmacenes()` en `_apis_/gateway.js`.
+
+4. ¿Qué campos devuelve `almacenes`?
+   id_almacen, almacen_ref, nombre.
+
+5. ¿Filtra por empresa?
+   NO.
+
+6. ¿Cómo se usa en Inventarios?
+   `<Input type="select">`, option value=id_almacen; carga inicial única.
+
+7. ¿Qué pasa al cambiar empresa?
+   El catálogo no se limpia ni recarga; no tiene filtro empresarial.
+
+8. ¿Devuelve id_almacen directamente?
+   SÍ, como valor del option.
+
+9. ¿Puede conectarse sin tocar backend?
+   SÍ. El patrón mínimo usa `listarAlmacenes`; la alternativa segura usa la
+   query YA existente `almacenesListado(id_empresa)` desde Apollo.
+
+10. ¿Qué archivo único habría que modificar después?
+    frontReact/src/views/items/almacenes/MovimientosAlmacen.tsx
+
+11. ¿Cuál es el siguiente paso más seguro?
+    En una tarea separada, dentro de ese único archivo: incorporar selector
+    local (sin componente nuevo), alimentar con `almacenesListado(id_empresa)`,
+    limpiar selección al cambiar empresa y enviar su UUID como `id_almacen`.
+
+
+ARCHIVOS REVISADOS
+------------------
+Frontend:
+  frontReact/src/_apis_/gateway.js
+  frontReact/src/views/items/inventarios/NuevoInventario.tsx
+  frontReact/src/views/items/inventarios/EditarInventario.tsx
+  frontReact/src/views/items/almacenes/MovimientosAlmacen.tsx
+
+InicioNestJs:
+  InicioNestJs/src/resolvers/almacen.resolver.ts
+  InicioNestJs/src/services/almacen.service.ts
+  InicioNestJs/src/entities/almacen.entity.ts
+
+AlmacenNestJs (referencia de query ya existente):
+  AlmacenNestJs/src/modules/almacen/almacen.resolver.ts
+  AlmacenNestJs/src/modules/almacen/almacen.service.ts
+
+
+CAMBIO AUTORIZADO DE ESTA AUDITORÍA
+-----------------------------------
+Único archivo creado:
+  docs/auditoria/AUDITORIA_FILTRO_ALMACEN_MOVIMIENTOS.txt
+
+No se modificó código funcional, backend, Gateway, Docker ni BD.

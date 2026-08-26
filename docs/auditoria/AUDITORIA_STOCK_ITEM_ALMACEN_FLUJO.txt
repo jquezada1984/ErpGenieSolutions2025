@@ -1,0 +1,481 @@
+AUDITORÍA TÉCNICA — public.stock_item_almacen
+Fecha: 2026-08-15
+Alcance: solo lectura, excepto este informe autorizado.
+
+================================================================================
+1. CONCLUSIÓN EJECUTIVA
+================================================================================
+
+La tabla public.stock_item_almacen existe en la base de datos, pero está vacía
+(0 filas) y no tiene integración funcional en el codebase.
+
+No se encontró código que la inserte, actualice o lea mediante una API real:
+no hay entity/model, repository, service, resolver, route, query GraphQL,
+endpoint REST ni SQL DML para la tabla. Por tanto el ERP no tiene todavía un
+proceso implementado que cree su primera fila.
+
+Tampoco existe motor de escritura para movimiento_inventario. La única
+implementación actual de movimientos es el historial read-only de
+AlmacenNestJs. No hay sincronización entre movimiento y stock.
+
+La primera implementación segura no es inventario_detalle: es definir un
+único motor transaccional de stock por item+almacén, con un flujo de
+inicialización explícito y reglas de empresa/concurrencia. Antes de ello no
+es posible determinar de forma segura qué campo debe llenar
+inventario_detalle.stock_sistema.
+
+================================================================================
+2. ESTRUCTURA REAL CONFIRMADA POR EL USUARIO
+================================================================================
+
+Tabla:
+  public.stock_item_almacen
+
+Columnas:
+  id_stock_producto_almacen
+  id_empresa
+  id_item
+  id_almacen
+  stock_fisico
+  stock_reservado
+  stock_virtual
+  stock_disponible
+  stock_alerta
+  stock_deseado
+  created_by
+  updated_by
+  created_at
+  updated_at
+  estado
+
+Constraints/FKs confirmadas:
+  UNIQUE uq_stock_item_almacen (id_item, id_almacen)
+  fk_stock_almacen
+  fk_stock_item
+
+Estado de datos confirmado:
+  0 registros.
+
+No se recibieron tipos, nullability, defaults, índice completo ni destino de
+las FKs. El análisis usa solo la estructura confirmada arriba; no se infieren
+defaults, fórmulas, semántica de estado ni relación de id_empresa.
+
+================================================================================
+3. RESULTADO DE BÚSQUEDA EN REPOSITORIO
+================================================================================
+
+A. DEFINICIÓN
+  No existe definición de stock_item_almacen en código, migraciones ni SQL del
+  repositorio. Su estructura proviene exclusivamente de la confirmación del
+  usuario.
+
+B. LECTURA REAL
+  No se encontró SELECT/FROM stock_item_almacen, endpoint, resolver ni API de
+  lectura real.
+
+C. ESCRITURA REAL
+  No se encontró INSERT, UPDATE, DELETE, entity/model, repository, service,
+  ruta REST ni mutation dirigida a stock_item_almacen.
+
+D. TODO / PLAN
+  frontReact/src/views/items/inventarios/NuevoInventario.tsx:
+    "TODO FASE 3: consultar stock_item_almacen y calcular diferencia."
+
+  docs/auditoria/AUDITORIA_ARQUITECTURA_MODULO_ALMACENES.txt:
+    Fase 7: Stock (stock_item_almacen), después de almacén estable.
+    Fase 8: Movimientos / transferencias, después de stock.
+
+  docs/auditoria/AUDITORIA_MOVIMIENTOS_INVENTARIO.txt:
+    Recomienda un motor único y transaccional para sincronizar stock y
+    movimientos antes de habilitar escritores de negocio.
+
+E. MOCK / PLACEHOLDER
+  frontReact/src/views/items/productos/ProductosStocks.tsx:
+    MOCK_STOCKS_INICIAL, comentario explícito "Datos de ejemplo. Sustituir por
+    API cuando esté disponible."
+
+  frontReact/src/views/items/productos/ProductosStocksLotes.tsx:
+    MOCK_LOTES_SERIE, también frontend only.
+
+  InventarioNestJs inventariosListado/inventarioPorId:
+    proyectan product = 0 literal. No es stock ni total de líneas.
+
+================================================================================
+4. QUIÉN ESCRIBE Y LEE STOCK HOY
+================================================================================
+
+1. ¿Quién escribe hoy stock_item_almacen?
+   Nadie en este codebase.
+
+2. ¿Quién la lee hoy?
+   Nadie mediante una consulta/API real. Solo hay TODOs y pantallas mock.
+
+3. ¿Qué módulos ya la referencian?
+   - NuevoInventario.tsx: TODO futuro de consulta para diferencia.
+   - Auditorías/planes: mencionan que stock debe preceder movimientos.
+   No hay dependencia funcional en Item, Almacén, Compras, Ventas, Inventario,
+   Gateway ni Contabilidad.
+
+4. ¿Qué módulos deberían alimentarla?
+   No hay escritor implementado que lo determine. Los planes del repositorio
+   establecen que cierre de inventario, transferencias y ajustes deben ser
+   escritores posteriores que usen un motor único de stock, no que modifiquen
+   la tabla por separado.
+
+================================================================================
+5. PRODUCTO / ALMACÉN / STOCK INICIAL
+================================================================================
+
+ITEM
+  ItemPython/models/item.py contiene:
+    id_empresa, inventariable, id_almacen_defecto,
+    stock_minimo_alerta y stock_deseado.
+
+  ItemNestJs expone stock_minimo_alerta y stock_deseado del item. Son
+  atributos maestros del producto, no evidencia de creación de una fila
+  stock_item_almacen.
+
+  Las rutas de creación/edición del item persisten esos atributos de item, pero
+  no contienen referencia a stock_item_almacen. Crear un producto no genera
+  stock por almacén, no crea stock inicial y no inicializa una fila en cero.
+
+ALMACÉN
+  id_almacen_defecto del item es una preferencia de almacén por defecto. No
+  existe código que la traduzca en una fila de stock ni que asigne inventario
+  inicial.
+
+STOCK INICIAL
+  No se encontró flujo, endpoint, UI, SQL, comentario ni migración para
+  "stock inicial", "apertura stock", "carga inicial" o equivalente.
+
+PRIMERA FILA
+  La respuesta basada en código es: NO DETERMINADO. No existe política
+  implementada que establezca si debe crearse al crear producto, al configurar
+  almacén, al recibir mercancía, al inicializar existencias o al cerrar un
+  inventario.
+
+FILA CON CERO
+  Tampoco está definido. La tabla vacía y la ausencia de escritor no permiten
+  afirmar si debe existir una relación item+almacén con stock_fisico=0. Esta
+  decisión debe ser parte explícita de la especificación del motor de stock,
+  no una suposición del inventario físico.
+
+================================================================================
+6. SIGNIFICADO DE COLUMNAS Y FÓRMULAS
+================================================================================
+
+stock_fisico
+  El nombre y las pantallas mock lo presentan visualmente como "Stock físico",
+  pero no existe semántica de backend, comentario de tabla ni cálculo real que
+  confirme si representa saldo operativo, cantidad contada o existencia
+  disponible para ajuste. NO DETERMINADO DE FORMA SEGURA.
+
+stock_reservado
+  No existe módulo de reservas, pedidos, apartados o compromisos que lo lea o
+  modifique. NO DETERMINADO DE FORMA SEGURA.
+
+stock_virtual
+  Las pantallas mock muestran un valor, pero no existe fórmula, query ni
+  servicio que lo compute. No puede confirmarse que sea físico más/minus
+  documentos pendientes. NO DETERMINADO DE FORMA SEGURA.
+
+stock_disponible
+  No se encontró fórmula ni uso. En particular, no se encontró evidencia para
+  afirmar stock_fisico - stock_reservado. NO DETERMINADO DE FORMA SEGURA.
+
+stock_alerta y stock_deseado
+  En el maestro item sí existen campos stock_minimo_alerta y stock_deseado. La
+  UI del producto los etiqueta "Stock límite para alertas" y "Stock deseado".
+  Eso confirma su intención en el nivel item: umbral de alerta y objetivo.
+  No hay evidencia que confirme que las columnas homónimas de
+  stock_item_almacen hereden, repliquen o sobrescriban esos valores por
+  almacén.
+
+estado
+  No hay lector ni escritor de stock_item_almacen, por lo que no puede
+  confirmarse si significa relación item-almacén activa, borrado lógico u otra
+  condición. NO DETERMINADO DE FORMA SEGURA.
+
+FÓRMULAS
+  No se encontró expresión real para stock_virtual ni stock_disponible.
+  No deben implementarse fórmulas por intuición.
+
+================================================================================
+7. COMPRAS, VENTAS, RECEPCIONES, RESERVAS Y TRANSFERENCIAS
+================================================================================
+
+COMPRAS / RECEPCIÓN
+  No se encontró módulo funcional que reciba mercancía y escriba stock,
+  movimiento_inventario o cantidad por almacén.
+
+VENTAS / DESPACHO
+  No se encontró módulo funcional que descuente stock, reserve existencias o
+  escriba movimientos de salida.
+
+RESERVAS
+  No se encontró flujo para incrementar/disminuir stock_reservado.
+
+TRANSFERENCIAS
+  transferencia_stock, transferencia_stock_detalle e id_transferencia_stock
+  tienen 0 referencias en el repositorio. No hay flujo origen/destino ni
+  actualización de stock.
+
+CONTABILIDAD
+  No hay vínculo implementado entre stock inicial, stock_item_almacen,
+  movimiento_inventario o asiento contable. La creación de stock inicial no
+  tiene tratamiento contable definido en el código.
+
+================================================================================
+8. RELACIÓN CON MOVIMIENTO_INVENTARIO
+================================================================================
+
+Estado actual:
+  - AlmacenNestJs ofrece lectura del historial mediante
+    movimientosInventarioListado.
+  - No existe escritor de movimiento_inventario.
+  - No existe escritor de stock_item_almacen.
+  - No existe transacción conjunta ni convención confirmada de cantidad/signo.
+
+Arquitectura soportada por los TODOs y auditorías:
+  Opción C: stock acumulado y movimiento histórico sincronizados por un único
+  servicio transaccional.
+
+Esto es una recomendación arquitectónica, no código actual:
+  una operación de negocio validada debe insertar su trazabilidad y actualizar
+  su saldo agregado en la misma transacción; o ambas acciones confirman, o
+  ambas revierten.
+
+Orden de escritura:
+  No está definido si primero se inserta movimiento o primero se actualiza
+  stock. La única conclusión segura es que no deben confirmarse por separado.
+
+Fuente de verdad:
+  No está definida en código. No se puede declarar que la tabla sea resultado
+  acumulado ni fuente primaria independiente mientras no exista motor. El
+  diseño recomendado debe decidirlo explícitamente y mantener ambos en
+  transacción.
+
+================================================================================
+9. MULTIEMPRESA, UNIQUE E IDEMPOTENCIA
+================================================================================
+
+La UNIQUE real (id_item, id_almacen) evita una segunda fila para el mismo par.
+Es la única protección confirmada contra duplicados.
+
+Riesgo de id_empresa fuera de la UNIQUE:
+  Si item y almacen pertenecen inequívocamente a una empresa y las FKs impiden
+  combinarlos entre empresas, la empresa queda derivada por esas relaciones.
+  Esa garantía NO está confirmada: los nombres fk_stock_item/fk_stock_almacen
+  no revelan las columnas ni incluyen por sí solos validación de empresa.
+
+Riesgo:
+  si se inserta un item de Empresa A con almacén de Empresa B y
+  stock_item_almacen.id_empresa de cualquiera de ellas, la UNIQUE no evita el
+  cruce porque no incluye id_empresa. No hay código que valide actualmente la
+  igualdad item.id_empresa = almacen.id_empresa = stock.id_empresa.
+
+La futura operación debe validar explícitamente los tres identificadores
+contra la empresa del contexto dentro de la transacción, sin alterar por ello
+el constraint existente en esta fase de auditoría.
+
+================================================================================
+10. INVENTARIO FÍSICO Y SNAPSHOT
+================================================================================
+
+inventario_detalle dispone, según confirmación del usuario, de:
+  stock_sistema, stock_contado y diferencia (NUMERIC NOT NULL DEFAULT 0).
+
+Sin filas de stock y sin significado de las cuatro cantidades de
+stock_item_almacen, NO se puede elegir de forma segura qué campo alimenta
+inventario_detalle.stock_sistema:
+
+  → NO DETERMINADO DE FORMA SEGURA.
+
+Si stock_item_almacen está vacía, no puede generarse un inventario_detalle
+útil usando la regla propuesta "items existentes en stock por empresa y
+almacén": la consulta devolvería cero productos. Crear líneas artificiales con
+cero o usar todos los items de la empresa cambiaría la regla de negocio sin
+evidencia y está prohibido.
+
+Un snapshot correcto exige primero definir:
+  - qué representa el saldo sistema;
+  - cuál es el criterio de inclusión de item+almacén;
+  - si existen filas cero;
+  - cómo se bloquea/repite la inicialización;
+  - de qué fuente se obtiene un stock inicial legítimo.
+
+================================================================================
+11. MENÚ Y FRONTEND
+================================================================================
+
+Menú de Almacenes:
+  - Movimientos: ruta /items/almacenes/movimientos. Implementada read-only;
+    depende de movimiento_inventario.
+  - Cambio masivo de stock: ruta /items/almacenes/cambio-stock. Solo existe
+    en SQL de menú; no se encontró pantalla ni motor.
+  - Stock por fecha: ruta /items/almacenes/stock-fecha. Solo existe en SQL de
+    menú; requiere historial, no está implementada.
+
+Pantallas:
+  ProductosStocks.tsx y ProductosStocksLotes.tsx son MOCK frontend; no deben
+  consumirse como catálogo ni fuente de datos de stock.
+
+================================================================================
+12. MATRIZ FUNCIONAL
+================================================================================
+
+Funcional:
+  Historial movimiento_inventario       Solo lectura
+  Atributos stock en maestro item       Crear/editar stock mínimo/deseado
+
+Parcial:
+  Inventario físico                     Solo cabecera
+  Menú de cambio/stock por fecha        Entradas de menú sin implementación
+
+MOCK:
+  Stock por producto                    ProductosStocks.tsx
+  Stock por lote/serie                  ProductosStocksLotes.tsx
+
+Pendiente / no implementado:
+  Stock por item+almacén real
+  Stock inicial
+  Entradas
+  Salidas
+  Reservas
+  Transferencias
+  Fórmulas virtual/disponible
+  Alertas efectivas por almacén
+  Sincronización movimiento-stock
+  Snapshot de inventario
+  Conteo y cierre
+  Contabilidad de stock
+
+================================================================================
+13. FLUJOS
+================================================================================
+
+FLUJO REAL ACTUAL
+
+  Crear/editar item
+       ↓
+  Se guardan datos maestros, incluido almacén por defecto y umbrales del item
+       ↓
+  No se crea fila stock_item_almacen
+       ↓
+  No se crea movimiento_inventario
+
+  Crear cabecera inventario
+       ↓
+  public.inventario
+       ↓
+  No se consulta stock ni se crean líneas
+
+FLUJO OBJETIVO INFERIDO — PROPUESTA/PENDIENTE
+
+  Operación de negocio autorizada
+  (inicialización explícita / recepción / ajuste validado / cierre físico)
+       ↓ misma transacción
+  Validar empresa + item + almacén + idempotencia
+       ↓
+  Crear o localizar saldo stock_item_almacen
+       ↓
+  Actualizar saldo según reglas definidas
+       ↓
+  Insertar movimiento_inventario de trazabilidad
+       ↓
+  Commit conjunto
+
+No se debe considerar este flujo como implementado.
+
+================================================================================
+14. RIESGOS
+================================================================================
+
+- Crear saldo manual sin movimiento: saldo sin trazabilidad.
+- Crear movimiento sin saldo: historial que no coincide con existencias.
+- Doble inicialización: dos saldos o doble cantidad inicial.
+- UNIQUE sin garantía de empresa: posible relación cruzada entre empresas.
+- Stock negativo: no existen reglas ni validación.
+- Inventario sin snapshot: conteo no auditable.
+- Recalcular snapshot al consultar: destruye la foto histórica.
+- Transferencia parcial: origen/destino desincronizados.
+- Usar mocks como fuente: datos ficticios o mezcla de empresas.
+- Crear filas cero por intuición: altera la futura regla de inclusión.
+
+================================================================================
+15. RESPUESTAS OBLIGATORIAS RESUMIDAS
+================================================================================
+
+1. ¿Quién escribe hoy stock_item_almacen? Nadie.
+2. ¿Quién la lee hoy? Nadie mediante API real.
+3. ¿Cuándo debería crearse primera fila? No determinado por evidencia.
+4. ¿Debe existir fila con stock 0? No determinado por evidencia.
+5. stock_fisico: no determinado de forma segura.
+6. stock_reservado: no determinado de forma segura.
+7. stock_virtual: no determinado de forma segura.
+8. stock_disponible: no determinado de forma segura.
+9. ¿Fórmula confirmada? No.
+10. stock_alerta/deseado: intención de umbral/objetivo en item; no confirmada
+    para las columnas por almacén.
+11. Relación con movimiento: no implementada; recomendación de transacción
+    única.
+12. Fuente de verdad: no definida.
+13. Evitar duplicidad: UNIQUE (id_item,id_almacen) confirmada; faltan
+    validaciones de empresa y concurrencia en código.
+14. Riesgo UNIQUE sin empresa: cruce de empresas si las FKs no garantizan
+    pertenencia común.
+15. Campo para inventario_detalle.stock_sistema: no determinado de forma
+    segura.
+16. Módulos que deberían escribir: no definidos; plan menciona cierre,
+    transferencias y ajustes después del motor central.
+17. ¿Existe stock inicial? No encontrado.
+18. ¿Depende de Contabilidad? No hay evidencia funcional.
+19. ¿Por qué está vacía? No existe ningún escritor en el código auditado.
+20. ¿Qué implementar primero? Contrato y motor central de inicialización de
+    stock por item+almacén, antes de detalle físico o movimientos.
+
+================================================================================
+16. ARCHIVOS REVISADOS
+================================================================================
+
+ITEM
+  ItemPython/models/item.py
+  ItemPython/services/item_service.py
+  ItemPython/repositories/item_repository.py
+  ItemNestJs/src/modules/items/entities/item.entity.ts
+  ItemNestJs/src/modules/items/items.service.ts
+
+ALMACÉN
+  MenuNestJs/migrations/menu-almacenes-producto-servicio.sql
+  AlmacenNestJs/src/modules/almacen/movimiento-inventario/*
+
+INVENTARIO
+  InventarioNestJs/src/modules/inventario/*
+  InventarioPython/*
+  frontReact/src/views/items/inventarios/*
+
+TRANSFERENCIAS / COMPRAS / VENTAS
+  Búsqueda de transferencia_stock, recepción, despacho, reservas, entradas y
+  salidas: no se encontró escritor de stock.
+
+MOVIMIENTOS
+  AlmacenNestJs/src/modules/almacen/movimiento-inventario/*
+  docs/auditoria/AUDITORIA_MOVIMIENTOS_INVENTARIO.txt
+
+FRONTEND
+  frontReact/src/views/items/productos/ProductosStocks.tsx
+  frontReact/src/views/items/productos/ProductosStocksLotes.tsx
+  frontReact/src/views/items/secciones/SeccionItemInventario.tsx
+
+TODOs / DOCS
+  docs/auditoria/AUDITORIA_ARQUITECTURA_MODULO_ALMACENES.txt
+  docs/auditoria/AUDITORIA_MOVIMIENTOS_INVENTARIO.txt
+  docs/auditoria/AUDITORIA_PATRON_GLOBAL_EMPRESA_MODULO_ITEM.md
+
+================================================================================
+17. ESCRITURAS Y ALCANCE
+================================================================================
+
+No se modificaron módulos funcionales, Gateway, BD, Docker, frontend, stock,
+movimientos, inventarios ni contabilidad. La única escritura de esta auditoría
+es este archivo.

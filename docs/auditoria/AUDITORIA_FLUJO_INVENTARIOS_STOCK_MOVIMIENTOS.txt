@@ -1,0 +1,553 @@
+AUDITORÍA TÉCNICA — FLUJO REAL DE INVENTARIO FÍSICO, STOCK Y MOVIMIENTOS
+Fecha: 2026-08-15
+Alcance: solo lectura, excepto la creación de este informe.
+
+================================================================================
+1. CONCLUSIÓN EJECUTIVA
+================================================================================
+
+El módulo implementa actualmente el CRUD de la CABECERA de public.inventario:
+crear, listar, consultar por id, editar sus datos y activar/inactivar la
+cabecera. No implementa el inventario físico operativo.
+
+Un inventario se crea hoy cuando el usuario pulsa "Crear inventario" en
+NuevoInventario.tsx. La pantalla hace POST /api/inventario con los campos de
+cabecera. InventarioPython valida y escribe una sola fila en public.inventario,
+la crea en estado de negocio ABIERTO y confirma la transacción.
+
+No existe entity, modelo, repository, service, resolver, endpoint, query,
+migración ni UI funcional para public.inventario_detalle. Por tanto no se
+generan líneas, no se toma snapshot de stock, no se registra cantidad física,
+no se calcula diferencia y no existe cierre funcional del inventario físico.
+
+Hoy un inventario físico NO genera movimiento_inventario y NO actualiza
+stock_item_almacen. Insertar movimientos antes de completar el detalle y el
+motor de stock causaría desincronización y riesgo de doble ajuste futuro.
+
+================================================================================
+2. RESPUESTAS OBLIGATORIAS
+================================================================================
+
+1. ¿Cuándo se crea hoy un inventario?
+   Al pulsar "Crear inventario" en NuevoInventario.tsx y superar las
+   validaciones de empresa, referencia, etiqueta y almacén.
+
+2. ¿Qué tabla se escribe?
+   Solo public.inventario.
+
+3. ¿Qué botón/acción lo genera?
+   El botón "Crear inventario" llama onCrear(), que usa crearInventario(body)
+   y hace POST /api/inventario por Gateway hacia InventarioPython.
+
+4. ¿Se crea inventario_detalle?
+   No.
+
+5. ¿Cuándo?
+   No existe momento implementado. NuevoInventario contiene TODO FASE 3 para
+   guardarlo en una fase posterior.
+
+6. ¿Se cargan productos automáticamente?
+   No. La UI consulta itemsListado para mostrar un selector opcional, pero la
+   selección y los filtros de categorías son solo visuales y no se persisten.
+
+7. ¿Se registra conteo físico?
+   No. No existe formulario, endpoint ni tabla/modelo de líneas en el código.
+
+8. ¿Se calcula diferencia?
+   No. Existe TODO FASE 3 para consultar stock_item_almacen y calcularla.
+
+9. ¿Se puede cerrar inventario?
+   No hay acción de usuario ni endpoint dedicado a cierre. El PUT de cabecera
+   acepta estado_inventario y fecha_cierre, pero no ejecuta proceso de cierre,
+   no valida transiciones ni sincroniza stock.
+
+10. ¿Cerrar actualiza stock?
+    No. Hoy no existe cierre funcional y no hay código que lea o actualice
+    stock_item_almacen.
+
+11. ¿Cerrar genera movimiento_inventario?
+    No. No hay escritura de movimiento_inventario desde InventarioNestJs,
+    InventarioPython, frontend ni Gateway de inventario.
+
+12. ¿Qué partes son MOCK o placeholders?
+    InventarioNestJs devuelve product = 0 de forma literal en listado y
+    detalle. El filtro Product del listado compara contra el literal '0'.
+    La UI de productos a inventariar es visual y no genera detalle.
+
+13. ¿Qué TODOs/fases existen?
+    NuevoInventario: FASE 3 detalle, stock y diferencia; FASE 4 cierre.
+    Arquitectura de almacenes: Fase 7 stock_item_almacen, luego Fase 8
+    movimientos/transferencias.
+
+14. ¿Cuál es el flujo actual exacto?
+    NuevoInventario.tsx → crearInventario() → Gateway POST /api/inventario →
+    InventarioPython POST /api/inventario → servicio → repository →
+    INSERT/commit en public.inventario. El flujo termina allí.
+
+15. ¿Cuál es el flujo pendiente previsto?
+    Cabecera → generar inventario_detalle con snapshot de stock → registrar
+    conteo → calcular diferencia → cerrar/validar → motor transaccional que
+    ajusta stock y crea movimientos. Es propuesta inferida de los TODOs y el
+    orden de fases, no funcionalidad existente.
+
+16. ¿Cuál es la primera pieza que falta?
+    Diseñar e implementar inventario_detalle y la lectura/snapshot de stock
+    teórico por almacén antes de introducir operaciones de ajuste.
+
+17. ¿Qué debemos implementar antes de generar movimientos?
+    Detalle, stock teórico, conteo, diferencia, reglas de cierre y un servicio
+    transaccional único que actualice stock_item_almacen y escriba el
+    movimiento correspondiente de forma atómica.
+
+18. ¿Qué NO debemos tocar?
+    No insertar movimiento_inventario ni modificar stock_item_almacen antes de
+    completar el flujo de detalle/cierre; tampoco duplicar el CRUD de cabecera
+    ya existente.
+
+19. ¿Depende de Contabilidad?
+    No hay dependencia funcional actual. No se crea asiento contable. La
+    relación contable de movimiento_inventario está documentada como futura.
+
+20. ¿Cuál es el próximo paso recomendado?
+    Una única fase: especificar e implementar inventario_detalle con snapshot
+    de stock teórico, sin ajustar stock ni generar movimientos todavía.
+
+================================================================================
+3. TABLA PUBLIC.INVENTARIO Y CABECERA
+================================================================================
+
+Evidencia de columnas:
+  - InventarioPython/models/inventario.py
+  - InventarioNestJs/src/modules/inventario/entities/inventario.entity.ts
+  - InventarioPython/migrations/public_inventario_recommended.sql
+
+Columnas modeladas:
+  id_inventario       UUID/PK
+  id_empresa          UUID, obligatorio
+  inventario_ref      varchar(100), obligatorio
+  etiqueta            varchar(255), obligatoria
+  id_almacen          UUID, obligatorio
+  estado_inventario   varchar(30), obligatorio
+  fecha_inicio        timestamp
+  fecha_cierre        timestamp nullable
+  observacion         text nullable
+  created_by          UUID nullable
+  updated_by          UUID nullable
+  created_at          timestamp
+  updated_at          timestamp
+  estado              boolean (activo/inactivo de la cabecera)
+
+La migración encontrada es "recommended" y declara explícitamente que no debe
+ejecutarse automáticamente; por ello es evidencia del contrato esperado, no
+prueba independiente del DDL ya aplicado en el entorno.
+
+Relaciones usadas en el código:
+  - inventario.id_almacen se une con almacen.id_almacen para mostrar nombre.
+  - id_empresa se usa para filtrar listado/detalle cuando se proporciona.
+  - Un inventario tiene exactamente un id_almacen en todos los contratos de
+    creación, modelo y entidad: el alcance previsto es un almacén por
+    cabecera.
+
+================================================================================
+4. CREACIÓN DE CABECERA: FLUJO REAL
+================================================================================
+
+FRONTEND
+  Archivo: frontReact/src/views/items/inventarios/NuevoInventario.tsx
+
+  Campos que onCrear valida y persiste:
+    id_empresa, inventario_ref, etiqueta, id_almacen, observacion.
+
+  Construye exactamente el payload:
+    {
+      id_empresa: idEmpresaActiva,
+      inventario_ref,
+      etiqueta,
+      id_almacen,
+      observacion
+    }
+
+  Acción:
+    botón "Crear inventario" → onCrear() → crearInventario(body).
+
+  API frontend:
+    frontReact/src/_apis_/inventario.js
+    crearInventario(body) → POST /api/inventario.
+    El interceptor añade Authorization, X-Company-Id y X-User-Id del JWT
+    cuando están disponibles.
+
+GATEWAY
+  Archivo: gateway-api/src/routes/inventario.js
+  POST /api/inventario reenvía a InventarioPython.
+
+INVENTARIOPYTHON
+  Route: InventarioPython/api/inventario_routes.py
+  POST /api/inventario.
+
+  La route toma id_empresa primero desde body y, si no existe, desde
+  X-Company-Id. Rechaza si falta.
+
+  Service:
+    InventarioPython/services/inventario_service.py,
+    servicio_crear_inventario().
+
+  Validaciones:
+    - id_empresa UUID obligatorio;
+    - inventario_ref y etiqueta obligatorios;
+    - id_almacen UUID obligatorio;
+    - evita duplicado de (id_empresa, inventario_ref) desde aplicación.
+
+  Valores asignados por servidor:
+    estado_inventario = "ABIERTO"
+    fecha_inicio = fecha/hora UTC actual
+    fecha_cierre = null
+    created_by y updated_by = X-User-Id si es UUID válido
+    created_at y updated_at = fecha/hora UTC actual
+    estado = true
+
+  Repository:
+    InventarioPython/repositories/inventario_repository.py,
+    create_inventario_row().
+    Hace db.session.add(entity), db.session.commit() y rollback ante error.
+    La transacción solo abarca una fila Inventario: no crea detalles, stock,
+    movimientos ni asientos.
+
+Respuesta:
+  HTTP 201 con success, message y data de la cabecera creada.
+
+================================================================================
+5. FRONTEND NUEVO/EDITAR/LISTAR
+================================================================================
+
+NuevoInventario.tsx
+  - Empresa: JWT en scope EMPRESA; SelectEmpresa en GLOBAL.
+  - Almacén: select alimentado con listarAlmacenes(); no está filtrado por
+    empresa en esta pantalla según la API utilizada actualmente.
+  - Fecha: no existe campo editable; fecha_inicio la asigna el servidor.
+  - Referencia, etiqueta, almacén y observación se persisten.
+  - Producto específico: SearchableSelect usando itemsListado con
+    id_empresa y codigo_tipo_item PRODUCT; solo visual.
+  - Filtro de etiquetas/categorías: texto solo visual; el propio texto indica
+    que no persiste ni genera detalle.
+
+EditarInventario.tsx
+  - Obtiene la cabecera con inventarioPorId(id_inventario, id_empresa).
+  - Permite modificar los mismos datos generales mediante PUT /api/inventario/:id.
+  - El selector de producto y categorías continúa siendo visual y no se
+    incluye en el body de actualización.
+  - Bloquea edición si estado (activo/inactivo de cabecera) es false.
+  - No hay pantalla de líneas ni de conteo.
+
+Inventarios.tsx
+  - Representa cabeceras, no inventarios físicos completos.
+  - Usa inventariosListado y muestra referencia, etiqueta, almacén, product,
+    estado_inventario y estado.
+  - product siempre termina siendo 0 porque InventarioNestJs lo proyecta como
+    literal; no representa cantidad de ítems ni productos contados.
+  - El switch llama a la mutación GraphQL actualizarEstadoInventario y cambia
+    solo estado booleano activo/inactivo; no cierra el inventario de negocio.
+
+================================================================================
+6. INVENTARIONESTJS: LECTURA Y ESTADO
+================================================================================
+
+Archivos:
+  InventarioNestJs/src/modules/inventario/inventario.resolver.ts
+  InventarioNestJs/src/modules/inventario/inventario.service.ts
+  InventarioNestJs/src/modules/inventario/entities/inventario.entity.ts
+  InventarioNestJs/src/modules/inventario/objects/inventario-listado.object.ts
+  InventarioNestJs/src/modules/inventario/objects/inventario-detalle.object.ts
+
+Queries:
+  inventariosListado(
+    id_empresa, id_inventario, inventario_ref, etiqueta, warehouse,
+    id_almacen, product, estado_inventario
+  )
+  inventarioPorId(id_inventario, id_empresa)
+
+inventarioPorId devuelve una cabecera: datos generales, fechas y auditoría.
+La clase InventarioDetalle es un ObjectType de detalle para edición de
+cabecera; NO representa ni consulta una tabla inventario_detalle.
+
+La lista y el detalle hacen left join con almacen únicamente. No hay join a
+item, stock, lote, serie ni líneas de inventario.
+
+Placeholder confirmado:
+  el service selecciona `0` como campo product tanto para listado como para
+  detalle; si llega el filtro product compara el literal '0'. No existe cálculo
+  ni filtro real de productos.
+
+Mutación:
+  actualizarEstadoInventario(id_inventario, estado) actualiza solo el booleano
+  estado y updated_at con NOW(). No modifica estado_inventario, fecha_cierre,
+  stock, detalles ni movimientos.
+
+================================================================================
+7. ESTADOS, FECHAS Y TRANSICIONES
+================================================================================
+
+Estados de negocio confirmados:
+  ABIERTO, BORRADOR, CERRADO.
+
+Evidencia:
+  - Valor de creación: ABIERTO.
+  - _validar_estado_inventario() permite únicamente esos tres.
+  - El SQL recomendado documenta la misma terna.
+  - Inventarios.tsx filtra por ABIERTO, BORRADOR y CERRADO.
+
+Transiciones reales:
+  - La creación siempre inicia ABIERTO.
+  - El PUT de cabecera puede recibir cualquier valor válido, incluyendo
+    CERRADO; no comprueba transición anterior ni dispara efectos de cierre.
+  - No existe botón Abrir, Iniciar conteo, Procesar, Cerrar o Validar.
+
+No confundir:
+  estado_inventario: estado de negocio (ABIERTO/BORRADOR/CERRADO).
+  estado: activo/inactivo técnico de la cabecera. El switch de listado y la
+  mutación GraphQL solo actúan sobre este último.
+
+Fechas:
+  fecha_inicio se asigna al crear; no hay campo fecha_inventario.
+  fecha_cierre queda null al crear y puede llegar por PUT, sin proceso
+  asociado. created_at/updated_at son auditoría técnica. created_by/updated_by
+  se toman del header de usuario si pasa validación UUID.
+
+================================================================================
+8. INVENTARIO_DETALLE, CONTEO, DIFERENCIAS Y LOTES
+================================================================================
+
+No se encontró:
+  - Entity/model InventarioDetalle de tabla.
+  - Repository/service/route/GraphQL query o mutation para
+    inventario_detalle.
+  - SQL/migración CREATE TABLE inventario_detalle.
+  - Frontend para líneas, cantidad teórica, cantidad física/contada,
+    diferencias, productos cargados, lotes o series.
+
+La única clase con ese nombre es:
+  InventarioNestJs/.../objects/inventario-detalle.object.ts
+Es un DTO GraphQL de cabecera para editar, no un modelo de línea.
+
+Por tanto hoy:
+  - no se seleccionan automáticamente productos de stock;
+  - no hay selección manual persistida;
+  - no existe snapshot de cantidad teórica;
+  - no existe cantidad contada/física;
+  - no existe fórmula contado - teórico;
+  - no existen lotes/series/id_lote_serie.
+
+TODOs exactos de NuevoInventario.tsx:
+  TODO FASE 3: guardar detalle del inventario (inventario_detalle).
+  TODO FASE 3: implementar inventario_detalle.
+  TODO FASE 3: consultar stock_item_almacen y calcular diferencia.
+  TODO FASE 4: flujo de cierre de inventario.
+
+================================================================================
+9. STOCK_ITEM_ALMACEN Y MOVIMIENTO_INVENTARIO
+================================================================================
+
+stock_item_almacen
+  No hay referencia operativa en InventarioNestJs ni InventarioPython.
+  No hay lectura, actualización, entity, modelo, endpoint o transacción.
+  La única evidencia en el flujo es el TODO FASE 3 de NuevoInventario y la
+  arquitectura de Almacenes que ubica stock como Fase 7.
+
+Respuesta requerida:
+  Hoy, al cerrar inventario, stock_item_almacen no cambia porque no existe un
+  cierre funcional ni código que lo escriba.
+
+movimiento_inventario
+  InventarioNestJs e InventarioPython no lo referencian ni escriben.
+  El historial read-only vive ahora en AlmacenNestJs, no en el flujo de
+  inventario físico.
+
+Respuesta requerida:
+  Hoy, un inventario físico no genera movimiento_inventario.
+
+Momento previsto:
+  El código no define un disparador exacto. Por el TODO de cierre y el orden
+  arquitectónico stock antes de movimientos, no debe ocurrir al crear la
+  cabecera ni al seleccionar un producto visual. Solo sería seguro después de
+  persistir conteos y validar diferencias, como parte de un cierre/validación
+  atómico que actualice el stock y cree la trazabilidad.
+
+Contabilidad:
+  No se crea asiento ni hay integración. Es una fase posterior e independiente
+  de la cabecera actual.
+
+================================================================================
+10. MULTIEMPRESA Y RIESGOS
+================================================================================
+
+Creación:
+  id_empresa es obligatorio, viene de body o X-Company-Id y participa en la
+  unicidad lógica de referencia.
+
+Lecturas Nest:
+  inventariosListado filtra inv.id_empresa cuando se proporciona.
+  inventarioPorId también limita por empresa cuando se proporciona. El frontend
+  usa JWT para EMPRESA y SelectEmpresa para GLOBAL.
+
+Riesgos observados, no corregidos:
+  - id_empresa es opcional en las queries Nest: una llamada sin él lista
+    cabeceras de todas las empresas.
+  - servicio_actualizar_inventario busca inicialmente solo por id_inventario y
+    acepta id_empresa en el body; no contrasta el header de empresa.
+  - actualizarEstadoInventario de Nest cambia estado por id_inventario sin
+    filtro id_empresa.
+  - listarAlmacenes usado en Nuevo/Editar no evidencia filtro por empresa.
+
+Estos riesgos deben resolverse en una fase de seguridad separada; no justifican
+mezclar ni escribir movimientos ahora.
+
+================================================================================
+11. MATRIZ FUNCIONAL
+================================================================================
+
+Funcional:
+  Crear cabecera                         Sí
+  Listar cabeceras                       Sí
+  Consultar cabecera por id              Sí
+  Editar cabecera                        Sí
+  Seleccionar almacén                    Sí (catálogo actual)
+  Activar/inactivar cabecera             Sí
+
+Parcial / placeholder:
+  Estado de negocio                      Valores existen, sin flujo/transiciones
+  Productos                              Selector visual; no persiste
+  Product en listado                     Siempre 0, no es total real
+  Fecha de cierre                        Campo editable por PUT sin proceso
+  Multiempresa                           Aplicada en UI/lecturas, con riesgos
+
+Pendiente / no implementado:
+  inventario_detalle
+  Cargar productos del almacén
+  Snapshot de stock teórico
+  Conteo físico
+  Diferencia
+  Cierre/validación real
+  Lotes/series
+  Actualizar stock_item_almacen
+  Generar movimiento_inventario
+  Contabilidad
+
+================================================================================
+12. FLUJO ACTUAL Y FLUJO PENDIENTE
+================================================================================
+
+FLUJO REAL ACTUAL
+
+  NuevoInventario.tsx
+        ↓ botón "Crear inventario"
+  crearInventario(body)
+        ↓ POST /api/inventario (Gateway)
+  InventarioPython crear_inventario
+        ↓ servicio_crear_inventario
+  create_inventario_row
+        ↓ add + commit
+  public.inventario (una cabecera ABIERTO)
+        ↓
+  FIN. No se generan detalles, stock ni movimientos.
+
+FLUJO OBJETIVO INFERIDO — PROPUESTA/PENDIENTE, NO IMPLEMENTADO
+
+  Crear cabecera
+        ↓
+  Generar inventario_detalle desde stock teórico del almacén
+        ↓
+  Registrar cantidades contadas
+        ↓
+  Calcular diferencias por línea
+        ↓
+  Cerrar/validar con reglas de negocio
+        ↓ misma transacción
+  Actualizar stock_item_almacen + insertar movimiento_inventario
+        ↓
+  (eventual contabilidad si el diseño futuro lo requiere)
+
+================================================================================
+13. ORDEN DE FASES Y QUÉ NO DUPLICAR
+================================================================================
+
+Fases locales confirmadas:
+  FASE 3: detalle + stock teórico + diferencias.
+  FASE 4: cierre de inventario.
+
+Arquitectura general de Almacenes:
+  Fase 7: stock_item_almacen, después de almacén estable.
+  Fase 8: movimientos/transferencias, después de stock.
+
+No duplicar:
+  - No crear otra cabecera inventario: ya existe POST/PUT/listado/detalle de
+    cabecera.
+  - No tratar InventarioDetalle DTO como tabla inventario_detalle.
+  - No usar product=0 como conteo o total de productos.
+  - No confundir estado booleano con estado_inventario.
+  - No insertar movimiento_inventario por crear o editar una cabecera.
+
+Riesgo de adelantar movimientos:
+  Insertar movimiento_inventario sin actualizar stock_item_almacen produce
+  historial que no coincide con el stock actual. Ajustar solo stock sin
+  movimiento elimina trazabilidad. Cuando se implemente el cierre real, un
+  segundo ajuste para corregir el primero puede duplicar diferencias y volver
+  imposible reconciliar stock, conteo e historial.
+
+================================================================================
+14. PRÓXIMO PASO SEGURO
+================================================================================
+
+Implementar primero el diseño completo de inventario_detalle y el snapshot
+read-only de stock teórico por item/almacén, incluyendo sus reglas
+multiempresa y de concurrencia. Esa fase debe terminar antes de cualquier
+escritura de stock o movimiento. No implementar aún cierre, ajuste ni
+contabilidad en la misma tarea.
+
+================================================================================
+15. ARCHIVOS REVISADOS
+================================================================================
+
+FRONTEND INVENTARIO
+  frontReact/src/views/items/inventarios/Inventarios.tsx
+  frontReact/src/views/items/inventarios/NuevoInventario.tsx
+  frontReact/src/views/items/inventarios/EditarInventario.tsx
+  frontReact/src/_apis_/inventario.js
+
+INVENTARIONESTJS
+  InventarioNestJs/src/modules/inventario/inventario.resolver.ts
+  InventarioNestJs/src/modules/inventario/inventario.service.ts
+  InventarioNestJs/src/modules/inventario/entities/inventario.entity.ts
+  InventarioNestJs/src/modules/inventario/objects/inventario-listado.object.ts
+  InventarioNestJs/src/modules/inventario/objects/inventario-detalle.object.ts
+  InventarioNestJs/src/modules/inventario/inventario.module.ts
+  InventarioNestJs/src/app.module.ts
+
+INVENTARIOPYTHON
+  InventarioPython/api/inventario_routes.py
+  InventarioPython/services/inventario_service.py
+  InventarioPython/repositories/inventario_repository.py
+  InventarioPython/models/inventario.py
+  InventarioPython/schemas/inventario_schema.py
+  InventarioPython/migrations/public_inventario_recommended.sql
+
+GATEWAY
+  gateway-api/src/routes/inventario.js
+  gateway-api/src/services/inventarioPython.js
+  gateway-api/src/routes/graphql.js
+
+ITEM / STOCK / MOVIMIENTOS
+  frontReact/src/views/items/inventarios/NuevoInventario.tsx
+  AlmacenNestJs/src/modules/almacen/movimiento-inventario/*
+  docs/auditoria/AUDITORIA_MOVIMIENTOS_INVENTARIO.txt
+
+SQL / MIGRACIONES
+  InventarioPython/migrations/public_inventario_recommended.sql
+  No se encontró SQL de inventario_detalle ni stock_item_almacen dentro del
+  alcance del repositorio.
+
+================================================================================
+16. ALCANCE Y ESCRITURAS
+================================================================================
+
+No se modificaron frontend funcional, backend, Gateway, BD, Docker, puertos,
+stock, movimientos ni contabilidad. La única escritura de esta auditoría es
+este archivo.

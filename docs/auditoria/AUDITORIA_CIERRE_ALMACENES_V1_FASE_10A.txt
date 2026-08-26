@@ -1,0 +1,436 @@
+======================================================================
+FASE 10A — AUDITORÍA FINAL DE CIERRE — MÓDULO ALMACENES v1
+======================================================================
+
+Fecha auditoría: 2026-08-25
+Alcance: SOLO LECTURA (sin modificar código, BD, servicios ni operaciones HTTP)
+Resultado: GO CON DEUDA
+
+======================================================================
+1. RESUMEN EJECUTIVO
+======================================================================
+
+El módulo Almacenes v1 cumple el alcance acordado: maestro de almacenes,
+stock inicial, stock actual, entrada, salida, ajuste ±, transferencia
+inmediata y trazabilidad por movimiento_inventario.
+
+Arquitectura validada:
+  Escrituras  → Frontend → Gateway → AlmacenPython → PostgreSQL
+  Lecturas    → Frontend → Gateway GraphQL → AlmacenNestJs → PostgreSQL
+
+No existe writer accidental de stock en NestJS.
+
+Pruebas E2E de operaciones v1 (incluida transferencia 9E.1): GO.
+
+En BD hay 4 filas históricas inconsistentes (de 6 totales) que los writers
+actuales rechazan con 409; no bloquean operaciones sobre filas consistentes.
+
+Existen 2 entradas de menú huérfanas (cambio-stock, stock-fecha) y
+asimetría de autenticación en CRUD cabecera vs writers de stock.
+
+======================================================================
+2. MATRIZ FUNCIONAL
+======================================================================
+
+Funcionalidad          | FE | Ruta                        | GW | PY | Nest | E2E | Estado
+-----------------------|----|-----------------------------|----|----|------|-----|--------
+Nuevo almacén          | Sí | /items/almacenes/nuevo      | Sí | Sí | No   | Sí  | A COMPLETO
+Listado                | Sí | /items/almacenes            | GQL| No | Sí   | Sí  | A COMPLETO
+Editar                 | Sí | /items/almacenes/editar/:id | Sí | Sí | No   | Sí  | A COMPLETO
+Activar/desactivar     | Sí | listado                     | GQL| No | Sí   | Sí  | A COMPLETO
+Stock inicial          | Sí | /stock-inicial              | Sí | Sí | No   | Sí  | A COMPLETO
+Stock actual           | Sí | /stock-actual               | GQL| No | Sí   | Sí  | A COMPLETO
+Entrada                | Sí | /stock-entrada              | Sí | Sí | No   | Sí  | A COMPLETO
+Salida                 | Sí | /stock-salida               | Sí | Sí | No   | Sí  | A COMPLETO
+Ajuste positivo        | Sí | /stock-ajuste               | Sí | Sí | No   | Sí  | A COMPLETO
+Ajuste negativo        | Sí | /stock-ajuste               | Sí | Sí | No   | Sí  | A COMPLETO
+Transferencia          | Sí | /stock-transferencia        | Sí | Sí | No   | Sí  | A COMPLETO
+Movimientos            | Sí | /movimientos                | GQL| No | Sí   | Sí  | A COMPLETO
+Cambio masivo          | Menú| /cambio-stock              | No | No | No   | No  | C HUÉRFANO
+Stock por fecha        | Menú| /stock-fecha               | No | No | No   | No  | C HUÉRFANO
+FIFO/Kardex/Compras    | —  | —                           | —  | —  | —    | No  | D FUERA ALCANCE
+
+Leyenda estado: A=COMPLETO B=PARCIAL C=HUÉRFANO D=FUERA ALCANCE E=BLOQUEANTE
+
+======================================================================
+3. ARQUITECTURA REAL
+======================================================================
+
+ESCRITURA STOCK + CABECERA (REST):
+  Frontend → Gateway → AlmacenPython:3018 → PostgreSQL
+
+ESCRITURA ESTADO ALMACÉN:
+  Frontend → Gateway GraphQL → AlmacenNestJs:3017 → UPDATE almacen.estado
+
+LECTURA (listados, stock, movimientos):
+  Frontend → Gateway GraphQL → AlmacenNestJs → SELECT
+
+IDENTIDAD STOCK (fail-closed):
+  Gateway authenticatedWriteContext → InicioNestJs query `me`
+
+IDENTIDAD CRUD ALMACÉN:
+  Gateway ctxHeaders → InicioNestJs query `usuario(id_usuario)` (no fail-closed)
+
+JWT en Python inicializado (Flask-JWT-Extended) pero no enforced en rutas;
+confía en gateway + headers propagados.
+
+======================================================================
+4. WRITERS DE STOCK
+======================================================================
+
+Writer        | Endpoint Python              | FOR UPDATE | Invariante      | Índice idempotencia
+--------------|------------------------------|------------|-----------------|---------------------------
+Inicial       | POST /api/almacen/stock-inicial    | No         | N/A (nuevo)     | uq_mov_inv_stock_inicial_idempotencia
+Entrada       | POST /api/almacen/stock-entrada    | Sí         | Antes/después   | uq_mov_inv_entrada_stock_idempotencia
+Salida        | POST /api/almacen/stock-salida     | Sí         | + disp >= Q     | uq_mov_inv_salida_stock_idempotencia
+Ajuste        | POST /api/almacen/stock-ajuste     | Sí         | ± según tipo    | uq_mov_inv_ajuste_stock_idempotencia
+Transferencia | POST /api/almacen/stock-transferencia | Sí (par) | Origen+destino | uq_mov_inv_transferencia_stock_idempotencia
+
+Patrón común: transacción única, replay por id_origen, rollback completo.
+Costos: precio_compra del item o 0 (persistencia básica, sin Kardex).
+Ajuste NO reutiliza tipos ENTRADA/SALIDA.
+
+Stock writers en Python validan:
+  - X-Company-Id obligatorio
+  - body.id_empresa == header X-Company-Id
+
+======================================================================
+5. TRANSFERENCIA
+======================================================================
+
+- Un solo POST (UI / Gateway / Python); NO Salida+Entrada desde frontend.
+- Modelo: transferencia_stock + 1 detalle + TRF_SALIDA + TRF_ENTRADA.
+- estado_transferencia = COMPLETADA (transferencia inmediata v1).
+- Locks deterministas ORDER BY id_stock_producto_almacen FOR UPDATE.
+- Validado backend directo (9C.1) y E2E UI (9E.1).
+- BD al cierre 10A: 2 cabeceras COMPLETADA, 4 movimientos TRF, 0 duplicados idempotencia.
+
+======================================================================
+6. LECTURAS NEST
+======================================================================
+
+Queries GraphQL AlmacenNestJs:
+  - almacenesListado
+  - almacenPorId
+  - stockItemAlmacen
+  - stockItemsAlmacenListado (id_empresa obligatorio)
+  - movimientosInventarioListado
+
+Mutación única de escritura Nest:
+  - actualizarEstadoAlmacen (solo almacen.estado; NO modifica stock)
+
+Solo SELECT en stock/movimientos. JOIN defensivo item/almacen por empresa.
+
+======================================================================
+7. INVARIANTES BD (stock_item_almacen)
+======================================================================
+
+Regla: stock_disponible = stock_fisico - stock_reservado
+
+TOTAL filas:           6
+CONSISTENTES:          2
+INCONSISTENTES:        4
+
+Filas inconsistentes (NO corregidas en 10A):
+
+id_stock_producto_almacen          | Contexto              | Clasificación
+-----------------------------------|-----------------------|------------------
+b6cc8d8b-d980-4eea-bbfd-f784736414e3 | Empresa Test / UI-ALM-001 / RATON01 | HISTÓRICA
+3e0bc2b3-c9e3-45b7-86e4-612f9ce0211b | SipDEecom / ALM-001 / BOR01         | HISTÓRICA
+db1ac664-6f49-43bd-bbde-00f07d95cfc9 | SipDEecom / ALM-002 / BOR01         | HISTÓRICA
+ee4f751f-dbdb-43c0-9e48-6c12ec00e7e9 | SipDEecom / ALM-001 / BorregoLoja01 | HISTÓRICA
+
+Evidencia SELECT: cada fila tiene exactamente 1 movimiento INICIAL coherente
+con stock_fisico, pero stock_disponible=0 desde creación (pruebas antiguas
+pre-invariante de writers actuales). Writers v1 rechazan operaciones sobre
+estas filas con 409.
+
+======================================================================
+8. NEGATIVOS
+======================================================================
+
+stock_fisico < 0:      0 filas
+stock_reservado < 0:   0 filas
+stock_disponible < 0:  0 filas
+stock_virtual < 0:     0 filas
+
+======================================================================
+9. DUPLICADOS
+======================================================================
+
+Duplicados (id_item, id_almacen) en stock_item_almacen:  0
+Constraint UNIQUE: uq_stock_item_almacen (id_item, id_almacen)
+
+Duplicados idempotencia movimiento_inventario por módulo: 0 en todos los módulos
+
+======================================================================
+10. IDEMPOTENCIA
+======================================================================
+
+Índices parciales PRESENTES en BD:
+
+  uq_mov_inv_stock_inicial_idempotencia
+  uq_mov_inv_entrada_stock_idempotencia
+  uq_mov_inv_salida_stock_idempotencia
+  uq_mov_inv_ajuste_stock_idempotencia
+  uq_mov_inv_transferencia_stock_idempotencia
+    → permite exactamente 1 TRF_SALIDA + 1 TRF_ENTRADA por id_origen
+
+Scripts SQL en AlmacenPython/migrations/01–04.sql (aplicación manual).
+
+Movimientos en BD por módulo/tipo (al cierre 10A):
+  STOCK_INICIAL / INICIAL:              6
+  ENTRADA_STOCK / ENTRADA:               2
+  SALIDA_STOCK / SALIDA:                 2
+  AJUSTE_STOCK / AJUSTE_POSITIVO:        2
+  AJUSTE_STOCK / AJUSTE_NEGATIVO:        2
+  TRANSFERENCIA_STOCK / TRF_SALIDA:     2
+  TRANSFERENCIA_STOCK / TRF_ENTRADA:    2
+
+======================================================================
+11. SEGURIDAD / MULTIEMPRESA
+======================================================================
+
+Operación              | Gateway                      | Python tenant           | Clasificación
+-----------------------|------------------------------|-------------------------|---------------
+Stock writers (5)      | authenticatedWriteContext    | body == X-Company-Id    | SEGURO
+Crear almacén          | ctxHeaders                   | UUID empresa recibida   | REVISAR
+Editar almacén         | ctxHeaders                   | No valida tenant en PK  | REVISAR
+Toggle estado Nest     | GraphQL                      | Filtro opcional empresa | REVISAR
+Lecturas Nest stock    | GraphQL                      | JOIN defensivo empresa  | SEGURO (UI normal)
+
+Riesgo concreto documentado:
+  PUT /api/almacen/:id puede actualizar almacén de otra empresa si se
+  conoce UUID (bypass gateway o usuario GLOBAL con intención maliciosa).
+  servicio_actualizar_almacen localiza solo por id_almacen sin cruce con
+  X-Company-Id.
+
+Clasificado como deuda de seguridad NO bloqueante para cierre funcional v1
+cuando el acceso es exclusivamente vía UI + gateway en entorno controlado.
+
+======================================================================
+12. RUTAS FRONTEND (Router.tsx)
+======================================================================
+
+Ruta                                  | Componente                  | Estado
+--------------------------------------|-----------------------------|--------
+items/almacenes                       | Almacenes.tsx               | OK
+items/almacenes/nuevo                 | NuevoAlmacen.tsx            | OK
+items/almacenes/editar/:id            | EditarAlmacen.tsx           | OK
+items/almacenes/stock-actual          | StockActualAlmacen.tsx      | OK
+items/almacenes/stock-inicial         | StockInicialAlmacen.tsx     | OK
+items/almacenes/stock-entrada         | EntradaStockAlmacen.tsx     | OK
+items/almacenes/stock-salida          | SalidaStockAlmacen.tsx      | OK
+items/almacenes/stock-ajuste          | AjusteStockAlmacen.tsx      | OK
+items/almacenes/stock-transferencia   | TransferenciaStockAlmacen.tsx | OK
+items/almacenes/movimientos          | MovimientosAlmacen.tsx      | OK
+items/almacenes/cambio-stock          | NO EXISTE                   | HUÉRFANO menú
+items/almacenes/stock-fecha           | NO EXISTE                   | HUÉRFANO menú
+
+Operaciones de stock accesibles desde botones en Stock actual (sin menú lateral).
+
+======================================================================
+13. MENÚ
+======================================================================
+
+Migración: MenuNestJs/migrations/menu-almacenes-producto-servicio.sql
+Sección: Producto|Servicio → Almacenes
+
+Entrada menú                    | Ruta                    | Estado
+--------------------------------|-------------------------|------------------
+Nuevo almacén                   | /items/almacenes/nuevo  | OK
+Listado                         | /items/almacenes        | OK
+Movimientos                     | /items/almacenes/movimientos | OK
+Cambio masivo de stock          | /items/almacenes/cambio-stock | MENÚ HUÉRFANO
+Stock por fecha                 | /items/almacenes/stock-fecha  | MENÚ HUÉRFANO
+Stock actual                    | /items/almacenes/stock-actual | OK
+
+Sin entrada menú para: Stock inicial, Entrada, Salida, Ajuste, Transferencia
+(acceso vía Stock actual — aceptable en v1).
+
+======================================================================
+14. TRAZABILIDAD
+======================================================================
+
+BD: movimientos con tipos INICIAL, ENTRADA, SALIDA, AJUSTE_POSITIVO,
+    AJUSTE_NEGATIVO, TRF_SALIDA, TRF_ENTRADA; módulos correctos;
+    cantidades positivas en transferencia y ajuste.
+
+Nest GraphQL expone en listado movimientos:
+  fecha, producto, almacén origen, almacén destino, tipo, referencia,
+  concepto, cantidad, módulo, estado.
+
+NO expuesto en Nest/UI (mejora futura, no bloqueante v1):
+  id_origen, costo_unitario, costo_total, updated_by
+
+UI MovimientosAlmacen muestra columna almacén destino (transferencias visibles).
+
+======================================================================
+15. DUPLICACIÓN / CÓDIGO MUERTO
+======================================================================
+
+Item                                          | Clasificación
+----------------------------------------------|---------------
+5 writers stock (patrón similar, no genérico) | R0 aceptable
+JWT infra Python sin uso en rutas             | R1 limpiar después
+ctxHeaders vs authenticatedWriteContext dual  | R1 unificar CRUD
+Menú huérfano vs router                       | R1 configuración
+Sin writer alternativo Salida+Entrada en TRF  | R0 OK
+
+======================================================================
+16. GIT / ARCHIVOS PENDIENTES
+======================================================================
+
+Módulo Almacenes mayormente sin versionar (?? en git status):
+  AlmacenPython/ (completo)
+  AlmacenNestJs/ (completo)
+  frontReact/src/views/items/almacenes/
+  frontReact/src/_apis_/almacen.js
+  gateway-api/src/routes/almacen.js
+  gateway-api/src/services/almacenPython.js
+  MenuNestJs/migrations/menu-almacenes-producto-servicio.sql
+  docs/auditoria/* (múltiples)
+
+Modificados tracked:
+  docker-compose.yml
+  frontReact/src/routes/Router.tsx
+  gateway-api/src/app.js
+  gateway-api/src/routes/graphql.js
+  gateway-api/src/utils/requestContext.js
+  package-lock.json
+
+Deuda operativa: falta commit/versionado del módulo completo.
+
+======================================================================
+17. SERVICIOS DOCKER (solo lectura al cierre 10A)
+======================================================================
+
+erp-frontend                      UP
+erp-gateway-api                   UP
+erp-almacen-python-service        UP
+erp-almacen-nestjs-service        UP
+erp-nestjs-service (InicioNestJs) UP (healthy)
+
+======================================================================
+18. FUERA DE ALCANCE (no requisito Almacenes v1)
+======================================================================
+
+Capacidad                    | Clasificación
+-----------------------------|---------------------------
+FIFO / LIFO / promedio       | KARDEX / FUTURO
+costo_* en movimientos       | Persistencia básica (precio_compra), no valoración
+recepcion / recepcion_detalle| COMPRAS — tablas existen, no integradas
+lote_serie                   | TRAZABILIDAD FUTURA — tabla no encontrada
+Reservas / stock_virtual     | RESERVAS FUTURAS
+Cambio masivo / stock-fecha  | INVENTARIOS / FUTURO
+Contabilidad / asientos      | CONTABILIDAD
+
+======================================================================
+19. DEUDAS BLOQUEANTES PARA CIERRE
+======================================================================
+
+NINGUNA para declarar cierre funcional de Almacenes v1 dentro del alcance
+acordado, dado que:
+  - Todas las operaciones v1 implementadas y probadas E2E.
+  - Writers rechazan filas inconsistentes (protección operativa).
+  - No hay duplicados, negativos ni segundo writer de stock en Nest.
+
+======================================================================
+20. DEUDAS NO BLOQUEANTES
+======================================================================
+
+1. 4 filas stock inconsistentes históricas (datos, no código).
+2. 2 entradas menú huérfanas (cambio-stock, stock-fecha).
+3. Auth asimétrica CRUD almacén vs stock writers.
+4. Módulo sin commit en git (operativo, no funcional).
+5. Trazabilidad UI incompleta (id_origen, costos, updated_by).
+
+======================================================================
+21. RECOMENDACIONES (prioridad)
+======================================================================
+
+1. Versionar/commit el módulo Almacenes completo antes de producción.
+2. Alinear PUT almacén con validación tenant (id_empresa header vs fila)
+   o authenticatedWriteContext.
+3. Documentar/saneamiento datos históricos (4 filas) en fase 10B separada;
+   NO auto-corregir sin autorización.
+4. Menú: ocultar o implementar cambio-stock y stock-fecha (decisión producto).
+5. Movimientos UI: opcional mostrar id_origen y costos para soporte.
+
+======================================================================
+22. RESULTADO FINAL
+======================================================================
+
+GO CON DEUDA
+
+======================================================================
+23. JUSTIFICACIÓN
+======================================================================
+
+Almacenes v1 entrega 100% del alcance funcional acordado con arquitectura
+correcta, idempotencia, atomicidad en transferencia, E2E validado y Nest
+read-only para stock.
+
+Las deudas restantes son datos históricos, configuración menú, endurecimiento
+auth CRUD y versionado git — ninguna impide usar el módulo en operación normal
+sobre filas consistentes.
+
+======================================================================
+24. PRÓXIMA FASE RECOMENDADA
+======================================================================
+
+10B — Saneamiento/documentación de deudas (sin ampliar alcance):
+  commit del módulo, decisión menú huérfano, plan opcional corrección datos
+  históricos, endurecimiento mínimo PUT almacén.
+
+NO ejecutar 10B automáticamente.
+
+======================================================================
+INVENTARIO DE ARCHIVOS PRINCIPALES
+======================================================================
+
+PYTHON (AlmacenPython/) — USADO:
+  app.py, api/almacen_routes.py
+  services: almacen, stock_inicial, stock_entrada, stock_salida,
+            stock_ajuste, stock_transferencia
+  repositories: almacen, stock_* (5 writers)
+  schemas: almacen, stock_* (5)
+  models/almacen.py
+  migrations/01–04_uq_mov_inv_*_idempotencia.sql
+
+GATEWAY — USADO:
+  gateway-api/src/services/almacenPython.js
+  gateway-api/src/routes/almacen.js
+  gateway-api/src/utils/requestContext.js (authenticatedWriteContext, ctxHeaders)
+
+NEST (AlmacenNestJs/) — USADO (lectura + toggle estado):
+  almacen.resolver.ts, almacen.service.ts
+  movimiento-inventario.* (solo SELECT)
+  entities: almacen, stock_item_almacen, movimiento_inventario
+
+FRONTEND — USADO:
+  frontReact/src/views/items/almacenes/*.tsx (11 pantallas)
+  frontReact/src/_apis_/almacen.js
+  frontReact/src/routes/Router.tsx
+
+MIGRACIONES MENÚ:
+  MenuNestJs/migrations/menu-almacenes-producto-servicio.sql
+
+DOCKER:
+  docker-compose.yml — servicios almacen-python:3018, almacen-nestjs:3017
+
+======================================================================
+CONTROL FINAL AUDITORÍA 10A
+======================================================================
+
+CÓDIGO MODIFICADO:           NINGUNO (durante auditoría)
+BD DATOS MODIFICADA:         NO
+BD ESTRUCTURAL MODIFICADA:   NO
+POST / PUT / PATCH / DELETE: 0
+MIGRACIONES EJECUTADAS:      0
+REBUILDS / RESTARTS:         0
+COMMITS:                     0
+
+======================================================================
+FIN DOCUMENTO — FASE 10A
+======================================================================

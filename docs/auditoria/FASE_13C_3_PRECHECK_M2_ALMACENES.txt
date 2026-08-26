@@ -1,0 +1,261 @@
+FASE 13C.3-PRECHECK-R2 — M2 Revalidación ultra segura antes del saneamiento
+Fecha/hora: 2026-08-25 22:50:26 (hora local agente)
+Modo: SOLO LECTURA — UPDATE/INSERT/DELETE/DDL NO ejecutados
+Fuente referencia 13B: FASE_13B_DISENO_CIERRE_HALLAZGOS_ALMACENES.txt (NO sobrescrito)
+
+================================================================================
+PASO 0 — DIAGNÓSTICO BLOQUEO ANTERIOR
+================================================================================
+almacen-python-service: UP (erp-almacen-python-service Up 3 hours)
+Python trivial: PY_OK
+SELECT 1: OK
+/tmp/fase_13c3_precheck.py: NO EXISTE (TMP_ABSENT) — nada que eliminar
+Script monolítico anterior: NO reejecutado
+
+================================================================================
+PASO 2 — SNAPSHOT GLOBAL stock_item_almacen
+================================================================================
+TOTAL = 7
+OK    = 3
+ROTAS = 4
+Coincide evidencia 13B: SÍ (7/3/4)
+
+================================================================================
+PASO 3 — 4 FILAS ROTAS (BEFORE exacto)
+================================================================================
+Columnas stock_item_almacen confirmadas via information_schema.
+JOIN item (producto_ref, etiqueta) y almacen (almacen_ref, nombre) confirmados.
+
+--- PK 1 ---
+id_stock_producto_almacen = 3e0bc2b3-c9e3-45b7-86e4-612f9ce0211b
+id_empresa = 0459fe04-163b-4b89-b98a-0f1179b7224c
+id_item = f12775ee-3667-40f1-8673-280eb7be6cae
+id_almacen = dd04ca48-b2e6-4ac3-a5e3-04bcc7d6038d
+producto_ref = BOR01 | etiqueta = Borrego
+almacen_ref = ALM-001 | nombre = Almacén principal
+stock_fisico = 3.00
+stock_reservado = 0.00
+stock_disponible = 0.00
+stock_virtual = 0.00
+created_at = 2026-08-25 00:48:52.175821
+created_by = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+updated_at = 2026-08-25 00:48:52.175821
+updated_by = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+--- PK 2 ---
+id_stock_producto_almacen = b6cc8d8b-d980-4eea-bbfd-f784736414e3
+id_empresa = d2600c4c-2ce7-4d01-b6e8-82f028e69d27
+id_item = 07b90b65-5ebb-431e-a7a9-cab287aecdc3
+id_almacen = e0241a68-c619-4965-9b89-2402753a7678
+producto_ref = RATON01 | etiqueta = RATON
+almacen_ref = UI-ALM-001 | nombre = Almacen prueba UI
+stock_fisico = 1.00
+stock_reservado = 0.00
+stock_disponible = 0.00
+stock_virtual = 0.00
+created_at = 2026-08-17 02:09:17.003919
+created_by = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+updated_at = 2026-08-17 02:09:17.003919
+updated_by = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+--- PK 3 ---
+id_stock_producto_almacen = db1ac664-6f49-43bd-bbde-00f07d95cfc9
+id_empresa = 0459fe04-163b-4b89-b98a-0f1179b7224c
+id_item = f12775ee-3667-40f1-8673-280eb7be6cae
+id_almacen = 0c924077-1e60-42a5-a714-3576e3e85871
+producto_ref = BOR01 | etiqueta = Borrego
+almacen_ref = ALM-002 | nombre = Almacén secundario
+stock_fisico = 1.00
+stock_reservado = 0.00
+stock_disponible = 0.00
+stock_virtual = 0.00
+created_at = 2026-08-17 03:57:50.926287
+created_by = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+updated_at = 2026-08-17 03:57:50.926287
+updated_by = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+--- PK 4 ---
+id_stock_producto_almacen = ee4f751f-dbdb-43c0-9e48-6c12ec00e7e9
+id_empresa = 0459fe04-163b-4b89-b98a-0f1179b7224c
+id_item = 76fb956b-a15e-4173-957e-21791929cbfe
+id_almacen = dd04ca48-b2e6-4ac3-a5e3-04bcc7d6038d
+producto_ref = BorregoLoja01 | etiqueta = BorregoLoja
+almacen_ref = ALM-001 | nombre = Almacén principal
+stock_fisico = 1.00
+stock_reservado = 0.00
+stock_disponible = 0.00
+stock_virtual = 0.00
+created_at = 2026-08-17 03:39:30.274750
+created_by = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+updated_at = 2026-08-17 03:39:30.274750
+updated_by = 2c5fcc4f-3a54-4fc3-90b1-ceb49751ed62
+
+================================================================================
+PASO 4 — RECONSTRUCCIÓN FÍSICO (movimiento_inventario estado=true)
+================================================================================
+Positivos: INICIAL, ENTRADA, AJUSTE_POSITIVO, TRF_ENTRADA
+Negativos: SALIDA, AJUSTE_NEGATIVO, TRF_SALIDA
+
+pk=3e0bc2b3-c9e3-45b7-86e4-612f9ce0211b fisico_actual=3.00 reconstruido=3.000 coincide=SI
+pk=b6cc8d8b-d980-4eea-bbfd-f784736414e3 fisico_actual=1.00 reconstruido=1.000 coincide=SI
+pk=db1ac664-6f49-43bd-bbde-00f07d95cfc9 fisico_actual=1.00 reconstruido=1.000 coincide=SI
+pk=ee4f751f-dbdb-43c0-9e48-6c12ec00e7e9 fisico_actual=1.00 reconstruido=1.000 coincide=SI
+
+ALL_COINCIDE = True → las 4 cumplen prerrequisito S1 de físico
+
+================================================================================
+PASO 5 — DISPONIBLE ESPERADO / DELTA
+================================================================================
+pk | producto | almacén | fisico | reservado | disp_act | disp_esp | delta | fisico_recon | S1
+3e0bc2b3-... | BOR01 | ALM-001 | 3 | 0 | 0 | 3 | 3 | 3 | SI
+b6cc8d8b-... | RATON01 | UI-ALM-001 | 1 | 0 | 0 | 1 | 1 | 1 | SI
+db1ac664-... | BOR01 | ALM-002 | 1 | 0 | 0 | 1 | 1 | 1 | SI
+ee4f751f-... | BorregoLoja01 | ALM-001 | 1 | 0 | 0 | 1 | 1 | 1 | SI
+
+Clasificación por fila: S1 (4/4)
+
+================================================================================
+PASO 6 — RESERVAS
+================================================================================
+stock_reservado real en las 4 filas: 0.00 (todas)
+Tablas public con nombre ILIKE '%reserv%': NONE
+Sin evidencia ambigua de reservas → OK continuar S1
+
+================================================================================
+PASO 7 — SNAPSHOT BEFORE (counts)
+================================================================================
+almacen                         = 9
+movimiento_inventario           = 25
+stock_item_almacen              = 7
+transferencia_stock             = 2
+transferencia_stock_detalle     = 2
+cambio_masivo_stock             = 3
+cambio_masivo_stock_detalle     = 6
+MAX(movimiento_inventario.created_at) = 2026-08-26 02:01:13.627221
+MAX(stock_item_almacen.updated_at)    = 2026-08-26 02:01:13.627221
+(Tablas verificadas en information_schema antes de COUNT)
+
+================================================================================
+PASO 8 — ORIGEN (evidencia)
+================================================================================
+¿Físico actual coincide con movimientos?
+  CONFIRMADO — 4/4 stock_fisico = SUM movimientos (estado=true)
+
+¿Inconsistencias históricas del snapshot stock_disponible?
+  PROBABLE — en las 4 filas created_at = updated_at y disponible=0 con fisico>0;
+  patrón compatible con INSERT histórico incorrecto de disponible.
+  Writer actual stock_inicial INSERT ya pone stock_disponible = :stock_fisico.
+
+¿Writers actuales continúan generando la inconsistencia?
+  NO DEMOSTRADO — writers actuales ajustan stock_disponible en delta junto a físico
+  y validan post-condición "disponible = fisico - reservado". No se ejecutó
+  prueba writer en esta fase.
+
+================================================================================
+PASO 9 — SQL PROPUESTO NO EJECUTADO (fail-closed)
+================================================================================
+Auditoría updated_at / updated_by:
+  Patrón writers: SÍ actualizan updated_at=now() y updated_by en cada mutación de stock.
+  Recomendación para 13C.3.1: NO tocar updated_at/updated_by en el saneamiento.
+  Motivos: (1) no inventar UUID de operador; (2) preservar evidencia forense
+  created_at=updated_at de filas históricamente rotas; (3) 13B limitó el SET a
+  stock_disponible. Si negocio exige traza de corrección, autorizar por separado
+  un updated_by conocido y updated_at=now() SIN incluir esos campos en el WHERE.
+
+SQL PROPUESTO (TEXTO — NO EJECUTADO):
+
+BEGIN;
+
+-- PK 1 BOR01 / ALM-001
+UPDATE public.stock_item_almacen
+SET stock_disponible = stock_fisico - stock_reservado
+WHERE id_stock_producto_almacen = '3e0bc2b3-c9e3-45b7-86e4-612f9ce0211b'
+  AND stock_fisico = 3.00
+  AND stock_reservado = 0.00
+  AND stock_disponible = 0.00;
+-- verificar ROW_COUNT = 1
+
+-- PK 2 RATON01 / UI-ALM-001
+UPDATE public.stock_item_almacen
+SET stock_disponible = stock_fisico - stock_reservado
+WHERE id_stock_producto_almacen = 'b6cc8d8b-d980-4eea-bbfd-f784736414e3'
+  AND stock_fisico = 1.00
+  AND stock_reservado = 0.00
+  AND stock_disponible = 0.00;
+-- verificar ROW_COUNT = 1
+
+-- PK 3 BOR01 / ALM-002
+UPDATE public.stock_item_almacen
+SET stock_disponible = stock_fisico - stock_reservado
+WHERE id_stock_producto_almacen = 'db1ac664-6f49-43bd-bbde-00f07d95cfc9'
+  AND stock_fisico = 1.00
+  AND stock_reservado = 0.00
+  AND stock_disponible = 0.00;
+-- verificar ROW_COUNT = 1
+
+-- PK 4 BorregoLoja01 / ALM-001
+UPDATE public.stock_item_almacen
+SET stock_disponible = stock_fisico - stock_reservado
+WHERE id_stock_producto_almacen = 'ee4f751f-dbdb-43c0-9e48-6c12ec00e7e9'
+  AND stock_fisico = 1.00
+  AND stock_reservado = 0.00
+  AND stock_disponible = 0.00;
+-- verificar ROW_COUNT = 1
+
+-- Controles SELECT (mismo TX, antes de COMMIT):
+-- filas objetivo con disponible = fisico - reservado = 4
+-- ROTAS global = 0
+-- TOTAL stock_item_almacen = 7
+-- COUNT movimiento_inventario = 25
+-- stock_fisico / stock_reservado / stock_virtual de las 4 PK = BEFORE
+
+-- Si cualquier control falla: ROLLBACK;
+-- Si todos OK: COMMIT;  ← NO en esta fase
+
+================================================================================
+PASO 10 — PLAN 13C.3.1 (diseño; NO ejecutado)
+================================================================================
+BEGIN → 4 UPDATE fail-closed → verificar ROW_COUNT=1 cada uno → SELECT invariantes →
+COMMIT solo si: corregidas=4, ROTAS=0, TOTAL=7, mov=25, fisico/reservado/virtual=BEFORE.
+Si falla: ROLLBACK.
+Esta fase: NO BEGIN, NO UPDATE, NO COMMIT.
+
+================================================================================
+PASO 11 — ARQUITECTURA GLOBAL/EMPRESA
+================================================================================
+Este saneamiento M2 es de datos históricos.
+NO cambia JWT / GLOBAL / EMPRESA / SelectEmpresa / authenticatedWriteContext /
+X-Company-Id / Nest / Gateway / Frontend / AlmacenPython / contratos.
+Correcciones futuras por PK exacta validada. NO UPDATE general por empresa.
+M1 NO TOCADO. M3 NO TOCADO.
+
+================================================================================
+CONTROLES FINALES
+================================================================================
+Código modificado: NINGUNO
+BD modificada: NO
+UPDATE ejecutados: 0
+INSERT: 0
+DELETE: 0
+DDL: 0
+HTTP writes: 0
+Writers ejecutados: 0
+Docker rebuild: NO
+Docker recreate: NO
+Gateway: NO TOCADO
+Nest: NO TOCADO
+Frontend: NO TOCADO
+Python código: NO TOCADO
+M1: NO TOCADO
+M3: NO TOCADO
+Commit: NO
+Push: NO
+
+================================================================================
+CLASIFICACIÓN FINAL
+================================================================================
+A) APTO PARA 13C.3.1
+Exactamente 4 filas confirmadas S1 y corrección fail-closed preparada (texto).
+
+DETENERSE — esperar autorización explícita del usuario para 13C.3.1.
+NO ejecutar UPDATE en esta fase.

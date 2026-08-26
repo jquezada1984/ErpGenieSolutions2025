@@ -1,0 +1,536 @@
+============================================================
+FASE 13A — AUDITORÍA FINAL ALMACENES
+============================================================
+
+FECHA/HORA: 2026-08-25 ~21:15 (hora local reportada por sesión)
+RAMA: warehouse_may_V1
+REPOSITORIO: C:\Users\maykf\Documents\erp\ERP_ITEM_WAREHOUSE
+MODO: SOLO LECTURA (excepto este TXT)
+
+------------------------------------------------------------
+1. RESUMEN EJECUTIVO
+------------------------------------------------------------
+
+El módulo Almacenes v1 está arquitectónicamente coherente:
+
+  Lecturas  → Frontend → Gateway GraphQL → AlmacenNestJs → PostgreSQL
+  Escrituras → Frontend → Gateway REST → AlmacenPython → PostgreSQL (1 TX)
+
+Writers E2E validados en fases previas:
+  Stock Inicial, Entrada, Salida, Ajuste ±, Transferencia,
+  Stock por fecha, Cambio masivo (backend + Gateway + UI 12D.1).
+
+Evidencia UI Cambio masivo (12D.1) presente en BD:
+  referencia PRUEBA-UI-CAMBIO-MASIVO-12D1
+  cabecera COMPLETADA + 2 detalles + 2 movimientos CAMBIO_MASIVO_STOCK
+  saldos TEST-ALM-001: RATON01 4/0/4/0 ; TCO20 1/0/1/0 (invariante OK)
+
+Clasificación recomendada: B) GO CON OBSERVACIONES
+  — Funcional y seguro en writers nuevos.
+  — Deudas no bloqueantes: 4 filas históricas con invariante rota;
+    id_empresa opcional en algunas lecturas Nest; CRUD almacén
+    sin authenticatedWriteContext; menú sin entradas para
+    writers unitarios (acceso vía Stock actual).
+
+------------------------------------------------------------
+2. ARQUITECTURA
+------------------------------------------------------------
+
+Frontend React (:3000)
+   ↓ GraphQL lecturas / REST writers
+Gateway (:3002)
+   ↓
+AlmacenNestJs (:3017)  — lecturas + toggle estado almacén
+AlmacenPython (:3018)  — writers stock + CRUD cabecera almacén
+   ↓
+PostgreSQL (public)
+
+Sin cálculo de stock como autoridad en Frontend ni Gateway.
+Sin N POST desde Gateway para Cambio masivo (1 POST downstream).
+
+------------------------------------------------------------
+3. MENÚ / ROUTER
+------------------------------------------------------------
+
+MENÚ (menu_item, hijos Almacenes):
+  Nuevo almacén     /items/almacenes/nuevo
+  Listado           /items/almacenes
+  Movimientos       /items/almacenes/movimientos
+  Cambio masivo     /items/almacenes/cambio-stock
+  Stock por fecha   /items/almacenes/stock-fecha
+  Stock actual      /items/almacenes/stock-actual
+
+ROUTER (todas con componente):
+  + stock-inicial, stock-entrada, stock-salida,
+    stock-ajuste, stock-transferencia, editar/:id
+
+HUECOS (no bloqueantes):
+  - Entrada/Salida/Ajuste/Transferencia/Stock Inicial NO están
+    en menu_item; se alcanzan desde botones de Stock actual
+    o URL directa.
+  - Stock por fecha y Cambio masivo SÍ en menú (ya no huérfanos).
+
+Sin rutas menú sin componente. Sin componente crítico sin ruta.
+
+------------------------------------------------------------
+4. FRONTEND
+------------------------------------------------------------
+
+Patrón writers:
+  submitLockRef + loadingGuardar
+  id_origen = crypto.randomUUID() (lazy)
+  cantidad como string decimal (regex, sin Number/parseFloat autoridad)
+  201 CREADO / 200 YA_PROCESADO
+  409 con prioridad detail→error→message (Salida, Ajuste, Cambio masivo)
+  Inicial/Entrada/Transferencia: 409 vía mensaje genérico (sigue mostrando)
+
+Autoridad de saldo: NO hay reduce/sumas locales de movimientos.
+API solo Gateway :3002 (sin :3017/:3018).
+
+CambioMasivoStockAlmacen:
+  tabla detalles, sin id_item duplicados, un solo POST payload.
+
+------------------------------------------------------------
+5. GATEWAY
+------------------------------------------------------------
+
+GraphQL → AlmacenNestJs:
+  almacenesListado, almacenPorId, actualizarEstadoAlmacen,
+  stockItemAlmacen, stockItemsAlmacenListado,
+  movimientosInventarioListado, stockPorFecha
+
+REST → AlmacenPython (/api/almacen/*):
+  stock-inicial, stock-entrada, stock-salida, stock-ajuste,
+  stock-transferencia, stock-cambio-masivo
+  POST /almacen , PUT /almacen/:id
+
+Writers stock: authenticatedWriteContext + body passthrough + status
+downstream preservado (409 no se convierte en 500).
+
+CRUD almacén: almacenFwdHeaders/ctxHeaders (NO authenticatedWriteContext)
+— asimetría conocida (FASE 10C corrigió multiempresa en Python lookup).
+
+Sin loops HTTP ni Promise.all de writers.
+
+------------------------------------------------------------
+6. ALMACENNESTJS
+------------------------------------------------------------
+
+Solo lecturas de stock/movimientos + mutation actualizarEstadoAlmacen
+(toggle estado de public.almacen; NO escribe stock_item_almacen ni
+movimiento_inventario).
+
+stockPorFecha:
+  fecha_movimiento <= fecha
+  estado = true
+  POSITIVOS: INICIAL, ENTRADA, AJUSTE_POSITIVO, TRF_ENTRADA
+  NEGATIVOS: SALIDA, AJUSTE_NEGATIVO, TRF_SALIDA
+  → CAMBIO_MASIVO_STOCK entra vía AJUSTE_POSITIVO/NEGATIVO (SÍ)
+
+RIESGO MEDIO:
+  almacenesListado / almacenPorId / movimientosInventarioListado /
+  actualizarEstadoAlmacen: id_empresa OPCIONAL.
+  Si el caller omite empresa → posible fuga multi-tenant o toggle
+  por UUID solo. Stock listados y stockPorFecha exigen id_empresa.
+
+------------------------------------------------------------
+7. ALMACENPYTHON
+------------------------------------------------------------
+
+Writers con schema + service + repository + route:
+  stock_inicial, stock_entrada, stock_salida, stock_ajuste,
+  stock_transferencia, stock_cambio_masivo
+  + CRUD almacen
+
+Patrón común writers stock:
+  1 commit, rollback en error
+  FOR UPDATE (par/conjunto ordenado en Transferencia y Cambio masivo)
+  idempotencia por índice parcial + replay YA_PROCESADO
+  invariante disponible = fisico - reservado (rechazo 409, no auto-fix)
+  costos desde precio_compra, quantize 0.01 ROUND_HALF_UP
+
+------------------------------------------------------------
+8. STOCK INICIAL
+------------------------------------------------------------
+
+modulo_origen STOCK_INICIAL / tipo INICIAL
+INSERT stock + movimiento misma TX
+Idempotencia uq_mov_inv_stock_inicial_idempotencia
+No auto-duplica saldo (409 StockYaInicializado)
+E2E previo: GO
+
+------------------------------------------------------------
+9. ENTRADA
+------------------------------------------------------------
+
+fisico += Q ; disponible += Q ; reservado/virtual intactos
+modulo ENTRADA_STOCK / tipo ENTRADA
+E2E previo: GO
+
+------------------------------------------------------------
+10. SALIDA
+------------------------------------------------------------
+
+fisico -= Q ; disponible -= Q con defensa disponible >= Q
+modulo SALIDA_STOCK / tipo SALIDA
+E2E previo: GO
+
+------------------------------------------------------------
+11. AJUSTE
+------------------------------------------------------------
+
+POSITIVO/NEGATIVO → AJUSTE_POSITIVO/AJUSTE_NEGATIVO
+modulo AJUSTE_STOCK
+UPDATE condicionado en negativo
+E2E previo: GO
+
+------------------------------------------------------------
+12. TRANSFERENCIA
+------------------------------------------------------------
+
+Cabecera transferencia_stock + detalle
+TRF_SALIDA + TRF_ENTRADA, modulo TRANSFERENCIA_STOCK
+Locks ORDER BY id_stock_producto_almacen FOR UPDATE
+Índice parcial (id_empresa, id_origen, tipo_movimiento)
+No cambia stock total empresa (redistribuye)
+E2E previo: GO
+Counts actuales: transferencia_stock=2, detalle=2
+
+------------------------------------------------------------
+13. MOVIMIENTOS
+------------------------------------------------------------
+
+Query Nest movimientosInventarioListado (lectura)
+Counts por tipo/modulo (estado actual BD):
+  INICIAL / STOCK_INICIAL                 7
+  ENTRADA / ENTRADA_STOCK                 2
+  SALIDA / SALIDA_STOCK                   2
+  AJUSTE_POSITIVO / AJUSTE_STOCK          2
+  AJUSTE_NEGATIVO / AJUSTE_STOCK          2
+  AJUSTE_POSITIVO / CAMBIO_MASIVO_STOCK   3
+  AJUSTE_NEGATIVO / CAMBIO_MASIVO_STOCK   3
+  TRF_ENTRADA / TRANSFERENCIA_STOCK       2
+  TRF_SALIDA / TRANSFERENCIA_STOCK        2
+Total movimiento_inventario: 25
+
+modulo_origen NULL: 0
+id_origen NULL: 0
+Sin tipos desconocidos en el set observado.
+
+------------------------------------------------------------
+14. STOCK POR FECHA
+------------------------------------------------------------
+
+MATRIZ COMPATIBILIDAD:
+
+Writer                  | Tipo movimiento   | Signo | En stockPorFecha
+------------------------|-------------------|-------|-----------------
+Stock Inicial           | INICIAL           | +     | SÍ
+Entrada                 | ENTRADA           | +     | SÍ
+Salida                  | SALIDA            | -     | SÍ
+Ajuste +                | AJUSTE_POSITIVO   | +     | SÍ
+Ajuste -                | AJUSTE_NEGATIVO   | -     | SÍ
+Transferencia salida    | TRF_SALIDA        | -     | SÍ
+Transferencia entrada   | TRF_ENTRADA       | +     | SÍ
+Cambio masivo +         | AJUSTE_POSITIVO   | +     | SÍ
+Cambio masivo -         | AJUSTE_NEGATIVO   | -     | SÍ
+
+Cambio de código para Cambio masivo: NO requerido.
+
+------------------------------------------------------------
+15. CAMBIO MASIVO
+------------------------------------------------------------
+
+Tablas public.cambio_masivo_stock / _detalle
+Constraints confirmados:
+  PK cabecera/detalle
+  UNIQUE (id_empresa, id_origen)
+  UNIQUE (id_cambio_masivo_stock, id_item)
+  CHECK tipo IN (POSITIVO, NEGATIVO)
+  CHECK cantidad > 0
+  FK detalle → cabecera ON DELETE RESTRICT
+
+Índice:
+  uq_mov_inv_cambio_masivo_stock_idempotencia
+  (id_empresa, id_origen) WHERE modulo_origen='CAMBIO_MASIVO_STOCK'
+
+Writer:
+  lock conjunto ORDER BY id_stock_producto_almacen FOR UPDATE
+  validación negativos tras locks, antes de UPDATE
+  1 TX / 1 commit / rollback total
+  movimientos AJUSTE_* + CAMBIO_MASIVO_STOCK
+  id_origen movimiento = PK detalle
+  NO usa modulo AJUSTE_STOCK para el lote
+
+E2E: backend 12B.3 GO, atomicidad negativa 12B.3.1 GO,
+     Gateway 12C.1 GO, UI 12D.1 evidencia BD presente.
+
+------------------------------------------------------------
+16. MULTIEMPRESA
+------------------------------------------------------------
+
+Writers stock: FAIL CLOSED vía authenticatedWriteContext +
+body.id_empresa == X-Company-Id + lookups Python por empresa.
+
+CRUD almacén: contexto más débil (ctxHeaders) pero lookup
+id_almacen+id_empresa en Python (10C).
+
+Lecturas Nest stock*/stockPorFecha: id_empresa obligatorio.
+Listados almacén/movimientos/toggle: id_empresa opcional
+→ HALLAZGO MEDIO (depende del Gateway/Front enviando empresa).
+
+------------------------------------------------------------
+17. IDEMPOTENCIA
+------------------------------------------------------------
+
+Índices parciales (sin solapamiento por modulo_origen distinto):
+  uq_mov_inv_stock_inicial_idempotencia
+  uq_mov_inv_entrada_stock_idempotencia
+  uq_mov_inv_salida_stock_idempotencia
+  uq_mov_inv_ajuste_stock_idempotencia
+  uq_mov_inv_transferencia_stock_idempotencia
+  uq_mov_inv_cambio_masivo_stock_idempotencia
+
+AJUSTE_STOCK vs CAMBIO_MASIVO_STOCK: NO chocan.
+Transferencia incluye tipo_movimiento (permite par SALIDA/ENTRADA).
+
+------------------------------------------------------------
+18. ATOMICIDAD
+------------------------------------------------------------
+
+Cada writer stock: un commit.
+Cambio masivo: atomicidad positiva y negativa validadas
+(409 → delta 0 cabecera/detalle/movimiento/stock).
+Transferencia: par de patas en una TX.
+Gateway: 1 request downstream por operación de lote.
+
+------------------------------------------------------------
+19. INVARIANTES BD
+------------------------------------------------------------
+
+stock_item_almacen TOTAL: 7
+OK: 3
+ROTAS: 4
+
+Filas inconsistentes (disponible <> fisico - reservado):
+  1) emp d2600c4c… alm e0241a68… (UI-ALM-001) item RATON01
+     fis=1 res=0 dis=0 virt=0 updated 2026-08-17
+  2) emp 0459fe04… alm dd04ca48… item 76fb956b…
+     fis=1 res=0 dis=0 virt=0 updated 2026-08-17
+  3) emp 0459fe04… alm 0c924077… item f12775ee…
+     fis=1 res=0 dis=0 virt=0 updated 2026-08-17
+  4) emp 0459fe04… alm dd04ca48… item f12775ee…
+     fis=3 res=0 dis=0 virt=0 updated 2026-08-25 00:48
+
+Origen: HISTÓRICO (previo a cierre writers robustos; documentado
+desde FASE 10A). Writers actuales RECHAZAN operar sobre estas
+filas (409 invariante). NO atribuible a Cambio masivo / Transferencia
+validados sobre filas OK (TEST-ALM-001).
+
+Filas de prueba TEST-ALM-001: invariante OK.
+
+------------------------------------------------------------
+20. COSTOS
+------------------------------------------------------------
+
+Patrón writers: costo_unitario = precio_compra o 0;
+costo_total = cantidad * unitario; quantize 0.01 ROUND_HALF_UP.
+Sin FIFO/LIFO. Evidencia TCO20 en cambio masivo: 30.00 / 30.00.
+
+------------------------------------------------------------
+21. TRAZABILIDAD DE PRUEBAS
+------------------------------------------------------------
+
+REF PREP-CAMBIO-MASIVO-12B3
+  MOV 1 STOCK_INICIAL (prep TCO20 qty 2) CAB 0
+
+REF PRUEBA-CAMBIO-MASIVO-12B3
+  CAB 1 COMPLETADA, 2 det, MOV 2 CAMBIO_MASIVO_STOCK
+  (backend 12B.3)
+
+REF PRUEBA-GATEWAY-CAMBIO-MASIVO-12C1
+  CAB 1 COMPLETADA, 2 det, MOV 2 CAMBIO_MASIVO_STOCK
+  (Gateway 12C.1)
+
+REF PRUEBA-UI-CAMBIO-MASIVO-12D1
+  CAB 1 COMPLETADA, 2 det, MOV 2 CAMBIO_MASIVO_STOCK
+  (UI E2E 12D.1 — evidencia en BD)
+
+REF PRUEBA-CAMBIO-MASIVO-ATOMICIDAD-12B31
+  MOV 0 CAB 0 (esperado: 409 sin persistencia)
+
+------------------------------------------------------------
+22. COUNTS BD (estado, no BEFORE/AFTER de esta fase)
+------------------------------------------------------------
+
+almacen                         9
+stock_item_almacen              7
+movimiento_inventario          25
+transferencia_stock             2
+transferencia_stock_detalle     2
+cambio_masivo_stock             3
+cambio_masivo_stock_detalle     6
+
+------------------------------------------------------------
+23. ARCHIVOS CREADOS/MODIFICADOS DEL MÓDULO (git status)
+------------------------------------------------------------
+
+Rama warehouse_may_V1 — cambios preexistentes (NO tocados por 13A):
+
+Modificados:
+  docker-compose.yml
+  frontReact/src/routes/Router.tsx
+  gateway-api/src/app.js
+  gateway-api/src/routes/graphql.js
+  gateway-api/src/utils/requestContext.js
+  package-lock.json
+
+Untracked relevantes Almacenes:
+  AlmacenNestJs/ (completo)
+  AlmacenPython/ (completo)
+  MenuNestJs/migrations/menu-almacenes-producto-servicio.sql
+  docs/auditoria/* (auditorías previas)
+  frontReact/src/_apis_/almacen.js
+  frontReact/src/views/items/almacenes/
+  gateway-api/src/routes/almacen.js
+  gateway-api/src/services/almacenPython.js
+
+Puertos Docker Almacenes: Nest 3017, Python 3018 (esperados).
+
+------------------------------------------------------------
+24. HALLAZGOS CRÍTICOS
+------------------------------------------------------------
+
+NINGUNO que bloquee el uso de writers validados sobre saldos
+consistentes.
+
+------------------------------------------------------------
+25. HALLAZGOS ALTOS
+------------------------------------------------------------
+
+NINGUNO nuevo bloqueante.
+(Las 4 invariantes rotas son ALTO en integridad de datos
+históricos, pero writers fallan-closed; ver MEDIO/DEUDA.)
+
+------------------------------------------------------------
+26. HALLAZGOS MEDIOS
+------------------------------------------------------------
+
+M1. Nest: id_empresa opcional en almacenesListado, almacenPorId,
+    movimientosInventarioListado, actualizarEstadoAlmacen.
+    Impacto: riesgo multiempresa si el cliente omite empresa.
+    Bloquea producción: NO si Gateway/Front siempre envían empresa
+    (hoy lo hacen en flujos UI). Recomendación: FAIL CLOSED en Nest.
+
+M2. 4 filas stock_item_almacen con invariante rota (histórico).
+    Impacto: operaciones sobre esas filas → 409.
+    Bloquea producción: NO para flujos TEST-ALM-001 consistentes.
+    Recomendación: corrección controlada en fase futura (NO auto).
+
+M3. CRUD almacén Gateway sin authenticatedWriteContext.
+    Impacto: asimetría auth vs writers stock (mitigado en Python 10C).
+    Recomendación: alinear a authenticatedWriteContext.
+
+------------------------------------------------------------
+27. HALLAZGOS BAJOS
+------------------------------------------------------------
+
+B1. Menú sin entradas Entrada/Salida/Ajuste/Transferencia/Stock Inicial
+    (acceso vía Stock actual). UX incompleta, no defectuosa.
+
+B2. Manejo UI 409 explícito incompleto en Stock Inicial / Entrada /
+    Transferencia (mensaje genérico aún funciona).
+
+B3. Stock actual sin botón a Cambio masivo / Stock por fecha
+    (sí en menú).
+
+------------------------------------------------------------
+28. DEUDA TÉCNICA
+------------------------------------------------------------
+
+D1. Módulo Almacenes mayormente untracked (sin commit formal).
+D2. Filas históricas inconsistentes pendientes de política de
+    saneamiento.
+D3. FIFO/LIFO/Kardex/lotes/series fuera de alcance (correcto v1).
+D4. docker-compose.yml modificado en working tree (revisar en commit).
+
+------------------------------------------------------------
+29. MATRIZ FUNCIONAL FINAL
+------------------------------------------------------------
+
+Función            | FE | GW | Backend      | BD | E2E | Estado
+-------------------|----|----|--------------|----|-----|----------------
+Almacenes CRUD     | Sí | Sí | Python+Nest  | Sí | Sí | VALIDADO*
+Stock Inicial      | Sí | Sí | Python       | Sí | Sí | VALIDADO
+Stock Actual       | Sí | GQL| Nest         | Sí | Sí | VALIDADO
+Entrada            | Sí | Sí | Python       | Sí | Sí | VALIDADO
+Salida             | Sí | Sí | Python       | Sí | Sí | VALIDADO
+Ajuste             | Sí | Sí | Python       | Sí | Sí | VALIDADO
+Transferencia      | Sí | Sí | Python       | Sí | Sí | VALIDADO
+Movimientos        | Sí | GQL| Nest         | Sí | Sí | VALIDADO
+Stock por fecha    | Sí | GQL| Nest         | Sí | Sí | VALIDADO
+Cambio masivo      | Sí | Sí | Python       | Sí | Sí | VALIDADO
+
+* CRUD: toggle estado vía Nest; create/update vía Python.
+  Observación auth CRUD Gateway = deuda M3.
+
+------------------------------------------------------------
+30. CLASIFICACIÓN FINAL
+------------------------------------------------------------
+
+B) GO CON OBSERVACIONES — funcional, writers E2E OK,
+   existen deudas no bloqueantes (invariantes históricas,
+   id_empresa opcional en algunas lecturas Nest, auth CRUD).
+
+------------------------------------------------------------
+31. RECOMENDACIONES — NO EJECUTADAS
+------------------------------------------------------------
+
+R1. Forzar id_empresa en Nest para listados/toggle almacén/movimientos.
+R2. Alinear CRUD almacén a authenticatedWriteContext.
+R3. Plan de saneamiento controlado de 4 filas invariante rota
+    (sin auto-fix en writers).
+R4. Completar menú o documentar acceso vía Stock actual.
+R5. Commit formal del módulo Almacenes cuando se autorice.
+R6. NO iniciar Kardex/FIFO sin diseño explícito.
+
+============================================================
+CONTROLES FASE 13A
+============================================================
+
+AUDITORÍA SOLO LECTURA:
+SÍ
+
+CÓDIGO MODIFICADO POR FASE 13A:
+NINGUNO
+
+BD MODIFICADA POR FASE 13A:
+NO
+
+INSERT:
+0
+
+UPDATE:
+0
+
+DELETE:
+0
+
+DDL:
+0
+
+POST DE NEGOCIO:
+0
+
+PUT/PATCH/DELETE HTTP:
+0
+
+MUTACIONES GRAPHQL:
+0
+
+DOCKER REBUILD:
+NO
+
+ÚNICO ARCHIVO CREADO:
+Documents/auditorias/FASE_13A_AUDITORIA_FINAL_ALMACENES.txt
+(ruta absoluta: C:\Users\maykf\Documents\auditorias\FASE_13A_AUDITORIA_FINAL_ALMACENES.txt)

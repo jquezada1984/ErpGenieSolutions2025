@@ -1,0 +1,492 @@
+CONTRATO TÉCNICO — STOCK INICIAL v1 (APROBADO)
+Fecha: 2026-08-16
+Fase: 2E — Aprobación final y validación estática
+Estado: GO PARA IMPLEMENTAR WRITER en una fase posterior autorizada.
+
+================================================================================
+0. ALCANCE
+================================================================================
+
+Este documento convierte las decisiones humanas aprobadas en contrato técnico
+estable para el futuro writer de STOCK INICIAL.
+
+No implementa código, rutas, schemas, services, repositories, migraciones,
+índices ni operaciones de BD. No modifica documentación previa.
+
+Única escritura de esta fase:
+  docs/auditoria/CONTRATO_TECNICO_STOCK_INICIAL_V1_APROBADO.txt
+
+================================================================================
+1. VALIDACIÓN ESTÁTICA DE COMPATIBILIDAD
+================================================================================
+
+[CONFIRMADO EN CÓDIGO]
+
+AlmacenPython:
+  - Flask-SQLAlchemy 3.1.1 y SQLAlchemy 2.0.48.
+  - psycopg2-binary 2.9.11 para PostgreSQL.
+  - db = SQLAlchemy() y uso de db.session.
+  - Patrón existente: add → commit; ante excepción → rollback.
+  - Routes existentes manejan ValidationError, IntegrityError y
+    SQLAlchemyError.
+
+Otros patrones reutilizables:
+  - ItemPython convierte importes a Decimal con Decimal(str(value)).
+  - BancoCajaPython usa Decimal(str(valor)) para importes/saldos.
+  - BancoCajaPython valida fecha efectiva con fields.Date(required=True).
+  - BancoCajaPython usa campos Decimal con places=2.
+
+Compatibilidad técnica:
+  - Python standard library provee Decimal y ROUND_HALF_UP.
+  - SQLAlchemy/psycopg2 soportan persistencia de Decimal en NUMERIC.
+  - Marshmallow disponible soporta UUID y Date.
+  - db.session permite una unidad de trabajo con commit/rollback.
+  - IntegrityError está disponible y ya se traduce a respuestas controladas.
+
+[CONFIRMADO EN BD / CONTEXTO]
+  - item.precio_compra: NUMERIC(18,6), nullable.
+  - movimiento_inventario.costo_unitario: NUMERIC(15,2), NOT NULL.
+  - movimiento_inventario.costo_total: NUMERIC(15,2), NOT NULL.
+  - movimiento_inventario.fecha_movimiento: DATE NOT NULL.
+  - stock_item_almacen: UNIQUE(id_item,id_almacen).
+  - uq_mov_inv_stock_inicial_idempotencia existe para el flujo STOCK_INICIAL
+    conforme al contexto confirmado.
+  - FKs compuestas multiempresa de stock están aplicadas.
+
+Conclusión:
+  No hay contradicción técnica objetiva entre este contrato y el stack/esquema
+  confirmado. Diferencias de estilo entre módulos no son bloqueantes.
+
+================================================================================
+2. ARQUITECTURA FINAL DEL MVP
+================================================================================
+
+[APROBADO]
+
+WRITER ÚNICO:
+  AlmacenPython
+
+TABLAS DEL MOTOR:
+  public.stock_item_almacen
+  public.movimiento_inventario
+
+TABLAS DE VALIDACIÓN:
+  public.item
+  public.almacen
+
+TABLAS NUEVAS:
+  NINGUNA
+
+stock_operation:
+  NO SE UTILIZA.
+
+No se crea segundo writer en AlmacenNestJs, InventarioPython,
+InventarioNestJs, ItemPython, ItemNestJs, Gateway ni frontend.
+
+================================================================================
+3. OPERACIÓN Y CONSTANTES
+================================================================================
+
+La primera fila de stock nace exclusivamente mediante STOCK INICIAL.
+
+No nace al crear producto, almacén, id_almacen_defecto, consulta, pantalla ni
+automatismo de catálogo.
+
+Constantes inmutables del MVP:
+
+  tipo_movimiento = 'INICIAL'
+  modulo_origen   = 'STOCK_INICIAL'
+
+================================================================================
+4. INPUT CONCEPTUAL
+================================================================================
+
+El futuro request de STOCK INICIAL debe contener:
+
+  id_empresa          UUID requerido
+  id_item             UUID requerido
+  id_almacen          UUID requerido
+  id_origen           UUID requerido
+  cantidad            Decimal requerido
+  fecha_movimiento    DATE requerido
+  referencia          texto opcional
+  concepto            texto opcional
+
+El usuario auditor se obtiene del contexto de request actual del ERP
+(X-User-Id), no de un campo libre de payload.
+
+Normalización:
+  referencia vacía → NULL
+  concepto vacío   → NULL
+
+No se generan valores automáticos para referencia ni concepto.
+
+================================================================================
+5. VALIDACIONES
+================================================================================
+
+Antes de persistir:
+
+  1. id_empresa e id_origen son UUID válidos.
+  2. item existe y pertenece a id_empresa.
+  3. item.estado = true.
+  4. item.inventariable = true.
+  5. almacén existe y pertenece a id_empresa.
+  6. almacen.estado = true.
+  7. request.id_empresa = item.id_empresa = almacen.id_empresa.
+  8. cantidad > 0.
+  9. cantidad tiene máximo dos decimales.
+  10. fecha_movimiento es fecha calendario válida.
+  11. tipo_movimiento y modulo_origen se fijan a las constantes del MVP;
+      no se aceptan como valores libres de caller.
+
+La aplicación proporciona errores comprensibles. Las FKs compuestas y UNIQUE
+de BD son defensa final, no sustituto de las validaciones de aplicación.
+
+================================================================================
+6. POLÍTICA DE CANTIDAD
+================================================================================
+
+[APROBADO]
+
+cantidad:
+  - es Decimal;
+  - debe ser > 0;
+  - acepta máximo dos decimales;
+  - no se redondea;
+  - no se trunca;
+  - no usa signo para indicar dirección.
+
+Ejemplo inválido:
+  1.234 → rechazar; no convertir a 1.23 ni 1.24.
+
+Esta regla es distinta de la política monetaria siguiente.
+
+================================================================================
+7. POLÍTICA MONETARIA
+================================================================================
+
+[APROBADO]
+
+Regla única:
+
+  Decimal + ROUND_HALF_UP + escala Decimal('0.01')
+
+Prohibido:
+  - float;
+  - round() sobre float;
+  - redondeo implícito de PostgreSQL;
+  - truncado silencioso.
+
+7.1 costo_unitario
+
+Fuente:
+  item.precio_compra
+
+Si precio_compra IS NULL:
+
+  costo_unitario = Decimal('0.00')
+
+Si precio_compra existe:
+
+  costo_unitario = Decimal(str(precio_compra)).quantize(
+      Decimal('0.01'),
+      rounding=ROUND_HALF_UP,
+  )
+
+Validación conceptual:
+
+  8        → 8.00
+  8.5      → 8.50
+  8.123456 → 8.12
+  8.125000 → 8.13
+
+El resultado es compatible con NUMERIC(15,2).
+
+7.2 costo_total
+
+Secuencia obligatoria:
+
+  producto = Decimal(cantidad) × Decimal(costo_unitario)
+  costo_total = producto.quantize(
+      Decimal('0.01'),
+      rounding=ROUND_HALF_UP,
+  )
+
+Validación conceptual:
+
+  cantidad 1.25 × costo_unitario 8.25 = 10.3125 → 10.31
+  cantidad 1.50 × costo_unitario 8.25 = 12.3750 → 12.38
+
+El resultado persistido es compatible con NUMERIC(15,2).
+
+Nota:
+  ROUND_HALF_UP fue aprobado expresamente para valores monetarios. No cambia
+  ni autoriza redondear la cantidad de stock.
+
+================================================================================
+8. OWNERSHIP DE id_origen
+================================================================================
+
+[APROBADO]
+
+OWNER:
+  Frontend/caller autorizado.
+
+GENERACIÓN:
+  Generar un UUID válido una sola vez, antes del primer intento de la intención
+  de STOCK INICIAL.
+
+TRANSMISIÓN:
+
+  Frontend/caller
+    ↓ id_origen sin cambios
+  Gateway
+    ↓ id_origen sin cambios
+  AlmacenPython
+    ↓ validar y persistir
+  movimiento_inventario.id_origen
+
+RETRY:
+  El mismo id_origen debe reenviarse para la misma intención, incluido retry
+  posterior a timeout. Un nuevo id_origen representa una intención nueva.
+
+ALMACENPYTHON:
+  - valida formato UUID;
+  - no genera sustituto;
+  - no reemplaza el valor recibido;
+  - lo usa con id_empresa y las constantes para idempotencia.
+
+GATEWAY:
+  transporta; no calcula stock, no cambia la clave y no mantiene motor.
+
+================================================================================
+9. FECHA EFECTIVA
+================================================================================
+
+[APROBADO]
+
+fecha_movimiento representa FECHA EFECTIVA DE NEGOCIO.
+
+  - La proporciona el caller autorizado.
+  - Su tipo es DATE.
+  - La futura UI puede proponer la fecha actual, pero no la impone como única.
+  - created_at conserva el significado de timestamp técnico de persistencia y
+    auditoría.
+
+No se agregan reglas de fecha futura, antigüedad, períodos cerrados ni zona
+horaria de negocio en este MVP. La validación se limita a fecha calendario
+válida.
+
+Este contrato sigue el patrón real de BancoCaja: fecha_movimiento se recibe
+como Date y created_at es separado.
+
+================================================================================
+10. IDEMPOTENCIA Y RETRY
+================================================================================
+
+[APROBADO]
+
+Búsqueda de operación previa:
+
+  id_empresa
+  modulo_origen = 'STOCK_INICIAL'
+  id_origen
+
+La consulta previa mejora la respuesta, pero el índice
+uq_mov_inv_stock_inicial_idempotencia es la defensa final ante carrera.
+
+Intención original comparable:
+
+| Campo | Comparar | Motivo |
+|---|---|---|
+| id_empresa | Sí | Aislamiento y clave de idempotencia |
+| id_item | Sí | Producto afectado |
+| id_almacen | Sí | Almacén afectado |
+| cantidad | Sí | Efecto físico solicitado |
+| fecha_movimiento | Sí | Fecha efectiva solicitada |
+| referencia | Sí, normalizada | Parte opcional de intención |
+| concepto | Sí, normalizado | Parte opcional de intención |
+| tipo_movimiento | Sí, constante | Debe ser INICIAL |
+| modulo_origen | Sí, constante | Debe ser STOCK_INICIAL |
+| id_origen | Clave de búsqueda | Identifica intención |
+| created_at | No | Auditoría técnica |
+| updated_at | No | Auditoría técnica |
+| updated_by | No | Puede variar entre retries |
+| precio_compra actual | No | Puede cambiar tras commit |
+| costo_unitario/costo_total recalculados | No | Son resultado de primera ejecución |
+
+Casos:
+
+  Misma key + misma intención
+    → OPERACIÓN YA PROCESADA / REPLAY EXITOSO.
+    → Sin INSERT, UPDATE ni DELETE.
+
+  Misma key + intención diferente
+    → CONFLICTO DE IDEMPOTENCIA.
+    → Sin escrituras.
+
+  Key distinta + saldo existente para item+almacén
+    → STOCK YA INICIALIZADO.
+    → Sin sumar ni actualizar saldo.
+
+================================================================================
+11. CONCURRENCIA, TRANSACCIÓN Y ATOMICIDAD
+================================================================================
+
+Defensas existentes:
+
+  Saldo:
+    UNIQUE(id_item, id_almacen)
+
+  Idempotencia:
+    uq_mov_inv_stock_inicial_idempotencia
+
+No se agregan locks distribuidos, Redis, stock_operation, tablas auxiliares ni
+infraestructura nueva.
+
+Transacción conceptual aprobada:
+
+  REQUEST
+    ↓
+  validar payload
+    ↓
+  BEGIN / db.session
+    ↓
+  validar item, almacén, empresa, inventariable y estados
+    ↓
+  buscar operación idempotente
+    ├─ encontrada → replay o conflicto
+    └─ ausente → continuar
+    ↓
+  obtener precio_compra
+    ↓
+  Decimal + ROUND_HALF_UP → costo_unitario
+    ↓
+  Decimal cantidad × costo_unitario + ROUND_HALF_UP → costo_total
+    ↓
+  INSERT movimiento_inventario
+    ↓
+  INSERT stock_item_almacen
+    ↓
+  COMMIT
+
+Todo fallo:
+
+  ROLLBACK COMPLETO
+
+Invariantes:
+  - Nunca saldo confirmado sin movimiento.
+  - Nunca movimiento confirmado sin saldo.
+  - No hay commit intermedio.
+
+IntegrityError / UniqueViolation:
+  - rollback antes de cualquier consulta posterior;
+  - releer movimiento por clave idempotente;
+  - si existe, clasificar replay o conflicto de intención;
+  - si no existe, tratar la colisión de saldo como “stock ya inicializado”.
+
+SELECT FOR UPDATE:
+  No es necesario para crear la primera fila inexistente. La UNIQUE de saldo es
+  la defensa final de primera inicialización concurrente. Este contrato no añade
+  locks nuevos para el MVP.
+
+================================================================================
+12. CAMPOS DEL SALDO INICIAL
+================================================================================
+
+Al confirmar STOCK INICIAL:
+
+  stock_fisico      = cantidad
+  stock_reservado   = 0
+  stock_virtual     = 0
+  stock_disponible  = respetar default/contrato existente (0)
+  stock_alerta      = no modificar
+  stock_deseado     = no modificar
+  estado            = respetar default/contrato existente
+
+No se calcula fórmula de disponible, virtual ni reservas.
+
+================================================================================
+13. MULTIEMPRESA Y AUDITORÍA
+================================================================================
+
+Multiempresa:
+
+  request.id_empresa
+    =
+  item.id_empresa
+    =
+  almacen.id_empresa
+
+La aplicación valida la igualdad; las FKs compuestas existentes en saldo
+refuerzan integridad en PostgreSQL.
+
+Auditoría:
+  - Contexto actual de AlmacenPython: X-Company-Id y X-User-Id.
+  - stock_item_almacen: usar created_by/updated_by conforme a usuario válido.
+  - movimiento_inventario: usar updated_by si corresponde al campo existente.
+  - No inventar created_by en movimiento_inventario.
+
+================================================================================
+14. MATRIZ FINAL DE RESPONSABILIDADES
+================================================================================
+
+| Capa | Responsabilidad |
+|---|---|
+| Frontend/caller | Generar/conservar id_origen, enviar payload y fecha efectiva; no calcular stock |
+| Gateway | Transportar request, headers e id_origen sin modificar; no calcular stock |
+| AlmacenPython route/schema | Leer contexto, validar UUID/DATE/Decimal/formato |
+| AlmacenPython service | Aplicar reglas de negocio, constants, costo, idempotencia y clasificación |
+| AlmacenPython repository | Consultar/insertar en una db.session y realizar commit/rollback único |
+| PostgreSQL | FKs, defaults, UNIQUE saldo e índice idempotente como defensa final |
+
+AlmacenNestJs no escribe stock.
+InventarioPython no escribe stock.
+InventarioNestJs no escribe stock.
+
+================================================================================
+15. RIESGOS RESTANTES Y FUERA DEL MVP
+================================================================================
+
+Riesgos a controlar al implementar:
+  - Después de IntegrityError, la sesión debe hacer rollback antes de releer.
+  - El caller debe conservar id_origen ante timeout.
+  - La futura implementación debe usar Decimal desde entrada hasta persistencia.
+
+Fuera del MVP; no bloquean STOCK INICIAL:
+  - ENTRADA, SALIDA, TRANSFERENCIA y AJUSTE;
+  - reservas, stock_virtual, fórmula de disponible;
+  - lotes/series;
+  - stock negativo de salidas;
+  - costo promedio, FIFO y LIFO;
+  - contabilización;
+  - períodos cerrados;
+  - reversas.
+
+================================================================================
+16. GO / NO-GO Y PRÓXIMA FASE
+================================================================================
+
+CONTRADICCIONES BLOQUEANTES:
+  NINGUNA.
+
+RESULTADO:
+  GO PARA IMPLEMENTAR WRITER STOCK INICIAL.
+
+Este GO se limita a una fase posterior expresamente autorizada. No constituye
+implementación ni autoriza cambios en esta fase documental.
+
+PRÓXIMA FASE RECOMENDADA:
+  FASE 3A — IMPLEMENTACIÓN BACKEND AISLADA DEL WRITER STOCK INICIAL EN
+  AlmacenPython, con pruebas transaccionales controladas y sin ampliar alcance.
+
+================================================================================
+17. CIERRE
+================================================================================
+
+TABLAS NUEVAS: NINGUNA
+WRITER ÚNICO: AlmacenPython
+CÓDIGO MODIFICADO: NINGUNO
+BD MODIFICADA: NO
+DOCKER: NO TOCADO

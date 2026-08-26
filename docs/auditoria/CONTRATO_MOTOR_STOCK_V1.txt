@@ -1,0 +1,534 @@
+CONTRATO MOTOR DE STOCK v1 — ESPECIFICACIÓN TÉCNICA
+Fecha: 2026-08-15
+Estado: diseño; no implementado.
+Alcance: contrato para futuras operaciones de stock por item + almacén.
+
+================================================================================
+1. PROPÓSITO
+================================================================================
+
+Definir una única responsabilidad central para cualquier modificación efectiva
+de existencias por item y almacén, usando:
+
+  public.stock_item_almacen     saldo materializado actual
+  public.movimiento_inventario  trazabilidad histórica
+
+Este documento no crea endpoints, tablas, enums, modelos, queries, movimientos
+ni stock. Las palabras operación, motor, inicialización, entrada, salida y
+transferencia son conceptos de contrato, no nombres ya existentes en la base.
+
+================================================================================
+2. HECHOS CONFIRMADOS
+================================================================================
+
+STOCK
+  public.stock_item_almacen existe y está vacía (0 filas).
+  Tiene id_empresa, id_item, id_almacen y las columnas stock_* confirmadas.
+  Tiene UNIQUE (id_item, id_almacen).
+  No hay entity, modelo, repository, service, API, resolver, SQL DML ni lector
+  funcional de esta tabla en el repositorio.
+
+MOVIMIENTOS
+  public.movimiento_inventario existe.
+  AlmacenNestJs ofrece movimientosInventarioListado exclusivamente con SELECT.
+  No hay escritor de movimientos ni sincronización con stock.
+  Los valores oficiales de tipo_movimiento y modulo_origen no están definidos
+  por código.
+
+INVENTARIO
+  Solo existe CRUD de la cabecera public.inventario.
+  inventario_detalle existe en BD y tiene stock_sistema, stock_contado y
+  diferencia, NUMERIC NOT NULL DEFAULT 0.
+  No hay flujo operativo de detalle, conteo, diferencia, cierre ni snapshot.
+
+ARQUITECTURA
+  El patrón actual separa lectura Nest/GraphQL y escritura Python/REST.
+  Las auditorías existentes ubican stock antes de escritores de negocio:
+  cierre físico, transferencias y ajustes.
+  BancoCajaPython demuestra el patrón técnico de actualizar saldo y registrar
+  línea de movimiento dentro del mismo commit; es una referencia de atomicidad,
+  no una regla reutilizable literal para inventario.
+
+================================================================================
+3. DECISIONES PROPUESTAS PARA v1
+================================================================================
+
+D1. Motor único
+  PROPUESTA. Toda modificación efectiva de saldo por item+almacén debe pasar
+  por un único servicio interno de dominio: el Motor de Stock.
+
+D2. Saldo + historial
+  PROPUESTA. stock_item_almacen representa saldo materializado actual;
+  movimiento_inventario representa trazabilidad. No se declara que esta
+  separación esté implementada hoy; es el contrato objetivo.
+
+D3. Operaciones de negocio
+  PROPUESTA. Inventario, compras, ventas, transferencias, ajustes y stock
+  inicial no deben hacer UPDATE directo de stock. Deben solicitar una operación
+  al motor. El motor es el único que persiste saldo y movimiento.
+
+D4. Capa responsable
+  PROPUESTA. El motor de escritura debe vivir en un único módulo Python del
+  dominio Almacén/Stock, preferiblemente AlmacenPython cuando se habilite la
+  escritura de stock, porque el saldo y el historial pertenecen al dominio de
+  almacenes. InventarioPython debe conservar su responsabilidad de cabecera y
+  solicitar al motor durante un futuro cierre, no duplicarlo.
+
+  Esta es una decisión de arquitectura recomendada, no un servicio existente.
+  No se debe crear un microservicio adicional sin necesidad demostrada.
+
+D5. v1 pequeño
+  PROPUESTA. La primera versión escrita debe limitarse a inicialización
+  explícita, validada e idempotente de un saldo por item+almacén y su
+  trazabilidad asociada. Quedan fuera: reservas, virtual, disponible,
+  transferencias, conteo, cierre, lotes y contabilidad.
+
+================================================================================
+4. RESPONSABILIDAD DEL MOTOR
+================================================================================
+
+El Motor de Stock v1 debe ser el único componente autorizado para:
+
+  1. validar la empresa de la operación;
+  2. validar que item y almacén pertenecen a esa empresa;
+  3. localizar o crear el saldo del par item+almacén según la política
+     aprobada;
+  4. proteger la operación frente a concurrencia y repetición;
+  5. aplicar el cambio autorizado al campo de saldo que se defina;
+  6. crear la trazabilidad correspondiente;
+  7. asignar auditoría de usuario y fecha;
+  8. confirmar o revertir saldo e historial como una unidad.
+
+El motor NO debe:
+  - exponer por defecto un ajuste manual libre desde frontend;
+  - decidir reglas de negocio de compras, ventas o inventario;
+  - crear asientos contables obligatoriamente;
+  - calcular stock_virtual o stock_disponible sin una regla aprobada;
+  - cambiar stock_reservado hasta que exista dominio de reservas;
+  - cerrar inventarios;
+  - interpretar mocks de frontend como datos de negocio.
+
+================================================================================
+5. CONTRATO TRANSACCIONAL
+================================================================================
+
+INVARIANTE PRINCIPAL — PROPUESTA OBLIGATORIA
+
+Una operación que modifique existencias no puede confirmar:
+  - saldo actualizado sin movimiento, ni
+  - movimiento creado sin saldo actualizado.
+
+Secuencia conceptual:
+
+  BEGIN
+    validar identificadores, cantidad y autorización
+    validar empresa de item, almacén y operación
+    localizar/bloquear saldo item+almacén
+    aplicar regla de saldo aprobada
+    crear movimiento de trazabilidad
+    registrar updated_by / created_by y fechas
+  COMMIT
+
+Ante cualquier error:
+
+  ROLLBACK
+  Ningún saldo ni movimiento debe quedar persistido parcialmente.
+
+No está decidido si el INSERT de movimiento debe preceder al UPDATE de saldo;
+es irrelevante mientras ambos formen una misma transacción y no puedan
+confirmarse separadamente.
+
+================================================================================
+6. IDENTIDAD, MULTIEMPRESA Y CONCURRENCIA
+================================================================================
+
+IDENTIDAD DEL SALDO
+  CONFIRMADO: UNIQUE (id_item, id_almacen) admite como máximo un saldo por par.
+  PROPUESTA: el motor trata item+almacén como identidad lógica inmutable del
+  saldo operativo.
+
+MULTIEMPRESA — INVARIANTE PROPUESTA
+  Para cada operación deben coincidir:
+
+    operacion.id_empresa
+    item.id_empresa
+    almacen.id_empresa
+    stock_item_almacen.id_empresa
+
+  Item y Almacén tienen id_empresa en sus modelos actuales. No hay código
+  existente que haga esta validación para stock; debe incorporarse al motor.
+  La UNIQUE no incluye id_empresa; por ello no basta para impedir cruces entre
+  compañías.
+
+CONCURRENCIA — PROPUESTA
+  - Abrir una transacción de base de datos.
+  - Bloquear la fila de saldo del par item+almacén con SELECT ... FOR UPDATE
+    cuando exista.
+  - Al crear el primer saldo, intentar inserción protegida por la UNIQUE.
+  - Si dos transacciones compiten y una recibe violación de UNIQUE, releer y
+    bloquear la fila existente antes de decidir si es la misma operación
+    idempotente o un conflicto.
+  - Nunca leer-modificar-escribir sin bloqueo para el mismo par.
+
+================================================================================
+7. IDEMPOTENCIA
+================================================================================
+
+La UNIQUE item+almacén evita duplicar saldos, pero NO evita aplicar dos veces
+la misma cantidad. La idempotencia de operaciones sigue sin soporte de tabla o
+constraint confirmada.
+
+CONTRATO PROPUESTO
+  Toda operación escrita debe tener una identidad de origen verificable:
+    modulo_origen + id_origen
+  o una clave explícita de idempotencia persistida, si el modelo futuro lo
+  permite.
+
+Antes de aplicar el cambio, el motor debe comprobar que esa misma operación no
+haya sido aplicada al mismo item+almacén. Si ya existe:
+  - devolver resultado idempotente si el payload coincide; o
+  - rechazar como conflicto si el payload difiere.
+
+DECISIÓN BLOQUEANTE
+  movimiento_inventario contiene modulo_origen e id_origen, pero no hay
+  constraint confirmada que los haga únicos ni valores oficiales. La estrategia
+  definitiva de idempotencia necesita decisión de arquitectura y validación de
+  schema antes de escribir el primer motor.
+
+================================================================================
+8. CONTRATO CONCEPTUAL DE OPERACIÓN
+================================================================================
+
+Una operación interna futura debe incluir conceptualmente:
+
+  - empresa de contexto;
+  - item;
+  - almacén origen;
+  - almacén destino, solo si el caso lo requiere;
+  - cantidad;
+  - clase de operación;
+  - fecha efectiva;
+  - referencia y concepto;
+  - módulo y documento origen;
+  - lote/serie opcional para evolución futura;
+  - usuario auditor;
+  - identidad idempotente.
+
+No se fijan nombres de clases, endpoints, enums ni valores GraphQL/REST.
+
+CANTIDAD — PROPUESTA
+  El contrato debe recibir cantidad estrictamente positiva y la clase de
+  operación decide la dirección. Esto evita dobles signos en callers y
+  concentraría el signo/regla en un único sitio.
+
+Esta propuesta no se puede materializar hasta aprobar los tipos oficiales de
+operación y la semántica de cantidad en movimiento_inventario.
+
+OPERACIONES CONCEPTUALES POR VALIDAR
+  - inicialización;
+  - entrada;
+  - salida;
+  - ajuste positivo;
+  - ajuste negativo;
+  - transferencia;
+  - reserva;
+  - liberación de reserva.
+
+No son valores oficiales de tipo_movimiento.
+
+================================================================================
+9. CAMPOS DE STOCK: LÍMITES DE v1
+================================================================================
+
+stock_fisico
+  DECISIÓN ABIERTA. No hay semántica confirmada. v1 no debe afirmar que es
+  existencia real, conteo ni saldo ajustable hasta aprobación de negocio.
+
+stock_reservado
+  FUERA DE v1. No hay módulo de reservas ni fórmula aprobada. El motor v1 no
+  debe escribirlo.
+
+stock_virtual
+  FUERA DE v1. No hay fórmula ni defaults confirmados. No debe calcularse,
+  sobrescribirse ni inicializarse por convención.
+
+stock_disponible
+  FUERA DE v1. No se asume físico - reservado; queda pendiente de negocio.
+
+stock_alerta / stock_deseado
+  CONFIGURACIÓN / ALERTAS. Item ya mantiene stock_minimo_alerta y
+  stock_deseado como umbrales maestros. Hasta definir si los campos por
+  almacén son override o réplica, el motor v1 debe ignorarlos.
+
+estado
+  DECISIÓN ABIERTA. No existe semántica ni default confirmados. Ningún motor
+  debe elegir automáticamente su valor sin metadata real y decisión de negocio.
+
+PRECISIÓN NUMÉRICA
+  inventario_detalle usa NUMERIC; item usa Numeric(18,6). PROPUESTA: todas las
+  cantidades del motor deben tratarse como Decimal/NUMERIC y nunca como float
+  binario. Los tipos y escalas reales de stock_item_almacen deben confirmarse
+  antes de implementar.
+
+================================================================================
+10. PRIMER SALDO Y STOCK INICIAL
+================================================================================
+
+ALTERNATIVAS ABIERTAS
+
+A. Crear saldo cero al crear item
+  Ventaja: catálogo de saldos completo.
+  Riesgo: proliferación masiva de filas cero por almacén y sin trazabilidad de
+  tenencia real.
+
+B. Crear saldo cero al asignar almacén por defecto
+  Ventaja: vincula item con almacén.
+  Riesgo: el almacén por defecto es una preferencia actual, no evidencia de
+  existencia ni de autorización de stock.
+
+C. Crear al primer movimiento efectivo
+  Ventaja: solo existen relaciones con actividad y cada saldo tiene evento.
+  Riesgo: requiere definir qué operación puede ser primera y cómo manejar
+  inicialización.
+
+D. Crear mediante operación explícita de stock inicial
+  Ventaja: auditable, autorizable, idempotente y no confunde creación de
+  catálogo con existencia.
+  Riesgo: requiere proceso y decisiones de negocio adicionales.
+
+RECOMENDACIÓN TÉCNICA CONDICIONADA
+  D es la alternativa más consistente con la trazabilidad y el motor único.
+  Sin embargo la cantidad inicial, usuarios autorizados, si se permite cero,
+  forma de reversión y valor oficial de tipo/modulo requieren DECISIÓN DE
+  NEGOCIO PENDIENTE.
+
+CONTRATO CONCEPTUAL INICIALIZAR_STOCK
+  - solo crea el primer saldo de un item+almacén;
+  - requiere empresa, item, almacén, cantidad, referencia/concepto y usuario;
+  - debe registrar trazabilidad;
+  - debe ser idempotente;
+  - debe rechazar una segunda inicialización diferente;
+  - toda corrección posterior debe usar una operación futura de ajuste o
+    reversa, nunca una nueva inicialización.
+
+No se define aún si cantidad cero está permitida ni cómo se representa su
+reversión.
+
+================================================================================
+11. MOVIMIENTO_INVENTARIO Y TRANSFERENCIAS
+================================================================================
+
+MOVIMIENTO
+  Para operaciones que cambien existencias, el movimiento futuro debe incluir
+  como mínimo los campos disponibles que identifiquen:
+    id_empresa, id_item, cantidad, fecha_movimiento, id_almacen y estado.
+
+  Deben ser obligatorios por contrato, salvo que la metadata de BD imponga un
+  requisito adicional. referencia, concepto, modulo_origen, id_origen e
+  id_lote_serie son opcionales en la tabla actual; su obligatoriedad de
+  negocio depende de cada operación.
+
+  id_asiento_contable permanece fuera de v1. Puede vincularse en una fase
+  posterior, sin hacer del motor de stock una dependencia contable.
+
+TRANSFERENCIA — FUERA DE MVP
+  La estructura de movimiento posee id_almacen e id_almacen_destino, y existen
+  tablas de transferencia en BD según evidencia del usuario, pero no hay
+  contrato de cabecera/detalle ni código. Debe decidirse entre:
+    A. un movimiento origen+destino;
+    B. dos movimientos (salida+entrada);
+    C. cabecera transferencia + detalle + movimientos.
+
+  Recomendación condicionada: C da identidad e idempotencia a la operación de
+  transferencia y B da trazabilidad clara por cada saldo. Esta combinación
+  requiere una futura especificación de transferencia; no debe resolverse en
+  v1.
+
+================================================================================
+12. INVENTARIO, COMPRAS, VENTAS Y CONTABILIDAD
+================================================================================
+
+INVENTARIO FÍSICO
+  Fase snapshot futura: solo lee saldo aprobado del motor; persiste una foto
+  en inventario_detalle y nunca la recalcula al abrir la pantalla.
+
+  Fase cierre futura: por cada diferencia validada, invoca una operación
+  conceptual de ajuste positivo o negativo del motor. No hace UPDATE directo.
+
+  Campo stock_sistema:
+    DECISIÓN ABIERTA BLOQUEANTE. No hay evidencia para elegir entre
+    stock_fisico, stock_virtual o stock_disponible. No se debe implementar
+    snapshot hasta que negocio defina qué representa el conteo.
+
+COMPRAS
+  Una futura recepción confirmada debe enviar al motor empresa, item, almacén,
+  cantidad, fecha, referencia de recepción y documento origen. No existe
+  módulo de compras/recepción funcional hoy.
+
+VENTAS
+  Un futuro despacho confirmado debe enviar el mismo mínimo, usando su
+  documento origen. No existe módulo de ventas/despacho funcional hoy.
+
+CONTABILIDAD
+  El motor v1 no crea asiento obligatorio. La integración contable futura debe
+  ser opcional, explícita y transaccional solo cuando exista una regla
+  contable aprobada.
+
+================================================================================
+13. INVARIANTES
+================================================================================
+
+I1. Máximo un saldo por item+almacén.
+  CONFIRMADA en BD por UNIQUE (id_item,id_almacen).
+
+I2. Empresa de item, almacén, operación y saldo coincide.
+  PROPUESTA OBLIGATORIA. No existe validación actual.
+
+I3. Una operación no se reaplica accidentalmente.
+  PROPUESTA OBLIGATORIA. Sin soporte actual de idempotencia.
+
+I4. Saldo y movimiento confirman o revierten juntos.
+  PROPUESTA OBLIGATORIA. No hay transacción conjunta actual.
+
+I5. Solo el motor modifica stock_item_almacen.
+  PROPUESTA ARQUITECTÓNICA. Ningún módulo de negocio hace DML directo.
+
+I6. El historial no se edita destructivamente.
+  PROPUESTA. Las futuras correcciones deben trazarse mediante reversa/ajuste,
+  según contrato posterior.
+
+I7. Una transferencia no queda a medias.
+  PROPUESTA. Requiere operación atómica futura.
+
+I8. Snapshot de inventario no se recalcula retroactivamente.
+  PROPUESTA OBLIGATORIA. Es condición de auditoría del inventario físico.
+
+================================================================================
+14. ERRORES CONCEPTUALES
+================================================================================
+
+El motor debe poder distinguir:
+  - empresa inválida o ausente;
+  - item inexistente o ajeno a empresa;
+  - almacén inexistente o ajeno a empresa;
+  - saldo inexistente para operación que no puede crearlo;
+  - saldo insuficiente, si la política futura prohíbe negativo;
+  - cantidad inválida;
+  - operación duplicada;
+  - conflicto concurrente;
+  - documento/referencia origen inválido;
+  - operación no admitida en v1.
+
+No se fijan códigos HTTP ni mensajes definitivos.
+
+STOCK NEGATIVO
+  DECISIÓN DE NEGOCIO PENDIENTE:
+    A. prohibir;
+    B. permitir;
+    C. permitir según configuración.
+  No existe evidencia suficiente para elegir una política.
+
+================================================================================
+15. MVP PROPUESTO Y ROADMAP
+================================================================================
+
+MVP MÍNIMO PROPUESTO (posterior a este documento)
+  1. Confirmar metadata completa de stock_item_almacen, movimiento_inventario
+     y sus FKs/defaults/índices.
+  2. Lectura estrictamente read-only de saldo por id_empresa+id_item+id_almacen
+     para validar contrato de BD.
+  3. Decidir negocio: semántica de stock_fisico y operación de inicialización.
+  4. Implementar motor interno de una sola operación de inicialización,
+     con transacción, auditoría y protección idempotente aprobada.
+  5. Registrar movimiento asociado en la misma transacción.
+  6. Exponer lectura del saldo; no un ajuste público genérico.
+
+FUERA DEL MVP
+  reservas, virtual/disponible, alertas por almacén, stock negativo,
+  transferencias, lotes/series, compras, ventas, inventario físico, conteo,
+  cierre y contabilidad.
+
+ROADMAP
+  Fase 0: confirmar metadata y decisiones bloqueantes.
+  Fase 1: lectura read-only segura de stock.
+  Fase 2: contrato interno, validación empresa/concurrencia/idempotencia.
+  Fase 3: inicialización explícita y trazable.
+  Fase 4: lectura operativa de saldo.
+  Fase 5: snapshot de inventario.
+  Fase 6: conteo y cierre con ajustes.
+  Fase 7: transferencias.
+  Fase 8: reservas, virtual/disponible y contabilidad según negocio.
+
+================================================================================
+16. DECISIONES BLOQUEANTES
+================================================================================
+
+| Decisión | Impacto | Responsable |
+|---|---|---|
+| Semántica de stock_fisico | Motor e inventario | Negocio + arquitectura |
+| Fórmula virtual/disponible | Disponibilidad/reservas | Negocio |
+| Primera fila y saldo cero | Inicialización/snapshot | Negocio + arquitectura |
+| Política stock negativo | Entradas/salidas/cierre | Negocio |
+| Tipos modulo/tipo movimiento | Trazabilidad/idempotencia | Arquitectura + negocio |
+| Idempotencia persistida | Reintentos/doble saldo | Arquitectura + backend |
+| estado de saldo | Filtrado/borrado lógico | Negocio |
+| Campo stock_sistema | Conteo físico | Negocio + operaciones |
+| Lotes/series | Granularidad futura | Operaciones + arquitectura |
+| Reglas contables | Asientos/costos | Contabilidad + negocio |
+
+================================================================================
+17. CRITERIOS DE ACEPTACIÓN FUTUROS
+================================================================================
+
+Una implementación futura del motor solo se considera correcta si:
+  - no crea dos saldos para el mismo item+almacén;
+  - rechaza cruces entre empresas;
+  - no confirma saldo si falla el movimiento;
+  - no confirma movimiento si falla el saldo;
+  - un reintento idempotente no cambia dos veces el saldo;
+  - mantiene cantidades con precisión NUMERIC/Decimal;
+  - no toca reservas/virtual/disponible fuera de su contrato;
+  - no expone ajuste manual libre sin autorización;
+  - no recalcula snapshots históricos de inventario;
+  - no deja transferencia parcial cuando se implemente.
+
+================================================================================
+18. RESPUESTAS OBLIGATORIAS
+================================================================================
+
+1. Motor Stock v1: servicio central para operaciones de saldo trazables.
+2. Ubicación: propuesta AlmacenPython, una única implementación Python.
+3. Modificar saldo: exclusivamente el motor.
+4. Movimiento: trazabilidad de todo cambio efectivo.
+5. Fuente de verdad: no definida hoy; propuesta saldo materializado + historial.
+6. Transacción: saldo y movimiento commit/rollback juntos.
+7. Concurrencia: transacción, lock por item+almacén y manejo UNIQUE.
+8. Multiempresa: validar igualdad de empresa en item, almacén, operación y saldo.
+9. Doble aplicación: identidad de origen/idempotencia persistida pendiente.
+10. Primera fila: decisión abierta; recomendación condicionada inicialización explícita.
+11. Fila cero: decisión abierta.
+12. Stock inicial: operación única, auditable e idempotente; detalles pendientes.
+13. Cantidad: propuesta positiva; clase de operación define dirección.
+14. Negativo: decisión de negocio pendiente.
+15. Reservado: fuera de v1.
+16. Virtual: fuera de v1.
+17. Disponible: fuera de v1.
+18. Alerta/deseado: configuración, ignorar en motor v1.
+19. Transferencias: fuera de MVP; atómicas en fase posterior.
+20. Inventario: snapshot lee; cierre llama ajustes futuros.
+21. stock_sistema: decisión abierta bloqueante.
+22. Contabilidad: desacoplada y posterior.
+23. Callers futuros: inicialización, recepción, despacho, ajuste, cierre, transferencia.
+24. No pueden tocar tabla: inventario, compras, ventas, transferencias, UI/Gateway.
+25. Bloqueadas: semántica/fórmulas/primer saldo/negativo/tipos/idempotencia.
+26. MVP: inicialización transaccional mínima después de metadata y decisiones.
+27. Orden: metadata → lectura → contrato → inicialización → saldo → inventario.
+28. Próxima tarea: confirmar metadata completa y tomar decisiones de stock_fisico e
+    inicialización antes de escribir código.
+
+================================================================================
+19. ALCANCE
+================================================================================
+
+No se modificó código funcional, Gateway, frontend, base de datos, Docker,
+puertos ni dependencias. Este archivo es la única escritura de esta tarea.

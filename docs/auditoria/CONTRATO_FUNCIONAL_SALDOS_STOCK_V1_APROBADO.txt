@@ -1,0 +1,259 @@
+================================================================================
+CONTRATO_FUNCIONAL_SALDOS_STOCK_V1_APROBADO.txt
+================================================================================
+Módulo: Almacenes / motor de stock
+Fase: 6C — Formalización documental
+Fecha: 2026-08-24
+Naturaleza: CONTRATO FUNCIONAL (no implementación)
+================================================================================
+
+
+1. IDENTIFICACIÓN
+--------------------------------------------------------------------------------
+Documento: CONTRATO FUNCIONAL DE SALDOS STOCK v1
+
+Tabla: public.stock_item_almacen
+
+Saldos cubiertos:
+  stock_fisico
+  stock_reservado
+  stock_disponible
+  stock_virtual
+
+Writer actual de aplicación:
+  AlmacenPython — STOCK INICIAL v1
+
+Lectura:
+  AlmacenNestJs / GraphQL / Stock Actual (sin cálculo)
+
+Este contrato NO implementa código ni modifica BD.
+
+
+2. OBJETIVO
+--------------------------------------------------------------------------------
+Definir qué representan los cuatro saldos y la fórmula v1 de
+stock_disponible, para que futuros writers (incluido un cambio mínimo
+posterior de STOCK INICIAL) no dupliquen ni inventen reglas.
+
+No reabre autenticación, Gateway, frontend, idempotencia ni el GO 5E
+de STOCK INICIAL, salvo la semántica de stock_disponible en la
+inicialización.
+
+
+3. EVIDENCIA HISTÓRICA 6B.1 (RESUMEN)
+--------------------------------------------------------------------------------
+- Las cuatro columnas existían en dump PostgreSQL (Tablas/Tablas.sql,
+  commit 50b32ce, 2026-03-10): NUMERIC(12,2) DEFAULT 0 NOT NULL.
+- COPY histórico vacío. Sin motor de aplicación que mantuviera
+  stock_disponible. Sin fórmula histórica. Sin writer de reservas.
+  Sin semántica implementada de stock_virtual.
+- Único writer real: STOCK INICIAL v1 (fisico=cantidad, reservado=0,
+  virtual=0, disponible omitido → DEFAULT 0).
+- Ese 0 NO es regla histórica de negocio; es el default de BD.
+- Clasificación 6B.1: C — completar funcionalidad inacabada.
+  No se restaura lógica borrada. No se rediseña un motor previo.
+
+
+4. ARQUITECTURA MANTENIDA
+--------------------------------------------------------------------------------
+Frontend:        UX / lectura. NO calcula saldo definitivo.
+Gateway:         transporte e identidad. NO calcula saldos.
+AlmacenPython:   AUTORIDAD DE ESCRITURA de stock.
+AlmacenNestJs:   lectura. NO escribe ni calcula saldos.
+PostgreSQL:      persiste. Sin triggers. Sin generated columns.
+Fórmula:         una sola capa — AlmacenPython, en la transacción
+                 de escritura.
+
+
+5. STOCK_FISICO
+--------------------------------------------------------------------------------
+Cantidad real físicamente existente del item dentro de un almacén.
+
+
+6. STOCK_RESERVADO
+--------------------------------------------------------------------------------
+Cantidad del stock físico comprometida para una operación y que no
+puede utilizarse como stock libre.
+
+v1: no hay writer de reserva; en STOCK INICIAL = 0.
+
+
+7. STOCK_DISPONIBLE
+--------------------------------------------------------------------------------
+Cantidad física existente que todavía puede utilizarse y que no está
+reservada.
+
+Columna PERSISTIDA. No se elimina. No se convierte en generated.
+Los writers deben mantenerla sincronizada.
+
+
+8. STOCK_VIRTUAL
+--------------------------------------------------------------------------------
+Semántica avanzada: PENDIENTE DE DEFINICIÓN.
+
+Mientras no exista dominio implementado (compras pendientes, tránsito,
+proyecciones, etc.):
+
+  stock_virtual = 0
+
+NO participa en la fórmula de stock_disponible v1.
+
+
+9. FÓRMULA DE DISPONIBLE (v1)
+--------------------------------------------------------------------------------
+stock_disponible = stock_fisico - stock_reservado
+
+NO:
+  fisico - reservado + virtual
+  fisico + virtual
+  otra fórmula sin contrato posterior.
+
+
+10. REGLA STOCK INICIAL
+--------------------------------------------------------------------------------
+Para cantidad inicial Q:
+
+  stock_fisico      = Q
+  stock_reservado   = 0
+  stock_disponible  = Q
+  stock_virtual     = 0
+
+Porque Q - 0 = Q.
+
+Ejemplo Q = 100:
+  fisico 100, reservado 0, disponible 100, virtual 0.
+
+El writer ACTUAL aún persiste disponible vía DEFAULT 0.
+Este contrato APRUEBA el comportamiento esperado; NO lo implementa.
+La alineación del INSERT queda para fase 6D (autorización expresa).
+
+
+11. INVARIANTES FUNCIONALES v1
+--------------------------------------------------------------------------------
+ 1. stock_fisico >= 0
+ 2. stock_reservado >= 0
+ 3. stock_disponible >= 0
+ 4. stock_reservado <= stock_fisico
+ 5. stock_disponible = stock_fisico - stock_reservado
+ 6. No reservar más de stock_disponible.
+ 7. Una salida libre no puede superar stock_disponible.
+ 8. Una salida reservada no puede superar la reserva correspondiente.
+ 9. Cambio de saldo + movimiento_inventario en la misma transacción.
+10. Error: rollback completo.
+11. Replay idempotente: no vuelve a modificar saldos.
+
+Reglas 6–8: documentadas para FUTUROS writers. NO implementadas en 6C.
+Reglas 9–11: ya aplicadas en STOCK INICIAL v1.
+
+
+12. OPERACIONES FUTURAS (NO IMPLEMENTAR EN 6C)
+--------------------------------------------------------------------------------
+RESERVA Q:           fisico sin cambio; reservado +Q; disponible -Q
+LIBERACIÓN Q:        fisico sin cambio; reservado -Q; disponible +Q
+SALIDA LIBRE Q:      fisico -Q; reservado sin cambio; disponible -Q
+SALIDA RESERVADA Q:  fisico -Q; reservado -Q; disponible sin cambio
+AJUSTE POSITIVO Q:   fisico +Q; disponible +Q
+AJUSTE NEGATIVO Q:   fisico -Q; disponible -Q
+
+TRANSFERENCIA INMEDIATA A → B, cantidad Q:
+  origen:  fisico -Q, disponible -Q
+  destino: fisico +Q, disponible +Q
+  reservado: sin cambio salvo diseño futuro
+  virtual: NO usar todavía
+
+Estados SOLICITADA / EN_TRANSITO / RECIBIDA: PENDIENTES.
+No resolverlas con stock_virtual en v1.
+
+
+13. NEGATIVOS
+--------------------------------------------------------------------------------
+NO permitir:
+  stock_fisico < 0
+  stock_reservado < 0
+  stock_disponible < 0
+
+stock_virtual: PENDIENTE (no aplicar esta regla todavía).
+
+
+14. AUTORIDAD DE ESCRITURA
+--------------------------------------------------------------------------------
+AlmacenPython = autoridad del motor de escritura de stock.
+
+Toda operación futura que afecte saldos debe usar el mismo motor y
+las mismas reglas transaccionales.
+
+
+15. ATOMICIDAD
+--------------------------------------------------------------------------------
+Saldos y movimiento_inventario en una sola transacción.
+Fallo → rollback; sin saldos a medias.
+Patrón ya validado en STOCK INICIAL v1.
+
+
+16. IDEMPOTENCIA
+--------------------------------------------------------------------------------
+Replay (mismo id_origen, misma intención): HTTP 200 YA_PROCESADO;
+no altera saldos.
+Conflicto de intención / par ya inicializado: 409.
+Sin cambio de contrato HTTP.
+
+
+17. SUPERSESIÓN PARCIAL DEL CONTRATO ANTERIOR
+--------------------------------------------------------------------------------
+CONTRATO_ESCRITURA_MOTOR_STOCK_V1_APROBADO.txt y
+CONTRATO_TECNICO_STOCK_INICIAL_V1_APROBADO.txt indicaban:
+
+  stock_disponible DEFAULT 0
+  y no asumir fisico - reservado.
+
+Eso era PROVISIONAL mientras no había semántica.
+
+Este documento SUPERSEDE PARCIALMENTE únicamente:
+  el DEFAULT 0 como comportamiento funcional de disponible
+  en STOCK INICIAL (el valor correcto es Q, no 0).
+
+NO invalida:
+  endpoint, payload, id_origen, idempotencia, replay 200,
+  creación 201, conflictos 409, atomicidad, rollback, auditoría,
+  identidad, Gateway, frontend, movimiento INICIAL.
+
+
+18. DATOS HISTÓRICOS
+--------------------------------------------------------------------------------
+Existen 4 filas de prueba STOCK INICIAL con
+stock_fisico > 0 y stock_disponible = 0.
+
+TRATAMIENTO DE DATOS HISTÓRICOS:
+  PENDIENTE DE DECISIÓN SEPARADA.
+
+NO UPDATE en 6C.
+NO bloquean la corrección del writer para NUEVAS operaciones (6D).
+
+
+19. FUNCIONALIDADES TODAVÍA NO IMPLEMENTADAS
+--------------------------------------------------------------------------------
+- Writer STOCK INICIAL alineado a disponible = Q (fase 6D).
+- Reserva / liberación.
+- Entrada / salida libre / salida reservada.
+- Ajuste +/-.
+- Transferencia operativa (inmediata o con estados).
+- Semántica de stock_virtual.
+- Normalización de filas históricas.
+
+
+20. PRÓXIMA FASE
+--------------------------------------------------------------------------------
+6D — CAMBIO MÍNIMO STOCK INICIAL
+
+Objetivo: nuevas creaciones persisten
+  fisico = cantidad, reservado = 0, disponible = cantidad, virtual = 0
+
+Alcance previsto: AlmacenPython writer/service únicamente.
+
+NO ejecutar 6D sin autorización expresa.
+NO tocar Frontend, Gateway, AlmacenNestJs, DDL ni datos históricos
+en esa fase salvo nueva autorización.
+
+================================================================================
+FIN DEL CONTRATO
+================================================================================
