@@ -250,7 +250,7 @@ services:
       - BANCO_CAJA_NEST_GQL_URL=http://banco-caja-nestjs-service:3016
       - DOCUMENT_API_BASE_URL=http://document-api:5010
       - GATEWAY_PORT=3002
-      - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:5173,http://host.docker.internal:3000
       - TZ=America/Guayaquil
     ports:
       - "3002:3002"
@@ -381,7 +381,8 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - VITE_GATEWAY_URL=http://localhost:3002
+      # host.docker.internal: E2E Playwright en contenedor; también válido desde el host con Docker Desktop
+      - VITE_GATEWAY_URL=http://host.docker.internal:3002
       - VITE_PYTHON_URL=http://localhost:5000
       - TZ=America/Guayaquil
     networks:

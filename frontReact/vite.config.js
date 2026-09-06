@@ -72,6 +72,8 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    // Playwright / Docker Desktop: Host header host.docker.internal
+    allowedHosts: true,
     hmr: {
       overlay: false // Deshabilitar overlay de errores para evitar problemas con múltiples raíces
     }

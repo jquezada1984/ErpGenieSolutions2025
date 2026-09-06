@@ -23,20 +23,28 @@ export async function loginAsE2eUser(page: Page): Promise<void> {
 /** Si GLOBAL sin empresa elegida, elige la primera opción del SelectEmpresa (react-select). */
 export async function ensureEmpresaSeleccionada(page: Page): Promise<void> {
   const globalBar = page.getByTestId('config-empresa-bar-global');
+  await globalBar.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null);
   if ((await globalBar.count()) === 0) return;
 
-  const placeholder = globalBar.getByText(/seleccione empresa/i);
-  if ((await placeholder.count()) === 0) return;
+  const avisoContinuar = page.getByText(/seleccione una empresa para continuar/i);
+  await globalBar.locator('input').first().waitFor({ state: 'attached', timeout: 10_000 });
 
-  const control = globalBar.locator('.react-select__control, [class*="control"]').first();
-  if ((await control.count()) === 0) {
-    // Fallback: clic en el contenedor del select
-    await globalBar.locator('input').first().click({ force: true });
-  } else {
-    await control.click();
+  const needsEmpresa = await avisoContinuar
+    .first()
+    .waitFor({ state: 'visible', timeout: 5_000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (!needsEmpresa) {
+    const ph = globalBar.getByText(/seleccione empresa/i);
+    if ((await ph.count()) === 0) return;
   }
 
-  const option = page.locator('[id*="react-select"][id*="-option-0], .react-select__option').first();
+  // Abrir menú (portal de react-select en body)
+  await globalBar.locator('input').first().click({ force: true });
+  const option = page.getByText(/\d+\s*-\s*.+/).first();
   await option.waitFor({ state: 'visible', timeout: 10_000 });
   await option.click();
+
+  await expect(avisoContinuar.first()).toBeHidden({ timeout: 15_000 });
 }

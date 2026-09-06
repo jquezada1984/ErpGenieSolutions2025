@@ -48,6 +48,7 @@ test.describe('Configuración @config', () => {
     const ficha = page.waitForURL(/\/empresas\/editar\//, { timeout: 15_000 }).then(() => 'ficha');
     const aviso = page
       .getByText(/seleccione una empresa/i)
+      .first()
       .waitFor({ state: 'visible', timeout: 15_000 })
       .then(() => 'aviso');
     const titulo = page
@@ -62,8 +63,8 @@ test.describe('Configuración @config', () => {
     await page.goto('/configuracion/diccionarios');
     await ensureEmpresaSeleccionada(page);
     await expect(page.getByRole('heading', { name: 'Diccionarios' })).toBeVisible();
-
-    await page.getByRole('link', { name: /impuestos \/ iva/i }).click();
+    // ListGroupItem+Link: el nombre accesible incluye "Editar"
+    await page.getByRole('link', { name: /impuestos/i }).click();
     await expect(page).toHaveURL(/\/configuracion\/diccionarios\/impuestos/);
     await expect(page.getByRole('heading', { name: /Diccionarios — Impuestos \/ IVA/i })).toBeVisible({
       timeout: 20_000,
