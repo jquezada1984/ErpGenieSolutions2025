@@ -196,3 +196,29 @@ def procesar_pago_route():
         return jsonify(ve.messages), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@transferencia_bp.route('/transferencia-contable/procesar-ajuste-inventario', methods=['POST', 'OPTIONS'])
+def procesar_ajuste_inventario_route():
+    """Endpoint interno ContabilidadWorker: asiento diario INV para AJUSTE_*."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    id_empresa = _empresa_id()
+    body = request.get_json(silent=True) or {}
+    id_origen = (
+        body.get('id_origen')
+        or body.get('id_inventario')
+        or body.get('id_cambio_masivo_stock')
+    )
+    modulo = body.get('modulo_origen')
+    if not id_empresa:
+        return jsonify({'error': 'Falta X-Company-Id'}), 400
+    if not id_origen:
+        return jsonify({'error': 'Falta id_inventario / id_cambio_masivo_stock / id_origen'}), 400
+    try:
+        data = svc.procesar_ajuste_inventario(id_empresa, str(id_origen), modulo)
+        return jsonify({'success': True, **data}), 200
+    except ValidationError as ve:
+        return jsonify(ve.messages), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

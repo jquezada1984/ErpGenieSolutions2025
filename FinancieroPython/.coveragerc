@@ -1,0 +1,5 @@
+# Coverage report helpers (fail-under en CI: --cov-fail-under=80 solo factura_calc).
+[report]
+show_missing = True
+exclude_lines =
+    pragma: no cover

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from marshmallow import ValidationError
@@ -11,14 +11,11 @@ from models.factura import Factura
 from models.factura_linea import FacturaLinea
 from schemas.factura_cliente_schema import CrearFacturaClienteBorradorSchema, ReemplazarLineasSchema
 from services.rabbit_publisher import publish_factura_validada, publish_mail_send
-
-
-def _money(v: Any) -> Decimal:
-    return Decimal(str(v or 0)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-
-
-def _qty(v: Any) -> Decimal:
-    return Decimal(str(v or 0)).quantize(Decimal('0.001'), rounding=ROUND_HALF_UP)
+from services.factura_calc import (
+    calc_linea as _calc_linea,
+    money as _money,
+    recalcular_totales_from_lineas,
+)
 
 
 def _scalar_one(session, sql, params):
@@ -74,54 +71,21 @@ def _validar_catalogos(session, id_empresa: str, data: dict, es_proveedor: bool 
             raise ValidationError({'id_moneda': ['Divisa inválida.']})
 
 
-def _calc_linea(lin: dict, orden: int) -> dict:
-    cantidad = _qty(lin['cantidad'])
-    precio = _money(lin['precio_unitario'])
-    desc_pct = _money(lin.get('descuento_porcentaje') or 0)
-    desc_val = _money(lin.get('descuento_valor') or 0)
-    if cantidad <= 0:
-        raise ValidationError({'lineas': [f'Línea {orden}: cantidad debe ser > 0']})
-    if precio < 0:
-        raise ValidationError({'lineas': [f'Línea {orden}: precio inválido']})
-    bruto = (cantidad * precio).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-    descuento = desc_val
-    if desc_pct > 0:
-        descuento = (bruto * desc_pct / Decimal('100')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-    subtotal = (bruto - descuento).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-    if subtotal < 0:
-        raise ValidationError({'lineas': [f'Línea {orden}: subtotal negativo']})
-    tasa = _money(lin.get('tasa_iva') or 0)
-    if tasa < 0:
-        tasa = Decimal('0.00')
-    iva = (subtotal * tasa / Decimal('100')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-    return {
-        'id_item': str(lin['id_item']) if lin.get('id_item') else None,
-        'descripcion': lin['descripcion'].strip(),
-        'cantidad': cantidad,
-        'precio_unitario': precio,
-        'descuento_porcentaje': desc_pct,
-        'descuento_valor': descuento,
-        'subtotal': subtotal,
-        'iva': iva,
-        'id_cuenta_contable': str(lin['id_cuenta_contable']) if lin.get('id_cuenta_contable') else None,
-        'orden': int(lin.get('orden') or orden),
-    }
-
-
 def _recalcular_totales(factura: Factura, total_iva: Optional[Decimal] = None) -> None:
     lineas = (
         FacturaLinea.query.filter_by(id_factura=factura.id_factura)
         .order_by(FacturaLinea.orden)
         .all()
     )
-    subtotal = sum((_money(l.subtotal) for l in lineas), Decimal('0.00'))
-    factura.subtotal = subtotal
-    factura.total_descuentos = sum((_money(l.descuento_valor) for l in lineas), Decimal('0.00'))
-    if total_iva is not None:
-        factura.total_impuestos = _money(total_iva)
-    else:
-        factura.total_impuestos = _money(factura.total_impuestos or 0)
-    factura.total_factura = subtotal + _money(factura.total_impuestos)
+    totals = recalcular_totales_from_lineas(
+        lineas,
+        total_iva=total_iva,
+        total_impuestos_actual=factura.total_impuestos,
+    )
+    factura.subtotal = totals['subtotal']
+    factura.total_descuentos = totals['total_descuentos']
+    factura.total_impuestos = totals['total_impuestos']
+    factura.total_factura = totals['total_factura']
 
 
 def _insertar_lineas(session, id_factura: str, lineas_in: List[dict]) -> Decimal:

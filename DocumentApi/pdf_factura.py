@@ -58,7 +58,7 @@ def generar_factura_pdf(id_empresa: str, id_factura: str, es_cliente: bool = Tru
                 break
             linea = dict(zip(col_l, row))
             if y < MARGIN + 28 * mm:
-                pie_pagina(c, pagina)
+                pie_pagina(c, pagina, id_empresa)
                 c.showPage()
                 pagina += 1
                 y = _pagina_nueva(c, id_empresa, titulo_doc, header, pagina)
@@ -68,7 +68,7 @@ def generar_factura_pdf(id_empresa: str, id_factura: str, es_cliente: bool = Tru
         c.setFont('Helvetica-Bold', 9)
         tot = _money(header.get('total_factura'))
         c.drawRightString(PAGE_W - MARGIN, y, f"Total: {tot}")
-        pie_pagina(c, pagina)
+        pie_pagina(c, pagina, id_empresa)
         c.save()
         return buf.getvalue()
     finally:

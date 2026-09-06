@@ -25,6 +25,7 @@ import SeccionEmpresa from './secciones/SeccionEmpresa';
 import SeccionRedesSociales from './secciones/SeccionRedesSociales';
 import SeccionHorarioApertura from './secciones/SeccionHorarioApertura';
 import SeccionContable from './secciones/SeccionContable';
+import SeccionLimitesPdf from './secciones/SeccionLimitesPdf';
 
 const GET_EMPRESA = gql`
   query GetEmpresa($id_empresa: ID!) {
@@ -48,6 +49,12 @@ const GET_EMPRESA = gql`
       id_provincia
       fiscal_year_start_month
       fiscal_year_start_day
+      decimales_precio
+      decimales_cantidad
+      decimales_total
+      pdf_mostrar_ruc
+      pdf_pie_texto
+      id_formato_papel
       identificacion {
         administradores
         delegado_datos
@@ -399,6 +406,7 @@ const EditarEmpresa: React.FC = () => {
                 data={formData} 
                 onChange={handleEmpresaChange}
               />
+              <SeccionLimitesPdf data={formData} onChange={handleEmpresaChange} />
             </TabPane>
             <TabPane tabId="2">
               <SeccionRedesSociales 

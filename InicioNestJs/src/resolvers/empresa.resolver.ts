@@ -57,7 +57,13 @@ export class EmpresaResolver {
           'empresa.sujeto_iva',
           'empresa.id_provincia',
           'empresa.fiscal_year_start_month',
-          'empresa.fiscal_year_start_day'
+          'empresa.fiscal_year_start_day',
+          'empresa.decimales_precio',
+          'empresa.decimales_cantidad',
+          'empresa.decimales_total',
+          'empresa.pdf_mostrar_ruc',
+          'empresa.pdf_pie_texto',
+          'empresa.id_formato_papel',
         ])
         .where('empresa.id_empresa = :id', { id: id_empresa })
         .getOne();

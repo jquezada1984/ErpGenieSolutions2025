@@ -61,6 +61,9 @@ type DuracionUnidadCatalogo {
 type Empresa {
   codigo_postal: String
   created_at: DateTime!
+  decimales_cantidad: Int!
+  decimales_precio: Int!
+  decimales_total: Int!
   direccion: String
   email: String
   estado: Boolean!
@@ -69,6 +72,7 @@ type Empresa {
   fiscal_year_start_month: Float!
   horarios_apertura: [EmpresaHorarioApertura!]
   id_empresa: ID!
+  id_formato_papel: ID
   id_moneda: ID
   id_pais: ID
   id_provincia: ID
@@ -78,6 +82,8 @@ type Empresa {
   nombre: String!
   nota: String
   pais: Pais
+  pdf_mostrar_ruc: Boolean!
+  pdf_pie_texto: String
   perfiles: [Perfil!]
   poblacion: String
   provincia: Provincia
@@ -184,7 +190,10 @@ type FormatoPapel {
 }
 
 type Impuesto {
+  activo: Boolean!
+  codigo: String!
   id: Int!
+  id_empresa: ID!
   nombre: String!
   tasa: Float!
 }
@@ -379,7 +388,7 @@ type Query {
   formasPago(id_empresa: String, soloActivos: Boolean = true, tipoUso: String): [FormaPago!]!
   formatosPapel(soloActivos: Boolean = true): [FormatoPapel!]!
   getUserProfile: LoginResponse
-  impuestos: [Impuesto!]!
+  impuestos(id_empresa: ID, solo_activos: Boolean): [Impuesto!]!
   item(id_item: ID!): MenuItem
   items: [MenuItem!]!
   itemsPorSeccion(id_seccion: ID!): [MenuItem!]!

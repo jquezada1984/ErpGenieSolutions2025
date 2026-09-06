@@ -1,0 +1,6 @@
+# Coverage report helpers (fail-under se aplica en CI / scripts con --cov-fail-under=80).
+[report]
+show_missing = True
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.

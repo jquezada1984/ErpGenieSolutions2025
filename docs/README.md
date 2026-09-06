@@ -25,6 +25,7 @@
 | [MENU_Y_PERMISOS.md](./MENU_Y_PERMISOS.md) | Menú superior/lateral y permisos por perfil |
 | [GRAPHQL_PERMISOS_MENU.md](./GRAPHQL_PERMISOS_MENU.md) | Queries GraphQL de menú y permisos |
 | [CONEXION_LOGIN.md](./CONEXION_LOGIN.md) | Flujo de login / JWT |
+| [TESTING.md](./TESTING.md) | Unitarios P0, coverage gate, Nest Inicio/Tercero, E2E Playwright (smoke + configuración) |
 
 ## Planes activos
 
@@ -33,6 +34,7 @@
 | [planes/PLAN_CONTABILIDAD_COMPLETO.md](./planes/PLAN_CONTABILIDAD_COMPLETO.md) | Plan maestro Contabilidad (Fases 1–5) |
 | [planes/PLAN_INICIO_CONFIGURACION_MULTIEMPRESA.md](./planes/PLAN_INICIO_CONFIGURACION_MULTIEMPRESA.md) | Inicio / Configuración vs Dolibarr (hub, IVA, dashboard) |
 | [planes/PLAN_CONFIG_GLOBAL_DICCIONARIOS.md](./planes/PLAN_CONFIG_GLOBAL_DICCIONARIOS.md) | Supercedido: diccionarios por empresa (gran parte ya hecha) |
+| [planes/PLAN_KARDEX_STOCK_MULTIEMPRESA.md](./planes/PLAN_KARDEX_STOCK_MULTIEMPRESA.md) | Kardex / almacenes / transferencias / INV Rabbit |
 
 ## Datos y SQL
 

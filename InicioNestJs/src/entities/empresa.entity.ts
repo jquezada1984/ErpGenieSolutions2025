@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToOne, OneToMany, JoinColumn } from 'typeorm';
-import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
 import { Sucursal } from './sucursal.entity';
 import { Perfil } from './perfil.entity';
 import { Pais } from './pais.entity';
@@ -103,6 +103,30 @@ export class Empresa {
   @Field()
   @Column({ type: 'int', default: 1 })
   fiscal_year_start_day: number;
+
+  @Field(() => Int)
+  @Column({ type: 'smallint', default: 2 })
+  decimales_precio: number;
+
+  @Field(() => Int)
+  @Column({ type: 'smallint', default: 2 })
+  decimales_cantidad: number;
+
+  @Field(() => Int)
+  @Column({ type: 'smallint', default: 2 })
+  decimales_total: number;
+
+  @Field()
+  @Column({ type: 'boolean', default: true })
+  pdf_mostrar_ruc: boolean;
+
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'text', nullable: true })
+  pdf_pie_texto?: string;
+
+  @Field(() => ID, { nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  id_formato_papel?: string;
 
   // Relaciones
   @Field(() => Moneda, { nullable: true })

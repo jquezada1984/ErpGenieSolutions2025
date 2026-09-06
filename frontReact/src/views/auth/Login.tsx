@@ -125,6 +125,7 @@ const Login = () => {
                         <FormGroup>
                           <Label htmlFor="email">Correo electrónico</Label>
                           <Field
+                            id="email"
                             name="email"
                             type="text"
                             value={values.email}
@@ -135,12 +136,14 @@ const Login = () => {
                             }`}
                             disabled={isLoading}
                             autoComplete="username"
+                            data-testid="login-email"
                           />
                           <ErrorMessage name="email" component="div" className="invalid-feedback" />
                         </FormGroup>
                         <FormGroup>
                           <Label htmlFor="password">Contraseña</Label>
                           <Field
+                            id="password"
                             name="password"
                             type="password"
                             placeholder="Tu contraseña"
@@ -151,6 +154,7 @@ const Login = () => {
                             }`}
                             disabled={isLoading}
                             autoComplete="current-password"
+                            data-testid="login-password"
                           />
                           <ErrorMessage
                             name="password"
@@ -179,6 +183,7 @@ const Login = () => {
                             color="danger"
                             className="me-2"
                             disabled={isLoading || isSubmitting}
+                            data-testid="login-submit"
                           >
                             {isLoading ? (
                               <>

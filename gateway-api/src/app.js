@@ -97,6 +97,7 @@ fastify.register(require('./routes/contabilidad'), { prefix: '/api' });
 fastify.register(require('./routes/financiero'), { prefix: '/api' });
 fastify.register(require('./routes/documentos'), { prefix: '/api' });
 fastify.register(require('./routes/catalogos'), { prefix: '/api' });
+fastify.register(require('./routes/config'), { prefix: '/api' });
 fastify.register(require('./routes/estadoArchivo'), { prefix: '/api' });
 
 fastify.post('/api/terceros', async (request, reply) => {

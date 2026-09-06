@@ -45,7 +45,10 @@ def obtener_empresa(id_empresa: str) -> Dict[str, Any]:
     with cursor() as cur:
         cur.execute(
             """SELECT id_empresa, nombre, ruc, direccion, telefono, email, web,
-                      poblacion, codigo_postal
+                      poblacion, codigo_postal,
+                      COALESCE(pdf_mostrar_ruc, true) AS pdf_mostrar_ruc,
+                      pdf_pie_texto,
+                      COALESCE(decimales_total, 2) AS decimales_total
                FROM empresa WHERE id_empresa = %s LIMIT 1""",
             (id_empresa,),
         )

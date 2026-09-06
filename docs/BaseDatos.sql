@@ -1,6 +1,10 @@
 --
 -- PostgreSQL database dump
 --
+-- *** DESACTUALIZADO (2026-08): la BD viva tiene tablas/columnas no presentes aquí,
+-- especialmente cambio_masivo_stock, cambio_masivo_stock_detalle y almacen.id_provincia.
+-- Ver docs/sql/almacenes_v1_schema_ref.sql y docs/planes/PLAN_KARDEX_STOCK_MULTIEMPRESA.md
+--
 
 \restrict BTEYt4MfUyaawkJPoaqDZ5MecMOObXVGPVUU1wP2n005rLdlJt4afdOCJHGCyhW
 

@@ -100,6 +100,12 @@ class EmpresaSchema(Schema):
     id_provincia = fields.Str(allow_none=True)
     fiscal_year_start_month = fields.Int(load_default=1, validate=validate.Range(min=1, max=12))
     fiscal_year_start_day = fields.Int(load_default=1, validate=validate.Range(min=1, max=31))
+    decimales_precio = fields.Int(load_default=2, validate=validate.Range(min=0, max=6))
+    decimales_cantidad = fields.Int(load_default=2, validate=validate.Range(min=0, max=6))
+    decimales_total = fields.Int(load_default=2, validate=validate.Range(min=0, max=6))
+    pdf_mostrar_ruc = fields.Bool(load_default=True)
+    pdf_pie_texto = fields.Str(allow_none=True)
+    id_formato_papel = fields.UUID(allow_none=True)
     
     # Relaciones
     moneda = fields.Nested(MonedaSchema, dump_only=True)
@@ -140,6 +146,12 @@ class EmpresaUpdateSchema(EmpresaSchema):
     id_provincia = fields.Str(required=False, allow_none=True)
     fiscal_year_start_month = fields.Int(validate=validate.Range(min=1, max=12), required=False)
     fiscal_year_start_day = fields.Int(validate=validate.Range(min=1, max=31), required=False)
+    decimales_precio = fields.Int(validate=validate.Range(min=0, max=6), required=False)
+    decimales_cantidad = fields.Int(validate=validate.Range(min=0, max=6), required=False)
+    decimales_total = fields.Int(validate=validate.Range(min=0, max=6), required=False)
+    pdf_mostrar_ruc = fields.Bool(required=False)
+    pdf_pie_texto = fields.Str(allow_none=True, required=False)
+    id_formato_papel = fields.UUID(allow_none=True, required=False)
     
     # Agregar campos para las relaciones
     identificacion = fields.Dict(required=False)

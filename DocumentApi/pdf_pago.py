@@ -68,7 +68,7 @@ def generar_pago_pdf(id_empresa: str, id_pago: str) -> bytes:
             if app is None:
                 break
             if y < 25 * mm:
-                pie_pagina(c, 1)
+                pie_pagina(c, 1, id_empresa)
                 c.showPage()
                 y = dibujar_cabecera_empresa(c, id_empresa, titulo)
             c.setFont('Helvetica', 8)
@@ -76,7 +76,7 @@ def generar_pago_pdf(id_empresa: str, id_pago: str) -> bytes:
             c.drawRightString(PAGE_W - MARGIN, y, _money(app[1]))
             y -= 12
 
-        pie_pagina(c, 1)
+        pie_pagina(c, 1, id_empresa)
         c.save()
         return buf.getvalue()
     finally:

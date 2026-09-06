@@ -10,9 +10,16 @@ export class ImpuestoService {
     private impuestoRepository: Repository<Impuesto>,
   ) {}
 
-  async findAll(): Promise<Impuesto[]> {
+  async findAll(opts?: {
+    id_empresa?: string;
+    solo_activos?: boolean;
+  }): Promise<Impuesto[]> {
+    const where: Record<string, unknown> = {};
+    if (opts?.id_empresa) where.id_empresa = opts.id_empresa;
+    if (opts?.solo_activos) where.activo = true;
     return this.impuestoRepository.find({
-      order: { tasa: 'ASC' },
+      where,
+      order: { tasa: 'ASC', codigo: 'ASC' },
     });
   }
 }

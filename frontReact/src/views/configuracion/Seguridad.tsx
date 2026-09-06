@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Button,
@@ -11,12 +11,17 @@ import {
   Nav,
   NavItem,
   NavLink,
+  Spinner,
   TabContent,
   TabPane,
   Table,
 } from 'reactstrap';
-import ConfigEmpresaBar from '../../components/ConfigEmpresaBar';
-import { useConfigEmpresaScope } from '../../hooks/useConfigEmpresaScope';
+import useJwtPayload from '../../hooks/useJwtPayload';
+import { isScopeGlobal } from '../../utils/scopeAcceso';
+import {
+  guardarSeguridadInstancia,
+  obtenerSeguridadInstancia,
+} from '../../_apis_/configEmpresa';
 
 const TABS = [
   { id: 'misc', label: 'Miscelánea' },
@@ -28,11 +33,11 @@ const TABS = [
 ];
 
 /**
- * Configuración de seguridad — UI estilo Dolibarr.
- * Persistencia real pendiente.
+ * Seguridad de instancia (no por empresa). Solo GLOBAL puede guardar.
  */
 const Seguridad = () => {
-  const empresaScope = useConfigEmpresaScope();
+  const payload = useJwtPayload();
+  const scopeGlobal = isScopeGlobal(payload);
   const [tab, setTab] = useState('misc');
   const [captcha, setCaptcha] = useState(false);
   const [derechosAvanzados, setDerechosAvanzados] = useState(false);
@@ -43,9 +48,60 @@ const Seguridad = () => {
   const [maxAuthFail, setMaxAuthFail] = useState(100);
   const [minPassword, setMinPassword] = useState(8);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const modificar = () => {
-    setMensaje('Parámetros de seguridad actualizados en vista previa (persistencia pendiente).');
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const cfg = await obtenerSeguridadInstancia();
+      const s = (cfg?.seguridad || {}) as Record<string, unknown>;
+      setCaptcha(Boolean(s.captcha));
+      setDerechosAvanzados(Boolean(s.derechos_avanzados));
+      setTimeoutSesion(Number(s.timeout_sesion ?? 1440));
+      setMaxImagenes(Number(s.max_imagenes ?? 0));
+      setMaxPostsIp(Number(s.max_posts_ip ?? 200));
+      setMaxArchivos(Number(s.max_archivos ?? 10));
+      setMaxAuthFail(Number(s.max_auth_fail ?? 100));
+      setMinPassword(Number(s.min_password ?? 8));
+    } catch (e: any) {
+      setError(e?.response?.data?.error || e.message || 'No se pudo cargar');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  const modificar = async () => {
+    if (!scopeGlobal) {
+      setError('Solo usuarios con alcance GLOBAL pueden modificar la seguridad de instancia.');
+      return;
+    }
+    setSaving(true);
+    setMensaje(null);
+    setError(null);
+    try {
+      await guardarSeguridadInstancia({
+        captcha,
+        derechos_avanzados: derechosAvanzados,
+        timeout_sesion: timeoutSesion,
+        max_imagenes: maxImagenes,
+        max_posts_ip: maxPostsIp,
+        max_archivos: maxArchivos,
+        max_auth_fail: maxAuthFail,
+        min_password: minPassword,
+      });
+      setMensaje('Seguridad de instancia guardada.');
+    } catch (e: any) {
+      setError(e?.response?.data?.error || e.message || 'Error al guardar');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -54,12 +110,24 @@ const Seguridad = () => {
         <CardTitle tag="h4" className="d-flex align-items-center gap-2 mb-2">
           <i className="bi bi-wrench" /> Configuración de la seguridad
         </CardTitle>
-        <p className="text-muted">Aquí se definen los parámetros relacionados con la seguridad.</p>
-        <ConfigEmpresaBar scope={empresaScope} />
-        {!empresaScope.ready ? null : (
-        <>
+        <p className="text-muted">
+          Parámetros de instancia (no por empresa).{' '}
+          {scopeGlobal
+            ? 'Puede editar y guardar.'
+            : 'Solo lectura: se requiere alcance GLOBAL para modificar.'}
+        </p>
+        {loading && (
+          <div className="mb-2 text-muted">
+            <Spinner size="sm" /> Cargando…
+          </div>
+        )}
+        {error && (
+          <Alert color="danger" fade={false} className="py-2">
+            {error}
+          </Alert>
+        )}
         {mensaje && (
-          <Alert color="info" fade={false} timeout={0} className="py-2">
+          <Alert color="success" fade={false} className="py-2">
             {mensaje}
           </Alert>
         )}
@@ -89,11 +157,11 @@ const Seguridad = () => {
                 id="captcha"
                 type="checkbox"
                 checked={captcha}
+                disabled={!scopeGlobal}
                 onChange={(e) => setCaptcha(e.target.checked)}
               />
               <Label check htmlFor="captcha">
-                Usar código gráfico (CAPTCHA) en la página de inicio de sesión y algunas páginas
-                públicas
+                Usar código gráfico (CAPTCHA) en la página de inicio de sesión
               </Label>
             </FormGroup>
             <FormGroup check className="mb-4">
@@ -101,6 +169,7 @@ const Seguridad = () => {
                 id="derechos"
                 type="checkbox"
                 checked={derechosAvanzados}
+                disabled={!scopeGlobal}
                 onChange={(e) => setDerechosAvanzados(e.target.checked)}
               />
               <Label check htmlFor="derechos">
@@ -118,63 +187,62 @@ const Seguridad = () => {
               </thead>
               <tbody>
                 <tr>
-                  <td>
-                    Timeout de sesiones{' '}
-                    <i className="bi bi-info-circle text-muted" title="Segundos de inactividad" />
-                  </td>
+                  <td>Timeout de sesiones</td>
                   <td>
                     <Input
                       type="number"
                       bsSize="sm"
                       value={timeoutSesion}
+                      disabled={!scopeGlobal}
                       onChange={(e) => setTimeoutSesion(parseInt(e.target.value, 10) || 0)}
                     />
                     <span className="text-muted small ms-1">segundos</span>
                   </td>
                 </tr>
                 <tr>
-                  <td>Número máximo de imágenes permitidas en un campo HTML...</td>
+                  <td>Máximo de imágenes en un campo HTML</td>
                   <td>
                     <Input
                       type="number"
                       bsSize="sm"
                       value={maxImagenes}
+                      disabled={!scopeGlobal}
                       onChange={(e) => setMaxImagenes(parseInt(e.target.value, 10) || 0)}
                     />
                   </td>
                 </tr>
                 <tr>
-                  <td>
-                    Número máximo de publicaciones en páginas públicas con la misma dirección IP en
-                    un mes
-                  </td>
+                  <td>Máximo de publicaciones públicas por IP / mes</td>
                   <td>
                     <Input
                       type="number"
                       bsSize="sm"
                       value={maxPostsIp}
+                      disabled={!scopeGlobal}
                       onChange={(e) => setMaxPostsIp(parseInt(e.target.value, 10) || 0)}
                     />
                   </td>
                 </tr>
                 <tr>
-                  <td>Número máximo de archivos unidos en un formulario</td>
+                  <td>Máximo de archivos en un formulario</td>
                   <td>
                     <Input
                       type="number"
                       bsSize="sm"
                       value={maxArchivos}
+                      disabled={!scopeGlobal}
                       onChange={(e) => setMaxArchivos(parseInt(e.target.value, 10) || 0)}
                     />
                   </td>
                 </tr>
                 <tr>
-                  <td>Número máximo de autenticación fallida en 24 horas...</td>
+                  <td>Máximo de autenticaciones fallidas en 24 h</td>
                   <td>
                     <Input
                       type="number"
                       bsSize="sm"
                       value={maxAuthFail}
+                      disabled={!scopeGlobal}
                       onChange={(e) => setMaxAuthFail(parseInt(e.target.value, 10) || 0)}
                     />
                   </td>
@@ -191,44 +259,44 @@ const Seguridad = () => {
                 type="number"
                 style={{ maxWidth: 160 }}
                 value={minPassword}
+                disabled={!scopeGlobal}
                 onChange={(e) => setMinPassword(parseInt(e.target.value, 10) || 0)}
               />
             </FormGroup>
-            <p className="text-muted small">Más reglas de complejidad se añadirán en una fase posterior.</p>
           </TabPane>
 
           <TabPane tabId="files">
-            <Alert color="secondary" fade={false} timeout={0}>
-              Parámetros de envío/subida de archivos: configuración pendiente de backend.
+            <Alert color="secondary" fade={false}>
+              Parámetros de envío/subida de archivos: pendiente.
             </Alert>
           </TabPane>
-
           <TabPane tabId="ext">
-            <Alert color="secondary" fade={false} timeout={0}>
-              Acceso externo / Internet: configuración pendiente de backend.
+            <Alert color="secondary" fade={false}>
+              Acceso externo / Internet: pendiente.
             </Alert>
           </TabPane>
-
           <TabPane tabId="events">
-            <Alert color="secondary" fade={false} timeout={0}>
-              Eventos de seguridad: listado y retención pendientes de backend.
+            <Alert color="secondary" fade={false}>
+              Eventos de seguridad: pendiente.
             </Alert>
           </TabPane>
-
           <TabPane tabId="perms">
-            <Alert color="secondary" fade={false} timeout={0}>
-              Permisos por defecto al crear perfiles: pendiente de backend.
+            <Alert color="secondary" fade={false}>
+              Permisos por defecto: pendiente.
             </Alert>
           </TabPane>
         </TabContent>
 
         <div className="text-center mt-3">
-          <Button color="primary" onClick={modificar}>
-            Modificar
+          <Button
+            color="primary"
+            onClick={modificar}
+            disabled={saving || !scopeGlobal}
+            data-testid="seguridad-modificar"
+          >
+            {saving ? 'Guardando…' : 'Modificar'}
           </Button>
         </div>
-        </>
-        )}
       </CardBody>
     </Card>
   );

@@ -43,3 +43,16 @@ class FormatoPapelCatalogo(db.Model):
     unidad_medida = db.Column(db.String(10), nullable=False, default='mm')
     orden = db.Column(db.Integer, default=0)
     activo = db.Column(db.Boolean, nullable=False, default=True)
+
+
+class ImpuestoCatalogo(db.Model):
+    __tablename__ = 'impuestos'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_empresa = db.Column(db.String(36), nullable=False)
+    codigo = db.Column(db.String(32), nullable=False)
+    nombre = db.Column(db.String(100), nullable=False)
+    tasa = db.Column(db.Numeric(5, 2), nullable=False)
+    activo = db.Column(db.Boolean, nullable=False, default=True)
+    creado_en = db.Column(db.DateTime)
+    actualizado_en = db.Column(db.DateTime)

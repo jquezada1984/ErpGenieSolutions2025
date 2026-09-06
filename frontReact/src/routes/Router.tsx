@@ -20,7 +20,12 @@ const Tables = Loadable(lazy(() => import('../views/ui/Tables')));
 const Forms = Loadable(lazy(() => import('../views/ui/Forms')));
 const Breadcrumbs = Loadable(lazy(() => import('../views/ui/Breadcrumbs')));
 const Login = Loadable(lazy(() => import('../views/auth/Login')));
-const Comercio = Loadable(lazy(() => import('../views/dashboards/Comercio')));
+const Comercio = Loadable(lazy(() => import('../views/dashboards/DashboardInicio')));
+const DashboardTerceros = Loadable(lazy(() => import('../views/dashboards/DashboardTerceros')));
+const DashboardProductos = Loadable(lazy(() => import('../views/dashboards/DashboardProductos')));
+const DashboardFinanciero = Loadable(lazy(() => import('../views/dashboards/DashboardFinanciero')));
+const DashboardBanco = Loadable(lazy(() => import('../views/dashboards/DashboardBanco')));
+const DashboardComercial = Loadable(lazy(() => import('../views/dashboards/DashboardComercial')));
 const Empresas = Loadable(lazy(() => import('../views/empresas/Empresas')));
 const NuevaEmpresa = Loadable(lazy(() => import('../views/empresas/NuevaEmpresa')));
 const EditarEmpresa = Loadable(lazy(() => import('../views/empresas/EditarEmpresa')));
@@ -145,6 +150,9 @@ const ConfigPaneles = Loadable(lazy(() => import('../views/configuracion/Paneles
 const ConfigAlertas = Loadable(lazy(() => import('../views/configuracion/Alertas')));
 const ConfigSeguridad = Loadable(lazy(() => import('../views/configuracion/Seguridad')));
 const ConfigEmails = Loadable(lazy(() => import('../views/configuracion/Emails')));
+const ConfiguracionHub = Loadable(lazy(() => import('../views/configuracion/ConfiguracionHub')));
+const ConfiguracionEmpresa = Loadable(lazy(() => import('../views/configuracion/ConfiguracionEmpresa')));
+const ImpuestosDiccionario = Loadable(lazy(() => import('../views/financiero/configuracion/diccionarios/ImpuestosDiccionario')));
 // Módulo Item (productos y servicios)
 const Productos = Loadable(lazy(() => import('../views/items/productos/Productos')));
 const ProductosStocks = Loadable(lazy(() => import('../views/items/productos/ProductosStocks')));
@@ -160,6 +168,11 @@ const EditarServicio = Loadable(lazy(() => import('../views/items/servicios/Edit
 const NuevoInventario = Loadable(lazy(() => import('../views/items/inventarios/NuevoInventario')));
 const EditarInventario = Loadable(lazy(() => import('../views/items/inventarios/EditarInventario')));
 const Inventarios = Loadable(lazy(() => import('../views/items/inventarios/Inventarios')));
+const Almacenes = Loadable(lazy(() => import('../views/items/almacenes/Almacenes')));
+const MovimientosStock = Loadable(lazy(() => import('../views/items/stock/MovimientosStock')));
+const TransferenciasStock = Loadable(lazy(() => import('../views/items/stock/TransferenciasStock')));
+const StockConsultas = Loadable(lazy(() => import('../views/items/stock/StockConsultas')));
+const CambioMasivoStock = Loadable(lazy(() => import('../views/items/stock/CambioMasivoStock')));
 const Documentos = Loadable(lazy(() => import('../views/documentos/Documentos')));
 const CuentasBancarias = Loadable(lazy(() => import('../views/banco-cajas/CuentasBancarias')));
 const NuevoCuentaBancaria = Loadable(lazy(() => import('../views/banco-cajas/NuevoCuentaBancaria')));
@@ -191,6 +204,11 @@ const ThemeRoutes: RouteType[] = [
     children: [
       { path: '/', element: <Navigate to="/dashboard" /> },
       { path: 'dashboard', element: <Comercio /> },
+      { path: 'terceros/dashboard', element: <DashboardTerceros /> },
+      { path: 'items/dashboard', element: <DashboardProductos /> },
+      { path: 'financiero/dashboard', element: <DashboardFinanciero /> },
+      { path: 'banco-cajas/dashboard', element: <DashboardBanco /> },
+      { path: 'comercial/dashboard', element: <DashboardComercial /> },
       { path: 'empresas', element: <Empresas /> },
       { path: 'empresas/nueva', element: <NuevaEmpresa /> },
       { path: 'empresas/editar/:id', element: <EditarEmpresa /> },
@@ -296,12 +314,16 @@ const ThemeRoutes: RouteType[] = [
       { path: 'financiero/configuracion/diccionarios', element: <DiccionariosIndex /> },
       { path: 'financiero/configuracion/diccionarios/condiciones-pago', element: <CondicionesPagoDiccionario /> },
       { path: 'financiero/configuracion/diccionarios/modos-pago', element: <ModosPagoDiccionario /> },
+      { path: 'financiero/configuracion/diccionarios/impuestos', element: <ImpuestosDiccionario /> },
       { path: 'financiero/configuracion/diccionarios/monedas', element: <MonedasDiccionario /> },
       { path: 'financiero/configuracion/diccionarios/tipo-entidad-legal', element: <TipoEntidadLegalDiccionario /> },
       { path: 'financiero/configuracion/diccionarios/formatos-papel', element: <FormatosPapelDiccionario /> },
+      { path: 'configuracion', element: <ConfiguracionHub /> },
+      { path: 'configuracion/empresa', element: <ConfiguracionEmpresa /> },
       { path: 'configuracion/diccionarios', element: <DiccionariosIndex /> },
       { path: 'configuracion/diccionarios/condiciones-pago', element: <CondicionesPagoDiccionario /> },
       { path: 'configuracion/diccionarios/modos-pago', element: <ModosPagoDiccionario /> },
+      { path: 'configuracion/diccionarios/impuestos', element: <ImpuestosDiccionario /> },
       { path: 'configuracion/diccionarios/monedas', element: <MonedasDiccionario /> },
       { path: 'configuracion/diccionarios/tipo-entidad-legal', element: <TipoEntidadLegalDiccionario /> },
       { path: 'configuracion/diccionarios/formatos-papel', element: <FormatosPapelDiccionario /> },
@@ -327,6 +349,11 @@ const ThemeRoutes: RouteType[] = [
           { path: 'servicios', element: <Servicios /> },
           { path: 'servicios/nuevo', element: <NuevoServicio /> },
           { path: 'servicios/editar/:id', element: <EditarServicio /> },
+          { path: 'almacenes', element: <Almacenes /> },
+          { path: 'stock/movimientos', element: <MovimientosStock /> },
+          { path: 'stock/transferencias', element: <TransferenciasStock /> },
+          { path: 'stock/cambio-masivo', element: <CambioMasivoStock /> },
+          { path: 'stock/consultas', element: <StockConsultas /> },
         ],
       },
       { path: 'documentos', element: <Documentos /> },
@@ -355,7 +382,13 @@ const ThemeRoutes: RouteType[] = [
       { path: 'items/servicios/editar/:id', element: <EditarServicio /> },
       { path: 'items/inventarios', element: <Inventarios /> },
       { path: 'items/inventarios/nuevo', element: <NuevoInventario /> },
-      { path: 'items/inventarios/editar/:id', element: <EditarInventario /> },      { path: '*', element: <Error404 /> },
+      { path: 'items/inventarios/editar/:id', element: <EditarInventario /> },
+      { path: 'items/almacenes', element: <Almacenes /> },
+      { path: 'items/stock/movimientos', element: <MovimientosStock /> },
+      { path: 'items/stock/transferencias', element: <TransferenciasStock /> },
+      { path: 'items/stock/cambio-masivo', element: <CambioMasivoStock /> },
+      { path: 'items/stock/consultas', element: <StockConsultas /> },
+      { path: '*', element: <Error404 /> },
     ],
   },
   {

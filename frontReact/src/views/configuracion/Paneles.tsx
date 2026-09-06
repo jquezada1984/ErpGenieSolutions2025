@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Button,
@@ -6,10 +6,12 @@ import {
   CardBody,
   CardTitle,
   Input,
+  Spinner,
   Table,
 } from 'reactstrap';
 import ConfigEmpresaBar from '../../components/ConfigEmpresaBar';
 import { useConfigEmpresaScope } from '../../hooks/useConfigEmpresaScope';
+import { guardarPanelesConfig, obtenerEmpresaConfig } from '../../_apis_/configEmpresa';
 
 type PanelRow = {
   id: string;
@@ -55,42 +57,82 @@ const PANELES_INICIALES: PanelRow[] = [
   },
 ];
 
-const PAGINAS = ['Inicio', 'Terceros', 'Financiero', 'Contabilidad'];
+const PAGINAS = ['Inicio', 'Terceros', 'Productos', 'Financiero', 'BancoCajas', 'Contabilidad'];
 
-/**
- * Configuración de paneles (widgets) — UI estilo Dolibarr.
- * Persistencia real pendiente.
- */
+function mergePaneles(saved: unknown): PanelRow[] {
+  const byId = new Map<string, PanelRow>();
+  PANELES_INICIALES.forEach((p) => byId.set(p.id, { ...p }));
+  if (Array.isArray(saved)) {
+    saved.forEach((raw) => {
+      if (!raw || typeof raw !== 'object') return;
+      const r = raw as Record<string, unknown>;
+      const id = String(r.id || '');
+      if (!id || !byId.has(id)) return;
+      const base = byId.get(id)!;
+      byId.set(id, {
+        ...base,
+        activo: Boolean(r.activo),
+        pagina: String(r.pagina || base.pagina),
+        posicion: Number(r.posicion ?? base.posicion) || 0,
+      });
+    });
+  }
+  return Array.from(byId.values());
+}
+
 const Paneles = () => {
   const empresaScope = useConfigEmpresaScope();
   const [rows, setRows] = useState<PanelRow[]>(PANELES_INICIALES);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  const cargar = useCallback(async () => {
+    if (!empresaScope.ready) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const cfg = await obtenerEmpresaConfig();
+      setRows(mergePaneles(cfg?.paneles));
+      setDirty(false);
+    } catch (e: any) {
+      setError(e?.response?.data?.error || e.message || 'No se pudo cargar');
+      setRows(PANELES_INICIALES);
+    } finally {
+      setLoading(false);
+    }
+  }, [empresaScope.ready, empresaScope.idEmpresa]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
 
   const ordenados = useMemo(
     () => [...rows].sort((a, b) => a.posicion - b.posicion),
     [rows],
   );
 
-  const activar = (id: string) => {
-    setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, activo: true, pagina: r.pagina || 'Inicio' } : r)),
-    );
-    setMensaje('Panel activado (vista previa; guardado pendiente).');
+  const patch = (id: string, partial: Partial<PanelRow>) => {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...partial } : r)));
+    setDirty(true);
+    setMensaje(null);
   };
 
-  const desactivar = (id: string) => {
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, activo: false } : r)));
-    setMensaje('Panel desactivado (vista previa; guardado pendiente).');
-  };
-
-  const setPagina = (id: string, pagina: string) => {
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, pagina } : r)));
-  };
-
-  const setPosicion = (id: string, posicion: number) => {
-    setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, posicion: Number.isFinite(posicion) ? posicion : 0 } : r)),
-    );
+  const guardar = async () => {
+    setSaving(true);
+    setError(null);
+    setMensaje(null);
+    try {
+      await guardarPanelesConfig(rows);
+      setDirty(false);
+      setMensaje('Paneles guardados.');
+    } catch (e: any) {
+      setError(e?.response?.data?.error || e.message || 'Error al guardar');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -101,97 +143,100 @@ const Paneles = () => {
         </CardTitle>
         <ConfigEmpresaBar scope={empresaScope} />
         {!empresaScope.ready ? null : (
-        <>
-        <p className="text-muted">
-          Los paneles son componentes que muestran algunos datos que pueden añadirse para personalizar
-          algunas páginas. Puede elegir entre mostrar o no el panel mediante la selección de la página
-          de destino y haciendo clic en Activar, o haciendo clic en la papelera para desactivarlo. Sólo
-          los elementos de módulos activados son mostrados.
-        </p>
-        {mensaje && (
-          <Alert color="info" fade={false} timeout={0} className="py-2">
-            {mensaje}
-          </Alert>
-        )}
-        <div className="table-responsive">
-          <Table bordered hover size="sm" className="align-middle mb-0">
-            <thead className="table-light">
-              <tr>
-                <th>Panel</th>
-                <th style={{ width: 80 }}>Nota</th>
-                <th style={{ width: 160 }}>Activable en</th>
-                <th style={{ width: 140 }}>Posición por defecto</th>
-                <th style={{ width: 120 }}>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ordenados.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <i className="bi bi-bar-chart-line me-2 text-primary" />
-                    {row.nombre}
-                  </td>
-                  <td className="text-center">
-                    <i className="bi bi-info-circle text-muted" title="Información del panel" />
-                  </td>
-                  <td>
-                    {row.activo ? (
-                      <Input
-                        type="select"
-                        bsSize="sm"
-                        value={row.pagina}
-                        onChange={(e) => setPagina(row.id, e.target.value)}
-                      >
-                        {PAGINAS.map((p) => (
-                          <option key={p} value={p}>
-                            {p}
-                          </option>
-                        ))}
-                      </Input>
-                    ) : (
-                      <Input
-                        type="select"
-                        bsSize="sm"
-                        value={row.pagina}
-                        onChange={(e) => setPagina(row.id, e.target.value)}
-                      >
-                        {PAGINAS.map((p) => (
-                          <option key={p} value={p}>
-                            {p}
-                          </option>
-                        ))}
-                      </Input>
-                    )}
-                  </td>
-                  <td>
-                    {row.activo ? (
-                      <Input
-                        type="number"
-                        bsSize="sm"
-                        value={row.posicion}
-                        onChange={(e) => setPosicion(row.id, parseInt(e.target.value, 10))}
-                      />
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                  <td>
-                    {row.activo ? (
-                      <Button color="link" className="text-danger p-0" onClick={() => desactivar(row.id)}>
-                        <i className="bi bi-trash" /> Desactivar
-                      </Button>
-                    ) : (
-                      <Button color="primary" size="sm" onClick={() => activar(row.id)}>
-                        Activar
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </div>
-        </>
+          <>
+            <p className="text-muted">
+              Active widgets por página de destino. La configuración se guarda por empresa.
+            </p>
+            {loading && (
+              <div className="mb-2 text-muted">
+                <Spinner size="sm" /> Cargando…
+              </div>
+            )}
+            {error && (
+              <Alert color="danger" fade={false} className="py-2">
+                {error}
+              </Alert>
+            )}
+            {mensaje && (
+              <Alert color="success" fade={false} className="py-2">
+                {mensaje}
+              </Alert>
+            )}
+            <div className="table-responsive">
+              <Table bordered hover size="sm" className="align-middle mb-3">
+                <thead className="table-light">
+                  <tr>
+                    <th>Panel</th>
+                    <th style={{ width: 160 }}>Activable en</th>
+                    <th style={{ width: 140 }}>Posición</th>
+                    <th style={{ width: 120 }}>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ordenados.map((row) => (
+                    <tr key={row.id}>
+                      <td>
+                        <i className="bi bi-bar-chart-line me-2 text-primary" />
+                        {row.nombre}
+                      </td>
+                      <td>
+                        <Input
+                          type="select"
+                          bsSize="sm"
+                          value={row.pagina}
+                          onChange={(e) => patch(row.id, { pagina: e.target.value })}
+                        >
+                          {PAGINAS.map((p) => (
+                            <option key={p} value={p}>
+                              {p}
+                            </option>
+                          ))}
+                        </Input>
+                      </td>
+                      <td>
+                        {row.activo ? (
+                          <Input
+                            type="number"
+                            bsSize="sm"
+                            value={row.posicion}
+                            onChange={(e) =>
+                              patch(row.id, { posicion: parseInt(e.target.value, 10) || 0 })
+                            }
+                          />
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td>
+                        {row.activo ? (
+                          <Button
+                            color="link"
+                            className="text-danger p-0"
+                            onClick={() => patch(row.id, { activo: false })}
+                          >
+                            <i className="bi bi-trash" /> Desactivar
+                          </Button>
+                        ) : (
+                          <Button
+                            color="primary"
+                            size="sm"
+                            onClick={() => patch(row.id, { activo: true })}
+                          >
+                            Activar
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+            <div className="text-end">
+              <Button color="primary" onClick={guardar} disabled={saving || !dirty}>
+                {saving ? 'Guardando…' : 'Grabar'}
+              </Button>
+            </div>
+          </>
         )}
       </CardBody>
     </Card>

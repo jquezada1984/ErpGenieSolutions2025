@@ -10,6 +10,22 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  test: {
+    environment: 'node',
+    include: ['src/**/*.{test,spec}.{js,ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/utils/scopeAcceso.ts'],
+      reporter: ['text', 'json-summary'],
+      // Gate 80 % solo P0 (scopeAcceso); sin umbral global del front.
+      thresholds: {
+        lines: 80,
+        statements: 80,
+        functions: 80,
+        branches: 70,
+      },
+    },
+  },
   optimizeDeps: {
     include: [
       'react',

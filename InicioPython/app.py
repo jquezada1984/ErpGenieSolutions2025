@@ -22,6 +22,7 @@ from api.menu_routes import menu_routes
 from api.sucursal_routes import sucursal_routes
 from api.usuario_routes import usuario_bp
 from api.catalogos_routes import catalogos_bp
+from api.config_routes import config_bp
 from flask_jwt_extended import JWTManager
 # Importar los blueprints de las demás entidades cuando estén listos
 
@@ -98,6 +99,7 @@ app.register_blueprint(menu_routes, url_prefix='/api')
 app.register_blueprint(sucursal_routes, url_prefix='/api')
 app.register_blueprint(usuario_bp, url_prefix='/api')
 app.register_blueprint(catalogos_bp, url_prefix='/api')
+app.register_blueprint(config_bp, url_prefix='/api')
 
 
 @app.route('/health', methods=['GET'])

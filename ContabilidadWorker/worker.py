@@ -1,8 +1,8 @@
 """
-ContabilidadWorker — consume eventos RabbitMQ y contabiliza facturas y pagos.
+ContabilidadWorker — consume eventos RabbitMQ y contabiliza facturas, pagos y ajustes de inventario.
 
 Cola: erp.accounting
-Binding: financiero.# → exchange erp.events
+Bindings: financiero.# , inventario.# → exchange erp.events
 """
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ RABBITMQ_URL = os.getenv('RABBITMQ_URL', 'amqp://erp:erp@rabbitmq:5672/')
 EXCHANGE = os.getenv('RABBITMQ_EXCHANGE', 'erp.events')
 QUEUE = os.getenv('RABBITMQ_QUEUE', 'erp.accounting')
 ROUTING_KEY = os.getenv('RABBITMQ_ROUTING_KEY', 'financiero.#')
+ROUTING_INVENTARIO = os.getenv('RABBITMQ_ROUTING_INVENTARIO', 'inventario.#')
 CONTABILIDAD_PY_BASE_URL = (
     os.getenv('CONTABILIDAD_PY_BASE_URL') or 'http://contabilidad-python-service:5002'
 ).rstrip('/')
@@ -50,6 +51,29 @@ def procesar_evento(payload: dict) -> None:
     id_empresa = payload.get('id_empresa')
     if not id_empresa:
         raise ValueError('Evento sin id_empresa')
+
+    if event.endswith('ajuste.registrado') or event.startswith('inventario.'):
+        id_origen = (
+            payload.get('id_origen')
+            or payload.get('id_inventario')
+            or payload.get('id_cambio_masivo_stock')
+        )
+        if not id_origen:
+            raise ValueError('Evento ajuste inventario sin id_origen')
+        logger.info('Procesando ajuste inventario origen=%s empresa %s', id_origen, id_empresa)
+        data = _post(
+            '/api/transferencia-contable/procesar-ajuste-inventario',
+            id_empresa,
+            {
+                'id_origen': id_origen,
+                'id_inventario': payload.get('id_inventario'),
+                'id_cambio_masivo_stock': payload.get('id_cambio_masivo_stock'),
+                'modulo_origen': payload.get('modulo_origen'),
+                'movimientos': payload.get('movimientos') or [],
+            },
+        )
+        logger.info('OK ajuste inventario %s → %s', id_origen, data)
+        return
 
     es_pago = event.endswith('pago.registrado') or (
         bool(payload.get('id_pago')) and not event.endswith('factura.validada')
@@ -94,7 +118,7 @@ def on_message(channel, method, properties, body):  # noqa: ARG001
         channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 
-def connect_and_consume() -> None:
+def connect_and_consume() -> None:  # pragma: no cover — bucle AMQP I/O
     params = amqp_params(RABBITMQ_URL)
     logger.info('Conectando AMQP IPv4 %s:%s', params.host, params.port)
     connection = pika.BlockingConnection(params)
@@ -102,19 +126,21 @@ def connect_and_consume() -> None:
     channel.exchange_declare(exchange=EXCHANGE, exchange_type='topic', durable=True)
     channel.queue_declare(queue=QUEUE, durable=True)
     channel.queue_bind(queue=QUEUE, exchange=EXCHANGE, routing_key=ROUTING_KEY)
+    channel.queue_bind(queue=QUEUE, exchange=EXCHANGE, routing_key=ROUTING_INVENTARIO)
     channel.basic_qos(prefetch_count=PREFETCH)
     channel.basic_consume(queue=QUEUE, on_message_callback=on_message)
     logger.info(
-        'Escuchando %s (exchange=%s routing=%s) → %s',
+        'Escuchando %s (exchange=%s routing=%s + %s) → %s',
         QUEUE,
         EXCHANGE,
         ROUTING_KEY,
+        ROUTING_INVENTARIO,
         CONTABILIDAD_PY_BASE_URL,
     )
     channel.start_consuming()
 
 
-def main() -> int:
+def main() -> int:  # pragma: no cover — reconexión AMQP
     backoff = 2
     while True:
         try:
@@ -131,5 +157,5 @@ def main() -> int:
         backoff = min(backoff * 2, 30)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     sys.exit(main())

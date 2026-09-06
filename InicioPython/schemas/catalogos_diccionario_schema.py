@@ -72,3 +72,15 @@ class FormatoPapelSchema(Schema):
 
 class ActivoPatchSchema(Schema):
     activo = fields.Bool(required=True)
+
+
+class ImpuestoSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
+
+    id = fields.Int(dump_only=True)
+    id_empresa = fields.UUID(dump_only=True)
+    codigo = fields.Str(required=True, validate=validate.Length(max=32))
+    nombre = fields.Str(required=True, validate=validate.Length(max=100))
+    tasa = fields.Decimal(as_string=True, required=True)
+    activo = fields.Bool(load_default=True)

@@ -44,7 +44,7 @@ def dibujar_cabecera_empresa(c: canvas.Canvas, id_empresa: str, titulo: str) -> 
     c.drawString(tx, y_top - 12, emp.get('nombre') or '')
     c.setFont('Helvetica', 8)
     lineas = [
-        f"RUC {emp.get('ruc')}" if emp.get('ruc') else '',
+        f"RUC {emp.get('ruc')}" if emp.get('pdf_mostrar_ruc', True) and emp.get('ruc') else '',
         emp.get('direccion') or '',
         ' · '.join(p for p in (emp.get('telefono'), emp.get('email')) if p),
     ]
@@ -62,10 +62,19 @@ def dibujar_cabecera_empresa(c: canvas.Canvas, id_empresa: str, titulo: str) -> 
     return yy - 16
 
 
-def pie_pagina(c: canvas.Canvas, pagina: int) -> None:
+def pie_pagina(c: canvas.Canvas, pagina: int, id_empresa: Optional[str] = None) -> None:
+    texto = 'ERP Genie Solutions'
+    if id_empresa:
+        try:
+            emp = obtener_empresa(id_empresa)
+            custom = (emp.get('pdf_pie_texto') or '').strip()
+            if custom:
+                texto = custom[:80]
+        except Exception:
+            pass
     c.setFont('Helvetica', 8)
     c.setFillColorRGB(0.4, 0.4, 0.4)
-    c.drawString(MARGIN, 10 * mm, 'ERP Genie Solutions')
+    c.drawString(MARGIN, 10 * mm, texto)
     c.drawRightString(PAGE_W - MARGIN, 10 * mm, f'Página {pagina}')
     c.setFillColorRGB(0, 0, 0)
 

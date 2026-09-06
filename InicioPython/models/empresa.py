@@ -65,6 +65,12 @@ class Empresa(db.Model):
     id_provincia = db.Column(db.String(36), db.ForeignKey('provincia.id_provincia'))
     fiscal_year_start_month = db.Column(db.Integer, nullable=False, default=1)
     fiscal_year_start_day = db.Column(db.Integer, nullable=False, default=1)
+    decimales_precio = db.Column(db.Integer, nullable=False, default=2)
+    decimales_cantidad = db.Column(db.Integer, nullable=False, default=2)
+    decimales_total = db.Column(db.Integer, nullable=False, default=2)
+    pdf_mostrar_ruc = db.Column(db.Boolean, nullable=False, default=True)
+    pdf_pie_texto = db.Column(db.Text)
+    id_formato_papel = db.Column(db.String(36))
     
     # Relaciones
     moneda = db.relationship('Moneda', backref='empresas')

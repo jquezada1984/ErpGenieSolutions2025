@@ -8,6 +8,7 @@ from models.catalogos_diccionario import (
     CondicionPagoCatalogo,
     FormaPagoCatalogo,
     FormatoPapelCatalogo,
+    ImpuestoCatalogo,
 )
 from models.empresa import Moneda, TipoEntidadComercial
 from schemas.catalogos_diccionario_schema import (
@@ -17,6 +18,7 @@ from schemas.catalogos_diccionario_schema import (
     TipoEntidadLegalSchema,
     FormatoPapelSchema,
     ActivoPatchSchema,
+    ImpuestoSchema,
 )
 
 catalogos_bp = Blueprint('catalogos_bp', __name__)
@@ -31,6 +33,8 @@ tipo_entidad_schema = TipoEntidadLegalSchema()
 tipos_entidad_schema = TipoEntidadLegalSchema(many=True)
 formato_schema = FormatoPapelSchema()
 formatos_schema = FormatoPapelSchema(many=True)
+impuesto_schema = ImpuestoSchema()
+impuestos_schema = ImpuestoSchema(many=True)
 activo_schema = ActivoPatchSchema()
 
 
@@ -511,3 +515,100 @@ def patch_activo_formato_papel(id_):
     row.activo = data['activo']
     db.session.commit()
     return _ok(formato_schema.dump(row))
+
+
+# ---------- Impuestos / IVA (por empresa) ----------
+
+@catalogos_bp.route('/catalogos/impuesto', methods=['GET', 'OPTIONS'])
+def listar_impuestos():
+    if request.method == 'OPTIONS':
+        return _options()
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    q = ImpuestoCatalogo.query.filter_by(id_empresa=id_empresa)
+    if _solo_activos():
+        q = q.filter_by(activo=True)
+    rows = q.order_by(ImpuestoCatalogo.tasa, ImpuestoCatalogo.codigo).all()
+    return _ok(impuestos_schema.dump(rows))
+
+
+@catalogos_bp.route('/catalogos/impuesto/<int:id_>', methods=['GET', 'OPTIONS'])
+def obtener_impuesto(id_):
+    if request.method == 'OPTIONS':
+        return _options()
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = ImpuestoCatalogo.query.filter_by(id=id_, id_empresa=id_empresa).first_or_404()
+    return _ok(impuesto_schema.dump(row))
+
+
+@catalogos_bp.route('/catalogos/impuesto', methods=['POST', 'OPTIONS'])
+def crear_impuesto():
+    if request.method == 'OPTIONS':
+        return _options()
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    data = request.get_json() or {}
+    errors = impuesto_schema.validate(data)
+    if errors:
+        return jsonify({'success': False, 'errors': errors}), 400
+    payload = impuesto_schema.load(data)
+    payload['id_empresa'] = id_empresa
+    row = ImpuestoCatalogo(**payload)
+    db.session.add(row)
+    try:
+        db.session.commit()
+        db.session.refresh(row)
+        return _ok(impuesto_schema.dump(row), 201, 'Impuesto creado')
+    except IntegrityError:
+        db.session.rollback()
+        return _err('Código duplicado para esta empresa', 409)
+
+
+@catalogos_bp.route('/catalogos/impuesto/<int:id_>', methods=['PUT', 'OPTIONS'])
+def actualizar_impuesto(id_):
+    if request.method == 'OPTIONS':
+        return _options()
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = ImpuestoCatalogo.query.filter_by(id=id_, id_empresa=id_empresa).first_or_404()
+    data = request.get_json() or {}
+    errors = impuesto_schema.validate(data, partial=True)
+    if errors:
+        return jsonify({'success': False, 'errors': errors}), 400
+    for k, v in impuesto_schema.load(data, partial=True).items():
+        if k == 'id_empresa':
+            continue
+        setattr(row, k, v)
+    try:
+        db.session.commit()
+        return _ok(impuesto_schema.dump(row))
+    except IntegrityError:
+        db.session.rollback()
+        return _err('Código duplicado para esta empresa', 409)
+
+
+@catalogos_bp.route('/catalogos/impuesto/<int:id_>/activo', methods=['PATCH', 'OPTIONS'])
+def patch_activo_impuesto(id_):
+    if request.method == 'OPTIONS':
+        return _options()
+    try:
+        id_empresa = get_company_id(required=True)
+    except BadRequest as e:
+        return _err(str(e.description or e), 400)
+    row = ImpuestoCatalogo.query.filter_by(id=id_, id_empresa=id_empresa).first_or_404()
+    data = request.get_json() or {}
+    errors = activo_schema.validate(data)
+    if errors:
+        return jsonify({'success': False, 'errors': errors}), 400
+    row.activo = data['activo']
+    db.session.commit()
+    return _ok(impuesto_schema.dump(row))

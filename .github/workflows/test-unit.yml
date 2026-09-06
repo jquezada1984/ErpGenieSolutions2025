@@ -1,0 +1,126 @@
+name: test-unit
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-p0:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: |
+            gateway-api/package-lock.json
+            frontReact/package-lock.json
+            InicioNestJs/package-lock.json
+            TerceroNestJs/package-lock.json
+            ItemNestJs/package-lock.json
+            InventarioNestJs/package-lock.json
+            FinancieroNestJs/package-lock.json
+            ContabilidadNestJs/package-lock.json
+            BancoCajaNestJs/package-lock.json
+            MenuNestJs/package-lock.json
+
+      - name: gateway-api unit + coverage P0 (fail-under 80)
+        working-directory: gateway-api
+        run: |
+          npm install
+          npm test
+          npm run test:coverage
+
+      - name: frontReact unit + coverage P0 (fail-under 80)
+        working-directory: frontReact
+        run: |
+          npm install
+          npm test
+          npm run test:coverage
+
+      - name: InicioNestJs unit (Impuesto / Auth)
+        working-directory: InicioNestJs
+        run: |
+          npm install --legacy-peer-deps
+          npm test -- --testPathPatterns="impuesto|auth.service"
+
+      - name: TerceroNestJs unit (listado id_empresa)
+        working-directory: TerceroNestJs
+        run: |
+          npm install --legacy-peer-deps
+          # Jest 30: testPathPatterns (plural)
+          npm test -- --testPathPatterns="tercero.(service|resolver).spec"
+
+      - name: ItemNestJs unit (listado id_empresa)
+        working-directory: ItemNestJs
+        run: |
+          npm install --legacy-peer-deps
+          npm test -- --testPathPatterns="items\\.(service|resolver)\\.spec"
+
+      - name: InventarioNestJs unit (inventarios / almacenes)
+        working-directory: InventarioNestJs
+        run: |
+          npm install --legacy-peer-deps
+          npm test -- --testPathPatterns="inventario\\.(service|resolver)\\.spec"
+
+      - name: FinancieroNestJs unit (lectura + resolver)
+        working-directory: FinancieroNestJs
+        run: |
+          npm install --legacy-peer-deps --ignore-scripts
+          npx jest --testPathPatterns="financiero"
+
+      - name: ContabilidadNestJs unit (diarios)
+        working-directory: ContabilidadNestJs
+        run: |
+          npm install --legacy-peer-deps --ignore-scripts
+          npx jest --testPathPatterns="diario-contable"
+
+      - name: BancoCajaNestJs unit (cuentas)
+        working-directory: BancoCajaNestJs
+        run: |
+          npm install --legacy-peer-deps
+          npm test -- --testPathPatterns="cuenta-bancaria"
+
+      - name: MenuNestJs unit (autorizacion)
+        working-directory: MenuNestJs
+        run: |
+          npm install --legacy-peer-deps
+          npm test -- --testPathPatterns="autorizacion"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: FinancieroPython unit + coverage P0 (fail-under 80)
+        working-directory: FinancieroPython
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt
+          pytest --cov=services.factura_calc --cov-report=term-missing --cov-fail-under=80
+          pytest tests/test_pago_pendiente.py
+
+      - name: ContabilidadWorker unit + coverage P0 (fail-under 80)
+        working-directory: ContabilidadWorker
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt
+          pytest --cov=worker --cov-report=term-missing --cov-fail-under=80
+
+      - name: InventarioPython unit + coverage P0 (fail-under 80)
+        working-directory: InventarioPython
+        run: |
+          pip install -r requirements-dev.txt sqlalchemy Flask-SQLAlchemy
+          pytest --cov=services.stock_service --cov=utils.sp --cov-report=term-missing --cov-fail-under=80
+          # Integración SP: skip sin DATABASE_URL_TEST
+          pytest -m integration
+        # Gate 80% solo módulos P0. Suite mockea SP; no DATABASE_URL de producción.
+
+      - name: InicioPython scope usuario
+        working-directory: InicioPython
+        run: |
+          pip install -r requirements-dev.txt
+          pytest

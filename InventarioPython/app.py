@@ -5,6 +5,7 @@ from flask_jwt_extended import JWTManager
 from config.config import Config
 from utils.db import db
 from api.inventario_routes import inventario_bp
+from api.stock_routes import stock_bp
 
 import models
 
@@ -18,6 +19,7 @@ db.init_app(app)
 jwt = JWTManager(app)
 
 app.register_blueprint(inventario_bp, url_prefix='/api')
+app.register_blueprint(stock_bp, url_prefix='/api')
 
 
 @app.route('/health', methods=['GET'])

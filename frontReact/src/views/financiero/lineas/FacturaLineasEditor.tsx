@@ -17,17 +17,30 @@ export type LineaFacturaDraft = {
   tipo_item_codigo?: string;
 };
 
-type ImpuestoOpt = { id: number; nombre: string; tasa: number };
+type ImpuestoOpt = { id: number; codigo?: string; nombre: string; tasa: number; activo?: boolean };
 type TipoItemOpt = { id_tipo_item: string; codigo: string; nombre: string };
 type ItemOpcion = { value: string; label: string; precio_venta?: number | null; precio_compra?: number | null };
 type ModoAlta = 'libre' | 'predefinido';
 
 const GET_IMPUESTOS = gql`
-  query ImpuestosFacturaLineas {
-    impuestos {
+  query ImpuestosFacturaLineas($id_empresa: ID!, $solo_activos: Boolean) {
+    impuestos(id_empresa: $id_empresa, solo_activos: $solo_activos) {
       id
+      codigo
       nombre
       tasa
+      activo
+    }
+  }
+`;
+
+const GET_EMPRESA_PRECISION = gql`
+  query EmpresaPrecisionFactura($id_empresa: ID!) {
+    empresa(id_empresa: $id_empresa) {
+      id_empresa
+      decimales_precio
+      decimales_cantidad
+      decimales_total
     }
   }
 `;
@@ -62,7 +75,7 @@ const n = (v: string | number | null | undefined) => {
   return Number.isFinite(x) ? x : 0;
 };
 
-const fmt = (v: number) => v.toFixed(2);
+const fmtDec = (v: number, dec: number) => v.toFixed(Math.max(0, Math.min(6, dec)));
 
 export function calcLinea(l: LineaFacturaDraft) {
   const cant = n(l.cantidad);
@@ -155,8 +168,32 @@ const FacturaLineasEditor: React.FC<Props> = ({
   const [draft, setDraft] = useState<LineaFacturaDraft>(draftVacio);
   const [itemSel, setItemSel] = useState<ItemOpcion | null>(null);
 
-  const { data: impData } = useQuery(GET_IMPUESTOS, { fetchPolicy: 'cache-first' });
+  const { data: impData } = useQuery(GET_IMPUESTOS, {
+    variables: { id_empresa: idEmpresa, solo_activos: true },
+    skip: !idEmpresa,
+    fetchPolicy: 'network-only',
+  });
   const impuestos: ImpuestoOpt[] = impData?.impuestos || [];
+
+  useEffect(() => {
+    if (!impuestos.length) return;
+    const actual = impuestos.find((i) => String(i.tasa) === String(draft.tasa_iva));
+    if (!actual) {
+      const cero = impuestos.find((i) => Number(i.tasa) === 0) || impuestos[0];
+      setDraft((d) => ({ ...d, tasa_iva: String(cero.tasa) }));
+    }
+  }, [impuestos]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { data: empPrec } = useQuery(GET_EMPRESA_PRECISION, {
+    variables: { id_empresa: idEmpresa },
+    skip: !idEmpresa,
+    fetchPolicy: 'cache-first',
+  });
+  const decPrecio = Number(empPrec?.empresa?.decimales_precio ?? 2);
+  const decCant = Number(empPrec?.empresa?.decimales_cantidad ?? 2);
+  const decTotal = Number(empPrec?.empresa?.decimales_total ?? 2);
+  const fmt = (v: number) => fmtDec(v, decTotal);
+  const fmtP = (v: number) => fmtDec(v, decPrecio);
 
   const { data: tiposData } = useQuery(GET_TIPOS_ITEM, { fetchPolicy: 'cache-first' });
   const tiposItem: TipoItemOpt[] = useMemo(() => {
@@ -333,8 +370,8 @@ const FacturaLineasEditor: React.FC<Props> = ({
                   {l.descripcion}
                 </td>
                 <td>{c.tasa.toFixed(0)}%</td>
-                <td className="text-end">{fmt(c.pu)}</td>
-                <td className="text-end">{fmt(c.puIi)}</td>
+                <td className="text-end">{fmtP(c.pu)}</td>
+                <td className="text-end">{fmtP(c.puIi)}</td>
                 <td className="text-end">{c.cant}</td>
                 <td className="text-end">{c.dto ? `${c.dto}%` : '—'}</td>
                 <td className="text-end">{fmt(n(l.precio_compra))}</td>
@@ -522,7 +559,7 @@ const FacturaLineasEditor: React.FC<Props> = ({
                     value={draft.tasa_iva}
                     onChange={(e) => setDraftField('tasa_iva', e.target.value)}
                   >
-                    <option value="0">0%</option>
+                    {impuestos.length === 0 && <option value="">Sin tasas</option>}
                     {impuestos.map((imp) => (
                       <option key={imp.id} value={String(imp.tasa)}>
                         {imp.nombre} ({imp.tasa}%)

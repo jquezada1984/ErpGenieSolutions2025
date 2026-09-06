@@ -43,14 +43,20 @@ const ConfigEmpresaBar: React.FC<Props> = ({
   if (!scopeGlobal) {
     if (hideWhenEmpresa) return null;
     return (
-      <Alert color="light" className={`${className} border py-2`} fade={false} timeout={0}>
+      <Alert
+        color="light"
+        className={`${className} border py-2`}
+        fade={false}
+        timeout={0}
+        data-testid="config-empresa-bar-empresa"
+      >
         Empresa de la sesión: <strong>{idEmpresa || '—'}</strong>
       </Alert>
     );
   }
 
   return (
-    <div className={className}>
+    <div className={className} data-testid="config-empresa-bar-global">
       <FormGroup className="mb-2" style={{ maxWidth: 420 }}>
         <Label className="fw-semibold">Empresa</Label>
         <SelectEmpresa

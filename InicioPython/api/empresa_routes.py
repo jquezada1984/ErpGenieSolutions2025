@@ -101,7 +101,23 @@ def crear_empresa():
                 horario_data['id_empresa'] = empresa.id_empresa
                 horario = EmpresaHorarioApertura(**horario_data)
                 db.session.add(horario)
-        
+
+        # Seed impuestos IVA por empresa (Ecuador: 0% y 15%)
+        from models.catalogos_diccionario import ImpuestoCatalogo
+        for codigo, nombre, tasa in (
+            ('IVA_0', 'IVA 0%', 0),
+            ('IVA_15', 'IVA 15%', 15),
+        ):
+            db.session.add(
+                ImpuestoCatalogo(
+                    id_empresa=str(empresa.id_empresa),
+                    codigo=codigo,
+                    nombre=nombre,
+                    tasa=tasa,
+                    activo=True,
+                )
+            )
+
         db.session.commit()
         
         result = empresa_schema.dump(empresa)

@@ -44,6 +44,7 @@ module.exports = async function catalogosRoutes(fastify) {
     { key: 'moneda' },
     { key: 'tipo-entidad-legal' },
     { key: 'formato-papel' },
+    { key: 'impuesto' },
   ];
 
   fastify.get('/catalogos/modos-pago', (req, reply) =>

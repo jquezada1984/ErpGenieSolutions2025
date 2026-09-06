@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { gql, useQuery } from '@apollo/client';
+import { gql, useQuery, useLazyQuery } from '@apollo/client';
 import {
   Alert,
   Button,
@@ -13,6 +13,7 @@ import {
   Label,
   Row,
   Spinner,
+  Table,
 } from 'reactstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import SelectEmpresa from '../../../components/SelectEmpresa';
@@ -20,6 +21,7 @@ import SearchableSelect from '../../../components/SearchableSelect';
 import useJwtPayload from '../../../hooks/useJwtPayload';
 import { listarAlmacenes } from '../../../_apis_/gateway';
 import { actualizarInventario } from '../../../_apis_/inventario';
+import { cerrarInventarioFisico } from '../../../_apis_/stock';
 import '../ConfiguracionItem.scss';
 
 const GET_EMPRESAS = gql`
@@ -40,6 +42,32 @@ const GET_ITEMS_PRODUCTO = gql`
       producto_ref
       etiqueta
       estado
+    }
+  }
+`;
+
+const STOCK_ALMACEN = gql`
+  query StockParaInventario($id_empresa: ID, $id_almacen: ID) {
+    stockPorEmpresa(id_empresa: $id_empresa, id_almacen: $id_almacen) {
+      id_item
+      producto_ref
+      etiqueta
+      stock_fisico
+    }
+  }
+`;
+
+const LINEAS_INV = gql`
+  query InventarioLineasEdicion($id_inventario: ID!, $id_empresa: ID) {
+    inventarioLineas(id_inventario: $id_inventario, id_empresa: $id_empresa) {
+      id_inventario_detalle
+      id_item
+      producto_ref
+      etiqueta
+      stock_sistema
+      stock_contado
+      diferencia
+      observacion
     }
   }
 `;
@@ -107,7 +135,10 @@ const EditarInventario: React.FC = () => {
   const [observacion, setObservacion] = useState('');
 
   const [productoEspecifico, setProductoEspecifico] = useState<string | null>(null);
-  const [filtroEtiquetasCategorias, setFiltroEtiquetasCategorias] = useState('');
+  const [lineas, setLineas] = useState<
+    { id_item: string; producto_ref?: string; etiqueta?: string; stock_sistema: number; stock_contado: number }[]
+  >([]);
+  const [loadingCerrar, setLoadingCerrar] = useState(false);
 
   const [almacenes, setAlmacenes] = useState<AlmacenRow[]>([]);
   const [loadingAlmacenes, setLoadingAlmacenes] = useState(false);
@@ -181,7 +212,7 @@ const EditarInventario: React.FC = () => {
     setIdAlmacen(String(inventarioRow.id_almacen ?? '').trim());
     setObservacion(String(inventarioRow.observacion ?? '').trim());
     setProductoEspecifico(null);
-    setFiltroEtiquetasCategorias('');
+    setLineas([]);
     setFieldErr({});
     setError(null);
     setOk(null);
@@ -190,6 +221,102 @@ const EditarInventario: React.FC = () => {
   }, [inventarioRow, idInventarioParam]);
 
   const idEmpresaActiva = scope === 'GLOBAL' ? idEmpresa : idEmpresaUsuario || idEmpresa;
+
+  const { data: lineasData, refetch: refetchLineas } = useQuery(LINEAS_INV, {
+    variables: { id_inventario: idInventarioParam ?? '', id_empresa: idEmpresaActiva || null },
+    skip: !idInventarioParam || !hydrated,
+    fetchPolicy: 'network-only',
+  });
+
+  useEffect(() => {
+    const list = lineasData?.inventarioLineas;
+    if (!Array.isArray(list)) return;
+    setLineas(
+      list.map((l: any) => ({
+        id_item: String(l.id_item),
+        producto_ref: l.producto_ref,
+        etiqueta: l.etiqueta,
+        stock_sistema: Number(l.stock_sistema) || 0,
+        stock_contado: Number(l.stock_contado) || 0,
+      })),
+    );
+  }, [lineasData]);
+
+  const [loadStock] = useLazyQuery(STOCK_ALMACEN, { fetchPolicy: 'network-only' });
+
+  const cargarDesdeStock = async () => {
+    if (!idEmpresaActiva || !idAlmacen) {
+      setError('Seleccione almacén para cargar stock del sistema');
+      return;
+    }
+    try {
+      const r = await loadStock({
+        variables: { id_empresa: idEmpresaActiva, id_almacen: idAlmacen },
+      });
+      const stock = r.data?.stockPorEmpresa || [];
+      setLineas(
+        stock.map((s: any) => ({
+          id_item: String(s.id_item),
+          producto_ref: s.producto_ref,
+          etiqueta: s.etiqueta,
+          stock_sistema: Number(s.stock_fisico) || 0,
+          stock_contado: Number(s.stock_fisico) || 0,
+        })),
+      );
+      setHasChanges(true);
+    } catch (e: any) {
+      setError(e?.message || 'Error al cargar stock');
+    }
+  };
+
+  const agregarProductoLinea = () => {
+    if (!productoEspecifico) return;
+    if (lineas.some((l) => l.id_item === productoEspecifico)) return;
+    const it = (itemsData?.itemsListado || []).find((x) => String(x.id_item) === productoEspecifico);
+    setLineas((prev) => [
+      ...prev,
+      {
+        id_item: productoEspecifico,
+        producto_ref: it?.producto_ref || '',
+        etiqueta: it?.etiqueta || '',
+        stock_sistema: 0,
+        stock_contado: 0,
+      },
+    ]);
+    setProductoEspecifico(null);
+    setHasChanges(true);
+  };
+
+  const onCerrar = async () => {
+    if (!idInventarioParam || !idEmpresaActiva) return;
+    if (!lineas.length) {
+      setError('Agregue líneas de conteo antes de cerrar');
+      return;
+    }
+    setError(null);
+    setOk(null);
+    setLoadingCerrar(true);
+    try {
+      const res = await cerrarInventarioFisico(idInventarioParam, {
+        id_empresa: idEmpresaActiva,
+        lineas: lineas.map((l) => ({
+          id_item: l.id_item,
+          stock_contado: l.stock_contado,
+        })),
+      });
+      if (res?.success === false) {
+        setError(res.error || 'No se pudo cerrar');
+        return;
+      }
+      setOk('Inventario cerrado. Se generaron ajustes de stock (y asiento INV si aplica).');
+      await refetchLineas();
+      setHasChanges(false);
+    } catch (e: any) {
+      setError(e?.message || 'Error al cerrar inventario');
+    } finally {
+      setLoadingCerrar(false);
+    }
+  };
 
   const { data: itemsData, loading: loadingItems } = useQuery<{ itemsListado: ItemRow[] }>(
     GET_ITEMS_PRODUCTO,
@@ -485,60 +612,124 @@ const EditarInventario: React.FC = () => {
 
               <Card>
                 <CardBody>
-                  <h5 className="mb-3">
-                    <i className="fas fa-boxes text-primary me-2" />
-                    Productos a inventariar
-                  </h5>
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="mb-0">
+                      <i className="fas fa-boxes text-primary me-2" />
+                      Líneas de conteo
+                    </h5>
+                    <div>
+                      <Button
+                        color="info"
+                        outline
+                        size="sm"
+                        className="me-2"
+                        onClick={cargarDesdeStock}
+                        disabled={formDisabled || !idAlmacen}
+                      >
+                        Cargar stock del almacén
+                      </Button>
+                      <Button
+                        color="warning"
+                        size="sm"
+                        onClick={onCerrar}
+                        disabled={
+                          formDisabled ||
+                          loadingCerrar ||
+                          String(inventarioRow?.estado_inventario || '').toUpperCase() === 'CERRADO'
+                        }
+                      >
+                        {loadingCerrar ? 'Cerrando…' : 'Cerrar inventario'}
+                      </Button>
+                    </div>
+                  </div>
 
-                  <Row>
-                    <Col md={6}>
+                  <Row className="mb-3">
+                    <Col md={8}>
                       <FormGroup>
-                        <Label htmlFor="producto_especifico">Producto específico (opcional)</Label>
+                        <Label>Agregar producto</Label>
                         <SearchableSelect
                           value={productoEspecifico}
-                          onChange={(v) => {
-                            setProductoEspecifico(v);
-                            markChanged();
-                          }}
+                          onChange={(v) => setProductoEspecifico(v)}
                           options={opcionesProducto}
                           isLoading={loadingItems}
-                          isDisabled={!idEmpresaActiva}
-                          placeholder={
-                            idEmpresaActiva
-                              ? 'Buscar producto por referencia / etiqueta'
-                              : 'Seleccione empresa para habilitar productos'
-                          }
+                          isDisabled={!idEmpresaActiva || formDisabled}
+                          placeholder="Buscar producto…"
                         />
-                        <FormText color="muted">
-                          Se reutiliza `itemsListado` actual. Fase posterior: filtrar inventariable=true si el backend lo expone.
-                        </FormText>
                       </FormGroup>
                     </Col>
-
-                    <Col md={6}>
-                      <FormGroup>
-                        <Label htmlFor="filtro_etiquetas">Productos por etiquetas/categorías (opcional)</Label>
-                        <Input
-                          id="filtro_etiquetas"
-                          value={filtroEtiquetasCategorias}
-                          onChange={(e) => {
-                            setFiltroEtiquetasCategorias(e.target.value);
-                            markChanged();
-                          }}
-                          placeholder="Ej. FERRETERIA, ALTA_ROTACION"
-                        />
-                        <FormText color="muted">
-                          Solo visual en esta fase. No persiste ni genera detalle.
-                        </FormText>
-                      </FormGroup>
+                    <Col md={4} className="d-flex align-items-end">
+                      <Button color="secondary" outline onClick={agregarProductoLinea} disabled={!productoEspecifico}>
+                        Añadir línea
+                      </Button>
                     </Col>
                   </Row>
 
-                  {!idEmpresaActiva && scope === 'GLOBAL' && (
-                    <Alert color="warning" className="mt-2 mb-0 py-2">
-                      Seleccione una empresa para cargar productos y continuar.
-                    </Alert>
-                  )}
+                  <div className="table-responsive">
+                    <Table size="sm" bordered hover>
+                      <thead>
+                        <tr>
+                          <th>Ref</th>
+                          <th>Producto</th>
+                          <th>Sistema</th>
+                          <th>Contado</th>
+                          <th>Diff</th>
+                          <th />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lineas.map((l) => (
+                          <tr key={l.id_item}>
+                            <td>{l.producto_ref}</td>
+                            <td>{l.etiqueta}</td>
+                            <td>{l.stock_sistema}</td>
+                            <td style={{ maxWidth: 120 }}>
+                              <Input
+                                type="number"
+                                bsSize="sm"
+                                value={l.stock_contado}
+                                disabled={formDisabled}
+                                onChange={(e) => {
+                                  const v = Number(e.target.value);
+                                  setLineas((prev) =>
+                                    prev.map((x) =>
+                                      x.id_item === l.id_item
+                                        ? { ...x, stock_contado: Number.isFinite(v) ? v : 0 }
+                                        : x,
+                                    ),
+                                  );
+                                  markChanged();
+                                }}
+                              />
+                            </td>
+                            <td>{(Number(l.stock_contado) || 0) - (Number(l.stock_sistema) || 0)}</td>
+                            <td>
+                              <Button
+                                color="link"
+                                className="text-danger p-0"
+                                disabled={formDisabled}
+                                onClick={() => {
+                                  setLineas((prev) => prev.filter((x) => x.id_item !== l.id_item));
+                                  markChanged();
+                                }}
+                              >
+                                Quitar
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                        {!lineas.length && (
+                          <tr>
+                            <td colSpan={6} className="text-muted text-center">
+                              Sin líneas. Cargue stock o agregue productos.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </Table>
+                  </div>
+                  <FormText color="muted">
+                    Al cerrar se generan AJUSTE_* por diferencias y se publica evento contable INV.
+                  </FormText>
                 </CardBody>
               </Card>
             </>

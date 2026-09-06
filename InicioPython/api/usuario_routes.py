@@ -5,6 +5,7 @@ from marshmallow import ValidationError
 from models.usuario import Usuario
 from schemas.usuario_schema import UsuarioSchema
 from utils.db import db
+from utils.usuario_scope import apply_scope_on_create, apply_scope_on_update
 from flask_jwt_extended import jwt_required, get_jwt
 import bcrypt
 
@@ -43,10 +44,7 @@ def crear_usuario():
     if errors:
         return jsonify(errors), 400
     loaded = usuario_schema.load(data, partial=True)
-    if not _caller_scope_global():
-        loaded['scope_acceso'] = 'EMPRESA'
-    elif 'scope_acceso' not in loaded or loaded.get('scope_acceso') is None:
-        loaded['scope_acceso'] = 'EMPRESA'
+    loaded = apply_scope_on_create(loaded, _caller_scope_global())
     payload = _prepare_usuario_data(loaded)
     if not payload.get('password_hash'):
         return jsonify({'password': ['Se requiere contraseña']}), 400
@@ -67,8 +65,7 @@ def actualizar_usuario(id_usuario):
     except ValidationError as err:
         logger.warning('PUT /api/usuario/%s validation failed: %s', id_usuario, err.messages)
         return jsonify(err.messages), 400
-    if not _caller_scope_global():
-        loaded.pop('scope_acceso', None)
+    loaded = apply_scope_on_update(loaded, _caller_scope_global())
     payload = _prepare_usuario_data(loaded)
     for key, value in payload.items():
         if hasattr(usuario, key):

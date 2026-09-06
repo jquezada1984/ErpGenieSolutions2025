@@ -7,6 +7,7 @@ import { useConfigEmpresaScope } from '../../../../hooks/useConfigEmpresaScope';
 const SLUGS = [
   { titulo: 'Condiciones de pago', slug: 'condiciones-pago' },
   { titulo: 'Modos de pago', slug: 'modos-pago' },
+  { titulo: 'Impuestos / IVA', slug: 'impuestos' },
   { titulo: 'Monedas', slug: 'monedas' },
   { titulo: 'Tipo de entidad legal para Terceros', slug: 'tipo-entidad-legal' },
   { titulo: 'Formatos de papel', slug: 'formatos-papel' },
@@ -29,8 +30,8 @@ const DiccionariosIndex = () => {
         <CardTitle tag="h4">Diccionarios</CardTitle>
         <p className="text-muted">
           Datos de referencia por empresa. Las bajas se realizan desactivando el estado (no se
-          eliminan registros). Condiciones de pago, modos de pago y formatos de papel son por
-          empresa; monedas y tipo de entidad legal son catálogos globales.
+          eliminan registros). Condiciones de pago, modos de pago, formatos de papel e impuestos
+          / IVA son por empresa; monedas y tipo de entidad legal son catálogos globales.
         </p>
         <ConfigEmpresaBar scope={empresaScope} />
         {empresaScope.ready && (

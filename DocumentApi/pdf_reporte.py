@@ -56,6 +56,6 @@ def generar_reporte_estadistico(id_empresa: str) -> bytes:
         y -= 11
         if y < 25 * mm:
             break
-    pie_pagina(c, 1)
+    pie_pagina(c, 1, id_empresa)
     c.save()
     return buf.getvalue()

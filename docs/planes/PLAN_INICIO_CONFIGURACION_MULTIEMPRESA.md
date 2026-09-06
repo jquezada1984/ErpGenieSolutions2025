@@ -1,7 +1,8 @@
 # Plan: Inicio y Configuración (Dolibarr → Genie multiempresa)
 
-> **Estado:** Pendiente de ejecución  
+> **Estado:** Fases 0–3 hechas (dashboards base); Fase 4 diferida  
 > **Creado:** 2026-08-23  
+> **Actualizado:** 2026-09-05  
 > **Origen:** Comparación Inicio → Configuración de Dolibarr vs ERP Genie (nativo multiempresa)  
 > **Sustituye en alcance de Inicio:** [PLAN_CONFIG_GLOBAL_DICCIONARIOS.md](./PLAN_CONFIG_GLOBAL_DICCIONARIOS.md) (gran parte de ese plan ya está hecha: menú bajo Inicio, diccionarios con `id_empresa`)
 
@@ -86,52 +87,52 @@ Multiempresa: `useConfigEmpresaScope` + `ConfigEmpresaBar` en todas las pantalla
 
 ## Fases
 
-### Fase 0 — Hub + IVA (prioridad de negocio)
+### Fase 0 — Hub + IVA (prioridad de negocio) — **HECHO 2026-09-05**
 
 Entregable usable en facturación.
 
-| ID | Tarea |
+| ID | Tarea | Estado |
+|----|--------|--------|
+| `hub-config` | Vista `/configuracion` + menú clickable | Hecho |
+| `empresa-contexto` | `/configuracion/empresa` → ficha contexto | Hecho |
+| `sql-impuestos-empresa` | `docs/sql/2026-09-05_impuestos_por_empresa.sql` | Hecho (BD viva) |
+| `crud-impuestos` | InicioPython catalogos + Nest GQL + diccionario UI | Hecho |
+| `factura-iva-catalogo` | `FacturaLineasEditor` / ítems sin 0% hardcode | Hecho |
+
+SQL menú: `docs/sql/2026-09-05_menu_config_hub_empresa.sql`. Aplicar: `docs/sql/_apply_fase0_inicio.py`.
+
+### Fase 1 — Documentos y precisión — **HECHO 2026-09-05**
+
+| ID | Tarea | Estado |
+|----|--------|--------|
+| `limites-precision` | Columnas `decimales_*` en `empresa` + UI en EditarEmpresa + `FacturaLineasEditor` | Hecho |
+| `pdf-empresa` | `pdf_mostrar_ruc`, `pdf_pie_texto`, `id_formato_papel`; DocumentApi cabecera/pie | Hecho |
+
+SQL: `docs/sql/2026-09-05_empresa_precision_pdf.sql` (`_apply_fase1_precision.py`).
+
+### Fase 2 — Persistencia de shells — **HECHO 2026-09-05**
+
+| ID | Tarea | Estado |
+|----|--------|--------|
+| `prefs-empresa` | Tablas `empresa_config` + `instancia_config` + SP | Hecho |
+| `paneles-save` | UI + PUT `/api/config/empresa/paneles` | Hecho |
+| `alertas-save` | UI + PUT `/api/config/empresa/alertas` | Hecho |
+| `emails-save` | UI + PUT `/api/config/empresa/emails` | Hecho |
+| `seguridad-save` | Instancia + solo GLOBAL | Hecho |
+
+SQL: `docs/sql/2026-09-05_empresa_config.sql` (`_apply_fase2_config.py`).
+
+### Fase 3 — Dashboards por módulo — **HECHO base 2026-09-05**
+
+| ID | Estado |
 |----|--------|
-| `hub-config` | Vista `/configuracion`: tarjetas Empresa/Organización y Diccionarios; enlaces a Paneles, Alertas, Seguridad, E-Mails. Menú Inicio: Configuración clickable. |
-| `empresa-contexto` | Ruta `/configuracion/empresa`: ficha de la empresa del contexto (reutilizar `EditarEmpresa`). GLOBAL con selector; EMPRESA sin combo ni listado de otras. |
-| `sql-impuestos-empresa` | Migración: `impuestos.id_empresa`, código, activo, unique compuesto. Copiar tasas actuales a cada empresa activa. Seed al crear empresa. |
-| `crud-impuestos` | InicioPython + gateway + GraphQL. Pantalla diccionario `/configuracion/diccionarios/impuestos`. |
-| `factura-iva-catalogo` | `FacturaLineasEditor` solo tasas activas de la empresa. Sin `0%` hardcode salvo que exista en el diccionario. |
-
-### Fase 1 — Documentos y precisión
-
-| ID | Tarea |
-|----|--------|
-| `limites-precision` | Decimales moneda/cantidad/IVA por empresa. Usar en totales de factura y redondeo. |
-| `pdf-empresa` | Plantilla PDF por empresa (logo ya está en `empresa`). No duplicar DocumentApi; solo parámetros (formato papel, pie, mostrar RUC). |
-
-### Fase 2 — Persistencia de shells
-
-| ID | Tarea |
-|----|--------|
-| `prefs-empresa` | Tabla `empresa_config` (JSONB o columnas) para paneles, umbrales de alertas, SMTP/remitente. |
-| `paneles-save` | Guardar qué widgets están activos y su orden. |
-| `alertas-save` | Umbrales; más adelante el dashboard los consume. |
-| `emails-save` | Remitente/BCC por empresa. SMTP de instancia sigue en `MailWorker` / env. |
-| `seguridad-save` | Timeout sesión, política contraseña: **instancia** (no por empresa), solo GLOBAL. |
-
-### Fase 3 — Dashboards por módulo
+| `dash-shell` | `DashboardModulo` + KPIs/atajos |
+| `dash-inicio` | `/dashboard` = `DashboardInicio` (reemplaza plantilla Comercio) |
+| `dash-terceros` / productos / financiero / banco / comercial | Rutas + pantallas |
+| `dash-menu` | `docs/sql/2026-09-05_menu_dashboards_modulos.sql` |
+| `dash-gql` / `dashboard-paneles` | Parcial: queries existentes; honrar paneles guardados queda para refinamiento |
 
 Ver catálogo de widgets más abajo. No mezclar datos de otra empresa.
-
-| ID | Tarea |
-|----|--------|
-| `dash-shell` | Layout `DashboardModulo` (selector empresa GLOBAL + grid de widgets). Componentes reutilizables en `frontReact/src/views/dashboards/`. |
-| `dash-inicio` | Reemplazar `Comercio.tsx`. Ruta `/dashboard` (o `/inicio`). Widgets cruzados de todos los módulos. |
-| `dash-terceros` | `/terceros/dashboard`. Menú Terceros “Dashboard” deja de apuntar a `/dashboard`. |
-| `dash-productos` | `/items/dashboard`. Sustituye el mock de `ProductosEstadisticas` como área (las estadísticas detalladas pueden quedar como subpantalla). |
-| `dash-comercial` | `/comercial/dashboard`. Solo widgets con datos reales; el resto oculto o “pendiente” (presupuestos/pedidos aún P1). |
-| `dash-financiero` | `/financiero` o `/financiero/dashboard`. KPIs de facturas/cobros/pagos. |
-| `dash-banco` | `/banco-cajas` o `/banco-cajas/dashboard`. Saldos y últimos movimientos. |
-| `dash-contabilidad` | Mantener pasos 1–9 y A–E en `/contabilidad`; añadir widgets operativos debajo (últimos asientos, pendientes de transferir). |
-| `dash-gql` | Query de resumen por dominio en el Nest de lectura (`dashboardTerceros`, `dashboardFinanciero`, …) con `id_empresa` obligatorio. |
-| `dash-menu` | SQL menú: primer ítem de cada sección principal = Área/Dashboard de ese módulo. |
-| `dashboard-paneles` | Honrar Configuración → Paneles (Fase 2): página destino + orden + activo. |
 
 ### Fase 4 — Diferido (P2)
 

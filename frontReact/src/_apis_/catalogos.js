@@ -50,4 +50,5 @@ export const RECURSOS = {
   monedas: 'moneda',
   tipoEntidadLegal: 'tipo-entidad-legal',
   formatosPapel: 'formato-papel',
+  impuestos: 'impuesto',
 };

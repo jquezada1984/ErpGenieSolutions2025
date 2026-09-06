@@ -316,6 +316,40 @@ def _procesar_factura(id_empresa: str, id_factura: str, es_cliente: bool) -> Dic
     }
 
 
+def procesar_ajuste_inventario(
+    id_empresa: str,
+    id_origen: str,
+    modulo_origen: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Asiento diario INV para AJUSTE_* sin id_asiento (vía SP)."""
+    if not id_origen:
+        raise ValidationError({'id_origen': ['Requerido (id_inventario o id_cambio_masivo)']})
+    try:
+        row = db.session.execute(
+            text(
+                """SELECT sp_contabilidad_procesar_ajuste_inventario(
+                     CAST(:e AS uuid), CAST(:o AS uuid), :m
+                   ) AS result"""
+            ),
+            {'e': id_empresa, 'o': id_origen, 'm': modulo_origen},
+        ).fetchone()
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        raise ValidationError({'ajuste_inventario': [str(exc)]}) from exc
+    val = row[0] if row else None
+    if isinstance(val, str):
+        import json
+
+        try:
+            val = json.loads(val)
+        except Exception:
+            pass
+    if isinstance(val, dict):
+        return val
+    return {'asientos_creados': 0, 'raw': val}
+
+
 def procesar_pago(id_empresa: str, id_pago: str) -> Dict[str, Any]:
     """Registra en diario BQ el movimiento bancario del cobro/pago validado."""
     pago = db.session.execute(

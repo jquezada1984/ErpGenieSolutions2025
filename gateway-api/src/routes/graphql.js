@@ -173,11 +173,21 @@ const getTargetService = (query, config) => {
     return config.nestjsService;
   }
 
-  // Módulo inventario físico (InventarioNestJs)
+  // Módulo inventario físico / kardex / almacenes (InventarioNestJs)
   if (query && (
     query.includes('inventariosListado') ||
     query.includes('inventarioPorId') ||
-    query.includes('actualizarEstadoInventario')
+    query.includes('actualizarEstadoInventario') ||
+    query.includes('almacenesPorEmpresa') ||
+    query.includes('stockPorEmpresa') ||
+    query.includes('movimientosInventario') ||
+    query.includes('transferenciasStock') ||
+    query.includes('cambiosMasivosStock') ||
+    query.includes('inventarioLineas') ||
+    query.includes('lotesSerie') ||
+    query.includes('stockAFecha') ||
+    query.includes('stockReposicion') ||
+    query.includes('stockValoracionPmp')
   )) {
     console.log('🔄 Redirigiendo consulta de inventario a InventarioNestJs');
     return config.inventarioNestJsService;

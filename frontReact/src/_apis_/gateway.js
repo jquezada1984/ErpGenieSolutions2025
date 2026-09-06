@@ -83,19 +83,23 @@ export const eliminarEmpresa = async (id) => {
   }
 };
 
-// Catálogo impuestos (InicioNestJs – catálogo general vía GraphQL)
-export const listarImpuestos = async () => {
+// Catálogo impuestos por empresa (InicioNestJs GraphQL)
+export const listarImpuestos = async (idEmpresa) => {
+  if (!idEmpresa) return [];
   try {
     const response = await gatewayClient.post('/graphql', {
       query: `
-        query {
-          impuestos {
+        query ImpuestosPorEmpresa($id_empresa: ID!, $solo_activos: Boolean) {
+          impuestos(id_empresa: $id_empresa, solo_activos: $solo_activos) {
             id
+            codigo
             nombre
             tasa
+            activo
           }
         }
       `,
+      variables: { id_empresa: idEmpresa, solo_activos: true },
     });
     const data = response.data?.data;
     const list = data?.impuestos ?? response.data?.impuestos ?? [];

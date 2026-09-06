@@ -357,20 +357,32 @@ const EditarServicio: React.FC = () => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [ev, ec, imp] = await Promise.all([
-        listarEstadosVentaItem(),
-        listarEstadosCompraItem(),
-        listarImpuestos(),
-      ]);
+      const [ev, ec] = await Promise.all([listarEstadosVentaItem(), listarEstadosCompraItem()]);
       if (cancelled) return;
       setEstadosVenta(Array.isArray(ev) ? ev : []);
       setEstadosCompra(Array.isArray(ec) ? ec : []);
-      setImpuestos(Array.isArray(imp) ? imp : []);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const idEmp = String(formData.id_empresa || empresaUsuario || '').trim();
+    if (!idEmp) {
+      setImpuestos([]);
+      return;
+    }
+    (async () => {
+      const imp = await listarImpuestos(idEmp);
+      if (cancelled) return;
+      setImpuestos(Array.isArray(imp) ? imp : []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [formData.id_empresa, empresaUsuario]);
 
   useEffect(() => {
     let cancelled = false;

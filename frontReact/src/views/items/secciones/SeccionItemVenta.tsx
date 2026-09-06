@@ -27,10 +27,15 @@ const SeccionItemVenta: React.FC<Props> = ({ data, onChange, modoPrecios = false
   const [impuestos, setImpuestos] = useState<ImpuestoOption[]>([]);
 
   useEffect(() => {
-    listarImpuestos()
+    const idEmp = data.id_empresa;
+    if (!idEmp) {
+      setImpuestos([]);
+      return;
+    }
+    listarImpuestos(idEmp)
       .then((list) => setImpuestos(Array.isArray(list) ? list : []))
       .catch(() => setImpuestos([]));
-  }, []);
+  }, [data.id_empresa]);
 
   useEffect(
     () =>

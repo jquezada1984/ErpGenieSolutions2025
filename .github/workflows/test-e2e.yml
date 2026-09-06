@@ -1,0 +1,56 @@
+name: test-e2e
+
+# Smoke Playwright en PR. Sin secretos E2E_* los specs hacen skip (exit 0).
+# No requiere Docker local: no falla el job por falta de stack.
+
+on:
+  pull_request:
+  push:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+jobs:
+  playwright-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontReact/package-lock.json
+
+      - name: Install frontReact + Playwright Chromium
+        working-directory: frontReact
+        run: |
+          npm install
+          npx playwright install chromium --with-deps
+
+      - name: Run E2E smoke (+ config si hay credenciales)
+        working-directory: frontReact
+        env:
+          # Si no hay secrets, los tests se omiten (SKIP) y el job pasa en verde.
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          E2E_SCOPE: ${{ secrets.E2E_SCOPE }}
+          E2E_MUTATE: '0'
+          CI: 'true'
+        run: |
+          if [ -z "$E2E_USER_EMAIL" ] || [ -z "$E2E_USER_PASSWORD" ]; then
+            echo "::notice::Sin secrets E2E_USER_EMAIL/E2E_USER_PASSWORD — Playwright correrá en modo skip (infra OK)."
+          else
+            echo "E2E_BASE_URL=${E2E_BASE_URL:-'(default localhost — requiere stack vivo o secret URL)'}"
+          fi
+          npm run test:e2e
+
+      - name: Upload Playwright report (si hay fallos / artefactos)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontReact/playwright-report/
+          retention-days: 7
