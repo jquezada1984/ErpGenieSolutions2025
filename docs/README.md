@@ -25,7 +25,7 @@
 | [MENU_Y_PERMISOS.md](./MENU_Y_PERMISOS.md) | Menú superior/lateral y permisos por perfil |
 | [GRAPHQL_PERMISOS_MENU.md](./GRAPHQL_PERMISOS_MENU.md) | Queries GraphQL de menú y permisos |
 | [CONEXION_LOGIN.md](./CONEXION_LOGIN.md) | Flujo de login / JWT |
-| [TESTING.md](./TESTING.md) | Unitarios P0, coverage gate, Nest Inicio/Tercero, E2E Playwright (smoke + configuración) |
+| [TESTING.md](./TESTING.md) | Pruebas vía Docker (`scripts/test-docker.ps1`) o host; P0, Nest, E2E Playwright |
 
 ## Planes activos
 

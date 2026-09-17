@@ -2,7 +2,47 @@
 
 Suite unitaria P0 + integración (scope/SP/pago) + Nest GraphQL por dominio + E2E Playwright. **Sin umbral de coverage global**; gate **80 % solo en paths P0**.
 
-## Cómo correr
+## Cómo correr (recomendado: Docker, sin Node en el host)
+
+Requisito: **Docker Desktop**. No hace falta `npm`/`node` instalados en Windows.
+
+```powershell
+cd c:\proyectos\ErpGenieSolutions2025
+
+# Solo unitarios P0 + Nest + pytest
+.\scripts\test-docker.ps1 unit
+
+# E2E (stack erp-frontend-dev + gateway arriba)
+.\scripts\test-docker.ps1 smoke
+.\scripts\test-docker.ps1 config
+.\scripts\test-docker.ps1 e2e
+
+# Todo
+.\scripts\test-docker.ps1 all
+```
+
+En Git Bash / WSL: `./scripts/test-docker.sh unit|smoke|config|e2e|all`.
+
+### E2E — prerrequisitos
+
+1. Stack de desarrollo:
+
+```powershell
+docker compose -f docker-compose.dev.yml up -d
+```
+
+2. Credenciales QA en `frontReact/.env.e2e` (no commit):
+
+```powershell
+copy frontReact\.env.e2e.example frontReact\.env.e2e
+# Editar E2E_USER_EMAIL / E2E_USER_PASSWORD
+```
+
+3. El script Playwright usa `E2E_BASE_URL=http://host.docker.internal:3000` y lee `.env.e2e` del volumen.
+
+---
+
+## Cómo correr (host, si tienes Node/Python)
 
 ### gateway-api (Jest)
 
