@@ -121,7 +121,7 @@ const Header = () => {
       {/**********Left Nav Bar**********/}
       {/******************************/}
 
-      <Nav className="me-auto d-none d-lg-flex" navbar>
+      <Nav className="me-auto d-none d-lg-flex topbar-main-nav" navbar>
         {loadingPermisos ? (
           <div className="d-flex align-items-center">
             <div className="spinner-border spinner-border-sm me-2" role="status">
@@ -135,15 +135,14 @@ const Header = () => {
             const isActive = selectedMenu === seccion.id_seccion;
             const iconoClase = seccion.icono || DEFAULT_SECTION_ICON;
             return (
-              <NavItem key={seccion.id_seccion}>
+              <NavItem key={seccion.id_seccion} className="topbar-main-nav-item">
                 <Button
                   color="link"
-                  className={`nav-link d-flex flex-column align-items-center justify-content-center${isActive ? ' main-menu-active' : ''}`}
+                  className={`nav-link d-flex flex-column align-items-center justify-content-center topbar-main-nav-link${isActive ? ' main-menu-active' : ''}`}
                   onClick={() => dispatch(setMainMenu(seccion.id_seccion))}
-                  style={{ minWidth: 70, padding: 0 }}
                 >
                   <i className={iconoClase} style={{ fontSize: 18 }} />
-                  <span className="mt-1 text-center" style={{ fontSize: 12, lineHeight: 1.1 }}>{seccion.nombre}</span>
+                  <span className="mt-1 text-center topbar-main-nav-label">{seccion.nombre}</span>
                 </Button>
               </NavItem>
             );

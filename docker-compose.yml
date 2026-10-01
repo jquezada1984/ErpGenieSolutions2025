@@ -321,11 +321,68 @@ services:
     networks:
       - erp-network
 
+  # =========================
+  # GastoNestJs (GraphQL — SOLO LECTURA)
+  # Puerto 3017 NO publicado al host: solo erp-network / Gateway
+  # =========================
+  gasto-nestjs-service:
+    build:
+      context: ./GastoNestJs
+      dockerfile: Dockerfile
+    container_name: erp-gasto-nestjs-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3017
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL_required_for_GastoNestJs}
+      - DB_SSLMODE=${DB_SSLMODE:-require}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
+    # Sin ports: al host — acceso vía gateway-api
+    networks:
+      - erp-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:3017/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))}).on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),2500)",
+        ]
+      interval: 10s
+      timeout: 4s
+      retries: 10
+      start_period: 30s
 
-
-
-
-
+  # =========================
+  # GastoPython (REST — SOLO ESCRITURA)
+  # Puerto 3018 NO publicado al host (headers internos confían en Gateway)
+  # =========================
+  gasto-python-service:
+    build:
+      context: ./GastoPython
+      dockerfile: Dockerfile
+    container_name: erp-gasto-python-service
+    environment:
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL_required_for_GastoPython}
+      - DB_SSLMODE=${DB_SSLMODE:-require}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:5173}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?Define_JWT_SECRET_KEY_in_environment}
+      - FLASK_ENV=production
+      - PORT=3018
+    # Sin ports: al host — acceso vía gateway-api
+    networks:
+      - erp-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3018/health', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 4s
+      retries: 10
+      start_period: 25s
 
   # Gateway API (Fastify)
   gateway-api:
@@ -371,6 +428,13 @@ services:
       - BANCO_CAJA_PY_BASE_URL=http://banco-caja-python-service:3015
       - BANCO_CAJA_NEST_GQL_URL=http://banco-caja-nestjs-service:3016
 
+      # ✅ Canales específicos Gastos (Nest lectura / Python escritura)
+      # GASTO_NEST_GQL_URL = base sin /graphql (el proxy añade /graphql)
+      - GASTO_NEST_GQL_URL=http://gasto-nestjs-service:3017
+      - GASTO_PY_BASE_URL=http://gasto-python-service:3018
+      - GASTO_NEST_TIMEOUT=10000
+      - GASTO_PY_TIMEOUT=15000
+
       # ✅ Canales específicos Media
       - MEDIA_SERVICE_BASE_URL=http://media-service:3010
       # Gateway
@@ -405,6 +469,10 @@ services:
       banco-caja-python-service:
         condition: service_started
       banco-caja-nestjs-service:
+        condition: service_healthy
+      gasto-nestjs-service:
+        condition: service_healthy
+      gasto-python-service:
         condition: service_healthy
       inventario-python-service:
         condition: service_started

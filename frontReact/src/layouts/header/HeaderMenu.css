@@ -4,4 +4,27 @@
   border-radius: 6px;
   font-weight: bold;
   box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-} 
+}
+
+/* Solo menú horizontal del topbar: separación uniforme, etiqueta en una línea */
+.topbar-main-nav {
+  gap: 0.75rem;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.topbar-main-nav-item {
+  flex-shrink: 0;
+}
+
+.topbar-main-nav-link {
+  min-width: 70px;
+  width: auto;
+  padding: 0.25rem 0.5rem !important;
+}
+
+.topbar-main-nav-label {
+  font-size: 12px;
+  line-height: 1.1;
+  white-space: nowrap;
+}

@@ -4,6 +4,7 @@ const {
     buildGraphqlProxyErrorReply,
     buildGraphqlHealthErrorReply,
 } = require('../utils/sanitize-gateway-error');
+const { getUsuarioScope } = require('../utils/requestContext');
 
 function forwardGraphqlHeaders(request) {
   const req = request || {};
@@ -14,6 +15,81 @@ function forwardGraphqlHeaders(request) {
     'X-User-Id': h['x-user-id'] || h['X-User-Id'] || '',
     Authorization: h.authorization || h.Authorization || '',
   };
+}
+
+/** Detección textual — riesgo conocido: no refactor transversal en esta fase. */
+function isGastoGraphqlQuery(query) {
+  if (!query) return false;
+  return (
+    query.includes('categoriasGasto') ||
+    query.includes('categoriaGasto') ||
+    query.includes('gastos(') ||
+    query.includes('gasto(')
+  );
+}
+
+/**
+ * Validación LOCAL solo para operaciones Gastos:
+ * GraphQL id_empresa debe alinearse con empresa efectiva del contexto.
+ * EMPRESA: fuerza empresa del usuario (getUsuarioScope).
+ * GLOBAL: exige empresa seleccionada (header o variable).
+ */
+async function assertGastoEmpresaAlignment(query, variables, request) {
+  if (!isGastoGraphqlQuery(query)) return;
+
+  const gqlEmpresa = variables?.id_empresa != null ? String(variables.id_empresa).trim() : '';
+  if (!gqlEmpresa) {
+    const err = new Error('id_empresa es obligatorio en queries de Gastos');
+    err.response = {
+      status: 400,
+      data: { errors: [{ message: err.message }] },
+    };
+    throw err;
+  }
+
+  const headerEmpresa = String(
+    request.headers['x-company-id'] || request.headers['X-Company-Id'] || '',
+  ).trim();
+  const usuario = await getUsuarioScope(request);
+
+  if (usuario) {
+    if (usuario.scope_acceso === 'GLOBAL') {
+      const effective = headerEmpresa || gqlEmpresa || usuario.id_empresa || '';
+      if (!effective) {
+        const err = new Error('Debe seleccionar empresa (X-Company-Id) para consultas GLOBAL');
+        err.response = {
+          status: 400,
+          data: { errors: [{ message: err.message }] },
+        };
+        throw err;
+      }
+      if (headerEmpresa && headerEmpresa !== gqlEmpresa) {
+        const err = new Error('id_empresa no coincide con X-Company-Id');
+        err.response = {
+          status: 400,
+          data: { errors: [{ message: err.message }] },
+        };
+        throw err;
+      }
+    } else {
+      const assigned = String(usuario.id_empresa || '').trim();
+      if (assigned && gqlEmpresa !== assigned) {
+        const err = new Error('id_empresa no autorizado para el usuario EMPRESA');
+        err.response = {
+          status: 403,
+          data: { errors: [{ message: err.message }] },
+        };
+        throw err;
+      }
+    }
+  } else if (headerEmpresa && headerEmpresa !== gqlEmpresa) {
+    const err = new Error('id_empresa no coincide con X-Company-Id');
+    err.response = {
+      status: 400,
+      data: { errors: [{ message: err.message }] },
+    };
+    throw err;
+  }
 }
 
 // Función para determinar el servicio objetivo basado en la consulta
@@ -54,6 +130,12 @@ const getTargetService = (query, config) => {
   )) {
     console.log('🔄 Redirigiendo consulta de financiero a FinancieroNestJs');
     return config.financieroNestJsService;
+  }
+
+  // Gastos (GastoNestJs) — strings específicos; antes del default InicioNestJs
+  if (isGastoGraphqlQuery(query)) {
+    console.log('🔄 Redirigiendo consulta de gastos a GastoNestJs');
+    return config.gastoNestJsService;
   }
 
   // Catálogos generales en InicioNestJs (países, provincias, monedas)
@@ -215,6 +297,8 @@ const getTargetService = (query, config) => {
 // Función para ejecutar consultas GraphQL
 async function executeGraphQLQuery(query, variables, operationName, context, config) {
   try {
+    await assertGastoEmpresaAlignment(query, variables, context.request);
+
     // Determinar servicio objetivo
     const targetUrl = getTargetService(query, config);
     const target = `${targetUrl}/graphql`;
@@ -267,6 +351,8 @@ async function routes(fastify, options) {
         inventarioNestJsService: process.env.INVENTARIO_NEST_GQL_URL || 'http://inventario-nestjs-service:3013',
         contabilidadNestJsService: process.env.CONTABILIDAD_NEST_GQL_URL || 'http://contabilidad-nestjs-service:3005',
         financieroNestJsService: process.env.FINANCIERO_NEST_GQL_URL || 'http://financiero-nestjs-service:3007',
+        gastoNestJsService:
+          process.env.GASTO_NEST_GQL_URL || 'http://gasto-nestjs-service:3017',
       };
 
       const result = await executeGraphQLQuery(query, variables, operationName, { request }, config);
@@ -337,4 +423,4 @@ async function routes(fastify, options) {
   });
 }
 
-module.exports = routes; 
+module.exports = routes;
