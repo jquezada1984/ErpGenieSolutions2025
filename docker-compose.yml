@@ -323,10 +323,6 @@ services:
 
 
 
-
-
-
-
   # Gateway API (Fastify)
   gateway-api:
     build:
