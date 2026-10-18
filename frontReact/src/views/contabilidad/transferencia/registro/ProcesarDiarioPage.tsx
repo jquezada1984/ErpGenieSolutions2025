@@ -13,7 +13,7 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import { ejecutarRegistroContable } from '../../../_apis_/contabilidad';
+import { ejecutarRegistroContable } from '../../../../_apis_/contabilidad';
 import { formatMoneda, rangoAnioActual } from '../../operativa/operativaUtils';
 import { useConfigEmpresaScope } from '../../../../hooks/useConfigEmpresaScope';
 import ConfigEmpresaBar from '../../../../components/ConfigEmpresaBar';

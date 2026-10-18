@@ -16,8 +16,8 @@ import {
 import {
   vincularLineasFactura,
   cambiarCuentaLineas,
-} from '../../../../_apis_/contabilidad';
-import { anioActual, formatImporte } from '../transferenciaUtils';
+} from '../../../_apis_/contabilidad';
+import { anioActual, formatImporte } from './transferenciaUtils';
 import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
 import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 

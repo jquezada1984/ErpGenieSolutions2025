@@ -50,7 +50,9 @@ def app(test_database_url):
     from utils.db import db
 
     flask_app.config['TESTING'] = True
-    flask_app.config['SQLALCHEMY_DATABASE_URI'] = test_database_url
+    from config.config import _with_psycopg2
+
+    flask_app.config['SQLALCHEMY_DATABASE_URI'] = _with_psycopg2(test_database_url)
     with flask_app.app_context():
         # Smoke: conectar
         db.session.execute(text('SELECT 1'))

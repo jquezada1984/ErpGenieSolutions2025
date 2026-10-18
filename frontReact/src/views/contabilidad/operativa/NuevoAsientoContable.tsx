@@ -13,9 +13,9 @@ import {
   Spinner,
   Table,
 } from 'reactstrap';
-import { crearAsientoContable } from '../../_apis_/contabilidad';
-import { useConfigEmpresaScope } from '../../hooks/useConfigEmpresaScope';
-import ConfigEmpresaBar from '../../components/ConfigEmpresaBar';
+import { crearAsientoContable } from '../../../_apis_/contabilidad';
+import { useConfigEmpresaScope } from '../../../hooks/useConfigEmpresaScope';
+import ConfigEmpresaBar from '../../../components/ConfigEmpresaBar';
 import { formatMoneda } from './operativaUtils';
 
 const GET_MAESTROS = gql`

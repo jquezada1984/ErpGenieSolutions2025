@@ -14,6 +14,25 @@ def _first_non_empty_env(*names: str) -> str:
     )
 
 
+def _with_psycopg2(uri: str) -> str:
+    """SQLAlchemy 2.1 toma psycopg v3 si la URL es postgresql://.
+    Estas imágenes instalan psycopg2-binary.
+    """
+    value = (uri or '').strip()
+    if not value or value.lower().startswith('sqlite'):
+        return value
+    scheme, sep, rest = value.partition('://')
+    if not sep:
+        return value
+    driver = scheme.split('+', 1)
+    base = driver[0].lower()
+    if base not in ('postgresql', 'postgres'):
+        return value
+    if len(driver) > 1 and driver[1].lower() == 'psycopg2':
+        return value
+    return 'postgresql+psycopg2://' + rest
+
+
 def _require_postgres_url() -> str:
     """Gastos exige PostgreSQL (UUID, NUMERIC, obtener_siguiente_numero_gasto). Sin SQLite."""
     uri = (os.getenv('DATABASE_URL') or '').strip()
@@ -23,7 +42,7 @@ def _require_postgres_url() -> str:
         raise RuntimeError(
             'GastoPython no soporta SQLite. Configure DATABASE_URL PostgreSQL.'
         )
-    return uri
+    return _with_psycopg2(uri)
 
 
 class Config:

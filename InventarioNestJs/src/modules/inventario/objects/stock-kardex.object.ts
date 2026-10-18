@@ -8,22 +8,22 @@ export class AlmacenListado {
   @Field(() => ID, { nullable: true })
   id_empresa?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   almacen_ref?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   nombre?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   descripcion?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   direccion?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   codigo_postal?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   poblacion?: string | null;
 
   @Field(() => ID, { nullable: true })
@@ -32,10 +32,10 @@ export class AlmacenListado {
   @Field(() => ID, { nullable: true })
   id_provincia?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   telefono?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => Boolean, { nullable: true })
   estado?: boolean | null;
 }
 
@@ -53,13 +53,13 @@ export class StockListado {
   @Field(() => ID, { nullable: true })
   id_almacen?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   producto_ref?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   etiqueta?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   almacen_nombre?: string | null;
 
   @Field(() => Float, { nullable: true })
@@ -80,7 +80,7 @@ export class StockListado {
   @Field(() => Float, { nullable: true })
   stock_deseado?: number | null;
 
-  @Field({ nullable: true })
+  @Field(() => Boolean, { nullable: true })
   estado?: boolean | null;
 }
 
@@ -95,13 +95,13 @@ export class MovimientoListado {
   @Field(() => ID, { nullable: true })
   id_item?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   producto_ref?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   etiqueta?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   tipo_movimiento?: string | null;
 
   @Field(() => Float, { nullable: true })
@@ -113,22 +113,22 @@ export class MovimientoListado {
   @Field(() => Float, { nullable: true })
   costo_total?: number | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   fecha_movimiento?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   referencia?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   concepto?: string | null;
 
   @Field(() => ID, { nullable: true })
   id_almacen?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   almacen_nombre?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   modulo_origen?: string | null;
 
   @Field(() => ID, { nullable: true })
@@ -149,10 +149,10 @@ export class InventarioLineaListado {
   @Field(() => ID, { nullable: true })
   id_item?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   producto_ref?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   etiqueta?: string | null;
 
   @Field(() => Float, { nullable: true })
@@ -164,7 +164,7 @@ export class InventarioLineaListado {
   @Field(() => Float, { nullable: true })
   diferencia?: number | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   observacion?: string | null;
 }
 
@@ -182,31 +182,31 @@ export class LoteSerieListado {
   @Field(() => ID, { nullable: true })
   id_almacen?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   producto_ref?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   etiqueta?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   almacen_nombre?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   codigo_lote_serie?: string | null;
 
   @Field(() => Float, { nullable: true })
   cantidad_actual?: number | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   fecha_caducidad?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   fecha_limite_venta?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   observacion?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => Boolean, { nullable: true })
   estado?: boolean | null;
 }
 
@@ -215,16 +215,16 @@ export class StockAFechaListado {
   @Field(() => ID, { nullable: true })
   id_item?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   producto_ref?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   etiqueta?: string | null;
 
   @Field(() => ID, { nullable: true })
   id_almacen?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   almacen_nombre?: string | null;
 
   @Field(() => Float, { nullable: true })
@@ -239,16 +239,16 @@ export class StockReposicionListado {
   @Field(() => ID, { nullable: true })
   id_item?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   producto_ref?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   etiqueta?: string | null;
 
   @Field(() => ID, { nullable: true })
   id_almacen?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   almacen_nombre?: string | null;
 
   @Field(() => Float, { nullable: true })
@@ -269,16 +269,16 @@ export class StockValoracionListado {
   @Field(() => ID, { nullable: true })
   id_item?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   producto_ref?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   etiqueta?: string | null;
 
   @Field(() => ID, { nullable: true })
   id_almacen?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   almacen_nombre?: string | null;
 
   @Field(() => Float, { nullable: true })
@@ -299,7 +299,7 @@ export class TransferenciaListado {
   @Field(() => ID, { nullable: true })
   id_empresa?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   transferencia_ref?: string | null;
 
   @Field(() => ID, { nullable: true })
@@ -308,19 +308,19 @@ export class TransferenciaListado {
   @Field(() => ID, { nullable: true })
   id_almacen_destino?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   almacen_origen?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   almacen_destino?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   estado_transferencia?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   fecha_transferencia?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   observacion?: string | null;
 }
 
@@ -335,18 +335,18 @@ export class CambioMasivoListado {
   @Field(() => ID, { nullable: true })
   id_almacen?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   almacen_nombre?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   referencia?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   concepto?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   fecha_movimiento?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   estado_operacion?: string | null;
 }
